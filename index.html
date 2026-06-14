@@ -5,117 +5,119 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RT Image Matching Trainer</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
-    --bg:#0d1117;--panel:#131920;--panel2:#161e26;--border:#1e2d3d;
-    --accent:#00d4ff;--accent2:#ff6b35;--green:#39d353;
-    --text:#c9d1d9;--muted:#586069;--label:#8b949e;
-    --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+    --bg:#0a0d12;--bg2:#0e131a;--panel:#10151c;--panel2:#151b24;--elev:#1c2533;
+    --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+    --accent:#22d3ee;--accent-dim:rgba(34,211,238,.14);
+    --accent2:#ff7a45;--accent2-dim:rgba(255,122,69,.15);
+    --green:#34d399;--gold:#e3ba52;
+    --text:#e6edf3;--muted:#697585;--label:#9aa7b4;
+    --mono:'JetBrains Mono',ui-monospace,monospace;--sans:'Inter',system-ui,sans-serif;
+    --radius:9px;--radius-sm:6px;--shadow:0 8px 30px rgba(0,0,0,.45);
   }
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100vh;display:flex;flex-direction:column;overflow:hidden}
-  header{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0}
-  .header-left{display:flex;align-items:center;gap:12px}
-  .logo{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);letter-spacing:.12em;text-transform:uppercase}
-  .divider-v{width:1px;height:20px;background:var(--border)}
-  .case-label{font-size:11px;color:var(--label);font-family:var(--mono)}
+  body{background:radial-gradient(120% 80% at 50% -10%,#121821 0%,var(--bg) 60%);color:var(--text);font-family:var(--sans);height:100vh;display:flex;flex-direction:column;overflow:hidden;-webkit-font-smoothing:antialiased}
+  header{display:flex;align-items:center;justify-content:space-between;padding:11px 20px;border-bottom:1px solid var(--border);background:rgba(13,17,23,.7);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);flex-shrink:0;z-index:20}
+  .header-left{display:flex;align-items:center;gap:14px}
+  .logo{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);letter-spacing:.03em;display:flex;align-items:center;gap:8px}
+  .logo::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent)}
+  .divider-v{width:1px;height:22px;background:var(--border)}
+  .case-label{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.05em}
   .case-name{font-size:11px;color:var(--text);font-family:var(--mono);font-weight:600}
-  .case-select{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:3px;padding:4px 8px;cursor:pointer;outline:none}
-  .case-select:hover{border-color:var(--accent)}
+  .case-select{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text);background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;cursor:pointer;outline:none;transition:all .15s}
+  .case-select:hover{border-color:var(--border2);background:var(--elev)}
   .header-controls{display:flex;gap:8px;align-items:center}
-  button{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;cursor:pointer;border:1px solid var(--border);border-radius:3px;padding:5px 12px;transition:all .15s}
-  .btn-ghost{background:transparent;color:var(--label)}
-  .btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
-  .btn-primary{background:var(--accent);color:#000;border-color:var(--accent)}
-  .btn-primary:hover{background:#00b8d9}
-  .btn-warn{background:transparent;color:var(--accent2);border-color:var(--accent2)}
-  .btn-warn:hover{background:rgba(255,107,53,.1)}
+  button{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.03em;cursor:pointer;border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 13px;transition:all .15s ease;background:var(--panel2);color:var(--label)}
+  button:hover{background:var(--elev);color:var(--text);border-color:var(--border2)}
+  button:active{transform:translateY(1px)}
+  .btn-ghost{background:transparent}
+  .btn-primary{background:var(--accent);color:#04222a;border-color:transparent;font-weight:700}
+  .btn-primary:hover{background:#4be0f2;color:#04222a}
+  .btn-warn{background:transparent;color:var(--accent2);border-color:var(--accent2-dim)}
+  .btn-warn:hover{background:var(--accent2-dim);color:var(--accent2);border-color:transparent}
   main{flex:1;display:flex;flex-direction:column;min-height:0}
   /* two side-by-side views */
-  .views{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0}
+  .views{flex:1;display:grid;grid-template-columns:1fr 1fr;min-height:0;gap:1px;background:var(--border)}
   .views.solo-ap,.views.solo-lat{grid-template-columns:1fr}
   .views.solo-ap #latArea,.views.solo-lat #apArea{display:none}
   .views.solo-ap #apArea,.views.solo-lat #latArea{grid-column:1}
-  .viewer-area{position:relative;background:#000;overflow:hidden;cursor:crosshair;min-height:0;border-right:1px solid var(--border)}
-  .viewer-area:last-child{border-right:none}
+  .viewer-area{position:relative;background:#000;overflow:hidden;cursor:crosshair;min-height:0}
   .viewer-area:focus{outline:none}
-  .viewer-area.selected{box-shadow:inset 0 0 0 2px #d4b24a}
-  .viewer-area.selected .view-tag{color:#d4b24a;border:1px solid #d4b24a}
+  .viewer-area.selected{box-shadow:inset 0 0 0 2px var(--gold)}
+  .viewer-area.selected .view-tag{color:var(--gold);border-color:rgba(227,186,82,.5)}
   .viewer-area canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
   .refCanvas{z-index:1}
   .porCanvas{z-index:2}
-  .view-tag{position:absolute;z-index:11;bottom:8px;right:12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.18em;color:var(--text);background:rgba(0,0,0,.55);padding:3px 9px;border-radius:2px;pointer-events:none}
+  .view-tag{position:absolute;z-index:11;bottom:10px;right:12px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.14em;color:var(--text);background:rgba(10,13,18,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--border);padding:4px 10px;border-radius:7px;pointer-events:none}
   /* anatomical direction labels */
-  .dir-label{position:absolute;z-index:11;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:rgba(240,225,170,.92);text-shadow:0 0 4px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9);pointer-events:none;user-select:none}
-  .dir-top{top:6px;left:50%;transform:translateX(-50%)}
-  .dir-bottom{bottom:24px;left:50%;transform:translateX(-50%)}
-  .dir-left{left:6px;top:50%;transform:translateY(-50%)}
-  .dir-right{right:6px;top:50%;transform:translateY(-50%)}
+  .dir-label{position:absolute;z-index:11;font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.1em;color:rgba(240,225,170,.9);text-shadow:0 0 5px rgba(0,0,0,.95);pointer-events:none;user-select:none}
+  .dir-top{top:8px;left:50%;transform:translateX(-50%)}
+  .dir-bottom{bottom:28px;left:50%;transform:translateX(-50%)}
+  .dir-left{left:8px;top:50%;transform:translateY(-50%)}
+  .dir-right{right:8px;top:50%;transform:translateY(-50%)}
   /* per-view toolbar (zoom + fullscreen) */
-  .view-tools{position:absolute;z-index:12;top:28px;left:50%;transform:translateX(-50%);display:flex;gap:5px;opacity:0;transition:opacity .15s}
+  .view-tools{position:absolute;z-index:12;top:32px;left:50%;transform:translateX(-50%);display:flex;gap:6px;opacity:0;transition:opacity .15s}
   .viewer-area:hover .view-tools{opacity:1}
-  .vt-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;font-weight:600;color:var(--text);background:rgba(13,17,23,.8);border:1px solid var(--border);border-radius:4px;cursor:pointer;line-height:1;user-select:none}
-  .vt-btn:hover{border-color:var(--accent);color:var(--accent)}
-  .vt-zoom{position:absolute;z-index:11;bottom:8px;left:12px;font-family:var(--mono);font-size:10px;color:rgba(0,212,255,.65);background:rgba(0,0,0,.5);padding:2px 7px;border-radius:2px;pointer-events:none}
-  .img-label{position:absolute;z-index:10;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.12em;padding:4px 8px;border-radius:2px;pointer-events:none}
-  .lbl-ref{top:10px;left:12px;color:var(--accent);background:rgba(0,0,0,.6)}
-  .lbl-por{top:10px;right:12px;color:var(--accent2);background:rgba(0,0,0,.6)}
-  .view-blend{position:absolute;z-index:12;bottom:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:7px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 11px;pointer-events:auto;white-space:nowrap;user-select:none}
-  .vb-lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.08em}
+  .vt-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text);background:rgba(10,13,18,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:8px;cursor:pointer;line-height:1;user-select:none;transition:all .15s}
+  .vt-btn:hover{background:var(--accent-dim);border-color:rgba(34,211,238,.4);color:var(--accent)}
+  .vt-zoom{position:absolute;z-index:11;bottom:10px;left:12px;font-family:var(--mono);font-size:10px;color:var(--accent);background:rgba(10,13,18,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:3px 8px;border-radius:6px;pointer-events:none}
+  .view-blend{position:absolute;z-index:12;bottom:11px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:9px;background:rgba(10,13,18,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:999px;padding:6px 13px;pointer-events:auto;white-space:nowrap;user-select:none;box-shadow:var(--shadow)}
+  .vb-lbl{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.05em}
   .vb-lbl.ref{color:var(--accent)}
   .vb-lbl.por{color:var(--accent2)}
-  .vb-slider{-webkit-appearance:none;appearance:none;width:90px;height:2px;border-radius:1px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--accent) 0%,var(--accent2) 100%)}
-  .vb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.55);cursor:pointer}
-  .vb-slider::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.55);cursor:pointer}
+  .vb-slider{-webkit-appearance:none;appearance:none;width:96px;height:3px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to right,var(--accent),var(--accent2))}
+  .vb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.6);cursor:pointer}
+  .vb-slider::-moz-range-thumb{width:14px;height:14px;border:none;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.6);cursor:pointer}
   /* vertical contrast slider on the side of each image */
-  .view-contrast{position:absolute;z-index:12;top:50%;right:14px;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:7px;background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:10px 7px;pointer-events:auto;user-select:none}
+  .view-contrast{position:absolute;z-index:12;top:50%;right:16px;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:8px;background:rgba(10,13,18,.6);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:14px;padding:12px 9px;pointer-events:auto;user-select:none;box-shadow:var(--shadow)}
   .view-contrast.show{display:flex}
-  .vc-lbl{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.08em;color:var(--accent)}
+  .vc-lbl{font-family:var(--mono);font-size:8px;font-weight:600;letter-spacing:.1em;color:var(--accent)}
   .vc-val{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text)}
-  .vc-slider{writing-mode:vertical-lr;direction:rtl;-webkit-appearance:slider-vertical;appearance:slider-vertical;width:3px;height:120px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to top,#222 0%,var(--accent) 100%)}
-  .vc-slider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.55);cursor:pointer}
-  .vc-slider::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid rgba(0,0,0,.55);cursor:pointer}
-  .controls-strip{flex-shrink:0;background:var(--panel);border-top:1px solid var(--border);padding:10px 18px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
-  .ctrl-group{display:flex;flex-direction:column;gap:6px}
-  .ctrl-group-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
-  .ctrl-row{display:flex;align-items:center;gap:6px}
+  .vc-slider{writing-mode:vertical-lr;direction:rtl;-webkit-appearance:slider-vertical;appearance:slider-vertical;width:4px;height:120px;border-radius:2px;outline:none;cursor:pointer;background:linear-gradient(to top,#2a3340,var(--accent))}
+  .vc-slider::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.6);cursor:pointer}
+  .vc-slider::-moz-range-thumb{width:15px;height:15px;border:none;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.6);cursor:pointer}
+  .controls-strip{flex-shrink:0;background:var(--panel);border-top:1px solid var(--border);padding:13px 20px;display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+  .ctrl-group{display:flex;flex-direction:column;gap:7px}
+  .ctrl-group-title{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .ctrl-row{display:flex;align-items:center;gap:7px}
   .ctrl-label{font-family:var(--mono);font-size:11px;color:var(--label);width:30px;text-align:right}
-  .ctrl-btn{width:26px;height:26px;padding:0;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:3px;font-family:var(--mono)}
-  .ctrl-btn:hover{border-color:var(--accent);color:var(--accent)}
-  .ctrl-btn:active{background:rgba(0,212,255,.1)}
-  .ctrl-val{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);width:50px;text-align:center;background:#000;border:1px solid var(--border);border-radius:3px;padding:3px 5px}
+  .ctrl-btn{width:28px;height:28px;padding:0;display:flex;align-items:center;justify-content:center;font-size:13px;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--mono);transition:all .15s}
+  .ctrl-btn:hover{background:var(--accent-dim);border-color:rgba(34,211,238,.4);color:var(--accent)}
+  .ctrl-btn:active{transform:translateY(1px)}
+  .ctrl-val{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--text);width:54px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 5px}
   .ctrl-unit{font-family:var(--mono);font-size:10px;color:var(--muted)}
-  .step-row{display:flex;gap:4px;align-items:center}
-  .step-btn{font-size:10px;padding:3px 8px;background:transparent;color:var(--muted)}
-  .step-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(0,212,255,.08)}
-  .status-box{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
-  .error-display{display:flex;gap:13px}
-  .error-item{display:flex;flex-direction:column;align-items:center;gap:2px}
+  .step-row{display:flex;gap:5px;align-items:center}
+  .step-btn{font-size:10px;padding:5px 9px;background:var(--panel2);color:var(--muted)}
+  .step-btn.active{color:var(--accent);border-color:rgba(34,211,238,.4);background:var(--accent-dim)}
+  .status-box{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+  .error-display{display:flex;gap:8px}
+  .error-item{display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--panel2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:5px 11px;min-width:58px}
   .error-val{font-family:var(--mono);font-size:14px;font-weight:600}
-  .error-good{color:var(--green)}.error-ok{color:#f0c27f}.error-bad{color:#f47067}
+  .error-good{color:var(--green)}.error-ok{color:#f0c27f}.error-bad{color:#f87171}
   .error-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
   .status-msg{font-family:var(--mono);font-size:11px;color:var(--label)}
   .hint-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .hint-item{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;gap:4px;align-items:center}
-  .kbd{display:inline-block;font-family:var(--mono);font-size:9px;background:var(--panel2);border:1px solid var(--border);border-radius:2px;padding:1px 4px;color:var(--muted)}
-  .result-banner{display:none;position:fixed;top:58px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--green);border-radius:4px;padding:10px 22px;font-family:var(--mono);font-size:12px;color:var(--green);z-index:50;box-shadow:0 4px 24px rgba(0,0,0,.5);animation:slideIn .25s ease}
-  @keyframes slideIn{from{opacity:0;top:40px}to{opacity:1;top:58px}}
-  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center}
+  .kbd{display:inline-block;font-family:var(--mono);font-size:9px;background:var(--panel2);border:1px solid var(--border2);border-bottom-width:2px;border-radius:5px;padding:2px 5px;color:var(--label)}
+  .result-banner{display:none;position:fixed;top:64px;left:50%;transform:translateX(-50%);background:rgba(16,21,28,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(52,211,153,.5);border-radius:10px;padding:12px 24px;font-family:var(--mono);font-size:12px;color:var(--green);z-index:50;box-shadow:var(--shadow);animation:slideIn .25s ease}
+  @keyframes slideIn{from{opacity:0;top:50px}to{opacity:1;top:64px}}
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(5,8,12,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:100;align-items:center;justify-content:center}
   .modal-bg.open{display:flex}
-  .modal{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:26px 30px;max-width:430px;width:90%}
-  .modal h2{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.1em;margin-bottom:14px}
-  .modal p{font-size:13px;color:var(--label);line-height:1.7;margin-bottom:10px}
-  .modal .modal-close{margin-top:6px;width:100%}
+  .modal{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:16px;padding:30px 34px;max-width:460px;width:90%;box-shadow:var(--shadow)}
+  .modal h2{font-family:var(--mono);font-size:14px;color:var(--accent);letter-spacing:.06em;margin-bottom:16px}
+  .modal p{font-size:13px;color:var(--label);line-height:1.75;margin-bottom:12px}
+  .modal .modal-close{margin-top:10px;width:100%;padding:10px}
   /* image-matching tool buttons */
-  .tool-sep{width:1px;height:20px;background:var(--border);margin:0 2px}
-  .btn-tool{background:transparent;color:var(--label);display:inline-flex;align-items:center;gap:6px}
-  .btn-tool:hover{border-color:var(--accent);color:var(--accent)}
-  .btn-tool.active{background:rgba(0,212,255,.14);color:var(--accent);border-color:var(--accent)}
+  .tool-sep{width:1px;height:22px;background:var(--border);margin:0 3px}
+  .btn-tool{background:transparent;color:var(--label);display:inline-flex;align-items:center;gap:7px}
+  .btn-tool:hover{background:var(--elev);color:var(--text)}
+  .btn-tool.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(34,211,238,.45)}
   .btn-tool .glyph{font-size:13px;line-height:1}
   /* spyglass lens drawn over a view (square) */
-  .spy-ring{position:absolute;z-index:9;border:2px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 14px rgba(255,107,53,.4);pointer-events:none;display:none}
-  .spy-ring::after{content:'';position:absolute;inset:0;border:1px solid rgba(0,212,255,.5)}
-  .spy-handle{position:absolute;width:14px;height:14px;right:-7px;bottom:-7px;background:var(--accent2);border:2px solid #000;border-radius:2px;pointer-events:auto;cursor:nwse-resize}
+  .spy-ring{position:absolute;z-index:9;border:2px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 18px rgba(255,122,69,.45);pointer-events:none;display:none}
+  .spy-ring::after{content:'';position:absolute;inset:0;border:1px solid rgba(34,211,238,.5)}
+  .spy-handle{position:absolute;width:14px;height:14px;right:-7px;bottom:-7px;background:var(--accent2);border:2px solid #000;border-radius:3px;pointer-events:auto;cursor:nwse-resize}
 </style>
 </head>
 <body>
@@ -133,6 +135,7 @@
     <button class="btn-tool" id="washBtn" onclick="toggleWash()"><span class="glyph">&#9681;</span>Color Wash</button>
     <button class="btn-tool" id="spyBtn" onclick="toggleSpy()"><span class="glyph">&#128269;</span>Spyglass</button>
     <button class="btn-tool" id="contrastBtn" onclick="toggleContrast()"><span class="glyph">&#9728;</span>Contrast</button>
+    <button class="btn-tool" id="landmarkBtn" onclick="toggleLandmarks()"><span class="glyph">&#128205;</span>Landmarks</button>
     <div class="tool-sep"></div>
     <button class="btn-ghost" onclick="showHelp()">How to use</button>
     <button class="btn-warn" onclick="resetShift()">Reset</button>
@@ -144,8 +147,6 @@
     <div class="viewer-area" id="apArea" tabindex="0">
       <canvas id="apRef" class="refCanvas"></canvas>
       <canvas id="apPor" class="porCanvas"></canvas>
-      <div class="img-label lbl-ref">3D REF</div>
-      <div class="img-label lbl-por">2D PORTAL</div>
       <div class="view-tools">
         <div class="vt-btn" title="Zoom out" onclick="zoomBtn('ap',-1)">&minus;</div>
         <div class="vt-btn" title="Reset zoom" onclick="zoomReset('ap')">&#9678;</div>
@@ -159,14 +160,12 @@
       <div class="dir-label dir-left">R</div>
       <div class="dir-label dir-right">L</div>
       <div class="spy-ring" id="apSpy"><div class="spy-handle"></div></div>
-      <div class="view-blend"><span class="vb-lbl ref">REF</span><input type="range" class="vb-slider" id="blendAp" min="0" max="100" value="50" oninput="updateBlend('ap',this.value)"><span class="vb-lbl por">DRR</span></div>
+      <div class="view-blend"><span class="vb-lbl ref">0%</span><input type="range" class="vb-slider" id="blendAp" min="0" max="100" value="50" oninput="updateBlend('ap',this.value)"><span class="vb-lbl por">100%</span></div>
       <div class="view-contrast" id="contrastAp"><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValAp">100%</span></div>
     </div>
     <div class="viewer-area" id="latArea" tabindex="0">
       <canvas id="latRef" class="refCanvas"></canvas>
       <canvas id="latPor" class="porCanvas"></canvas>
-      <div class="img-label lbl-ref">3D REF</div>
-      <div class="img-label lbl-por">2D PORTAL</div>
       <div class="view-tools">
         <div class="vt-btn" title="Zoom out" onclick="zoomBtn('lat',-1)">&minus;</div>
         <div class="vt-btn" title="Reset zoom" onclick="zoomReset('lat')">&#9678;</div>
@@ -180,7 +179,7 @@
       <div class="dir-label dir-left" id="latDirLeft">POST</div>
       <div class="dir-label dir-right" id="latDirRight">ANT</div>
       <div class="spy-ring" id="latSpy"><div class="spy-handle"></div></div>
-      <div class="view-blend"><span class="vb-lbl ref">REF</span><input type="range" class="vb-slider" id="blendLat" min="0" max="100" value="50" oninput="updateBlend('lat',this.value)"><span class="vb-lbl por">DRR</span></div>
+      <div class="view-blend"><span class="vb-lbl ref">0%</span><input type="range" class="vb-slider" id="blendLat" min="0" max="100" value="50" oninput="updateBlend('lat',this.value)"><span class="vb-lbl por">100%</span></div>
       <div class="view-contrast" id="contrastLat"><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValLat">100%</span></div>
     </div>
   </div>
@@ -276,7 +275,7 @@
     <p>Each view has its <strong style="color:var(--text)">own blend slider</strong> (in the bar below) to fade between reference and portal independently, then press <strong style="color:var(--accent)">Check Match</strong>. Press <strong style="color:var(--text)">Ctrl+A</strong> to flip the selected view's slider to its mirror position (e.g. 80% &rarr; 20%) &mdash; tap it repeatedly to flicker between the two images and make misalignment jump out. <strong style="color:var(--text)">[</strong> and <strong style="color:var(--text)">]</strong> nudge the selected view's slider.</p>
     <p><strong style="color:var(--text)">Drag to move:</strong> click and hold <strong style="color:var(--text)">inside the red dotted ring</strong> and drag to slide that portal image into place. <strong style="color:#ff5a5a">Drag outside the ring to rotate</strong> the image &mdash; roll on the AP/PA view, pitch on the lateral &mdash; spinning it around the isocenter like a rotation handle. <strong style="color:var(--text)">Zoom:</strong> scroll wheel or +/- to zoom toward the cursor. When zoomed in, hold <strong style="color:var(--text)">Shift</strong> and drag (or use the middle mouse button) to pan. <strong style="color:var(--text)">Fullscreen:</strong> double-click a view (or press F); double-click again or press Esc to return.</p>
     <p><strong style="color:var(--accent2)">Color Wash (C):</strong> tints the DRR orange and the portal blue. Where the two align, the colors combine toward <strong style="color:var(--text)">white</strong> &mdash; misaligned anatomy shows orange/blue fringing. The blend slider biases emphasis between the orange and blue layers. <strong style="color:var(--accent2)">Spyglass (S):</strong> a movable square lens that reveals the DRR over the portal. Click/drag to move it, drag the corner handle or scroll to resize, and use the blend slider to fade the DRR opacity inside the lens.</p>
-    <p>Keyboard: arrows = Lat/Lng &middot; PgUp/PgDn = Vert &middot; Q/E = roll &middot; A/D = pitch &middot; +/- = zoom &middot; F = fullscreen &middot; C = wash &middot; S = spyglass &middot; [ ] = blend &middot; <strong style="color:var(--text)">Ctrl+A = flip slider</strong> &middot; <strong style="color:var(--text)">Ctrl+Z = undo</strong> &middot; R = reset &middot; N = new</p>
+    <p>Keyboard: arrows = Lat/Lng &middot; PgUp/PgDn = Vert &middot; Q/E = roll &middot; A/D = pitch &middot; +/- = zoom &middot; F = fullscreen &middot; C = wash &middot; S = spyglass &middot; L = landmarks &middot; [ ] = blend &middot; <strong style="color:var(--text)">Ctrl+A = flip slider</strong> &middot; <strong style="color:var(--text)">Ctrl+Z = undo</strong> &middot; R = reset &middot; N = new</p>
     <button class="btn-primary modal-close" onclick="closeHelp()">Got it</button>
   </div>
 </div>
@@ -295,6 +294,7 @@ let tool=null; // null | 'wash' | 'spy'
 let activeView='ap'; // which view the arrow keys drive: 'ap' | 'lat'
 let contrast=100;    // % applied to both images
 let contrastOn=false;
+let showLandmarks=false;  // overlay anatomical matching landmarks
 
 const views={
   // iso = isocenter as a fraction of the view (spine case): AP/PA on the midline,
@@ -362,6 +362,81 @@ function applyCase(key){
   views.ap.img.src=c.ap;
   views.lat.img.src=c.lat;
   randomizeShift();           // fresh random offset for the new case (also refreshes readouts)
+}
+
+// Anatomical matching landmarks per case/view. x,y are fractions (0..1) of the IMAGE
+// (the fit rect), so they track zoom/pan. side:'left' draws the label left of the dot.
+//   • brain : placed from the actual skull images
+//   • chest : left empty until positions are verified on that image
+const LANDMARKS = {
+  chest: { ap:[], lat:[] },
+  brain: {
+    ap:[
+      {x:0.50,y:0.19,label:'Sagittal suture'},
+      {x:0.47,y:0.47,label:'Frontal sinus'},
+      {x:0.40,y:0.55,label:'Orbital roof (R)'},
+      {x:0.61,y:0.55,label:'Orbital roof (L)', side:'left'},
+      {x:0.50,y:0.60,label:'Ethmoid sinus'},
+      {x:0.36,y:0.63,label:'Petrous ridge'},
+      {x:0.65,y:0.63,label:'Petrous ridge', side:'left'},
+      {x:0.50,y:0.69,label:'Nasal septum'},
+      {x:0.37,y:0.75,label:'Maxillary sinus (R)'},
+      {x:0.63,y:0.75,label:'Maxillary sinus (L)', side:'left'}
+    ],
+    lat:[
+      {x:0.46,y:0.12,label:'Vertex'},
+      {x:0.21,y:0.44,label:'Frontal sinus'},
+      {x:0.32,y:0.50,label:'Ethmoid sinus', side:'left'},
+      {x:0.45,y:0.50,label:'Sella turcica'},
+      {x:0.43,y:0.55,label:'Sphenoid sinus', side:'left'},
+      {x:0.27,y:0.60,label:'Maxillary sinus'},
+      {x:0.52,y:0.58,label:'Clivus', side:'left'},
+      {x:0.57,y:0.54,label:'EAM', side:'left'},
+      {x:0.61,y:0.67,label:'Foramen magnum', side:'left'},
+      {x:0.27,y:0.69,label:'Hard palate'}
+    ]
+  }
+};
+function toggleLandmarks(){
+  showLandmarks=!showLandmarks;
+  document.getElementById('landmarkBtn').classList.toggle('active', showLandmarks);
+  const set=LANDMARKS[currentCase]||{};
+  const has=(set.ap&&set.ap.length)||(set.lat&&set.lat.length);
+  if(showLandmarks && !has){
+    document.getElementById('statusMsg').textContent='Landmarks not set for this case yet';
+  }
+  render();
+}
+// Draw the landmark markers + labels on a view (screen space, tracks zoom/pan)
+function drawLandmarks(v,key,ctx){
+  const set=(LANDMARKS[currentCase]||{})[key];
+  if(!set||!set.length) return;
+  const f=v.fit;
+  ctx.save();
+  ctx.font='600 11px "IBM Plex Mono",monospace';
+  ctx.textBaseline='middle';
+  set.forEach(lm=>{
+    const px=f.x+lm.x*f.w, py=f.y+lm.y*f.h;
+    const sx=(px-v.W/2)*v.zoom+v.W/2+v.panX;
+    const sy=(py-v.H/2)*v.zoom+v.H/2+v.panY;
+    const dir=(lm.side==='left')?-1:1;
+    const lead=10, gap=5;
+    const tw=ctx.measureText(lm.label).width;
+    const tx=(dir>0)?(sx+lead+gap):(sx-lead-gap-tw);
+    // leader line
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(sx+dir*lead,sy);
+    ctx.strokeStyle='rgba(255,221,87,0.7)'; ctx.lineWidth=1; ctx.stroke();
+    // label background
+    ctx.fillStyle='rgba(13,17,23,0.82)';
+    ctx.fillRect(tx-4,sy-9,tw+8,18);
+    ctx.fillStyle='rgba(255,221,87,0.98)';
+    ctx.fillText(lm.label,tx,sy+0.5);
+    // marker dot
+    ctx.beginPath(); ctx.arc(sx,sy,3.5,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,221,87,0.98)'; ctx.fill();
+    ctx.lineWidth=1.4; ctx.strokeStyle='rgba(0,0,0,0.85)'; ctx.stroke();
+  });
+  ctx.restore();
 }
 
 function computeFit(v){
@@ -558,6 +633,9 @@ function renderView(v, key){
   // Rotation ring overlay (always on top of the portal canvas, screen-space).
   // Hidden in spyglass mode to keep the lens view clean.
   if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, ix, iy);
+  // landmarks belong to the reference layer (drawn on rc), so they fade out as you
+  // blend toward the portal and never sit on top of the moving portal image
+  if(showLandmarks) drawLandmarks(v, key, rc);
 }
 
 function render(){ renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
@@ -1013,6 +1091,7 @@ document.addEventListener('keydown',e=>{
     case 'f':case 'F':toggleSolo(hoverView);break;
     case 'c':case 'C':toggleWash();break;
     case 's':case 'S':toggleSpy();break;
+    case 'l':case 'L':toggleLandmarks();break;
     case 'Escape':if(tool){tool=null;afterToolChange();}else if(soloView){toggleSolo(soloView);}break;
   }
 });
