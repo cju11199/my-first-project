@@ -136,6 +136,7 @@
     <button class="btn-tool" id="spyBtn" onclick="toggleSpy()"><span class="glyph">&#128269;</span>Spyglass</button>
     <button class="btn-tool" id="contrastBtn" onclick="toggleContrast()"><span class="glyph">&#9728;</span>Contrast</button>
     <button class="btn-tool" id="landmarkBtn" onclick="toggleLandmarks()"><span class="glyph">&#128205;</span>Landmarks</button>
+    <button class="btn-tool active" id="gridBtn" onclick="toggleGrid()"><span class="glyph">&#8853;</span>Iso/Grid</button>
     <div class="tool-sep"></div>
     <button class="btn-ghost" onclick="showHelp()">How to use</button>
     <button class="btn-warn" onclick="resetShift()">Reset</button>
@@ -275,7 +276,7 @@
     <p>Each view has its <strong style="color:var(--text)">own blend slider</strong> (in the bar below) to fade between reference and portal independently, then press <strong style="color:var(--accent)">Check Match</strong>. Press <strong style="color:var(--text)">Ctrl+A</strong> to flip the selected view's slider to its mirror position (e.g. 80% &rarr; 20%) &mdash; tap it repeatedly to flicker between the two images and make misalignment jump out. <strong style="color:var(--text)">[</strong> and <strong style="color:var(--text)">]</strong> nudge the selected view's slider.</p>
     <p><strong style="color:var(--text)">Drag to move:</strong> click and hold <strong style="color:var(--text)">inside the red dotted ring</strong> and drag to slide that portal image into place. <strong style="color:#ff5a5a">Drag outside the ring to rotate</strong> the image &mdash; roll on the AP/PA view, pitch on the lateral &mdash; spinning it around the isocenter like a rotation handle. <strong style="color:var(--text)">Zoom:</strong> scroll wheel or +/- to zoom toward the cursor. When zoomed in, hold <strong style="color:var(--text)">Shift</strong> and drag (or use the middle mouse button) to pan. <strong style="color:var(--text)">Fullscreen:</strong> double-click a view (or press F); double-click again or press Esc to return.</p>
     <p><strong style="color:var(--accent2)">Color Wash (C):</strong> tints the DRR orange and the portal blue. Where the two align, the colors combine toward <strong style="color:var(--text)">white</strong> &mdash; misaligned anatomy shows orange/blue fringing. The blend slider biases emphasis between the orange and blue layers. <strong style="color:var(--accent2)">Spyglass (S):</strong> a movable square lens that reveals the DRR over the portal. Click/drag to move it, drag the corner handle or scroll to resize, and use the blend slider to fade the DRR opacity inside the lens.</p>
-    <p>Keyboard: arrows = Lat/Lng &middot; PgUp/PgDn = Vert &middot; Q/E = roll &middot; A/D = pitch &middot; +/- = zoom &middot; F = fullscreen &middot; C = wash &middot; S = spyglass &middot; L = landmarks &middot; [ ] = blend &middot; <strong style="color:var(--text)">Ctrl+A = flip slider</strong> &middot; <strong style="color:var(--text)">Ctrl+Z = undo</strong> &middot; R = reset &middot; N = new</p>
+    <p>Keyboard: arrows = Lat/Lng &middot; PgUp/PgDn = Vert &middot; Q/E = roll &middot; A/D = pitch &middot; +/- = zoom &middot; F = fullscreen &middot; C = wash &middot; S = spyglass &middot; L = landmarks &middot; G = iso/grid &middot; [ ] = blend &middot; <strong style="color:var(--text)">Ctrl+A = flip slider</strong> &middot; <strong style="color:var(--text)">Ctrl+Z = undo</strong> &middot; R = reset &middot; N = new</p>
     <button class="btn-primary modal-close" onclick="closeHelp()">Got it</button>
   </div>
 </div>
@@ -295,6 +296,7 @@ let activeView='ap'; // which view the arrow keys drive: 'ap' | 'lat'
 let contrast=100;    // % applied to both images
 let contrastOn=false;
 let showLandmarks=false;  // overlay anatomical matching landmarks
+let showGrid=true;        // isocenter crosshair + cm tick grid
 
 const views={
   // iso = isocenter as a fraction of the view (spine case): AP/PA on the midline,
@@ -407,6 +409,11 @@ function toggleLandmarks(){
   }
   render();
 }
+function toggleGrid(){
+  showGrid=!showGrid;
+  document.getElementById('gridBtn').classList.toggle('active', showGrid);
+  render();
+}
 // Draw the landmark markers + labels on a view (screen space, tracks zoom/pan)
 function drawLandmarks(v,key,ctx){
   const set=(LANDMARKS[currentCase]||{})[key];
@@ -458,6 +465,7 @@ function resizeView(v){
 function resizeAll(){ resizeView(views.ap); resizeView(views.lat); render(); }
 
 function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx){
+  if(!showGrid) return;
   if(cx===undefined) cx=W/2;
   if(cy===undefined) cy=H/2;
   ctx.save();
@@ -1092,6 +1100,7 @@ document.addEventListener('keydown',e=>{
     case 'c':case 'C':toggleWash();break;
     case 's':case 'S':toggleSpy();break;
     case 'l':case 'L':toggleLandmarks();break;
+    case 'g':case 'G':toggleGrid();break;
     case 'Escape':if(tool){tool=null;afterToolChange();}else if(soloView){toggleSolo(soloView);}break;
   }
 });
