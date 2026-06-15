@@ -339,8 +339,26 @@ function tintCanvas(ctx,w,h,mr,mg,mb){
   ctx.putImageData(id,0,0);
 }
 
+// Feather the image edges to transparent so a dragged image fades into the black
+// pane instead of showing a hard rectangular outline (looks cohesive when moved).
+function buildFeather(v){
+  const img=v.img, w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+  if(!w||!h){ v.fimg=null; return; }
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const m=c.getContext('2d');
+  m.drawImage(img,0,0);
+  const f=Math.round(Math.min(w,h)*0.06);   // feather band width
+  m.globalCompositeOperation='destination-out';
+  let g;
+  g=m.createLinearGradient(0,0,f,0);   g.addColorStop(0,'#000'); g.addColorStop(1,'rgba(0,0,0,0)'); m.fillStyle=g; m.fillRect(0,0,f,h);
+  g=m.createLinearGradient(w,0,w-f,0); g.addColorStop(0,'#000'); g.addColorStop(1,'rgba(0,0,0,0)'); m.fillStyle=g; m.fillRect(w-f,0,f,h);
+  g=m.createLinearGradient(0,0,0,f);   g.addColorStop(0,'#000'); g.addColorStop(1,'rgba(0,0,0,0)'); m.fillStyle=g; m.fillRect(0,0,w,f);
+  g=m.createLinearGradient(0,h,0,h-f); g.addColorStop(0,'#000'); g.addColorStop(1,'rgba(0,0,0,0)'); m.fillStyle=g; m.fillRect(0,h-f,w,f);
+  m.globalCompositeOperation='source-over';
+  v.fimg=c;
+}
 function setup(v){
-  v.img.onload=()=>{ v.ready=true; resizeAll(); };
+  v.img.onload=()=>{ buildFeather(v); v.ready=true; resizeAll(); };
   v.refCtx=document.getElementById(v.ref).getContext('2d');
   v.porCtx=document.getElementById(v.por).getContext('2d');
 }
@@ -495,7 +513,7 @@ function renderView(v, key){
     ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
     ctx.scale(v.zoom, v.zoom);
     ctx.translate(-v.W/2, -v.H/2);
-    ctx.drawImage(v.img,f.x,f.y,f.w,f.h);
+    ctx.drawImage(v.fimg||v.img,f.x,f.y,f.w,f.h);
     ctx.restore();
   }
   function drawPor(ctx){
@@ -508,7 +526,7 @@ function renderView(v, key){
     ctx.rotate(rot);
     ctx.scale(sx,sy);
     ctx.translate(-ix,-iy);
-    ctx.drawImage(v.img,f.x,f.y,f.w,f.h);
+    ctx.drawImage(v.fimg||v.img,f.x,f.y,f.w,f.h);
     ctx.restore();
   }
   function drawCollimator(ctx){
