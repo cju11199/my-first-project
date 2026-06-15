@@ -499,6 +499,22 @@ function renderView(v, key){
     ctx.drawImage(v.img,f.x,f.y,f.w,f.h);
     ctx.restore();
   }
+  function drawVignette(ctx, W, H) {
+    const ex = W * 0.22, ey = H * 0.22;
+    let g;
+    g = ctx.createLinearGradient(0,0,ex,0);
+    g.addColorStop(0,'rgba(0,0,0,0.97)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,ex,H);
+    g = ctx.createLinearGradient(W,0,W-ex,0);
+    g.addColorStop(0,'rgba(0,0,0,0.97)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(W-ex,0,ex,H);
+    g = ctx.createLinearGradient(0,0,0,ey);
+    g.addColorStop(0,'rgba(0,0,0,0.97)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,ey);
+    g = ctx.createLinearGradient(0,H,0,H-ey);
+    g.addColorStop(0,'rgba(0,0,0,0.97)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,H-ey,W,ey);
+  }
   function drawPor(ctx){
     ctx.save();
     if(contrast!==100) ctx.filter='contrast('+contrast+'%)';
@@ -537,6 +553,7 @@ function renderView(v, key){
     p.drawImage(sc,0,0);
     p.globalCompositeOperation='source-over';
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,255,255,0.8)',ix,iy,cmPx);
+    drawVignette(p,v.W,v.H);
     document.getElementById(v.por).style.opacity=1;
   }
   else if(tool==='spy'){
@@ -546,6 +563,7 @@ function renderView(v, key){
     // between portal and reference within the spyglass region.
     drawPor(p);
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.95)',ix,iy,cmPx);
+    drawVignette(p,v.W,v.H);
     const sp=v.spy;
     p.save();
     p.beginPath(); p.rect(sp.x-sp.r, sp.y-sp.r, sp.r*2, sp.r*2); p.clip();
@@ -562,8 +580,10 @@ function renderView(v, key){
     // ── NORMAL (blend) ──
     drawRef(rc);
     drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);
+    drawVignette(rc,v.W,v.H);
     drawPor(p);
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.95)',ix,iy,cmPx);
+    drawVignette(p,v.W,v.H);
     document.getElementById(v.por).style.opacity=(v.blend/100).toFixed(3);
   }
   // Rotation ring overlay (always on top of the portal canvas, screen-space).
