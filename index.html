@@ -512,17 +512,6 @@ function renderView(v, key){
     ctx.drawImage(v.img,f.x,f.y,f.w,f.h);
     ctx.restore();
   }
-  function drawCollimator(ctx){
-    ctx.save();
-    ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
-    ctx.scale(v.zoom, v.zoom);
-    ctx.translate(-v.W/2, -v.H/2);
-    ctx.translate(ix+dx,iy+dy); ctx.rotate(rot); ctx.scale(sx,sy);
-    ctx.strokeStyle='rgba(255,107,53,0.5)'; ctx.lineWidth=1.5*v.scale/v.zoom; ctx.setLineDash([5,4]);
-    const fw=f.w*0.46, fh=f.h*0.46; ctx.strokeRect(-fw,-fh,fw*2,fh*2);
-    ctx.restore();
-  }
-
   const rc=v.refCtx, p=v.porCtx;
   rc.clearRect(0,0,v.W,v.H); rc.fillStyle='#000'; rc.fillRect(0,0,v.W,v.H);
   p.clearRect(0,0,v.W,v.H); p.fillStyle='#000'; p.fillRect(0,0,v.W,v.H);
@@ -547,7 +536,6 @@ function renderView(v, key){
     tintCanvas(s,v.W,v.H,0.0,0.55*porW,1.0*porW);  // blue multiplier
     p.drawImage(sc,0,0);
     p.globalCompositeOperation='source-over';
-    drawCollimator(p);
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,255,255,0.8)',ix,iy,cmPx);
     document.getElementById(v.por).style.opacity=1;
   }
@@ -557,7 +545,6 @@ function renderView(v, key){
     // The blend slider sets the DRR opacity inside the lens, so you can fade
     // between portal and reference within the spyglass region.
     drawPor(p);
-    drawCollimator(p);
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.95)',ix,iy,cmPx);
     const sp=v.spy;
     p.save();
@@ -576,7 +563,6 @@ function renderView(v, key){
     drawRef(rc);
     drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);
     drawPor(p);
-    drawCollimator(p);
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.95)',ix,iy,cmPx);
     document.getElementById(v.por).style.opacity=(v.blend/100).toFixed(3);
   }
