@@ -529,7 +529,6 @@ function renderView(v, key){
   // ---- draw helpers (apply zoom/pan base, then optional residual transform) ----
   function drawRef(ctx){
     ctx.save();
-    if(contrast!==100) ctx.filter='contrast('+contrast+'%)';
     ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
     ctx.scale(v.zoom, v.zoom);
     ctx.translate(-v.W/2, -v.H/2);
@@ -554,7 +553,6 @@ function renderView(v, key){
   }
   function drawPor(ctx){
     ctx.save();
-    if(contrast!==100) ctx.filter='contrast('+contrast+'%)';
     ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
     ctx.scale(v.zoom, v.zoom);
     ctx.translate(-v.W/2, -v.H/2);
@@ -667,7 +665,8 @@ function updateContrast(val){
   document.querySelectorAll('.vc-slider').forEach(s=>s.value=val);
   document.getElementById('conValAp').textContent=val+'%';
   document.getElementById('conValLat').textContent=val+'%';
-  render();
+  const f=contrast===100?'':'contrast('+contrast+'%)';
+  ['apRef','apPor','latRef','latPor'].forEach(id=>{document.getElementById(id).style.filter=f;});
 }
 
 // Position the HTML ring overlay to match the canvas lens
