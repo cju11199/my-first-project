@@ -385,13 +385,13 @@ setup(views.lat);
 // This drives the ANT/POST labels and the Vrt readout sign so "move ANT -> Vrt decreases" holds.
 const CASES = {
   tspine: { name:'T-Spine · CT DRR', ap:TSPINE_AP_SRC, lat:TSPINE_LAT_SRC, latAntRight:false,
-            iso:{ ap:{x:0.50,y:0.48}, lat:{x:0.48,y:0.48} } },
+            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.62,y:0.50} } },
   lspine: { name:'L-Spine · CT DRR', ap:LSPINE_AP_SRC, lat:LSPINE_LAT_SRC, latAntRight:false,
-            iso:{ ap:{x:0.50,y:0.45}, lat:{x:0.45,y:0.42} } },
+            iso:{ ap:{x:0.50,y:0.52}, lat:{x:0.60,y:0.52} } },
   brain: { name:'Brain · AP + Lateral', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.40}, lat:{x:0.52,y:0.40} } },
+           iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} } },
   pelvis:{ name:'Pelvis · CT DRR', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.48,y:0.50} } }
+           iso:{ ap:{x:0.50,y:0.60}, lat:{x:0.55,y:0.60} } }
 };
 let currentCase='tspine';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
