@@ -160,8 +160,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
     <div class="divider-v"></div>
     <span class="case-label">CASE:&nbsp;</span>
     <select class="case-select" id="caseSelect" onchange="applyCase(this.value)">
-      <option value="lspine" hidden>L-Spine &middot; CT DRR</option>
-      <option value="brain">Brain &middot; AP + Lateral</option>
+          <option value="brain">Brain &middot; AP + Lateral</option>
       <option value="pelvis">Pelvis &middot; CT DRR</option>
     </select>
   </div>
@@ -382,8 +381,6 @@ setup(views.lat);
 //   (these DRRs + brain have anterior on the LEFT -> latAntRight:false)
 // This drives the ANT/POST labels and the Vrt readout sign so "move ANT -> Vrt decreases" holds.
 const CASES = {
-  lspine: { name:'L-Spine · CT DRR', ap:LSPINE_AP_SRC, lat:LSPINE_LAT_SRC, latAntRight:false,
-            iso:{ ap:{x:0.50,y:0.52}, lat:{x:0.28,y:0.52} } },
   brain: { name:'Brain · AP + Lateral', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} } },
   pelvis:{ name:'Pelvis · CT DRR', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
