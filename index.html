@@ -315,8 +315,8 @@ let showGrid=true;        // isocenter crosshair + cm tick grid
 const views={
   // iso = isocenter as a fraction of the view (spine case): AP/PA on the midline,
   // lateral shifted posterior (POST is the left side) onto the vertebral bodies.
-  ap:{ area:'apArea', ref:'apRef', por:'apPor', img:new Image(), ready:false, fit:{x:0,y:0,w:0,h:0}, W:0,H:0,scale:1, zoom:1, panX:0, panY:0, spy:{x:0,y:0,r:90}, blend:50, slider:'blendAp', rotating:false, iso:{x:0.50,y:0.50}, porIx:0, porIy:0 },
-  lat:{ area:'latArea', ref:'latRef', por:'latPor', img:new Image(), ready:false, fit:{x:0,y:0,w:0,h:0}, W:0,H:0,scale:1, zoom:1, panX:0, panY:0, spy:{x:0,y:0,r:90}, blend:50, slider:'blendLat', rotating:false, iso:{x:0.34,y:0.50}, porIx:0, porIy:0 }
+  ap:{ area:'apArea', ref:'apRef', por:'apPor', img:new Image(), ready:false, fit:{x:0,y:0,w:0,h:0}, W:0,H:0,scale:1, zoom:1, panX:0, panY:0, spy:{x:0,y:0,r:90}, blend:50, slider:'blendAp', rotating:false, iso:{x:0.50,y:0.50} },
+  lat:{ area:'latArea', ref:'latRef', por:'latPor', img:new Image(), ready:false, fit:{x:0,y:0,w:0,h:0}, W:0,H:0,scale:1, zoom:1, panX:0, panY:0, spy:{x:0,y:0,r:90}, blend:50, slider:'blendLat', rotating:false, iso:{x:0.34,y:0.50} }
 };
 // Isocenter in screen pixels for a view
 function isoX(v){ return v.iso.x*v.W; }
@@ -506,10 +506,6 @@ function renderView(v, key){
     rot=n.pitch*Math.PI/180;
     sx=1-Math.abs(n.roll)*0.010; // roll foreshortens lateral view horizontally
   }
-  // Portal isocenter in screen px — tracks the portal image as it moves
-  v.porIx = v.W/2 + v.panX + v.zoom*(ix + dx - v.W/2);
-  v.porIy = v.H/2 + v.panY + v.zoom*(iy + dy - v.H/2);
-
   // ---- draw helpers (apply zoom/pan base, then optional residual transform) ----
   function drawRef(ctx){
     ctx.save();
@@ -542,10 +538,11 @@ function renderView(v, key){
     ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
     ctx.scale(v.zoom, v.zoom);
     ctx.translate(-v.W/2, -v.H/2);
-    ctx.translate(ix+dx, iy+dy);
+    ctx.translate(ix, iy);     // pivot rotation about the FIXED isocenter
     ctx.rotate(rot);
     ctx.scale(sx,sy);
-    ctx.translate(-ix,-iy);
+    ctx.translate(-ix, -iy);
+    ctx.translate(dx, dy);     // residual translation: anatomy slides under the fixed graticule
     ctx.drawImage(v.fimg||v.img,f.x,f.y,f.w,f.h);
     ctx.restore();
   }
@@ -573,9 +570,8 @@ function renderView(v, key){
     tintCanvas(s,v.W,v.H,0.0,0.55*porW,1.0*porW);  // blue multiplier
     p.drawImage(sc,0,0);
     p.globalCompositeOperation='source-over';
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.7)',ix,iy,cmPx);          // ref: fixed cyan
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.9)',v.porIx,v.porIy,cmPx); // portal: moves
     drawVignette(p,v.W,v.H);
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);  // fixed isocenter graticule
     document.getElementById(v.por).style.opacity=1;
   }
   else if(tool==='spy'){
@@ -584,7 +580,6 @@ function renderView(v, key){
     // The blend slider sets the DRR opacity inside the lens, so you can fade
     // between portal and reference within the spyglass region.
     drawPor(p);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.95)',v.porIx,v.porIy,cmPx); // portal: moves
     drawVignette(p,v.W,v.H);
     const sp=v.spy;
     p.save();
@@ -601,16 +596,15 @@ function renderView(v, key){
   else {
     // ── NORMAL (blend) ──
     drawRef(rc);
-    drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);          // ref: fixed cyan
     drawVignette(rc,v.W,v.H);
     drawPor(p);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(255,107,53,0.95)',v.porIx,v.porIy,cmPx); // portal: moves with image
     drawVignette(p,v.W,v.H);
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);  // fixed isocenter graticule (on top)
     document.getElementById(v.por).style.opacity=(v.blend/100).toFixed(3);
   }
-  // Rotation ring follows the portal isocenter (the physical rotation pivot).
+  // Rotation ring at the fixed isocenter (rotation pivots here).
   // Hidden in spyglass mode to keep the lens view clean.
-  if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, v.porIx, v.porIy);
+  if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, ix, iy);
 }
 
 function render(){ renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
@@ -775,7 +769,7 @@ function attachInteractions(key){
   area.addEventListener('mousemove',e=>{
     if(tool==='spy'||hoverDragView===key) return; // not while dragging or in spy mode
     const r=area.getBoundingClientRect();
-    const dist=Math.hypot((e.clientX-r.left)-v.porIx, (e.clientY-r.top)-v.porIy);
+    const dist=Math.hypot((e.clientX-r.left)-isoX(v), (e.clientY-r.top)-isoY(v));
     area.style.cursor = (dist>ringRadius(v)) ? 'grab' : 'move';
   });
   area.addEventListener('wheel',e=>{
@@ -794,11 +788,11 @@ function attachInteractions(key){
   //   • zoomed + Shift, or middle-mouse -> PAN the view
   let mode=null, lastX=0, lastY=0, accX=0, accY=0, lastAng=0, accAng=0;
   function localPt(e){ const r=area.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
-  function angleFromCenter(pt){ return Math.atan2(pt.y-v.porIy, pt.x-v.porIx); }
+  function angleFromCenter(pt){ return Math.atan2(pt.y-isoY(v), pt.x-isoX(v)); }
   area.addEventListener('mousedown',e=>{
     if(tool==='spy') return;            // spyglass owns its own drag
     const pt=localPt(e);
-    const dist=Math.hypot(pt.x-v.porIx, pt.y-v.porIy);
+    const dist=Math.hypot(pt.x-isoX(v), pt.y-isoY(v));
     if(e.button===1 || (e.shiftKey && v.zoom>1)){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
