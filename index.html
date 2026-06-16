@@ -160,8 +160,8 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
     <div class="divider-v"></div>
     <span class="case-label">CASE:&nbsp;</span>
     <select class="case-select" id="caseSelect" onchange="applyCase(this.value)">
-      <option value="tspine">T-Spine &middot; CT DRR</option>
-      <option value="lspine">L-Spine &middot; CT DRR</option>
+      <option value="tspine" hidden>T-Spine &middot; CT DRR</option>
+      <option value="lspine" hidden>L-Spine &middot; CT DRR</option>
       <option value="brain">Brain &middot; AP + Lateral</option>
       <option value="pelvis">Pelvis &middot; CT DRR</option>
     </select>
@@ -393,7 +393,7 @@ const CASES = {
   pelvis:{ name:'Pelvis · CT DRR', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.60}, lat:{x:0.55,y:0.60} } }
 };
-let currentCase='tspine';
+let currentCase='brain';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
 function applyCase(key){
   const c=CASES[key]; if(!c) return;
