@@ -382,15 +382,15 @@ const CASES = {
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.48,y:0.50} } }
 };
 let currentCase='spine';
-let zSign=-1;   // sign applied to the Vrt(z) readout so moving ANT decreases it
+let zSign=1;    // sign applied to the Vrt(z) readout (Varian IEC: +Vrt = anterior/up)
 function applyCase(key){
   const c=CASES[key]; if(!c) return;
   currentCase=key;
   const sel=document.getElementById('caseSelect'); if(sel) sel.value=key;
   views.ap.iso={...c.iso.ap};
   views.lat.iso={...c.iso.lat};
-  // anterior orientation: labels + Vrt sign convention
-  zSign = c.latAntRight ? -1 : 1;
+  // anterior orientation: labels + Vrt sign convention (Varian IEC: +Vrt = anterior/up)
+  zSign = c.latAntRight ? 1 : -1;
   document.getElementById('latDirLeft').textContent  = c.latAntRight ? 'POST' : 'ANT';
   document.getElementById('latDirRight').textContent = c.latAntRight ? 'ANT'  : 'POST';
   // reset zoom/pan and reload the case images (onload -> ready -> resizeAll/render)
@@ -453,7 +453,7 @@ function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx){
   }
   // isocenter marker
   ctx.globalAlpha=0.6;
-  ctx.beginPath(); ctx.arc(cx,cy,16*scale,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,cy,9*scale,0,Math.PI*2); ctx.stroke();
   ctx.restore();
 }
 
@@ -854,10 +854,10 @@ function attachInteractions(key){
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
 // Rotation stays in degrees. This helper keeps every readout in sync.
 function refreshReadouts(){
-  // Iso convention: moving the image SUP increases Lng, moving it ANT decreases Vrt.
-  // The image follows the cursor; only the displayed sign is flipped for y (Lng) and z (Vrt).
-  document.getElementById('valX').textContent=(shift.x/10).toFixed(2);
-  document.getElementById('valY').textContent=(-shift.y/10).toFixed(2);
+  // Varian IEC convention (HFS supine): +Lat = patient Right, +Lng = Inferior, +Vrt = Anterior/up.
+  // The image follows the cursor; only the displayed sign is adjusted to match the console.
+  document.getElementById('valX').textContent=(-shift.x/10).toFixed(2);
+  document.getElementById('valY').textContent=(shift.y/10).toFixed(2);
   document.getElementById('valZ').textContent=(zSign*shift.z/10).toFixed(2);
   document.getElementById('valRoll').textContent=shift.roll.toFixed(1);
   document.getElementById('valPitch').textContent=shift.pitch.toFixed(1);
@@ -1002,8 +1002,8 @@ function checkMatch(){
   // translation errors: value is mm internally, shown in cm
   const setT=(id,mm,t1,t2)=>{const el=document.getElementById(id);const cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
   const setR=(id,deg,t1,t2)=>{const el=document.getElementById(id);el.textContent=(deg>=0?'+':'')+deg+'\u00b0';el.className='error-val '+cc(deg,t1,t2);};
-  // y (Lng) and z (Vrt) displayed with iso-convention sign (matches the live readouts)
-  setT('errX',e.x,1,3); setT('errY',-e.y,1,3); setT('errZ',zSign*e.z,1,3);
+  // signs match the live readouts (Varian IEC): Lat=-x, Lng=+y, Vrt=zSign*z
+  setT('errX',-e.x,1,3); setT('errY',e.y,1,3); setT('errZ',zSign*e.z,1,3);
   setR('errRoll',e.roll,0.5,1.5); setR('errPitch',e.pitch,0.5,1.5);
   const transOk=Math.abs(e.x)<=1&&Math.abs(e.y)<=1&&Math.abs(e.z)<=1;
   const rotOk=Math.abs(e.roll)<=0.5&&Math.abs(e.pitch)<=0.5;
