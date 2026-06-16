@@ -607,7 +607,6 @@ function renderView(v, key){
     // ── NORMAL (blend) ──
     drawRef(rc);
     drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);
-    drawRotationRing(rc,v.W,v.H,ringRadius(v),false,isx,isy,'rgba(0,212,255,0.35)');
     drawVignette(rc,v.W,v.H);
     drawPor(p);
     drawVignette(p,v.W,v.H);
