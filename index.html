@@ -382,15 +382,15 @@ const CASES = {
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.48,y:0.50} } }
 };
 let currentCase='spine';
-let zSign=1;    // sign applied to the Vrt(z) readout (Varian IEC: +Vrt = anterior/up)
+let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
 function applyCase(key){
   const c=CASES[key]; if(!c) return;
   currentCase=key;
   const sel=document.getElementById('caseSelect'); if(sel) sel.value=key;
   views.ap.iso={...c.iso.ap};
   views.lat.iso={...c.iso.lat};
-  // anterior orientation: labels + Vrt sign convention (Varian IEC: +Vrt = anterior/up)
-  zSign = c.latAntRight ? 1 : -1;
+  // anterior orientation: labels + Vrt sign (table/anatomy ANT -> negative Vrt; iso moves posterior)
+  zSign = c.latAntRight ? -1 : 1;
   document.getElementById('latDirLeft').textContent  = c.latAntRight ? 'POST' : 'ANT';
   document.getElementById('latDirRight').textContent = c.latAntRight ? 'ANT'  : 'POST';
   // reset zoom/pan and reload the case images (onload -> ready -> resizeAll/render)
@@ -854,8 +854,9 @@ function attachInteractions(key){
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
 // Rotation stays in degrees. This helper keeps every readout in sync.
 function refreshReadouts(){
-  // Varian IEC convention (HFS supine): +Lat = patient Right, +Lng = Inferior, +Vrt = Anterior/up.
-  // The image follows the cursor; only the displayed sign is adjusted to match the console.
+  // Sign convention (HFS supine): +Lat = patient Right, +Lng = Inferior. Vrt is isocenter-referenced:
+  // moving the table/anatomy ANTERIOR -> isocenter posterior -> NEGATIVE Vrt (vertical is inverted).
+  // The image follows the cursor; only the displayed sign is adjusted.
   document.getElementById('valX').textContent=(-shift.x/10).toFixed(2);
   document.getElementById('valY').textContent=(shift.y/10).toFixed(2);
   document.getElementById('valZ').textContent=(zSign*shift.z/10).toFixed(2);
