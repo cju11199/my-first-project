@@ -190,8 +190,8 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
       </div>
       <div class="vt-zoom" id="apZoom">100%</div>
       <div class="view-tag">AP / PA</div>
-      <div class="dir-label dir-top">SUP</div>
-      <div class="dir-label dir-bottom">INF</div>
+      <div class="dir-label dir-top">S</div>
+      <div class="dir-label dir-bottom">I</div>
       <div class="dir-label dir-left">R</div>
       <div class="dir-label dir-right">L</div>
       <div class="spy-ring" id="apSpy"><div class="spy-handle"></div></div>
@@ -209,10 +209,10 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
       </div>
       <div class="vt-zoom" id="latZoom">100%</div>
       <div class="view-tag">LATERAL</div>
-      <div class="dir-label dir-top">SUP</div>
-      <div class="dir-label dir-bottom">INF</div>
-      <div class="dir-label dir-left" id="latDirLeft">POST</div>
-      <div class="dir-label dir-right" id="latDirRight">ANT</div>
+      <div class="dir-label dir-top">S</div>
+      <div class="dir-label dir-bottom">I</div>
+      <div class="dir-label dir-left" id="latDirLeft">P</div>
+      <div class="dir-label dir-right" id="latDirRight">A</div>
       <div class="spy-ring" id="latSpy"><div class="spy-handle"></div></div>
       <div class="view-blend"><span class="vb-lbl ref">0%</span><input type="range" class="vb-slider" id="blendLat" min="0" max="100" value="50" oninput="updateBlend('lat',this.value)"><span class="vb-lbl por">100%</span></div>
       <div class="view-contrast" id="contrastLat"><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValLat">100%</span></div>
@@ -399,8 +399,8 @@ function applyCase(key){
   views.lat.iso={...c.iso.lat};
   // anterior orientation: labels + Vrt sign (table/anatomy ANT -> negative Vrt; iso moves posterior)
   zSign = c.latAntRight ? -1 : 1;
-  document.getElementById('latDirLeft').textContent  = c.latAntRight ? 'POST' : 'ANT';
-  document.getElementById('latDirRight').textContent = c.latAntRight ? 'ANT'  : 'POST';
+  document.getElementById('latDirLeft').textContent  = c.latAntRight ? 'P' : 'A';
+  document.getElementById('latDirRight').textContent = c.latAntRight ? 'A' : 'P';
   // reset zoom/pan and reload the case images (onload -> ready -> resizeAll/render)
   ['ap','lat'].forEach(k=>{const v=views[k]; v.zoom=1; v.panX=0; v.panY=0; v.ready=false; updateZoomLabel(k);});
   views.ap.img.src=c.ap;
