@@ -332,13 +332,17 @@ let soloView=null; // 'ap' | 'lat' | null
 // reusable scratch canvas for tinting
 let _scratch=null;
 function scratch(w,h){
+  const dpr=window.devicePixelRatio||1;
+  const pw=Math.round(w*dpr), ph=Math.round(h*dpr);
   if(!_scratch){ _scratch=document.createElement('canvas'); }
-  if(_scratch.width!==w||_scratch.height!==h){ _scratch.width=w; _scratch.height=h; }
+  if(_scratch.width!==pw||_scratch.height!==ph){ _scratch.width=pw; _scratch.height=ph; }
+  _scratch.getContext('2d').setTransform(dpr,0,0,dpr,0,0);
   return _scratch;
 }
 // Multiply each pixel's grayscale by (mr,mg,mb) to tint a layer; black stays black
 function tintCanvas(ctx,w,h,mr,mg,mb){
-  const id=ctx.getImageData(0,0,w,h), d=id.data;
+  const pw=ctx.canvas.width, ph=ctx.canvas.height; // use physical pixel dimensions
+  const id=ctx.getImageData(0,0,pw,ph), d=id.data;
   for(let i=0;i<d.length;i+=4){
     const g=d[i]; // grayscale (r=g=b)
     d[i]=g*mr; d[i+1]=g*mg; d[i+2]=g*mb;
@@ -425,9 +429,15 @@ function resizeView(v){
   const area=document.getElementById(v.area);
   const rect=area.getBoundingClientRect();
   if(rect.width<2||rect.height<2) return; // view hidden (solo mode) — skip
+  const dpr=window.devicePixelRatio||1;
   v.W=Math.floor(rect.width); v.H=Math.floor(rect.height); v.scale=Math.min(v.W,v.H)/560;
-  document.getElementById(v.ref).width=v.W; document.getElementById(v.ref).height=v.H;
-  document.getElementById(v.por).width=v.W; document.getElementById(v.por).height=v.H;
+  const refEl=document.getElementById(v.ref), porEl=document.getElementById(v.por);
+  refEl.width=Math.round(v.W*dpr); refEl.height=Math.round(v.H*dpr);
+  refEl.style.width=v.W+'px'; refEl.style.height=v.H+'px';
+  porEl.width=Math.round(v.W*dpr); porEl.height=Math.round(v.H*dpr);
+  porEl.style.width=v.W+'px'; porEl.style.height=v.H+'px';
+  v.refCtx.setTransform(dpr,0,0,dpr,0,0);
+  v.porCtx.setTransform(dpr,0,0,dpr,0,0);
   computeFit(v);
 }
 function resizeAll(){ resizeView(views.ap); resizeView(views.lat); render(); }
@@ -574,11 +584,11 @@ function renderView(v, key){
     s.clearRect(0,0,v.W,v.H); drawRef(s);
     tintCanvas(s,v.W,v.H,1.0*refW,0.45*refW,0.0);  // orange multiplier
     p.globalCompositeOperation='lighter';
-    p.drawImage(sc,0,0);
+    p.drawImage(sc,0,0,v.W,v.H);
     // blue portal
     s.clearRect(0,0,v.W,v.H); drawPor(s);
     tintCanvas(s,v.W,v.H,0.0,0.55*porW,1.0*porW);  // blue multiplier
-    p.drawImage(sc,0,0);
+    p.drawImage(sc,0,0,v.W,v.H);
     p.globalCompositeOperation='source-over';
     drawVignette(p,v.W,v.H);
     drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);  // fixed isocenter graticule
