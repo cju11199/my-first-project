@@ -95,6 +95,8 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
 .view-contrast.show{display:flex}
 .vc-lbl{font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.12em;color:var(--accent-hi)}
 .vc-val{font-family:var(--mono);font-size:9px;font-weight:600;font-variant-numeric:var(--num);color:var(--text)}
+.vc-preset{width:72px;font-family:var(--mono);font-size:9px;font-weight:600;color:var(--text);background:rgba(20,26,36,.8);border:1px solid var(--border2);border-radius:6px;padding:3px 4px;cursor:pointer;outline:none;text-align:center;appearance:none;-webkit-appearance:none}
+.vc-preset option{background:#1a2030;color:#e0e6ef}
 .vc-slider{writing-mode:vertical-lr;direction:rtl;-webkit-appearance:slider-vertical;appearance:slider-vertical;width:5px;height:124px;border-radius:var(--radius-pill);outline:none;cursor:pointer;background:linear-gradient(to top,#2a3340,var(--accent))}
 .vc-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid rgba(8,11,16,.8);box-shadow:0 2px 6px rgba(0,0,0,.7);cursor:pointer}
 .vc-slider::-moz-range-thumb{width:16px;height:16px;border:2px solid rgba(8,11,16,.8);border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.7);cursor:pointer}
@@ -195,7 +197,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
       <div class="dir-label dir-right">L</div>
       <div class="spy-ring" id="apSpy"><div class="spy-handle"></div></div>
       <div class="view-blend"><span class="vb-lbl ref">0%</span><input type="range" class="vb-slider" id="blendAp" min="0" max="100" value="50" oninput="updateBlend('ap',this.value)"><span class="vb-lbl por">100%</span></div>
-      <div class="view-contrast" id="contrastAp"><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValAp">100%</span></div>
+      <div class="view-contrast" id="contrastAp"><select class="vc-preset" onchange="applyContrastPreset(this.value)"><option value="default">Default</option><option value="bone">Bone</option><option value="soft">Soft Tissue</option><option value="lung">Lung</option></select><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValAp">100%</span></div>
     </div>
     <div class="viewer-area" id="latArea" tabindex="0">
       <canvas id="latRef" class="refCanvas"></canvas>
@@ -214,7 +216,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
       <div class="dir-label dir-right" id="latDirRight">A</div>
       <div class="spy-ring" id="latSpy"><div class="spy-handle"></div></div>
       <div class="view-blend"><span class="vb-lbl ref">0%</span><input type="range" class="vb-slider" id="blendLat" min="0" max="100" value="50" oninput="updateBlend('lat',this.value)"><span class="vb-lbl por">100%</span></div>
-      <div class="view-contrast" id="contrastLat"><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValLat">100%</span></div>
+      <div class="view-contrast" id="contrastLat"><select class="vc-preset" onchange="applyContrastPreset(this.value)"><option value="default">Default</option><option value="bone">Bone</option><option value="soft">Soft Tissue</option><option value="lung">Lung</option></select><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValLat">100%</span></div>
     </div>
   </div>
   <div class="controls-strip">
@@ -312,6 +314,7 @@ let step=1;
 let tool=null; // null | 'wash' | 'spy'
 let activeView='ap'; // which view the arrow keys drive: 'ap' | 'lat'
 let contrast=100;    // % applied to both images
+let brightness=100;  // % brightness for presets
 let contrastOn=false;
 let showGrid=true;        // isocenter crosshair + cm tick grid
 
@@ -664,8 +667,30 @@ function updateContrast(val){
   document.querySelectorAll('.vc-slider').forEach(s=>s.value=val);
   document.getElementById('conValAp').textContent=val+'%';
   document.getElementById('conValLat').textContent=val+'%';
-  const f=contrast===100?'':'contrast('+contrast+'%)';
+  applyFilters();
+  document.querySelectorAll('.vc-preset').forEach(s=>s.value='default');
+}
+function applyFilters(){
+  const parts=[];
+  if(contrast!==100) parts.push('contrast('+contrast+'%)');
+  if(brightness!==100) parts.push('brightness('+brightness+'%)');
+  const f=parts.join(' ')||'';
   ['apRef','apPor','latRef','latPor'].forEach(id=>{document.getElementById(id).style.filter=f;});
+}
+const CONTRAST_PRESETS={
+  default:{contrast:100,brightness:100},
+  bone:{contrast:170,brightness:90},
+  soft:{contrast:75,brightness:120},
+  lung:{contrast:220,brightness:80}
+};
+function applyContrastPreset(key){
+  const p=CONTRAST_PRESETS[key]; if(!p) return;
+  contrast=p.contrast; brightness=p.brightness;
+  document.querySelectorAll('.vc-slider').forEach(s=>s.value=contrast);
+  document.getElementById('conValAp').textContent=contrast+'%';
+  document.getElementById('conValLat').textContent=contrast+'%';
+  document.querySelectorAll('.vc-preset').forEach(s=>s.value=key);
+  applyFilters();
 }
 
 // Position the HTML ring overlay to match the canvas lens
