@@ -10,9 +10,9 @@ Open it in any browser — no install or account needed. Share that link with st
 
 ## Cases
 
-- **Spine · CT DRR**
 - **Brain · AP + Lateral**
 - **Pelvis · CT DRR**
+- **Thorax · CT DRR**
 
 Switch between them with the dropdown in the top-left.
 
