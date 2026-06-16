@@ -469,11 +469,12 @@ function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx){
 function ringRadius(v){ return Math.min(v.W,v.H)*0.50; }
 
 // Big red dotted rotation ring at view centre (isocenter)
-function drawRotationRing(ctx,W,H,r,highlight,cx,cy){
+function drawRotationRing(ctx,W,H,r,highlight,cx,cy,col){
   if(cx===undefined) cx=W/2;
   if(cy===undefined) cy=H/2;
+  const baseCol = col || (highlight ? 'rgba(255,70,70,0.6)' : 'rgba(255,60,60,0.4)');
   ctx.save();
-  ctx.strokeStyle = highlight ? 'rgba(255,70,70,0.6)' : 'rgba(255,60,60,0.4)';
+  ctx.strokeStyle = baseCol;
   ctx.lineWidth = highlight ? 2.5 : 2;
   ctx.setLineDash([3,7]);
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
@@ -605,10 +606,12 @@ function renderView(v, key){
   else {
     // ── NORMAL (blend) ──
     drawRef(rc);
+    drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);
+    drawRotationRing(rc,v.W,v.H,ringRadius(v),false,isx,isy,'rgba(0,212,255,0.35)');
     drawVignette(rc,v.W,v.H);
     drawPor(p);
     drawVignette(p,v.W,v.H);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);  // fixed isocenter graticule (on top)
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);
     document.getElementById(v.por).style.opacity=(v.blend/100).toFixed(3);
   }
   // Rotation ring at the fixed isocenter (rotation pivots here).
