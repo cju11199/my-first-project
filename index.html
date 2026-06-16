@@ -321,6 +321,10 @@ const views={
 // Isocenter in screen pixels for a view
 function isoX(v){ return v.iso.x*v.W; }
 function isoY(v){ return v.iso.y*v.H; }
+// Isocenter SCREEN position with zoom/pan applied, so the graticule stays glued to the
+// anatomy when you zoom or pan (same transform the image uses).
+function isoScreenX(v){ return v.W/2 + v.panX + v.zoom*(isoX(v) - v.W/2); }
+function isoScreenY(v){ return v.H/2 + v.panY + v.zoom*(isoY(v) - v.H/2); }
 let soloView=null; // 'ap' | 'lat' | null
 
 // reusable scratch canvas for tinting
@@ -487,7 +491,8 @@ function renderView(v, key){
   if(!v.W||!v.ready) return;
   const n=net();
   const f=v.fit;
-  const ix=isoX(v), iy=isoY(v);   // planned isocenter in screen px (fixed)
+  const ix=isoX(v), iy=isoY(v);   // planned isocenter in image space (drawPor rotation pivot)
+  const isx=isoScreenX(v), isy=isoScreenY(v);  // its on-screen position with zoom/pan (graticule + ring)
   const cmPx=(v.W/40)*v.zoom;     // 1 cm in screen px (400 mm spans v.W at zoom 1)
   // Map 3D residual to each 2D view:
   //  AP view  : horizontal = Lateral(x), vertical = Longitudinal(y),
@@ -571,7 +576,7 @@ function renderView(v, key){
     p.drawImage(sc,0,0);
     p.globalCompositeOperation='source-over';
     drawVignette(p,v.W,v.H);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);  // fixed isocenter graticule
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);  // fixed isocenter graticule
     document.getElementById(v.por).style.opacity=1;
   }
   else if(tool==='spy'){
@@ -588,7 +593,7 @@ function renderView(v, key){
     p.fillStyle='#000'; p.fillRect(0,0,v.W,v.H);
     drawRef(p);
     p.globalAlpha=1;
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.9)',ix,iy,cmPx);            // ref: fixed cyan inside lens
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.9)',isx,isy,cmPx);            // ref: fixed cyan inside lens
     p.restore();
     document.getElementById(v.por).style.opacity=1;
     positionSpyRing(v,key);
@@ -599,12 +604,12 @@ function renderView(v, key){
     drawVignette(rc,v.W,v.H);
     drawPor(p);
     drawVignette(p,v.W,v.H);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',ix,iy,cmPx);  // fixed isocenter graticule (on top)
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);  // fixed isocenter graticule (on top)
     document.getElementById(v.por).style.opacity=(v.blend/100).toFixed(3);
   }
   // Rotation ring at the fixed isocenter (rotation pivots here).
   // Hidden in spyglass mode to keep the lens view clean.
-  if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, ix, iy);
+  if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, isx, isy);
 }
 
 function render(){ renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
@@ -769,7 +774,7 @@ function attachInteractions(key){
   area.addEventListener('mousemove',e=>{
     if(tool==='spy'||hoverDragView===key) return; // not while dragging or in spy mode
     const r=area.getBoundingClientRect();
-    const dist=Math.hypot((e.clientX-r.left)-isoX(v), (e.clientY-r.top)-isoY(v));
+    const dist=Math.hypot((e.clientX-r.left)-isoScreenX(v), (e.clientY-r.top)-isoScreenY(v));
     area.style.cursor = (dist>ringRadius(v)) ? 'grab' : 'move';
   });
   area.addEventListener('wheel',e=>{
@@ -788,11 +793,11 @@ function attachInteractions(key){
   //   • zoomed + Shift, or middle-mouse -> PAN the view
   let mode=null, lastX=0, lastY=0, accX=0, accY=0, lastAng=0, accAng=0;
   function localPt(e){ const r=area.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
-  function angleFromCenter(pt){ return Math.atan2(pt.y-isoY(v), pt.x-isoX(v)); }
+  function angleFromCenter(pt){ return Math.atan2(pt.y-isoScreenY(v), pt.x-isoScreenX(v)); }
   area.addEventListener('mousedown',e=>{
     if(tool==='spy') return;            // spyglass owns its own drag
     const pt=localPt(e);
-    const dist=Math.hypot(pt.x-isoX(v), pt.y-isoY(v));
+    const dist=Math.hypot(pt.x-isoScreenX(v), pt.y-isoScreenY(v));
     if(e.button===1 || (e.shiftKey && v.zoom>1)){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
