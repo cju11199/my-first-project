@@ -165,7 +165,6 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
           <option value="brain">Brain &middot; AP + Lateral</option>
       <option value="pelvis">Pelvis &middot; CT DRR</option>
       <option value="thorax">Thorax &middot; CT DRR</option>
-      <option value="thorax3d">Thorax &middot; 3D Tilt</option>
     </select>
   </div>
   <div class="header-controls">
@@ -393,11 +392,10 @@ const CASES = {
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} } },
   pelvis:{ name:'Pelvis · CT DRR', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.60}, lat:{x:0.55,y:0.60} } },
+  // Thorax: the out-of-plane tilt (pitch in AP, roll in LAT) is shown via CT frames
+  // re-projected at the rotated angle (real depth-parallax), cross-faded by the residual
+  // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
   thorax:{ name:'Thorax · CT DRR', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} } },
-  // 3D-tilt variant: same base DRRs, but the portal's out-of-plane tilt (pitch in AP,
-  // roll in LAT) is shown via re-projected CT frames (real parallax) instead of a 2D scale.
-  thorax3d:{ name:'Thorax · 3D Tilt', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:true }
 };
 let currentCase='brain';
