@@ -398,7 +398,7 @@ const CASES = {
   thorax:{ name:'Thorax · CT DRR (3D)', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:'thorax' }
 };
-let currentCase='brain';
+let currentCase='pelvis';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
 // For a 3D-tilt case, load the re-projected DRR frames (drr/ files) per view: AP varies
 // with pitch, LAT with roll; 0deg reuses the base image. Non-tilt cases clear v.tilt.
