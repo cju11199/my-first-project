@@ -164,7 +164,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
     <select class="case-select" id="caseSelect" onchange="applyCase(this.value)">
           <option value="brain">Brain &middot; AP + Lateral</option>
       <option value="pelvis">Pelvis &middot; CT DRR</option>
-      <option value="thorax">Thorax &middot; CT DRR</option>
+      <option value="thorax">Thorax &middot; CT DRR (3D)</option>
     </select>
   </div>
   <div class="header-controls">
@@ -395,7 +395,7 @@ const CASES = {
   // Thorax: the out-of-plane tilt (pitch in AP, roll in LAT) is shown via CT frames
   // re-projected at the rotated angle (real depth-parallax), cross-faded by the residual
   // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
-  thorax:{ name:'Thorax · CT DRR', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
+  thorax:{ name:'Thorax · CT DRR (3D)', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:true }
 };
 let currentCase='brain';
