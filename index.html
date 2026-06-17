@@ -165,6 +165,7 @@ main{flex:1;display:flex;flex-direction:column;min-height:0}
           <option value="brain">Brain &middot; AP + Lateral</option>
       <option value="pelvis">Pelvis &middot; CT DRR</option>
       <option value="thorax">Thorax &middot; CT DRR</option>
+      <option value="thorax3d">Thorax &middot; 3D Tilt</option>
     </select>
   </div>
   <div class="header-controls">
@@ -393,16 +394,42 @@ const CASES = {
   pelvis:{ name:'Pelvis · CT DRR', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.60}, lat:{x:0.55,y:0.60} } },
   thorax:{ name:'Thorax · CT DRR', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} } }
+           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} } },
+  // 3D-tilt variant: same base DRRs, but the portal's out-of-plane tilt (pitch in AP,
+  // roll in LAT) is shown via re-projected CT frames (real parallax) instead of a 2D scale.
+  thorax3d:{ name:'Thorax · 3D Tilt', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
+           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:true }
 };
 let currentCase='brain';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
+// For a 3D-tilt case, load the re-projected DRR frames (drr/ files) per view: AP varies
+// with pitch, LAT with roll; 0deg reuses the base image. Non-tilt cases clear v.tilt.
+function loadTiltStacks(c){
+  ['ap','lat'].forEach(k=>{
+    const v=views[k];
+    if(!c.tilt){ v.tilt=null; return; }
+    const prefix = k==='ap' ? 'drr/thorax_ap_pitch_' : 'drr/thorax_lat_roll_';
+    const frames=[{a:0,img:v.img}];      // 0deg = base DRR (v.img, reloaded below)
+    const stack={frames, ready:false};
+    let pending=0;
+    [[-4,'m4'],[-2,'m2'],[2,'p2'],[4,'p4']].forEach(([a,tg])=>{
+      const im=new Image(); pending++;
+      const done=()=>{ if(--pending===0){ stack.ready=true; render(); } };
+      im.onload=done; im.onerror=done;
+      im.src=prefix+tg+'.png';
+      frames.push({a,img:im});
+    });
+    frames.sort((p,q)=>p.a-q.a);
+    v.tilt=stack;
+  });
+}
 function applyCase(key){
   const c=CASES[key]; if(!c) return;
   currentCase=key;
   const sel=document.getElementById('caseSelect'); if(sel) sel.value=key;
   views.ap.iso={...c.iso.ap};
   views.lat.iso={...c.iso.lat};
+  loadTiltStacks(c);   // 3D-tilt cases load re-projected frame stacks; others clear v.tilt
   // anterior orientation: labels + Vrt sign (table/anatomy ANT -> negative Vrt; iso moves posterior)
   zSign = c.latAntRight ? -1 : 1;
   document.getElementById('latDirLeft').textContent  = c.latAntRight ? 'P' : 'A';
@@ -504,6 +531,33 @@ function net(){
   };
 }
 
+// Portal image source. For "3D tilt" cases v.tilt holds re-projected DRR frames at a
+// few out-of-plane angles (pitch for AP, roll for LAT); we cross-fade the two frames
+// bracketing the residual angle so the anatomy genuinely re-articulates (real parallax)
+// instead of the flat image distorting. Non-tilt cases just use the base DRR.
+let _porScratch=null;
+function porScratch(w,h){
+  if(!_porScratch) _porScratch=document.createElement('canvas');
+  if(_porScratch.width!==w||_porScratch.height!==h){ _porScratch.width=w; _porScratch.height=h; }
+  return _porScratch;
+}
+function portalImage(v,key,n){
+  const t=v.tilt;
+  if(!t||!t.ready) return v.fimg||v.img;
+  const ang = key==='ap' ? n.pitch : n.roll;     // out-of-plane angle for this view
+  const fr=t.frames;                              // sorted [{a,img}], includes 0deg=base
+  const a=Math.max(fr[0].a, Math.min(fr[fr.length-1].a, ang));
+  let i=0; while(i<fr.length-2 && fr[i+1].a<a) i++;
+  const lo=fr[i], hi=fr[i+1];
+  const f=(hi.a===lo.a)?0:(a-lo.a)/(hi.a-lo.a);
+  const iw=v.img.naturalWidth||v.img.width, ih=v.img.naturalHeight||v.img.height;
+  const sc=porScratch(iw,ih), c=sc.getContext('2d');
+  c.clearRect(0,0,iw,ih);
+  c.globalAlpha=1; c.drawImage(lo.img,0,0,iw,ih);
+  if(f>0){ c.globalAlpha=f; c.drawImage(hi.img,0,0,iw,ih); c.globalAlpha=1; }
+  return sc;
+}
+
 function renderView(v, key){
   if(!v.W||!v.ready) return;
   const n=net();
@@ -520,14 +574,15 @@ function renderView(v, key){
   if(key==='ap'){
     dx=(n.x/400)*v.W;
     dy=(n.y/400)*v.W;
-    rot=n.roll*Math.PI/180;
-    sy=1-Math.abs(n.pitch)*0.010; // pitch foreshortens vertically
+    rot=n.roll*Math.PI/180;                  // in-plane rotation (a true 2D rotation)
+    sy = v.tilt ? 1 : (1 - n.pitch*0.012);   // tilt case re-projects pitch; else signed (directional) foreshorten
   } else {
     dx=(n.z/400)*v.W;
     dy=(n.y/400)*v.W;
-    rot=n.pitch*Math.PI/180;
-    sx=1-Math.abs(n.roll)*0.010; // roll foreshortens lateral view horizontally
+    rot=n.pitch*Math.PI/180;                 // in-plane rotation (a true 2D rotation)
+    sx = v.tilt ? 1 : (1 - n.roll*0.012);    // tilt case re-projects roll; else signed (directional) foreshorten
   }
+  const porImg = portalImage(v, key, n);     // re-projected tilt frame for tilt cases, else the base DRR
   // ---- draw helpers (apply zoom/pan base, then optional residual transform) ----
   function drawRef(ctx){
     ctx.save();
@@ -563,7 +618,7 @@ function renderView(v, key){
     ctx.scale(sx,sy);
     ctx.translate(-ix, -iy);
     ctx.translate(dx, dy);     // residual translation: anatomy slides under the fixed graticule
-    ctx.drawImage(v.fimg||v.img,f.x,f.y,f.w,f.h);
+    ctx.drawImage(porImg,f.x,f.y,f.w,f.h);
     ctx.restore();
   }
   const rc=v.refCtx, p=v.porCtx;
