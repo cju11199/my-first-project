@@ -383,12 +383,12 @@ const CASES = {
   brain: { name:'Brain · CT DRR (3D)', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} }, tilt:'brain' },
   pelvis:{ name:'Pelvis · CT DRR (3D)', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.59}, lat:{x:0.50,y:0.59} }, tilt:'pelvis' },
+           iso:{ ap:{x:0.50,y:0.59}, lat:{x:0.50,y:0.59} }, zoom:{ap:1.48, lat:1.12}, tilt:'pelvis' },
   // Thorax: the out-of-plane tilt (pitch in AP, roll in LAT) is shown via CT frames
   // re-projected at the rotated angle (real depth-parallax), cross-faded by the residual
   // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
   thorax:{ name:'Thorax · CT DRR (3D)', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:'thorax' }
+           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, zoom:{ap:1.25}, tilt:'thorax' }
 };
 let currentCase='pelvis';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
@@ -433,7 +433,7 @@ function applyCase(key){
   document.getElementById('latDirLeft').textContent  = c.latAntRight ? 'P' : 'A';
   document.getElementById('latDirRight').textContent = c.latAntRight ? 'A' : 'P';
   // reset zoom/pan and reload the case images (onload -> ready -> resizeAll/render)
-  ['ap','lat'].forEach(k=>{const v=views[k]; v.uzoom=1; v.zoom=v.fitZoom||1; v.panX=0; v.panY=0; v.ready=false; updateZoomLabel(k);});
+  ['ap','lat'].forEach(k=>{const v=views[k]; v.uzoom=(c.zoom&&c.zoom[k])||1; v.zoom=(v.fitZoom||1)*v.uzoom; v.panX=0; v.panY=0; v.ready=false; updateZoomLabel(k);});
   views.ap.img.src=c.ap;
   views.lat.img.src=c.lat;
   randomizeShift();           // fresh random offset for the new case (also refreshes readouts)
@@ -485,11 +485,12 @@ function resizeView(v){
 }
 function resizeAll(){ resizeView(views.ap); resizeView(views.lat); render(); }
 
-function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx){
+function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx,clip){
   if(!showGrid) return;
   if(cx===undefined) cx=W/2;
   if(cy===undefined) cy=H/2;
   ctx.save();
+  if(clip){ ctx.beginPath(); ctx.rect(clip.x,clip.y,clip.w,clip.h); ctx.clip(); }  // keep the grid inside the image
   ctx.strokeStyle=col; ctx.lineWidth=1;
   // faint full guide lines through the isocenter
   ctx.globalAlpha=0.35;
@@ -522,11 +523,12 @@ function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx){
 function ringRadius(v){ return Math.min(v.W,v.H)*0.50; }
 
 // Big red dotted rotation ring at view centre (isocenter)
-function drawRotationRing(ctx,W,H,r,highlight,cx,cy,col){
+function drawRotationRing(ctx,W,H,r,highlight,cx,cy,col,clip){
   if(cx===undefined) cx=W/2;
   if(cy===undefined) cy=H/2;
   const baseCol = col || (highlight ? 'rgba(255,70,70,0.6)' : 'rgba(255,60,60,0.4)');
   ctx.save();
+  if(clip){ ctx.beginPath(); ctx.rect(clip.x,clip.y,clip.w,clip.h); ctx.clip(); }  // keep the ring inside the image
   ctx.strokeStyle = baseCol;
   ctx.lineWidth = highlight ? 2.5 : 2;
   ctx.setLineDash([3,7]);
@@ -582,6 +584,9 @@ function renderView(v, key){
   const ix=isoX(v), iy=isoY(v);   // planned isocenter in image space (drawPor rotation pivot)
   const isx=isoScreenX(v), isy=isoScreenY(v);  // its on-screen position with zoom/pan (graticule + ring)
   const cmPx=(v.W/40)*v.zoom;     // 1 cm in screen px (400 mm spans v.W at zoom 1)
+  // on-screen rect of the image (fit rect through the zoom/pan transform) -> the iso grid
+  // and rotation ring are clipped to this so they never draw over the black letterbox.
+  const imgClip={ x:v.W/2+v.panX+v.zoom*(f.x-v.W/2), y:v.H/2+v.panY+v.zoom*(f.y-v.H/2), w:v.zoom*f.w, h:v.zoom*f.h };
   // Map 3D residual to each 2D view:
   //  AP view  : horizontal = Lateral(x), vertical = Longitudinal(y),
   //             in-plane rotation = Roll, vertical foreshorten = Pitch
@@ -659,7 +664,7 @@ function renderView(v, key){
     p.drawImage(sc,0,0,v.W,v.H);
     p.globalCompositeOperation='source-over';
     drawVignette(p,v.W,v.H);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);  // fixed isocenter graticule
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx,imgClip);  // fixed isocenter graticule
     document.getElementById(v.por).style.opacity=1;
   }
   else if(tool==='spy'){
@@ -676,7 +681,7 @@ function renderView(v, key){
     p.fillStyle='#000'; p.fillRect(0,0,v.W,v.H);
     drawRef(p);
     p.globalAlpha=1;
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.9)',isx,isy,cmPx);            // ref: fixed cyan inside lens
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.9)',isx,isy,cmPx,imgClip);            // ref: fixed cyan inside lens
     p.restore();
     document.getElementById(v.por).style.opacity=1;
     positionSpyRing(v,key);
@@ -684,16 +689,16 @@ function renderView(v, key){
   else {
     // ── NORMAL (blend) ──
     drawRef(rc);
-    drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);
+    drawCrosshair(rc,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx,imgClip);
     drawVignette(rc,v.W,v.H);
     drawPor(p);
     drawVignette(p,v.W,v.H);
-    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx);
+    drawCrosshair(p,v.W,v.H,v.scale,'rgba(0,212,255,0.85)',isx,isy,cmPx,imgClip);
     document.getElementById(v.por).style.opacity=(v.blend/100).toFixed(3);
   }
   // Rotation ring at the fixed isocenter (rotation pivots here).
   // Hidden in spyglass mode to keep the lens view clean.
-  if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, isx, isy);
+  if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, isx, isy, null, imgClip);
 }
 
 function render(){ renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
@@ -855,7 +860,7 @@ function zoomAt(key, factor, cx, cy){
   updateZoomLabel(key); render();
 }
 function zoomBtn(key,dir){ zoomAt(key, dir>0?1.3:1/1.3, views[key].W/2, views[key].H/2); }
-function zoomReset(key){ const v=views[key]; v.uzoom=1; v.zoom=v.fitZoom||1; v.panX=0; v.panY=0; updateZoomLabel(key); render(); }
+function zoomReset(key){ const v=views[key]; const c=CASES[currentCase]||{}; v.uzoom=(c.zoom&&c.zoom[key])||1; v.zoom=(v.fitZoom||1)*v.uzoom; v.panX=0; v.panY=0; updateZoomLabel(key); render(); }
 
 // Slide the shift panel in/out. When hidden, .views (flex:1) reflows to the full width
 // and the auto-fit re-fits both images larger. The canvas backing store is re-sized on
