@@ -389,12 +389,12 @@ const CASES = {
   brain: { name:'Brain · CT DRR (3D)', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} }, tilt:'brain' },
   pelvis:{ name:'Pelvis · CT DRR (3D)', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.59}, lat:{x:0.50,y:0.59} }, zoom:{ap:1.25}, tilt:'pelvis' },
+           iso:{ ap:{x:0.50,y:0.59}, lat:{x:0.50,y:0.59} }, tilt:'pelvis' },
   // Thorax: the out-of-plane tilt (pitch in AP, roll in LAT) is shown via CT frames
   // re-projected at the rotated angle (real depth-parallax), cross-faded by the residual
   // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
   thorax:{ name:'Thorax · CT DRR (3D)', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
-           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, zoom:{ap:1.25}, tilt:'thorax' }
+           iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:'thorax' }
 };
 let currentCase='pelvis';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
@@ -526,7 +526,7 @@ function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx,clip){
 }
 
 // Radius of the rotation ring for a view (screen px). Inside = translate, outside = rotate.
-function ringRadius(v){ return Math.min(v.W,v.H)*0.50; }
+function ringRadius(v){ return Math.min(v.W,v.H)*0.38; }
 
 // Big red dotted rotation ring at view centre (isocenter)
 function drawRotationRing(ctx,W,H,r,highlight,cx,cy,col,clip){
