@@ -187,6 +187,22 @@ main.shifts-collapsed .shift-tab{left:0}
 .start-card.disabled:hover{transform:none;border-color:rgba(255,122,69,.45);box-shadow:var(--shadow),0 0 0 3px var(--accent2-dim)}
 .start-note{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;min-height:14px;transition:color .18s var(--ease)}
 .start-note.warn{color:var(--accent2-hi)}
+
+/* ===== CBCT volumetric-registration workflow ===== */
+.cbct-screen{position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;overflow:hidden;
+  background:radial-gradient(140% 90% at 50% -20%,#16202c 0%,var(--bg) 55%),var(--bg)}
+.cbct-screen.hidden{display:none}
+.mode-chip{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--accent-hi);background:var(--accent-dim);border:1px solid rgba(45,212,238,.4);border-radius:var(--radius-pill);padding:3px 10px}
+.cbct-main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
+.cbct-controls{order:-1;width:230px}
+.cbct-hint{font-family:var(--mono);font-size:9.5px;line-height:1.6;color:var(--muted);letter-spacing:.03em;padding:2px 2px 0}
+.cbct-panes{flex:1;display:flex;flex-direction:row;gap:2px;min-width:0;background:#000}
+.cbct-pane{position:relative;flex:1;min-width:0;background:#000;overflow:hidden;cursor:crosshair;outline:none;transition:box-shadow .15s var(--ease)}
+.cbct-pane.selected{box-shadow:inset 0 0 0 2px rgba(244,229,176,.85)}
+.cbct-pane canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.cbct-axes .dir-label{position:absolute;z-index:11}
+.cbct-pane .view-tag{cursor:default}
+@media(max-width:880px){.cbct-panes{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -202,14 +218,100 @@ main.shifts-collapsed .shift-tab{left:0}
       <div class="sc-title">2D / 2D</div>
       <div class="sc-desc">Orthogonal-pair (AP&thinsp;+&thinsp;Lateral) portal-to-DRR matching. All current cases live here.</div>
     </div>
-    <div class="start-card disabled" id="modeCbct" onclick="chooseMode('cbct')">
-      <span class="sc-badge soon">Coming soon</span>
+    <div class="start-card" id="modeCbct" onclick="chooseMode('cbct')">
+      <span class="sc-badge ready">Ready</span>
       <div class="sc-icon">&#9776;</div>
       <div class="sc-title">CBCT</div>
-      <div class="sc-desc">Cone-beam CT volumetric registration. Cases will be added here once implemented.</div>
+      <div class="sc-desc">Cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction.</div>
     </div>
   </div>
   <div class="start-note" id="startNote">&nbsp;</div>
+</div>
+
+<!-- ===== CBCT volumetric-registration workflow ===== -->
+<div class="cbct-screen hidden" id="cbctScreen">
+  <header>
+    <div class="header-left">
+      <div class="logo">RT Image Match</div>
+      <div class="divider-v"></div>
+      <span class="mode-chip">CBCT</span>
+      <span class="case-label">CASE:&nbsp;</span>
+      <select class="case-select" id="cbCaseSelect" onchange="CBCT.applyCase(this.value)">
+        <option value="pelvis">Pelvis &middot; CBCT (synthetic)</option>
+        <option value="thorax">Thorax &middot; CBCT (synthetic)</option>
+      </select>
+    </div>
+    <div class="header-controls">
+      <button class="btn-tool" id="cbFusionBtn" onclick="CBCT.toggleFusion()"><span class="glyph">&#9681;</span>Fusion Color</button>
+      <div class="tool-sep"></div>
+      <button class="btn-ghost" onclick="CBCT.help()">How to use</button>
+      <button class="btn-warn" onclick="CBCT.reset()">Reset</button>
+      <button class="btn-primary" onclick="CBCT.randomize()">New Offset</button>
+      <div class="tool-sep"></div>
+      <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
+    </div>
+  </header>
+  <main class="cbct-main">
+    <div class="controls-strip cbct-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-group-title">Couch Correction</div>
+        <div class="ctrl-row"><span class="ctrl-label">Vrt</span><div class="ctrl-val" id="cbValZ">0.00</div><span class="ctrl-unit">cm</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Lng</span><div class="ctrl-val" id="cbValY">0.00</div><span class="ctrl-unit">cm</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Lat</span><div class="ctrl-val" id="cbValX">0.00</div><span class="ctrl-unit">cm</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Pitch</span><div class="ctrl-val" id="cbValPitch">0.0</div><span class="ctrl-unit">&deg;</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Roll</span><div class="ctrl-val" id="cbValRoll">0.0</div><span class="ctrl-unit">&deg;</span></div>
+        <div class="ctrl-row"><span class="ctrl-label">Yaw</span><div class="ctrl-val" id="cbValYaw">0.0</div><span class="ctrl-unit">&deg;</span></div>
+      </div>
+      <div class="status-box">
+        <div class="error-display">
+          <div class="error-item"><div class="error-val" id="cbErrZ">&mdash;</div><div class="error-lbl">Vrt</div></div>
+          <div class="error-item"><div class="error-val" id="cbErrY">&mdash;</div><div class="error-lbl">Lng</div></div>
+          <div class="error-item"><div class="error-val" id="cbErrX">&mdash;</div><div class="error-lbl">Lat</div></div>
+          <div class="error-item"><div class="error-val" id="cbErrPitch">&mdash;</div><div class="error-lbl">Pitch</div></div>
+          <div class="error-item"><div class="error-val" id="cbErrRoll">&mdash;</div><div class="error-lbl">Roll</div></div>
+          <div class="error-item"><div class="error-val" id="cbErrYaw">&mdash;</div><div class="error-lbl">Yaw</div></div>
+        </div>
+        <div class="status-msg" id="cbStatusMsg">Fuse all three planes to the reference</div>
+        <button class="btn-primary" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
+      </div>
+      <div class="cbct-hint">Click a pane to select &middot; arrows = translate &middot; Q/E = rotate &middot; [ ] = blend &middot; drag = move &middot; Shift+drag = rotate</div>
+    </div>
+    <div class="cbct-panes">
+      <div class="cbct-pane selected" id="cbPaneAxial" data-plane="axial" tabindex="0">
+        <canvas id="cbAxial"></canvas>
+        <div class="cbct-axes">
+          <div class="dir-label dir-top" style="left:50%;top:8px;transform:translateX(-50%)">A</div>
+          <div class="dir-label dir-bottom" style="left:50%;bottom:34px;transform:translateX(-50%)">P</div>
+          <div class="dir-label dir-left" style="left:8px;top:50%;transform:translateY(-50%)">R</div>
+          <div class="dir-label dir-right" style="right:8px;top:50%;transform:translateY(-50%)">L</div>
+        </div>
+        <div class="view-tag">AXIAL</div>
+        <div class="view-blend"><span class="vb-lbl ref">CT</span><input type="range" class="vb-slider" id="cbBlendAxial" min="0" max="100" value="50" oninput="CBCT.setBlend('axial',this.value)"><span class="vb-lbl por">CBCT</span></div>
+      </div>
+      <div class="cbct-pane" id="cbPaneCoronal" data-plane="coronal" tabindex="0">
+        <canvas id="cbCoronal"></canvas>
+        <div class="cbct-axes">
+          <div class="dir-label dir-top" style="left:50%;top:8px;transform:translateX(-50%)">S</div>
+          <div class="dir-label dir-bottom" style="left:50%;bottom:34px;transform:translateX(-50%)">I</div>
+          <div class="dir-label dir-left" style="left:8px;top:50%;transform:translateY(-50%)">R</div>
+          <div class="dir-label dir-right" style="right:8px;top:50%;transform:translateY(-50%)">L</div>
+        </div>
+        <div class="view-tag">CORONAL</div>
+        <div class="view-blend"><span class="vb-lbl ref">CT</span><input type="range" class="vb-slider" id="cbBlendCoronal" min="0" max="100" value="50" oninput="CBCT.setBlend('coronal',this.value)"><span class="vb-lbl por">CBCT</span></div>
+      </div>
+      <div class="cbct-pane" id="cbPaneSagittal" data-plane="sagittal" tabindex="0">
+        <canvas id="cbSagittal"></canvas>
+        <div class="cbct-axes">
+          <div class="dir-label dir-top" style="left:50%;top:8px;transform:translateX(-50%)">S</div>
+          <div class="dir-label dir-bottom" style="left:50%;bottom:34px;transform:translateX(-50%)">I</div>
+          <div class="dir-label dir-left" style="left:8px;top:50%;transform:translateY(-50%)">A</div>
+          <div class="dir-label dir-right" style="right:8px;top:50%;transform:translateY(-50%)">P</div>
+        </div>
+        <div class="view-tag">SAGITTAL</div>
+        <div class="view-blend"><span class="vb-lbl ref">CT</span><input type="range" class="vb-slider" id="cbBlendSagittal" min="0" max="100" value="50" oninput="CBCT.setBlend('sagittal',this.value)"><span class="vb-lbl por">CBCT</span></div>
+      </div>
+    </div>
+  </main>
 </div>
 <header>
   <div class="header-left">
@@ -1209,6 +1311,7 @@ function showHelp(){document.getElementById('helpModal').classList.add('open');}
 function closeHelp(){document.getElementById('helpModal').classList.remove('open');}
 
 document.addEventListener('keydown',e=>{
+  if(currentMode!=='2d2d') return; // CBCT mode has its own handler
   const tag=e.target.tagName;
   const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA';
   if(isText) return; // don't hijack real text fields
@@ -1263,18 +1366,238 @@ document.addEventListener('keydown',e=>{
 });
 
 // Load screen: pick an imaging workflow before the matcher is shown.
-// 2D/2D is the existing orthogonal-pair tool; CBCT is a placeholder for future cases.
+//   2d2d -> existing orthogonal-pair portal/DRR tool
+//   cbct -> volumetric 3-plane CBCT registration (CBCT module below)
+let currentMode=null;
 function chooseMode(mode){
-  const note=document.getElementById('startNote');
-  if(mode==='cbct'){
-    note.textContent='CBCT workflow is not implemented yet — check back soon.';
-    note.classList.add('warn');
-    return;
-  }
   document.getElementById('startScreen').classList.add('hidden');
-  // canvases were laid out under the overlay; re-measure now that it is gone
-  requestAnimationFrame(resizeAll);
+  currentMode=mode;
+  if(mode==='cbct'){
+    document.getElementById('cbctScreen').classList.remove('hidden');
+    CBCT.enter();
+  }else{
+    document.getElementById('cbctScreen').classList.add('hidden');
+    // canvases were laid out under the overlay; re-measure now that it is gone
+    requestAnimationFrame(resizeAll);
+  }
 }
+// Return to the workflow picker from either tool.
+function backToMenu(){
+  currentMode=null;
+  document.getElementById('cbctScreen').classList.add('hidden');
+  const ss=document.getElementById('startScreen');
+  ss.classList.remove('hidden');
+  const note=document.getElementById('startNote'); note.textContent=' '; note.classList.remove('warn');
+}
+
+/* ======================= CBCT volumetric-registration workflow =======================
+   Self-contained module. Synthetic CT/CBCT slices are generated for three orthogonal
+   planes; the "moving" CBCT is offset from the planning CT by a random 6DOF setup error,
+   and the trainee applies couch corrections to fuse them. Real slice image sets can be
+   swapped in later by replacing makeTruth()/styleImg() with image loads. */
+const CBCT=(function(){
+  const S=560;            // internal slice resolution (square, px)
+  const FOV=380;          // mm spanned across a slice -> translation scale
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  const TEAL=[45,212,238], ORANGE=[255,122,69];
+  const ORDER=['x','y','z','pitch','roll','yaw'];
+  // 6DOF in patient coords: x=Lat, y=Lng(sup-inf), z=Vrt(ant-post); rotations in deg
+  let shift ={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};
+  let hidden={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};
+  let active='axial', fusion=false, caseKey='pelvis', started=false, undoStack=[];
+  // each plane shows 2 in-plane translations + 1 in-plane rotation; the 3 planes together
+  // cover all 6 DOF. fx/fy flip screen axes to the conventional anatomical direction.
+  const PLANES={
+    axial:   {cv:'cbAxial',    pane:'cbPaneAxial',    sl:'cbBlendAxial',    sx:'x', sy:'z', rot:'roll',  fx:1, fy:-1},
+    coronal: {cv:'cbCoronal',  pane:'cbPaneCoronal',  sl:'cbBlendCoronal',  sx:'x', sy:'y', rot:'yaw',   fx:1, fy:-1},
+    sagittal:{cv:'cbSagittal', pane:'cbPaneSagittal', sl:'cbBlendSagittal', sx:'z', sy:'y', rot:'pitch', fx:1, fy:-1}
+  };
+  const ST={}; // runtime per-plane: {W,H,blend,ref,mov,refT,movT}
+  const gid=id=>document.getElementById(id);
+  function net(){const n={};ORDER.forEach(k=>n[k]=shift[k]-hidden[k]);return n;}
+
+  /* ---------- synthetic slice generation ---------- */
+  const gray=v=>{v=v|0;return 'rgb('+v+','+v+','+v+')';};
+  function ell(g,cx,cy,rx,ry,a,v){g.save();g.translate(cx,cy);g.rotate(a||0);g.beginPath();g.ellipse(0,0,Math.max(.5,rx),Math.max(.5,ry),0,0,Math.PI*2);g.fillStyle=gray(v);g.fill();g.restore();}
+  const bone=(g,cx,cy,rx,ry,a)=>ell(g,cx,cy,rx,ry,a,232);
+  function softBody(g,cx,cy,rx,ry){
+    ell(g,cx,cy,rx,ry,0,148); ell(g,cx,cy,rx-6,ry-6,0,92);
+    const grd=g.createRadialGradient(cx,cy,4,cx,cy,Math.max(rx,ry));
+    grd.addColorStop(0,gray(122));grd.addColorStop(1,gray(96));
+    g.save();g.beginPath();g.ellipse(cx,cy,Math.max(1,rx-14),Math.max(1,ry-14),0,0,Math.PI*2);g.fillStyle=grd;g.fill();g.restore();
+  }
+  function pelvis(p,g){const c=S*0.5;
+    if(p==='axial'){softBody(g,c,S*0.52,S*0.40,S*0.30);
+      ell(g,c,S*0.44,S*0.07,S*0.05,0,52);
+      bone(g,c,S*0.66,S*0.05,S*0.06,0);
+      bone(g,S*0.31,S*0.55,S*0.045,S*0.12,-0.5);bone(g,S*0.69,S*0.55,S*0.045,S*0.12,0.5);
+      bone(g,S*0.34,S*0.66,S*0.045,S*0.045,0);bone(g,S*0.66,S*0.66,S*0.045,S*0.045,0);
+    }else if(p==='coronal'){softBody(g,c,S*0.5,S*0.32,S*0.45);
+      for(let i=0;i<5;i++)bone(g,c,S*0.18+i*S*0.072,S*0.045,S*0.028,0);
+      bone(g,c,S*0.56,S*0.05,S*0.05,0);
+      bone(g,S*0.34,S*0.60,S*0.10,S*0.075,0.5);bone(g,S*0.66,S*0.60,S*0.10,S*0.075,-0.5);
+      bone(g,S*0.31,S*0.72,S*0.05,S*0.05,0);bone(g,S*0.69,S*0.72,S*0.05,S*0.05,0);
+      bone(g,S*0.30,S*0.83,S*0.028,S*0.07,0.22);bone(g,S*0.70,S*0.83,S*0.028,S*0.07,-0.22);
+    }else{softBody(g,c,S*0.5,S*0.27,S*0.45);const sx=S*0.60;
+      for(let i=0;i<6;i++){const y=S*0.16+i*S*0.066;bone(g,sx,y,S*0.045,S*0.028,0.05);ell(g,sx,y+S*0.033,S*0.04,S*0.012,0,70);}
+      bone(g,S*0.62,S*0.70,S*0.05,S*0.07,-0.3);bone(g,S*0.40,S*0.66,S*0.04,S*0.03,0);ell(g,S*0.42,S*0.59,S*0.05,S*0.05,0,52);
+    }
+  }
+  function thorax(p,g){const c=S*0.5;
+    if(p==='axial'){softBody(g,c,S*0.5,S*0.42,S*0.30);
+      ell(g,S*0.34,S*0.50,S*0.13,S*0.17,0,20);ell(g,S*0.66,S*0.50,S*0.13,S*0.17,0,20);
+      ell(g,c,S*0.56,S*0.10,S*0.10,0,120);bone(g,c,S*0.66,S*0.05,S*0.05,0);bone(g,c,S*0.34,S*0.035,S*0.02,0);
+      g.save();g.strokeStyle=gray(214);g.lineWidth=3;g.setLineDash([15,13]);g.beginPath();g.ellipse(c,S*0.5,S*0.385,S*0.275,0,0,Math.PI*2);g.stroke();g.setLineDash([]);g.restore();
+    }else if(p==='coronal'){softBody(g,c,S*0.48,S*0.34,S*0.45);
+      ell(g,S*0.33,S*0.40,S*0.14,S*0.22,0,20);ell(g,S*0.67,S*0.40,S*0.14,S*0.22,0,20);
+      ell(g,S*0.45,S*0.58,S*0.11,S*0.12,0,120);
+      for(let i=0;i<6;i++)bone(g,c,S*0.16+i*S*0.06,S*0.032,S*0.024,0);
+      for(let i=0;i<5;i++){const y=S*0.30+i*S*0.06;ell(g,S*0.33,y,S*0.12,S*0.012,-0.4,206);ell(g,S*0.67,y,S*0.12,S*0.012,0.4,206);}
+      bone(g,S*0.40,S*0.16,S*0.06,S*0.014,0.15);bone(g,S*0.60,S*0.16,S*0.06,S*0.014,-0.15);
+    }else{softBody(g,c,S*0.5,S*0.30,S*0.45);
+      ell(g,S*0.45,S*0.42,S*0.16,S*0.20,0,22);ell(g,S*0.42,S*0.56,S*0.10,S*0.11,0,120);const sx=S*0.62;
+      for(let i=0;i<7;i++){const y=S*0.14+i*S*0.06;bone(g,sx,y,S*0.04,S*0.026,0);ell(g,sx,y+S*0.03,S*0.035,S*0.01,0,70);}
+      bone(g,S*0.36,S*0.42,S*0.02,S*0.10,0.02);
+    }
+  }
+  function makeTruth(region,plane){const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.fillStyle='#000';g.fillRect(0,0,S,S);(region==='thorax'?thorax:pelvis)(plane,g);return c;}
+  function styleImg(truth,kind){
+    const cbct=kind==='cbct',c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(truth,0,0);
+    const id=g.getImageData(0,0,S,S),d=id.data,con=cbct?0.78:1.08,MEAN=58,namp=cbct?24:11,add=cbct?10:0;
+    for(let i=0;i<d.length;i+=4){let v=(d[i]-MEAN)*con+MEAN+add+(Math.random()*2-1)*namp;v=v<0?0:v>255?255:v;d[i]=d[i+1]=d[i+2]=v;}
+    g.putImageData(id,0,0);
+    if(cbct){g.globalCompositeOperation='destination-in';const r=S*0.49,grd=g.createRadialGradient(S/2,S/2,r*0.82,S/2,S/2,r);grd.addColorStop(0,'rgba(0,0,0,1)');grd.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=grd;g.beginPath();g.arc(S/2,S/2,r,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';}
+    return c;
+  }
+  function tint(src,col){const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(src,0,0);const id=g.getImageData(0,0,S,S),d=id.data;for(let i=0;i<d.length;i+=4){const v=d[i]/255;d[i]=v*col[0];d[i+1]=v*col[1];d[i+2]=v*col[2];}g.putImageData(id,0,0);return c;}
+
+  /* ---------- rendering ---------- */
+  function drawPlane(name){
+    const P=PLANES[name],st=ST[name],cv=gid(P.cv);if(!cv)return;const ctx=cv.getContext('2d'),W=st.W,H=st.H;
+    ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
+    if(!st.ref)return;
+    const s=Math.min(W,H)/S,dw=S*s,ox=(W-dw)/2,oy=(H-dw)/2,cx=ox+dw/2,cy=oy+dw/2,n=net();
+    const dx=(n[P.sx]/FOV)*dw*P.fx,dy=(n[P.sy]/FOV)*dw*P.fy,rot=n[P.rot]*Math.PI/180,b=st.blend/100;
+    if(fusion){
+      ctx.globalCompositeOperation='lighter';
+      ctx.globalAlpha=Math.min(1,(1-b)+0.5);ctx.drawImage(st.refT,ox,oy,dw,dw);
+      ctx.globalAlpha=Math.min(1,b+0.5);ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(st.movT,-dw/2,-dw/2,dw,dw);ctx.restore();
+      ctx.globalCompositeOperation='source-over';
+    }else{
+      ctx.globalAlpha=1;ctx.drawImage(st.ref,ox,oy,dw,dw);
+      ctx.globalAlpha=b;ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(st.mov,-dw/2,-dw/2,dw,dw);ctx.restore();
+    }
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(244,229,176,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-11,cy);ctx.lineTo(cx+11,cy);ctx.moveTo(cx,cy-11);ctx.lineTo(cx,cy+11);ctx.stroke();
+  }
+  function render(){Object.keys(PLANES).forEach(drawPlane);}
+  function resize(){Object.keys(PLANES).forEach(name=>{const P=PLANES[name],pane=gid(P.pane),cv=gid(P.cv),r=pane.getBoundingClientRect(),st=ST[name];st.W=Math.max(1,Math.floor(r.width));st.H=Math.max(1,Math.floor(r.height));cv.width=Math.round(st.W*dpr);cv.height=Math.round(st.H*dpr);});}
+
+  /* ---------- state / readouts ---------- */
+  function refreshReadouts(){gid('cbValX').textContent=(-shift.x/10).toFixed(2);gid('cbValY').textContent=(shift.y/10).toFixed(2);gid('cbValZ').textContent=(shift.z/10).toFixed(2);gid('cbValPitch').textContent=shift.pitch.toFixed(1);gid('cbValRoll').textContent=shift.roll.toFixed(1);gid('cbValYaw').textContent=shift.yaw.toFixed(1);}
+  function clearErrors(){['cbErrX','cbErrY','cbErrZ','cbErrPitch','cbErrRoll','cbErrYaw'].forEach(id=>{const e=gid(id);e.textContent='—';e.className='error-val';});}
+  function pushUndo(){undoStack.push(JSON.stringify(shift));if(undoStack.length>80)undoStack.shift();}
+  function undo(){if(!undoStack.length)return;shift=JSON.parse(undoStack.pop());clearErrors();refreshReadouts();render();}
+  function adj(axis,delta){pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
+  function setBlend(name,val){ST[name].blend=+val;drawPlane(name);}
+  function blendKey(d){const st=ST[active];st.blend=Math.max(0,Math.min(100,st.blend+d));gid(PLANES[active].sl).value=st.blend;drawPlane(active);}
+  function toggleFusion(){fusion=!fusion;gid('cbFusionBtn').classList.toggle('active',fusion);render();}
+  function reset(){pushUndo();shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};clearErrors();refreshReadouts();const m=gid('cbStatusMsg');m.textContent='Fuse all three planes to the reference';m.style.color='var(--label)';render();}
+  function randomize(){
+    const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
+    hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
+    hidden.pitch=rh(0,4)*sg();hidden.roll=rh(0,4)*sg();hidden.yaw=rh(0,4)*sg();
+    shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];clearErrors();refreshReadouts();
+    const m=gid('cbStatusMsg');m.textContent='New 6DOF setup error applied — register all three planes';m.style.color='var(--label)';render();
+  }
+  function check(){
+    const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
+    const cc=(v,t1,t2)=>{const a=Math.abs(v);return a<=t1?'error-good':a<=t2?'error-ok':'error-bad';};
+    const sT=(id,mm,t1,t2)=>{const el=gid(id),cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
+    const sR=(id,dg,t1,t2)=>{const el=gid(id);el.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';el.className='error-val '+cc(dg,t1,t2);};
+    sT('cbErrX',-e.x,1,3);sT('cbErrY',e.y,1,3);sT('cbErrZ',e.z,1,3);
+    sR('cbErrPitch',e.pitch,0.5,1.5);sR('cbErrRoll',e.roll,0.5,1.5);sR('cbErrYaw',e.yaw,0.5,1.5);
+    const tOk=Math.abs(e.x)<=1&&Math.abs(e.y)<=1&&Math.abs(e.z)<=1,rOk=Math.abs(e.pitch)<=0.5&&Math.abs(e.roll)<=0.5&&Math.abs(e.yaw)<=0.5;
+    const close=Math.abs(e.x)<=3&&Math.abs(e.y)<=3&&Math.abs(e.z)<=3&&Math.abs(e.pitch)<=1.5&&Math.abs(e.roll)<=1.5&&Math.abs(e.yaw)<=1.5;
+    const m=gid('cbStatusMsg');
+    if(tOk&&rOk){m.textContent='✓ Registration accepted — within tolerance';m.style.color='var(--accent)';}
+    else if(close){m.textContent='⚡ Close — fine-tune the residual';m.style.color='var(--accent2-hi)';}
+    else{m.textContent='✗ Residual error — keep fusing the planes';m.style.color='var(--accent2)';}
+  }
+  function help(){
+    let m=gid('cbctHelp');
+    if(!m){m=document.createElement('div');m.className='modal-bg';m.id='cbctHelp';m.style.zIndex=300;
+      m.innerHTML='<div class="modal"><h2>// CBCT REGISTRATION</h2>'+
+      '<p>A random <strong style="color:var(--accent2)">6DOF setup error</strong> offsets the <strong>CBCT</strong> from the planning <strong>CT</strong>. Align them in all three planes &mdash; <strong>axial</strong>, <strong>coronal</strong> and <strong>sagittal</strong> &mdash; then read off the couch correction.</p>'+
+      '<p>Each plane reveals two translations and one rotation: <strong>Axial</strong> = Lat + Vrt + Roll &middot; <strong>Coronal</strong> = Lat + Lng + Yaw &middot; <strong>Sagittal</strong> = Vrt + Lng + Pitch. Between them all six axes are covered.</p>'+
+      '<p><strong>Click a pane</strong> to select it, then <strong>arrow keys</strong> translate and <strong>Q/E</strong> rotate. <strong>Drag</strong> inside a pane to move; <strong>Shift+drag</strong> to rotate. Each pane has a <strong>CT&harr;CBCT blend</strong> slider (or <strong>[ ]</strong>); toggle <strong>Fusion Color</strong> to see CT in teal and CBCT in orange (aligned bone reads white).</p>'+
+      '<p>Press <strong>Check Match</strong> to grade the residual against tolerance (1&nbsp;cm / 0.5&deg;). <strong style="color:var(--accent2)">Note:</strong> the slices are <strong>synthetic placeholders</strong> until real CT/CBCT image sets are added.</p>'+
+      '<button class="btn-primary modal-close" onclick="document.getElementById(\'cbctHelp\').style.display=\'none\'">Got it</button></div>';
+      document.body.appendChild(m);m.addEventListener('click',ev=>{if(ev.target===m)m.style.display='none';});
+    }
+    m.style.display='flex';
+  }
+
+  /* ---------- interaction ---------- */
+  function select(name){active=name;Object.keys(PLANES).forEach(k=>gid(PLANES[k].pane).classList.toggle('selected',k===name));}
+  function bindPane(name){
+    const P=PLANES[name],el=gid(P.pane);
+    el.addEventListener('pointerdown',ev=>{
+      if(ev.target.closest('.view-blend'))return;
+      select(name);
+      const st=ST[name],s=Math.min(st.W,st.H)/S,dw=S*s,cx=st.W/2,cy=st.H/2,rotMode=ev.shiftKey;
+      let px=ev.offsetX,py=ev.offsetY,lastA=Math.atan2(ev.offsetY-cy,ev.offsetX-cx),moved=false;
+      el.setPointerCapture(ev.pointerId);pushUndo();
+      const mv=e2=>{
+        if(rotMode){const a=Math.atan2(e2.offsetY-cy,e2.offsetX-cx);let da=(a-lastA)*180/Math.PI;lastA=a;shift[P.rot]=+(shift[P.rot]+da).toFixed(1);}
+        else{const ddx=e2.offsetX-px,ddy=e2.offsetY-py;px=e2.offsetX;py=e2.offsetY;shift[P.sx]=+(shift[P.sx]+ddx/dw*FOV*P.fx).toFixed(1);shift[P.sy]=+(shift[P.sy]+ddy/dw*FOV*P.fy).toFixed(1);}
+        moved=true;clearErrors();refreshReadouts();render();
+      };
+      const up=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);if(!moved)undoStack.pop();};
+      el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
+    });
+  }
+  document.addEventListener('keydown',e=>{
+    if(currentMode!=='cbct')return;
+    const tag=e.target.tagName;if((tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA')return;
+    if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();undo();return;}
+    const P=PLANES[active];let h=true;
+    switch(e.key){
+      case 'ArrowLeft': adj(P.sx,-0.5*P.fx);break;
+      case 'ArrowRight':adj(P.sx, 0.5*P.fx);break;
+      case 'ArrowUp':   adj(P.sy,-0.5*P.fy);break;
+      case 'ArrowDown': adj(P.sy, 0.5*P.fy);break;
+      case 'q':case 'Q':adj(P.rot,-0.5);break;
+      case 'e':case 'E':adj(P.rot, 0.5);break;
+      case '[':blendKey(-6);break;
+      case ']':blendKey(6);break;
+      case 'r':case 'R':reset();break;
+      case 'n':case 'N':randomize();break;
+      default:h=false;
+    }
+    if(h)e.preventDefault();
+  });
+
+  /* ---------- case build / lifecycle ---------- */
+  function applyCase(key){
+    caseKey=key;const sel=gid('cbCaseSelect');if(sel)sel.value=key;
+    Object.keys(PLANES).forEach(name=>{
+      const st=ST[name],truth=makeTruth(key,name);
+      st.ref=styleImg(truth,'ct');st.mov=styleImg(truth,'cbct');
+      st.refT=tint(st.ref,TEAL);st.movT=tint(st.mov,ORANGE);
+      st.blend=50;const sl=gid(PLANES[name].sl);if(sl)sl.value=50;
+    });
+    randomize();
+  }
+  function build(){
+    Object.keys(PLANES).forEach(name=>{ST[name]={W:0,H:0,blend:50,ref:null,mov:null,refT:null,movT:null};bindPane(name);});
+    window.addEventListener('resize',()=>{if(currentMode==='cbct'){resize();render();}});
+    select('axial');applyCase(caseKey);refreshReadouts();
+  }
+  function enter(){if(!started){build();started=true;}requestAnimationFrame(()=>{resize();render();});}
+
+  return {enter,applyCase,setBlend,toggleFusion,reset,randomize,check,help,undo};
+})();
 
 window.addEventListener('resize',resizeAll);
 setStep(1);

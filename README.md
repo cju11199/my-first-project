@@ -1,6 +1,6 @@
 # my-first-project
 
-An interactive **RT Image Matching Trainer** for radiation therapy students — practice aligning orthogonal portal images to reference DRRs, just like a real treatment setup.
+An interactive **RT Image Matching Trainer** for radiation therapy students — practice aligning treatment-setup imaging to reference data, just like a real treatment setup.
 
 ## ▶ Launch the trainer
 
@@ -8,21 +8,22 @@ An interactive **RT Image Matching Trainer** for radiation therapy students — 
 
 Open it in any browser — no install or account needed. Share that link with students.
 
+On launch, pick a workflow from the start screen:
+
+- **2D / 2D** — orthogonal-pair (AP + Lateral) portal-to-DRR matching.
+- **CBCT** — cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction. *Slices are currently synthetic placeholders until real CT/CBCT image sets are added.*
+
 ## Cases
 
-- **Brain · AP + Lateral**
-- **Pelvis · CT DRR**
-- **Thorax · CT DRR**
-
-Switch between them with the dropdown in the top-left.
+**2D / 2D:** Brain · Pelvis · Thorax (CT DRR). **CBCT:** Pelvis · Thorax (synthetic). Switch between them with the dropdown in the top-left.
 
 ## Features
 
-- Dual-view alignment (AP/PA + Lateral) with 6DOF correction (Lat / Lng / Vrt / Roll / Pitch)
-- **Color Wash**, **Spyglass**, and **Contrast** matching tools
-- Blend sliders, cm tick-mark crosshair on the isocenter, and live residual-error readout
-- Drag to translate/rotate, scroll to zoom, **Ctrl+Z** to undo, **New Offset** to generate a fresh case
-- Press **How to use** in the app for the full list of keyboard shortcuts
+- **2D / 2D:** dual-view alignment (AP/PA + Lateral) with 5DOF correction (Lat / Lng / Vrt / Roll / Pitch), plus **Color Wash**, **Spyglass**, and **Contrast** tools
+- **CBCT:** three-plane fusion with full 6DOF correction (Lat / Lng / Vrt / Pitch / Roll / Yaw); each plane reveals two translations and one rotation, and **Fusion Color** shows CT in teal vs CBCT in orange
+- Blend sliders, isocenter reticle, and live residual-error readout graded against tolerance
+- Drag to translate/rotate, **Ctrl+Z** to undo, **New Offset** to generate a fresh setup error
+- Press **How to use** in either workflow for the full list of keyboard shortcuts
 
 ## Development
 
