@@ -1617,8 +1617,10 @@ const CBCT=(function(){
   function adj(axis,delta){pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
   function slStart(){pushUndo();}
   function slide(axis,val){shift[axis]=+parseFloat(val).toFixed(1);clearErrors();refreshReadouts();render();}
-  function setBlend(name,val){ST[name].blend=+val;drawPlane(name);}
-  function blendKey(d){const st=ST[active];st.blend=Math.max(0,Math.min(100,st.blend+d));gid(PLANES[active].sl).value=st.blend;drawPlane(active);}
+  // Conjoined blend: all three planes share ONE CT<->CBCT blend value, so moving
+  // any pane's slider moves all of them (and syncs the other sliders' positions).
+  function setBlend(_name,val){const v=+val;Object.keys(PLANES).forEach(name=>{ST[name].blend=v;const sl=gid(PLANES[name].sl);if(sl)sl.value=v;});render();}
+  function blendKey(d){setBlend(null,Math.max(0,Math.min(100,ST[active].blend+d)));}
   function updateZoomLabel(name){const el=gid('cbZoom'+name[0].toUpperCase()+name.slice(1));if(el)el.textContent=Math.round(ST[name].zoom*100)+'%';}
   function cbZoom(name,d){const st=ST[name];const oldZ=st.zoom;const f=d>0?1.25:1/1.25;st.zoom=Math.max(0.5,Math.min(8,oldZ*f));const ratio=st.zoom/oldZ;st.panX*=ratio;st.panY*=ratio;updateZoomLabel(name);drawPlane(name);}
   function cbZoomReset(name){const st=ST[name];st.zoom=1;st.panX=0;st.panY=0;updateZoomLabel(name);drawPlane(name);}
@@ -1695,15 +1697,13 @@ const CBCT=(function(){
     el.addEventListener('pointermove',ev=>{
       if(ev.buttons!==0)return;
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar'))return;
-      const st=ST[name],ringR=Math.min(st.W,st.H)*0.38,cx=st.W/2+st.panX,cy=st.H/2+st.panY;
-      el.style.cursor=Math.hypot(ev.offsetX-cx,ev.offsetY-cy)>ringR?'grab':'default';
+      el.style.cursor=ev.shiftKey?'grab':'move';   // move = drag to shift; Shift = rotate
     });
     el.addEventListener('pointerdown',ev=>{
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar'))return;
       select(name);
       const st=ST[name],s=Math.min(st.W,st.H)/S,dw=S*s*st.zoom,cx=st.W/2+st.panX,cy=st.H/2+st.panY;
-      const dist=Math.hypot(ev.offsetX-cx,ev.offsetY-cy),ringR=Math.min(st.W,st.H)*0.38;
-      const rotMode=dist>ringR;
+      const rotMode=ev.shiftKey;   // plain drag = shift/translate the CBCT; Shift+drag = rotate
       let px=ev.offsetX,py=ev.offsetY,lastA=Math.atan2(ev.offsetY-cy,ev.offsetX-cx),accAng=0,moved=false;
       if(rotMode){st.rotating=true;el.style.cursor='grabbing';drawPlane(name);}
       else{el.style.cursor='move';}
