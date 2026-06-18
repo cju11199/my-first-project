@@ -218,8 +218,8 @@ main.shifts-collapsed .shift-tab{left:0}
       <div class="sc-title">2D / 2D</div>
       <div class="sc-desc">Orthogonal-pair (AP&thinsp;+&thinsp;Lateral) portal-to-DRR matching. All current cases live here.</div>
     </div>
-    <div class="start-card" id="modeCbct" onclick="chooseMode('cbct')">
-      <span class="sc-badge ready">Ready</span>
+    <div class="start-card disabled" id="modeCbct" onclick="chooseMode('cbct')">
+      <span class="sc-badge soon">Coming soon</span>
       <div class="sc-icon">&#9776;</div>
       <div class="sc-title">CBCT</div>
       <div class="sc-desc">Cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction.</div>
@@ -1370,6 +1370,11 @@ document.addEventListener('keydown',e=>{
 //   cbct -> volumetric 3-plane CBCT registration (CBCT module below)
 let currentMode=null;
 function chooseMode(mode){
+  if(mode==='cbct'){   // gated until the CBCT workflow quirks are sorted out
+    const n=document.getElementById('startNote');
+    n.textContent='CBCT workflow — coming soon'; n.classList.add('warn');
+    return;
+  }
   document.getElementById('startScreen').classList.add('hidden');
   currentMode=mode;
   if(mode==='cbct'){
