@@ -164,9 +164,53 @@ main.shifts-collapsed .shift-tab{left:0}
 .spy-ring{position:absolute;z-index:9;border:2px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.7),0 0 22px rgba(255,122,69,.5);pointer-events:none;display:none}
 .spy-ring::after{content:'';position:absolute;inset:0;border:1px solid rgba(45,212,238,.55)}
 .spy-handle{position:absolute;width:15px;height:15px;right:-7px;bottom:-7px;background:var(--accent2);border:2px solid #000;border-radius:4px;pointer-events:auto;cursor:nwse-resize;box-shadow:0 2px 6px rgba(0,0,0,.6)}
+
+/* start / mode-select load screen */
+.start-screen{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;
+  background:radial-gradient(140% 90% at 50% -10%,#16202c 0%,var(--bg) 58%),var(--bg);padding:24px}
+.start-screen.hidden{display:none}
+.start-brand{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center}
+.start-logo{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text);letter-spacing:.08em;text-transform:uppercase;display:flex;align-items:center;gap:12px}
+.start-logo::before{content:'';width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--accent-hi),var(--accent));box-shadow:0 0 0 4px rgba(45,212,238,.14),0 0 18px var(--accent)}
+.start-sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
+.start-cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.start-card{position:relative;width:230px;min-height:188px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:24px 22px;cursor:pointer;text-align:left;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:18px;box-shadow:var(--shadow),0 0 0 1px var(--hairline) inset;transition:all .18s var(--ease)}
+.start-card:hover{transform:translateY(-3px);border-color:rgba(45,212,238,.5);box-shadow:var(--shadow),0 0 0 3px var(--accent-dim)}
+.start-card .sc-icon{font-size:30px;line-height:1;color:var(--accent-hi)}
+.start-card .sc-title{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);letter-spacing:.04em}
+.start-card .sc-desc{font-size:12px;color:var(--label);line-height:1.6}
+.start-card .sc-badge{position:absolute;top:14px;right:14px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-pill)}
+.start-card .sc-badge.ready{color:var(--accent-hi);background:var(--accent-dim);border:1px solid rgba(45,212,238,.4)}
+.start-card .sc-badge.soon{color:var(--accent2-hi);background:var(--accent2-dim);border:1px solid rgba(255,122,69,.4)}
+.start-card.disabled{cursor:not-allowed;opacity:.62}
+.start-card.disabled:hover{transform:none;border-color:rgba(255,122,69,.45);box-shadow:var(--shadow),0 0 0 3px var(--accent2-dim)}
+.start-note{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.06em;min-height:14px;transition:color .18s var(--ease)}
+.start-note.warn{color:var(--accent2-hi)}
 </style>
 </head>
 <body>
+<div class="start-screen" id="startScreen">
+  <div class="start-brand">
+    <div class="start-logo">RT Image Match</div>
+    <div class="start-sub">Select an imaging workflow</div>
+  </div>
+  <div class="start-cards">
+    <div class="start-card" id="mode2d2d" onclick="chooseMode('2d2d')">
+      <span class="sc-badge ready">Ready</span>
+      <div class="sc-icon">&#9783;</div>
+      <div class="sc-title">2D / 2D</div>
+      <div class="sc-desc">Orthogonal-pair (AP&thinsp;+&thinsp;Lateral) portal-to-DRR matching. All current cases live here.</div>
+    </div>
+    <div class="start-card disabled" id="modeCbct" onclick="chooseMode('cbct')">
+      <span class="sc-badge soon">Coming soon</span>
+      <div class="sc-icon">&#9776;</div>
+      <div class="sc-title">CBCT</div>
+      <div class="sc-desc">Cone-beam CT volumetric registration. Cases will be added here once implemented.</div>
+    </div>
+  </div>
+  <div class="start-note" id="startNote">&nbsp;</div>
+</div>
 <header>
   <div class="header-left">
     <div class="logo">RT Image Match</div>
@@ -1217,6 +1261,20 @@ document.addEventListener('keydown',e=>{
     case 'Escape':if(tool){tool=null;afterToolChange();}else if(soloView){toggleSolo(soloView);}break;
   }
 });
+
+// Load screen: pick an imaging workflow before the matcher is shown.
+// 2D/2D is the existing orthogonal-pair tool; CBCT is a placeholder for future cases.
+function chooseMode(mode){
+  const note=document.getElementById('startNote');
+  if(mode==='cbct'){
+    note.textContent='CBCT workflow is not implemented yet — check back soon.';
+    note.classList.add('warn');
+    return;
+  }
+  document.getElementById('startScreen').classList.add('hidden');
+  // canvases were laid out under the overlay; re-measure now that it is gone
+  requestAnimationFrame(resizeAll);
+}
 
 window.addEventListener('resize',resizeAll);
 setStep(1);
