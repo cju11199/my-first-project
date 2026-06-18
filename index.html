@@ -1486,6 +1486,12 @@ const CBCT=(function(){
   // axial -> y(Lng/SI), coronal -> z(Vrt/AP), sagittal -> x(Lat/LR)
   // CBCT slice offset sign: axial +net.y, coronal +net.z, sagittal -net.x
   const DEPTH={axial:{axis:'y',sign:1},coronal:{axis:'z',sign:1},sagittal:{axis:'x',sign:-1}};
+  // Approximate out-of-plane rotation: a rotation about patient axis x/y/z is pitch/roll/yaw.
+  // In the one plane where it is in-plane it rotates exactly; in the other two it tilts the
+  // slice, which we fake by foreshortening (squashing) the moving CBCT along the screen axis
+  // perpendicular to the rotation axis. Small-angle approximation (app caps rotations at ~4°).
+  const ROT_OF_AXIS={x:'pitch',y:'roll',z:'yaw'};
+  const FORESHORTEN_K=0.02;   // fractional squash per degree of out-of-plane tilt
   const sliceIdx={axial:40,coronal:40,sagittal:40};
   const sliceImgs={axial:[],coronal:[],sagittal:[]};
   let stacksLoaded=false;
@@ -1570,6 +1576,10 @@ const CBCT=(function(){
     if(!refDraw)return;
     const s=Math.min(W,H)/S,dw=S*s*st.zoom,ox=W/2-dw/2+st.panX,oy=H/2-dw/2+st.panY,cx=W/2+st.panX,cy=H/2+st.panY,n=net();
     const dx=(n[P.sx]/FOV)*dw*P.fx,dy=(n[P.sy]/FOV)*dw*P.fy,rot=n[P.rot]*Math.PI/180,b=st.blend/100;
+    // out-of-plane foreshorten: horiz from rotation about the vertical axis (P.sy), vert from
+    // rotation about the horizontal axis (P.sx); the in-plane rotation (P.rot) is excluded.
+    const clampF=v=>v<0.6?0.6:v>1.4?1.4:v;
+    const fsx=clampF(1-FORESHORTEN_K*n[ROT_OF_AXIS[P.sy]]),fsy=clampF(1-FORESHORTEN_K*n[ROT_OF_AXIS[P.sx]]);
     if(fusion){
       ctx.globalCompositeOperation='lighter';
       if(useVol){
@@ -1577,18 +1587,18 @@ const CBCT=(function(){
         ctx.filter='sepia(100%) saturate(4) hue-rotate(148deg)';
         ctx.drawImage(refDraw,ox,oy,dw,dw);ctx.filter='none';
         ctx.globalAlpha=Math.min(1,b+0.5);
-        ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);
+        ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.scale(fsx,fsy);
         ctx.filter='sepia(100%) saturate(3) hue-rotate(-20deg)';
         ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.filter='none';
         ctx.restore();
       }else{
         ctx.globalAlpha=Math.min(1,(1-b)+0.5);ctx.drawImage(st.refT,ox,oy,dw,dw);
-        ctx.globalAlpha=Math.min(1,b+0.5);ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(st.movT,-dw/2,-dw/2,dw,dw);ctx.restore();
+        ctx.globalAlpha=Math.min(1,b+0.5);ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.scale(fsx,fsy);ctx.drawImage(st.movT,-dw/2,-dw/2,dw,dw);ctx.restore();
       }
       ctx.globalCompositeOperation='source-over';
     }else{
       ctx.globalAlpha=1;ctx.drawImage(refDraw,ox,oy,dw,dw);
-      ctx.globalAlpha=b;ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.restore();
+      ctx.globalAlpha=b;ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.scale(fsx,fsy);ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.restore();
     }
     ctx.globalAlpha=1;ctx.filter='none';
     ctx.strokeStyle='rgba(244,229,176,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-11,cy);ctx.lineTo(cx+11,cy);ctx.moveTo(cx,cy-11);ctx.lineTo(cx,cy+11);ctx.stroke();
