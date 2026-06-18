@@ -62,6 +62,12 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 .viewer-area.selected{box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 40px -8px rgba(230,194,90,.28)}
 .viewer-area.selected .view-tag{color:var(--gold);border-color:rgba(230,194,90,.55);box-shadow:0 0 0 1px rgba(230,194,90,.2)}
 .viewer-area canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+.rot-cue{position:absolute;z-index:16;pointer-events:none;opacity:0;transition:opacity .12s var(--ease);display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,95,95,0.95);text-shadow:0 1px 5px rgba(0,0,0,.85);transform:translate(11px,-36px)}
+.rot-cue.show{opacity:1}
+.rot-cue svg{width:30px;height:30px;animation:rotcue-spin 2.2s linear infinite;filter:drop-shadow(0 0 4px rgba(255,60,60,.55))}
+.rot-cue.active svg{animation-duration:.85s}
+.rot-cue .lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.16em}
+@keyframes rotcue-spin{to{transform:rotate(360deg)}}
 .refCanvas{z-index:1}
 .porCanvas{z-index:2}
 
@@ -898,13 +904,26 @@ function attachInteractions(key){
   const v=views[key];
   const area=document.getElementById(v.area);
   area.addEventListener('mouseenter',()=>{ hoverView=key; });
-  // hover cursor hint: outside ring = rotate, inside = move (only when idle)
+  // Animated rotation cue: a spinning two-arrow badge that follows the cursor whenever it
+  // is OUTSIDE the red ring (the rotate zone). AP -> ROLL, lateral -> PITCH.
+  const rotCue=document.createElement('div');
+  rotCue.className='rot-cue';
+  rotCue.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg><span class="lbl">'+(key==='ap'?'ROLL':'PITCH')+'</span>';
+  area.appendChild(rotCue);
+  function placeCue(e){ const r=area.getBoundingClientRect(); rotCue.style.left=(e.clientX-r.left)+'px'; rotCue.style.top=(e.clientY-r.top)+'px'; }
+  function hideCue(){ rotCue.classList.remove('show','active'); }
+  // hover cursor hint + rotation cue (only when idle)
   area.addEventListener('mousemove',e=>{
-    if(tool==='spy'||hoverDragView===key) return; // not while dragging or in spy mode
+    if(tool==='spy'){ hideCue(); return; }
+    if(hoverDragView===key) return;               // dragging handled below
     const r=area.getBoundingClientRect();
     const dist=Math.hypot((e.clientX-r.left)-isoScreenX(v), (e.clientY-r.top)-isoScreenY(v));
-    area.style.cursor = (dist>ringRadius(v)) ? 'grab' : 'move';
+    const outside=dist>ringRadius(v);
+    area.style.cursor = outside ? 'grab' : 'move';
+    if(outside){ placeCue(e); rotCue.classList.add('show'); rotCue.classList.remove('active'); }
+    else hideCue();
   });
+  area.addEventListener('mouseleave',()=>{ if(hoverDragView!==key) hideCue(); });
   area.addEventListener('wheel',e=>{
     if(tool==='spy') return; // spyglass handles its own wheel (resize)
     e.preventDefault();
@@ -932,7 +951,8 @@ function attachInteractions(key){
       if(dist > ringRadius(v)){
         pushUndo();                         // one undo step per rotate gesture
         mode='rotate'; accAng=0; lastAng=angleFromCenter(pt);
-        v.rotating=true; area.style.cursor='grabbing'; render();
+        v.rotating=true; area.style.cursor='grabbing';
+        placeCue(e); rotCue.classList.add('show','active'); render();
       } else {
         pushUndo();                         // one undo step per move gesture
         mode='move'; accX=0; accY=0; area.style.cursor='move';
@@ -949,6 +969,7 @@ function attachInteractions(key){
     if(mode==='pan'){
       v.panX+=ddx; v.panY+=ddy; clampPan(v); render();
     } else if(mode==='rotate'){
+      placeCue(e);
       const ang=angleFromCenter(localPt(e));
       let dA=(ang-lastAng);
       // unwrap across the -pi/pi seam
@@ -975,7 +996,7 @@ function attachInteractions(key){
       }
     }
   });
-  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor='crosshair'; render(); } });
+  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor='crosshair'; hideCue(); render(); } });
 }
 
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
