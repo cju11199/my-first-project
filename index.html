@@ -1582,7 +1582,7 @@ const CBCT=(function(){
     try{
       glCanvas=document.createElement('canvas');glCanvas.width=VOL.W;glCanvas.height=VOL.H;
       gl=glCanvas.getContext('webgl2',{antialias:false,preserveDrawingBuffer:true});if(!gl)return false;
-      const vs='#version 300 es\nin vec2 aPos;out vec2 vUV;void main(){vUV=vec2(aPos.x*0.5+0.5,0.5-aPos.y*0.5);gl_Position=vec4(aPos,0.0,1.0);}';
+      const vs='#version 300 es\nin vec2 aPos;out vec2 vUV;void main(){vUV=vec2(aPos.x*0.5+0.5,aPos.y*0.5+0.5);gl_Position=vec4(aPos,0.0,1.0);}';
       const fs='#version 300 es\nprecision highp float;precision highp sampler3D;uniform sampler3D uVol;uniform vec3 uO,uU,uV;in vec2 vUV;out vec4 frag;void main(){vec3 tc=uO+vUV.x*uU+vUV.y*uV;if(any(lessThan(tc,vec3(0.0)))||any(greaterThan(tc,vec3(1.0)))){frag=vec4(0.0,0.0,0.0,1.0);return;}float v=texture(uVol,tc).r;frag=vec4(v,v,v,1.0);}';
       glProg=gl.createProgram();gl.attachShader(glProg,glCompile(gl.VERTEX_SHADER,vs));gl.attachShader(glProg,glCompile(gl.FRAGMENT_SHADER,fs));
       gl.bindAttribLocation(glProg,0,'aPos');gl.linkProgram(glProg);
