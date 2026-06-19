@@ -15,7 +15,7 @@ On launch, pick a workflow from the start screen:
 
 ## Cases
 
-**2D / 2D:** Brain · Pelvis · Thorax (CT DRR). **CBCT:** Pelvis · Thorax (synthetic). Switch between them with the dropdown in the top-left.
+**2D / 2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (SCV + medial-tangent field match, Varian-style). **CBCT:** Pelvis · Thorax (synthetic). Switch between them with the dropdown in the top-left.
 
 ## Features
 
