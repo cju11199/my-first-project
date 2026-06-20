@@ -77,16 +77,19 @@ ul.cases li{background:var(--panel);border:1px solid var(--border);border-radius
 ul.cases li b{color:var(--text);font-weight:600}
 
 /* pricing */
-.price-wrap{display:flex;justify-content:center;margin-top:30px}
-.price{max-width:380px;width:100%;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid rgba(45,212,238,.3);border-radius:18px;padding:30px;text-align:center}
-.price .amt{font-size:44px;font-weight:780;letter-spacing:-1px}
+.price-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:22px;margin-top:30px}
+.price{position:relative;max-width:340px;width:100%;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--hairline);border-radius:18px;padding:30px;text-align:center}
+.price.featured{border-color:rgba(45,212,238,.45);box-shadow:0 0 0 1px rgba(45,212,238,.18)}
+.price .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--green);color:#04130c;font-size:11.5px;font-weight:700;letter-spacing:.3px;padding:4px 12px;border-radius:999px}
+.price .plan{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
+.price .amt{font-size:44px;font-weight:780;letter-spacing:-1px;margin-top:6px}
 .price .amt span{font-size:16px;color:var(--muted);font-weight:500}
 .price .tag{color:var(--green);font-size:13px;font-weight:600;margin-top:4px}
 .price ul{list-style:none;margin:20px 0;text-align:left;display:grid;gap:9px}
 .price li{color:var(--label);font-size:14px;display:flex;gap:9px}
 .price li:before{content:"✓";color:var(--green);font-weight:700}
 .price .btn{width:100%;margin-top:6px}
-.todo{color:var(--gold);font-size:11.5px;margin-top:14px;opacity:.8}
+.price .fine{color:var(--muted);font-size:12px;margin-top:12px}
 
 /* footer */
 footer{border-top:1px solid var(--hairline);padding:34px 0;color:var(--muted);font-size:13px}
@@ -159,21 +162,37 @@ footer .links a{margin-right:18px}
 
   <section class="block" id="pricing"><div class="wrap" style="text-align:center">
     <div class="eyebrow">Pricing</div>
-    <h2>Simple monthly access</h2>
-    <p class="lead" style="margin:0 auto">Full access to every case and tool. Cancel anytime.</p>
-    <!-- TODO: replace placeholder price, trial length, and feature list once pricing is decided -->
-    <div class="price-wrap"><div class="price">
-      <div class="amt">$<!--PRICE-->XX<span>/month</span></div>
-      <div class="tag">Includes a free trial</div>
-      <ul>
-        <li>Every case &amp; workflow (2D/2D + CBCT)</li>
-        <li>All matching tools &amp; live grading</li>
-        <li>New cases as they're added</li>
-        <li>Use on any device, no install</li>
-      </ul>
-      <a class="btn btn-primary" href="/trainer">Start free trial</a>
-      <div class="todo">⚠ Placeholder pricing — final price &amp; trial to be confirmed.</div>
-    </div></div>
+    <h2>Full access, one simple plan</h2>
+    <p class="lead" style="margin:0 auto">Every case and tool included. Start with a 3-day free trial. Cancel anytime.</p>
+    <div class="price-wrap">
+      <div class="price">
+        <div class="plan">Monthly</div>
+        <div class="amt">$14.99<span>/month</span></div>
+        <div class="tag">3-day free trial</div>
+        <ul>
+          <li>Every case &amp; workflow (2D/2D + CBCT)</li>
+          <li>All matching tools &amp; live grading</li>
+          <li>New cases as they're added</li>
+          <li>Use on any device, no install</li>
+        </ul>
+        <a class="btn btn-ghost" href="/trainer">Start free trial</a>
+        <div class="fine">Billed monthly. Cancel anytime.</div>
+      </div>
+      <div class="price featured">
+        <div class="badge">Best value · save 33%</div>
+        <div class="plan">Annual</div>
+        <div class="amt">$120<span>/year</span></div>
+        <div class="tag">Just $10/month, billed yearly</div>
+        <ul>
+          <li>Everything in Monthly</li>
+          <li>Save ~$60 a year vs. monthly</li>
+          <li>New cases as they're added</li>
+          <li>Use on any device, no install</li>
+        </ul>
+        <a class="btn btn-primary" href="/trainer">Start free trial</a>
+        <div class="fine">Billed $120/year after trial. Cancel anytime.</div>
+      </div>
+    </div>
   </div></section>
 </main>
 
