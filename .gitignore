@@ -17,3 +17,12 @@ _breast_seg/
 
 # Claude Code internal state
 .claude/
+
+# Secrets / environment (never commit real keys)
+.env
+.env.local
+.env.*.local
+.vercel
+
+# Node
+node_modules/
