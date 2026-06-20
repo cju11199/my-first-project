@@ -41,6 +41,9 @@ header .wrap{display:flex;align-items:center;justify-content:space-between;heigh
 nav a{color:var(--label);font-size:14px;margin-left:22px}
 nav a:hover{color:var(--text)}
 nav a.cta{color:var(--accent)}
+#clerk-auth{display:inline-flex;align-items:center;gap:16px;margin-left:22px;min-height:32px}
+.link-btn{background:transparent;border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.link-btn:hover{border-color:var(--accent)}
 @media(max-width:680px){nav a:not(.cta){display:none}}
 
 /* hero */
@@ -107,7 +110,7 @@ footer .links a{margin-right:18px}
     <a href="#features">Features</a>
     <a href="#cases">Cases</a>
     <a href="#pricing">Pricing</a>
-    <a class="cta" href="/trainer">Launch&nbsp;&rarr;</a>
+    <span id="clerk-auth"><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></span>
   </nav>
 </div></header>
 
@@ -117,7 +120,7 @@ footer .links a{margin-right:18px}
     <h1>Master <span class="grad">RT image matching</span><br>before you're at the console.</h1>
     <p class="sub">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — exactly like a real treatment setup. Browser-based, no install.</p>
     <div class="actions">
-      <a class="btn btn-primary" href="/trainer">Launch the trainer</a>
+      <a class="btn btn-primary" href="/trainer" data-cta="trial">Launch the trainer</a>
       <a class="btn btn-ghost" href="#pricing">See pricing</a>
     </div>
     <div class="note disclaimer">Training simulator — <b>educational use only. Not approved for clinical decision-making.</b> All patient offsets and values shown are fictional.</div>
@@ -175,7 +178,7 @@ footer .links a{margin-right:18px}
           <li>New cases as they're added</li>
           <li>Use on any device, no install</li>
         </ul>
-        <a class="btn btn-ghost" href="/trainer">Start free trial</a>
+        <a class="btn btn-ghost" href="/trainer" data-cta="trial">Start free trial</a>
         <div class="fine">Billed monthly. Cancel anytime.</div>
       </div>
       <div class="price featured">
@@ -189,7 +192,7 @@ footer .links a{margin-right:18px}
           <li>New cases as they're added</li>
           <li>Use on any device, no install</li>
         </ul>
-        <a class="btn btn-primary" href="/trainer">Start free trial</a>
+        <a class="btn btn-primary" href="/trainer" data-cta="trial">Start free trial</a>
         <div class="fine">Billed $120/year after trial. Cancel anytime.</div>
       </div>
     </div>
@@ -207,5 +210,6 @@ footer .links a{margin-right:18px}
   <div class="foot-disc">RT Image Matching Trainer is an educational training simulator. It is <b>not a medical device</b> and is <b>not approved for clinical decision-making</b>. All imaging, patient offsets, and values are fictional and for training only.</div>
 </div></footer>
 
+<script src="/clerk-auth.js"></script>
 </body>
 </html>
