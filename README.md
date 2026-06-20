@@ -39,4 +39,4 @@ Changes pushed to `main` redeploy automatically to the link above.
 
 ## License
 
-Copyright (c) 2026 Craig (GitHub: cju11199). All rights reserved. Unauthorized copying, reuse, or distribution is prohibited. See [LICENSE](LICENSE).
+Copyright (c) 2026 Craig Utter. All rights reserved. Unauthorized copying, reuse, or distribution is prohibited. See [LICENSE](LICENSE).
