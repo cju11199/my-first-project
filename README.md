@@ -11,11 +11,11 @@ Open it in any browser — no install or account needed. Share that link with st
 On launch, pick a workflow from the start screen:
 
 - **2D / 2D** — orthogonal-pair (AP + Lateral) portal-to-DRR matching.
-- **CBCT** — cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction. *Slices are currently synthetic placeholders until real CT/CBCT image sets are added.*
+- **CBCT** — cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction, real 3D CT volumes (MPR reslice), fusion color, windowing, a 3D volume view, and structure contours.
 
 ## Cases
 
-**2D / 2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (SCV + medial-tangent field match, Varian-style). **CBCT:** Pelvis · Thorax (synthetic). Switch between them with the dropdown in the top-left.
+**2D / 2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (SCV + medial-tangent field match, Varian-style). **CBCT:** Pelvis · Brain · Breast (real 3D CT, MPR reslice with contours). Switch between them with the dropdown in the top-left.
 
 ## Features
 
