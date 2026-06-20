@@ -8,7 +8,8 @@ An interactive **RT Image Matching Trainer** for radiation therapy students — 
 
 ### **https://rtimagematch.com**
 
-Open it in any browser — no install or account needed. Share that link with students.
+The landing page opens there; click **Launch the trainer** (or go straight to
+**https://rtimagematch.com/trainer**). Works in any browser — no install needed.
 
 On launch, pick a workflow from the start screen:
 
@@ -29,7 +30,13 @@ On launch, pick a workflow from the start screen:
 
 ## Development
 
-The app is `index.html` (markup, styles, and logic). Large static assets are kept
+The site is plain static files at the repo root:
+
+- `index.html` — marketing **landing page** (served at `/`)
+- `trainer.html` — the **trainer app** (served at `/trainer`)
+- `terms.html`, `privacy.html` — legal pages (`/terms`, `/privacy`)
+
+The trainer app is `trainer.html` (markup, styles, and logic). Large static assets are kept
 in separate, cacheable files so the HTML stays small: embedded DRR/CBCT images live
 in `image_data.js`, web fonts in `assets/fonts/`, and the 3D volume datasets in the
 `*3d_data.js` files (loaded on demand). It's still plain static — no build step.
