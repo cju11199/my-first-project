@@ -12,13 +12,19 @@
       ]
     },
     {
-      "source": "/(.*)\\.(js|png|woff2)",
+      "source": "/(.*)\\.(png|woff2)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=86400, stale-while-revalidate=604800" }
       ]
     },
     {
-      "source": "/(index|trainer|terms|privacy).html",
+      "source": "/(.*)\\.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(index|trainer|terms|privacy|subscribe).html",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]

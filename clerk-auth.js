@@ -1,18 +1,28 @@
-/* Clerk auth for the RT Image Matching Trainer (static site, no build step).
+/* Clerk auth + billing for the RT Image Matching Trainer (static site, no build).
  *
  * - Loads Clerk JS from the instance's frontend API.
- * - Landing page: renders a Sign in button / user menu in the header,
- *   and routes "Start free trial" / "Launch" CTAs through sign-up.
- * - Any page with <body data-require-auth>: gates the page — signed-out
- *   visitors are sent to sign-in. (Subscription enforcement is added in
- *   Phase 2 once Clerk Billing plans exist; for now this checks sign-in.)
+ * - Landing header: Sign in button / user menu.
+ * - "Start free trial" CTAs route by state:
+ *     signed out      -> sign up, then /subscribe
+ *     no subscription  -> /subscribe (Clerk pricing table / checkout)
+ *     subscribed       -> /trainer
+ * - Pages with <body data-require-auth> are gated: must be signed in AND
+ *   have an active `full_access` subscription, else bounced.
+ *
+ * Note: this is the CLIENT gate (UX). The hard paywall — serving the case
+ * data only to subscribers — is enforced server-side in /api (Phase 2).
  *
  * The publishable key is public by design and safe to ship in client code.
  */
 (function () {
   var PUBLISHABLE_KEY = 'pk_test_ZmFuY3ktZmxvdW5kZXItNjMuY2xlcmsuYWNjb3VudHMuZGV2JA';
   var FRONTEND_API = 'fancy-flounder-63.clerk.accounts.dev';
+  var PLAN_KEY = 'full_access';
   var TRAINER_URL = '/trainer';
+  var SUBSCRIBE_URL = '/subscribe';
+
+  var readyResolve;
+  var ready = new Promise(function (r) { readyResolve = r; });
 
   function loadClerk() {
     return new Promise(function (resolve, reject) {
@@ -28,15 +38,30 @@
     });
   }
 
+  // True if the signed-in user has an active subscription to the plan
+  // (Clerk Billing counts an active trial as authorized).
+  function hasActiveSub() {
+    try {
+      var s = window.Clerk && window.Clerk.session;
+      if (s && typeof s.checkAuthorization === 'function') {
+        return !!s.checkAuthorization({ plan: PLAN_KEY });
+      }
+      console.warn('[auth] checkAuthorization unavailable on session');
+    } catch (e) {
+      console.warn('[auth] subscription check failed', e);
+    }
+    return false;
+  }
+
   function renderHeader() {
     var slot = document.getElementById('clerk-auth');
     if (!slot) return;
     slot.innerHTML = '';
     if (window.Clerk && window.Clerk.user) {
       var launch = document.createElement('a');
-      launch.href = TRAINER_URL;
+      launch.href = hasActiveSub() ? TRAINER_URL : SUBSCRIBE_URL;
       launch.className = 'cta';
-      launch.innerHTML = 'Launch&nbsp;&rarr;';
+      launch.innerHTML = hasActiveSub() ? 'Launch&nbsp;&rarr;' : 'Subscribe';
       var ub = document.createElement('span');
       ub.id = 'clerk-userbtn';
       slot.appendChild(launch);
@@ -54,30 +79,32 @@
     }
   }
 
-  // "Start free trial" / "Launch the trainer" CTAs.
-  // Signed in  -> go to the trainer (subscription check happens there).
-  // Signed out -> open sign-up, then return to the trainer.
+  function routeTrial() {
+    if (!window.Clerk || !window.Clerk.user) {
+      window.Clerk.openSignUp({ forceRedirectUrl: SUBSCRIBE_URL });
+    } else if (hasActiveSub()) {
+      window.location.href = TRAINER_URL;
+    } else {
+      window.location.href = SUBSCRIBE_URL;
+    }
+  }
+
   function wireCtas() {
     var ctas = document.querySelectorAll('[data-cta="trial"]');
     Array.prototype.forEach.call(ctas, function (el) {
-      el.addEventListener('click', function (e) {
-        e.preventDefault();
-        if (window.Clerk && window.Clerk.user) {
-          window.location.href = TRAINER_URL;
-        } else {
-          window.Clerk.openSignUp({ forceRedirectUrl: TRAINER_URL });
-        }
-      });
+      el.addEventListener('click', function (e) { e.preventDefault(); routeTrial(); });
     });
   }
 
   function enforceGate() {
     if (!document.body.hasAttribute('data-require-auth')) return;
-    if (window.Clerk && window.Clerk.user) {
+    if (!window.Clerk || !window.Clerk.user) {
+      window.Clerk.redirectToSignIn({ signInForceRedirectUrl: window.location.pathname });
+    } else if (hasActiveSub()) {
       document.documentElement.classList.remove('auth-pending');
     } else {
-      // Not signed in -> send to sign-in, return here afterward.
-      window.Clerk.redirectToSignIn({ signInForceRedirectUrl: window.location.pathname });
+      // Signed in but not subscribed -> send to checkout.
+      window.location.href = SUBSCRIBE_URL;
     }
   }
 
@@ -89,13 +116,21 @@
         wireCtas();
         enforceGate();
         window.Clerk.addListener(function () { renderHeader(); });
+        readyResolve(window.Clerk);
       })
       .catch(function (err) {
         console.error(err);
-        // If auth can't load on a gated page, fail closed.
         if (document.body.hasAttribute('data-require-auth')) window.location.href = '/';
       });
   }
+
+  // Expose helpers for page-specific scripts (e.g. /subscribe).
+  window.RTAuth = {
+    ready: ready,
+    hasActiveSub: hasActiveSub,
+    PLAN_KEY: PLAN_KEY,
+    TRAINER_URL: TRAINER_URL
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);

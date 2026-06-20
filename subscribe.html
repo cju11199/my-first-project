@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subscribe · RT Image Matching Trainer</title>
+<meta name="robots" content="noindex">
+<style>
+:root{
+  --bg:#070a0f; --panel:#0e131b; --text:#eaf1f8; --label:#9fadbd; --muted:#6b7888;
+  --accent:#2dd4ee; --accent2:#ff7a45; --border:rgba(148,170,194,.14); --hairline:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+header{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:22px;text-decoration:none}
+nav a:hover{color:var(--text)}
+nav a.cta{color:var(--accent)}
+#clerk-auth{display:inline-flex;align-items:center;gap:16px;margin-left:22px;min-height:32px}
+.link-btn{background:transparent;border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.link-btn:hover{border-color:var(--accent)}
+main{padding:54px 0 80px;text-align:center}
+h1{font-size:32px;letter-spacing:-.5px;margin:0 0 8px}
+.sub{color:var(--label);margin:0 auto 30px;max-width:560px}
+#pricing-table{display:flex;justify-content:center}
+.msg{color:var(--muted);font-size:14px;margin-top:24px}
+.back{color:var(--label);font-size:14px;text-decoration:none}
+.back:hover{color:var(--text)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="logo" href="/" style="text-decoration:none;color:inherit"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav>
+    <a href="/">Home</a>
+    <span id="clerk-auth"></span>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>Start your 3-day free trial</h1>
+  <p class="sub">Full access to every case and matching tool. Cancel anytime during the trial and you won't be charged.</p>
+  <div id="pricing-table"></div>
+  <p class="msg" id="msg"></p>
+  <p style="margin-top:30px"><a class="back" href="/">&larr; Back to home</a></p>
+</div></main>
+
+<script src="/clerk-auth.js"></script>
+<script>
+  RTAuth.ready.then(function (Clerk) {
+    var msg = document.getElementById('msg');
+
+    // Already subscribed? Go straight to the trainer.
+    if (RTAuth.hasActiveSub()) { window.location.href = RTAuth.TRAINER_URL; return; }
+
+    // Must be signed in to subscribe.
+    if (!Clerk.user) { Clerk.openSignUp({ forceRedirectUrl: window.location.href }); return; }
+
+    // Render Clerk's pricing table (handles checkout + the 3-day trial).
+    try {
+      Clerk.mountPricingTable(document.getElementById('pricing-table'), {
+        forceRedirectUrl: RTAuth.TRAINER_URL
+      });
+    } catch (e) {
+      console.error('mountPricingTable failed', e);
+      msg.textContent = 'Could not load the checkout. Please refresh, or contact support@rtimagematch.com.';
+    }
+
+    // When a subscription becomes active (after checkout), send them in.
+    Clerk.addListener(function () {
+      if (RTAuth.hasActiveSub()) window.location.href = RTAuth.TRAINER_URL;
+    });
+  });
+</script>
+</body>
+</html>
