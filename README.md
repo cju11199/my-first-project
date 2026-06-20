@@ -15,7 +15,7 @@ On launch, pick a workflow from the start screen:
 
 ## Cases
 
-**2D / 2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (SCV + medial-tangent field match, Varian-style). **CBCT:** Pelvis · Brain · Breast (real 3D CT, MPR reslice with contours). Switch between them with the dropdown in the top-left.
+**2D / 2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (SCV + medial-tangent field match, Varian-style). **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR reslice with contours). Switch between them with the dropdown in the top-left.
 
 ## Features
 

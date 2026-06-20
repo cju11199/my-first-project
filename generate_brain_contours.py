@@ -124,47 +124,53 @@ brain_final = ndimage.binary_erosion(brain_filled, iterations=2)
 labels[brain_final] |= 0x08
 print(f'Brain: {brain_final.sum()} voxels')
 
-# ── 2c. Brainstem: posterior-inferior, higher density than cortex ────────────
-# Restrict to posterior-inferior region of the brain
-# y > cyv+15 voxels (posterior), z < czv-8 voxels (inferior)
-post_inf = np.zeros((DZ, DY, DX), dtype=bool)
-z_max = int(czv - 8)    # inferior portion  (z0=inferior, so smaller z = more inferior)
-y_min = int(cyv + 12)   # posterior portion (y0=anterior, so larger y = more posterior)
-post_inf[:z_max, y_min:, :] = True
-
-bs_candidate = brain_filled & post_inf
-# Keep the largest connected component (brainstem + cerebellum cluster)
-lbl_bs, nbs = ndimage.label(bs_candidate)
-if nbs > 1:
-    sizes_bs = ndimage.sum(bs_candidate, lbl_bs, range(1, nbs+1))
-    bs_mask = (lbl_bs == (np.argmax(sizes_bs) + 1))
-else:
-    bs_mask = bs_candidate
-
-# Restrict brainstem (exclude cerebellum) by further tightening to the central column
-# x within ±18mm of centre
-x_lo = int(cxv - 18/SP)
-x_hi = int(cxv + 18/SP)
-bs_column = np.zeros_like(bs_mask)
-bs_column[:, :, x_lo:x_hi] = True
-bs_mask = bs_mask & bs_column
-bs_final = ndimage.binary_erosion(bs_mask, iterations=1)
+# ── 2c. Brainstem (OAR): vertical ellipsoid at the midline pons/brainstem ─────
+# Midline column, anterior posterior-fossa, spanning medulla->midbrain; the VS abuts it.
+zzb, yyb, xxb = np.mgrid[0:DZ, 0:DY, 0:DX]
+bs_final = ((((xxb-78)*SP/11.0)**2 + ((yyb-92)*SP/13.0)**2 + ((zzb-42)*SP/24.0)**2) <= 1.0) & brain_filled
 labels[bs_final] |= 0x04
 print(f'Brainstem: {bs_final.sum()} voxels')
 
-# ── 2d. GTV sphere r=8mm ─────────────────────────────────────────────────────
-gtv_r_mm  = 8.0
+# ── 2d. Vestibular schwannoma GTV: "ice-cream-cone" at the LEFT IAC / CPA ─────
+# Extra-axial tumour = rounded CPA-cistern component (medial) + a tapering
+# intracanalicular tail extending laterally into the internal auditory canal.
+# left = +x (x0=patient-right); IAC level ~ -34 mm (z~42), CPA ~ x +19 mm, y +2 mm.
 zz, yy, xx = np.mgrid[0:DZ, 0:DY, 0:DX]
-dist_mm = np.sqrt(((xx - iso_sx)*SP)**2 + ((yy - iso_cy)*SP)**2 + ((zz - iso_az)*SP)**2)
-gtv_mask = dist_mm <= gtv_r_mm
+def sph(sx, cy, az, rmm):
+    return ((xx-sx)*SP)**2 + ((yy-cy)*SP)**2 + ((zz-az)*SP)**2 <= rmm*rmm
+gtv_mask = (sph(94,109,36,6.0)|sph(100,107,37,4.3)|sph(105,104,38,3.0)|sph(110,102,38,2.2))  # CPA ball -> intracanalicular tail (porus is posteromedial; canal runs antero-laterally)
 labels[gtv_mask] |= 0x01
-print(f'GTV:  {gtv_mask.sum()} voxels  (r={gtv_r_mm}mm)')
+gz,gy,gx = np.where(gtv_mask)
+iso_sx = int(round(gx.mean())); iso_cy = int(round(gy.mean())); iso_az = int(round(gz.mean()))
+print(f'GTV (VS ice-cream-cone): {gtv_mask.sum()} vox  centroid x={iso_sx} y={iso_cy} z={iso_az}')
 
-# ── 2e. PTV sphere r=10mm ────────────────────────────────────────────────────
-ptv_r_mm  = 10.0
-ptv_mask  = dist_mm <= ptv_r_mm
+# ── 2e. PTV = GTV + 1 mm (frameless SRS; schwannoma GTV=CTV, no microscopic margin) ──
+ptv_mask = ndimage.binary_dilation(gtv_mask, iterations=max(1, int(round(1.0/SP))))
 labels[ptv_mask] |= 0x02
-print(f'PTV:  {ptv_mask.sum()} voxels  (r={ptv_r_mm}mm)')
+print(f'PTV (GTV+1mm): {ptv_mask.sum()} vox')
+
+# ── 2f. Cochlea OAR (hearing preservation): small marker at the IAC fundus ────
+cochlea_mask = sph(115,100,39,2.0)
+labels[cochlea_mask] |= 0x10
+print(f'Cochlea: {cochlea_mask.sum()} vox')
+
+# ── verification overlays (structures on the CT at the GTV) ───────────────────
+from PIL import ImageDraw as _ID
+def _ovl(ct2d, ms, path, up=3):
+    rgb=np.repeat((np.clip(ct2d,0,1)*255).astype(np.uint8)[:,:,None],3,2)
+    for m2,col in ms: rgb[m2 & ~ndimage.binary_erosion(m2)]=col
+    im=Image.fromarray(rgb,'RGB').resize((rgb.shape[1]*up,rgb.shape[0]*up),Image.NEAREST)
+    W,H=im.size; dd=_ID.Draw(im)
+    for i in range(1,10):
+        x=int(i/10*W); y=int(i/10*H)
+        dd.line([(x,0),(x,H)],fill=(0,160,0)); dd.line([(0,y),(W,y)],fill=(0,160,0))
+        dd.text((x+1,1),f"{i/10:.1f}",fill=(0,255,0)); dd.text((1,y+1),f"{i/10:.1f}",fill=(0,255,0))
+    im.save(path)
+_S=[(bs_final,(120,200,255)),(cochlea_mask,(0,255,180)),(ptv_mask,(255,59,78)),(gtv_mask,(232,161,58))]
+_ovl(vol[iso_az], [(m[iso_az],c) for m,c in _S], '../_brain_vs_ax.png')
+_ovl(vol[:,iso_cy,:][::-1], [(m[:,iso_cy,:][::-1],c) for m,c in _S], '../_brain_vs_cor.png')
+_ovl(vol[:,:,iso_sx][::-1], [(m[:,:,iso_sx][::-1],c) for m,c in _S], '../_brain_vs_sag.png')
+print('saved ../_brain_vs_ax/cor/sag.png')
 
 # ── 3. Encode label volume as PNG atlas ──────────────────────────────────────
 # Layout: tilesPerRow=12, each tile is DX × DY
@@ -189,13 +195,13 @@ b64_out = base64.b64encode(buf.getvalue()).decode('ascii')
 print(f'Label atlas: {atlas_w}x{atlas_h}  PNG size={len(buf.getvalue())//1024}KB')
 
 # Verify label occupancy
-for name, bit in [('Body',0x80),('Brain',0x08),('Brainstem',0x04),('PTV',0x02),('GTV',0x01)]:
+for name, bit in [('Body',0x80),('Brain',0x08),('Brainstem',0x04),('Cochlea',0x10),('PTV',0x02),('GTV',0x01)]:
     n = int(np.sum((labels & bit) > 0))
     print(f'  {name:12s}: {n:6d} voxels  ({100*n/(DX*DY*DZ):.1f}%)')
 
 # ── 4. Write the JS file ──────────────────────────────────────────────────────
-js_out = f"""// Brain structures: body/brain/brainstem from CT thresholding; GTV/PTV synthetic SRS spheres
-const BRAIN3D_LABELS={{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], "tilesPerRow": {out_tpr}, "bits": {{"gtv": 1, "ptv": 2, "brainstem": 4, "brain": 8, "body": 128}}, "isoIdx": [{iso_sx}, {iso_cy}, {iso_az}]}};
+js_out = f"""// Brain VS/IAC SRS: body/brain/brainstem from CT; cochlea OAR; GTV ice-cream-cone + PTV(GTV+1mm)
+const BRAIN3D_LABELS={{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], "tilesPerRow": {out_tpr}, "bits": {{"gtv": 1, "ptv": 2, "brainstem": 4, "brain": 8, "cochlea": 16, "body": 128}}, "isoIdx": [{iso_sx}, {iso_cy}, {iso_az}]}};
 BRAIN3D_LABELS.atlas='data:image/png;base64,{b64_out}';
 """
 
