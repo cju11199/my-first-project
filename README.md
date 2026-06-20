@@ -6,7 +6,7 @@ An interactive **RT Image Matching Trainer** for radiation therapy students — 
 
 ## ▶ Launch the trainer
 
-### **https://cju11199.github.io/my-first-project/**
+### **https://rtimagematch.com**
 
 Open it in any browser — no install or account needed. Share that link with students.
 
@@ -35,7 +35,8 @@ The whole app is a single self-contained `index.html` (images embedded), so it r
 git clone https://github.com/cju11199/my-first-project.git
 ```
 
-Changes pushed to `main` redeploy automatically to the link above.
+The site is hosted on [Vercel](https://vercel.com). Changes pushed to `main`
+redeploy automatically to the link above. See [DEPLOY.md](DEPLOY.md) for setup details.
 
 ## License
 
