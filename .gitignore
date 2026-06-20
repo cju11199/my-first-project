@@ -1,0 +1,16 @@
+# Raw scan / intermediate pipeline files — never commit these
+*.npy
+*.nii
+*.nii.gz
+*.dcm
+*.bak
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Temp segmentation / output dirs
+_seg/
+_ts_out/
+_breast_seg/

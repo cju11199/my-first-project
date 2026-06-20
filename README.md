@@ -2,6 +2,8 @@
 
 An interactive **RT Image Matching Trainer** for radiation therapy students — practice aligning treatment-setup imaging to reference data, just like a real treatment setup.
 
+> **Training simulator — educational use only. Not approved for clinical decision-making. All patient offsets and values shown are fictional.**
+
 ## ▶ Launch the trainer
 
 ### **https://cju11199.github.io/my-first-project/**
