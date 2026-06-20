@@ -29,7 +29,10 @@ On launch, pick a workflow from the start screen:
 
 ## Development
 
-The whole app is a single self-contained `index.html` (images embedded), so it runs anywhere.
+The app is `index.html` (markup, styles, and logic). Large static assets are kept
+in separate, cacheable files so the HTML stays small: embedded DRR/CBCT images live
+in `image_data.js`, web fonts in `assets/fonts/`, and the 3D volume datasets in the
+`*3d_data.js` files (loaded on demand). It's still plain static — no build step.
 
 ```bash
 git clone https://github.com/cju11199/my-first-project.git
