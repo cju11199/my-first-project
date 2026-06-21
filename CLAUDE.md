@@ -49,6 +49,8 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `generate_brain_contours.py` — offline helper that generated brain contour data.
 - `generate_lung_contours.py` — offline helper that injects the synthetic RLL nodule into the
   thoracic CT and writes `lung3d_data.js` + `lung3d_labels_data.js` (needs numpy/scipy/pillow).
+- `generate_prostate_fiducials.py` — offline helper that implants 3 gold fiducials in the pelvis
+  plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -87,22 +89,26 @@ Two workflows, picked on the start screen:
 
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style).
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
-  · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule — a
-  **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
-  `generate_lung_contours.py`, `lung3d_data.js` + `lung3d_labels_data.js`; teaches matching the
-  soft-tissue target, **off the bone**).
-  - **Off-bone differential motion (lung only):** the tumour moves independently of the skeleton,
-    so a bony (spine) match leaves the GTV off-target — only matching the soft-tissue lesion scores.
-    `randomize()` picks a hidden per-case `targetDrift` {x,y,z} (cm voxels) on top of the usual
-    6DOF setup error. The CBCT (moving) reslice composites two passes: it **hides** the
-    planning-position lesion (baked hard-edged into the CT at `LESION_HU`, so it can be cleanly
-    overwritten with lung density) and **redraws** it sampled through the residual *net − drift*
-    transform (`movInvFrom`, `gtvAt` bit-1 GTV lookup), i.e. the lesion follows the tumour, the
-    skeleton follows the couch. `check()` grades this as a **PTV/target match**: translations
-    against `e − targetDrift`, with the 6DOF **rotations shown but not graded** (a small off-bone
-    target can't be put on the PTV by rotating about iso), so acceptance is translation-only; when
-    the bones are aligned but the GTV isn't, it shows a hint to match the tumour not the skeleton.
-    Generic to all other cases (`targetDrift` stays `null`), so they remain pure rigid 6DOF.
+  · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule) · Prostate
+  (gold fiducial markers). The last two are **off-bone** cases (see below):
+  - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
+    `generate_lung_contours.py` (`lung3d_data.js` + `lung3d_labels_data.js`); match the soft-tissue target.
+  - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
+    in via `generate_prostate_fiducials.py` (`prostate3d_data.js` + `prostate3d_labels_data.js`, reuses
+    the pelvis volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fiducial` bit 32). The seeds
+    show as bright voxels in the CT (no contour) — you match the **seeds, not the bone**.
+  - **Off-bone differential motion (config-driven, lung + prostate):** the target moves independently of
+    the skeleton, so a bony match leaves it off — only matching the soft-tissue target / fiducials scores.
+    Each off-bone case carries a `VOLCASE[case].offBone` config (`driftBit`, `hideDens`, `drawDens`, per-axis
+    `drift` ranges mm, plus `okMsg`/`hint`/`setup` strings); `curOffBone()` returns it. `randomize()` picks a
+    hidden `targetDrift` {x,y,z} (mm) on top of the usual 6DOF error (lung drift is larger; prostate is "a
+    little off bone"). The CBCT (moving) reslice composites two passes: **hides** the planning-position
+    feature (overwrites the `driftBit` voxels with `hideDens` — lung air 4 / prostate soft-tissue 70) and
+    **redraws** it sampled through the residual *net − drift* transform (`movInvFrom`, `gtvAt(lbl,x,y,z,bit)`
+    occupancy) at `drawDens` (lesion HU 74 / gold 255). `check()` grades a **target/fiducial match**:
+    translations against `e − targetDrift`, with the 6DOF **rotations shown but not graded**, so acceptance
+    is translation-only; the bones-aligned-but-target-off `hint` comes from the config. Other cases keep
+    `targetDrift` `null` (no `offBone` config) so they stay pure rigid 6DOF.
 
 ## Auth & paywall (clerk-auth.js)
 
