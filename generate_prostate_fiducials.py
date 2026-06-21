@@ -86,6 +86,16 @@ labels = lbl.copy()
 labels[fid] |= FID_BIT
 bits = dict(bits); bits['fiducial'] = FID_BIT
 
+# 0.5 cm fiducial contour (bit 64): a 5 mm-radius region around each seed — the planning-position
+# target the student brings the drifted seeds into. Contour only (not baked into the CT).
+FIDCTV_BIT = 64
+fidctv = np.zeros((DZ, DY, DX), bool)
+for s in seeds:
+    fidctv |= sph(s, 5.0)
+labels[fidctv] |= FIDCTV_BIT
+bits['fidctv'] = FIDCTV_BIT
+print('fiducial+5mm contour vox:', int(fidctv.sum()))
+
 iso = [int(round(cx)), int(round(cy)), int(round(cz))]
 print('iso(voxel)=', iso, ' bits=', bits)
 

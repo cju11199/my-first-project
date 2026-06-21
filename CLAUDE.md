@@ -80,7 +80,8 @@ Two workflows, picked on the start screen:
     the old 400/1800 bone window crushed it flat). HU model: `HU = density*(2000/255) - 500`,
     `density<=0.5` = air → black.
   - **Contours**: per-structure show/hide; real label-volume contours.
-  - **Pan** tool + middle-mouse drag; **Ctrl+R** cycles the primary view (Axial→Coronal→Sagittal).
+  - **Pan** tool + middle-mouse drag; **Ctrl+R** cycles the primary view (Axial→Coronal→Sagittal);
+    the plane rotated into the large left/primary pane is auto-**selected** (`cyclePrimary`→`select`).
   - Arrow-key nudge capped at 0.05 cm (0.5 mm)/press.
 - Shared: blend sliders, isocenter reticle, live residual-error readout graded vs tolerance,
   **New Offset** generates a fresh setup error, match timer, **How to use** guide on start menu.
@@ -95,8 +96,9 @@ Two workflows, picked on the start screen:
     `generate_lung_contours.py` (`lung3d_data.js` + `lung3d_labels_data.js`); match the soft-tissue target.
   - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
     in via `generate_prostate_fiducials.py` (`prostate3d_data.js` + `prostate3d_labels_data.js`, reuses
-    the pelvis volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fiducial` bit 32). The seeds
-    show as bright voxels in the CT (no contour) — you match the **seeds, not the bone**.
+    the pelvis volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fiducial` bit 32 for the seed
+    voxels + a `fidctv` bit 64 = a **0.5 cm contour** around the seeds). The seeds show as bright voxels
+    in the CT and the white "Fiducials + 5 mm" contour marks the planning target — match the **seeds, not the bone**.
   - **Off-bone differential motion (config-driven, lung + prostate):** the target moves independently of
     the skeleton, so a bony match leaves it off — only matching the soft-tissue target / fiducials scores.
     Each off-bone case carries a `VOLCASE[case].offBone` config (`driftBit`, `hideDens`, `drawDens`, per-axis
