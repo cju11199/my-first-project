@@ -1,0 +1,9 @@
+# rtimagematch.com
+User-agent: *
+Allow: /
+
+# Gated app + checkout have no indexable content (auth required) — keep them out.
+Disallow: /trainer
+Disallow: /subscribe
+
+Sitemap: https://rtimagematch.com/sitemap.xml

@@ -24,6 +24,12 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `terms.html`, `privacy.html` — legal pages (`/terms`, `/privacy`; NY governing law,
   `support@rtimagematch.com`).
 - `clerk-auth.js` — client-side auth + billing gate (loaded by all pages).
+- **SEO:** `robots.txt` (points to sitemap; disallows gated `/trainer` + `/subscribe`),
+  `sitemap.xml` (homepage only — legal pages are `noindex`), `favicon.svg`, and `og-image.png`
+  (1200×630 share card, regenerated from an HTML template via headless Chromium). The landing page
+  carries canonical, Open Graph/Twitter tags, and JSON-LD (`WebApplication` + `Organization`).
+  Only `/` is indexable; trainer/subscribe/legal pages are `noindex`. Vercel auto-`noindex`es
+  preview deployments, so canonical URLs are absolute `https://rtimagematch.com/...`.
 - **Case data (large, loaded on demand), kept out of HTML for caching:**
   - `image_data.js` (~4.3 MB), `breast_drr_data.js` — embedded DRR/portal images for 2D/2D.
   - `*3d_data.js` (brain, breast, pelvis, spine) — 3D CT volume datasets for CBCT (data-URI atlases).
