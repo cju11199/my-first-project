@@ -76,10 +76,10 @@ for s in seeds:
     fid |= sph(s, SEED_RMM)
 print('seed voxels:', [tuple(s) for s in seeds], ' fiducial vox:', int(fid.sum()))
 
-# NOTE: the seeds are drawn as fixed OVERLAY markers in the app (crisp + stable at any size, no
-# volume-sampling aliasing), so they are NOT baked into the CT. The volume stays the clean pelvis
-# CT; only the seed centres (exported in the label meta) and the 0.5 cm planning contour are used.
+# Bake the seeds into the CT as bright gold (density 255 ~ +1500 HU), hard-edged.
+GOLD = 255
 vol = ct.copy()
+vol[fid] = GOLD
 
 # Labels = pelvis structures + a fiducial bit (32 is free: prostate1 ptv2 bladder4 rectum8 sv16 body128).
 FID_BIT = 32
@@ -127,10 +127,8 @@ lbl_meta = (f'{{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], '
             f'}}')
 # build bits json explicitly to keep key order readable
 bits_json = ', '.join(f'"{k}": {v}' for k, v in bits.items())
-seeds_json = '[' + ', '.join('[' + ', '.join(str(int(c)) for c in s) + ']' for s in seeds) + ']'
 lbl_meta = (f'{{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], '
             f'"tilesPerRow": {TPR}, "bits": {{{bits_json}}}, '
-            f'"seeds": {seeds_json}, '
             f'"isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}]}}')
 with open('prostate3d_labels_data.js', 'w') as f:
     f.write('// Prostate fiducial case labels: pelvis structures + 3 gold fiducial markers (bit 32).\n')
