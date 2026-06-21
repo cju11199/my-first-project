@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account · RT Image Matching Trainer</title>
+<meta name="robots" content="noindex">
+<style>
+:root{
+  --bg:#070a0f; --panel:#0e131b; --panel2:#141a24; --text:#eaf1f8; --label:#9fadbd; --muted:#6b7888;
+  --accent:#2dd4ee; --accent-hi:#5fe7f6; --accent2:#ff7a45; --border:rgba(148,170,194,.14); --hairline:rgba(255,255,255,.05);
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(140% 90% at 50% -10%,#16202c 0%,var(--bg) 58%),var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100vh}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+header{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;text-decoration:none;color:inherit}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav{display:flex;align-items:center}
+nav a{color:var(--label);font-size:14px;margin-left:22px;text-decoration:none}
+nav a:hover{color:var(--text)}
+nav a.cta{color:var(--accent)}
+#clerk-auth{display:inline-flex;align-items:center;gap:16px;margin-left:22px;min-height:32px}
+.link-btn{background:transparent;border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
+.link-btn:hover{border-color:var(--accent)}
+main{padding:46px 0 80px}
+h1{font-size:30px;letter-spacing:-.5px;margin:0 0 8px;text-align:center}
+.sub{color:var(--label);margin:0 auto 26px;max-width:600px;text-align:center}
+.banner{max-width:840px;margin:0 auto 22px;padding:14px 18px;border-radius:12px;border:1px solid rgba(255,122,69,.35);background:rgba(255,122,69,.1);color:#ffcab0;font-size:14px;display:none;align-items:center;justify-content:space-between;gap:14px}
+.banner.show{display:flex}
+.banner a{color:var(--accent-hi);font-weight:600;text-decoration:none;white-space:nowrap}
+#user-profile{display:flex;justify-content:center;min-height:420px}
+.loading{color:var(--muted);font-size:14px;text-align:center;padding:60px 0}
+.foot{display:flex;gap:18px;justify-content:center;margin-top:30px;flex-wrap:wrap}
+.foot a{color:var(--label);font-size:14px;text-decoration:none}
+.foot a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="logo" href="/"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav>
+    <a href="/trainer">Trainer</a>
+    <a href="/">Home</a>
+    <span id="clerk-auth"></span>
+  </nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>Your account</h1>
+  <p class="sub">Manage your profile, security and subscription. Update your payment method or cancel anytime &mdash; changes take effect at the end of the current billing period.</p>
+
+  <div class="banner" id="subBanner">
+    <span>You don't have an active subscription right now.</span>
+    <a href="/subscribe">Start your free trial &rarr;</a>
+  </div>
+
+  <div id="user-profile"><div class="loading" id="upLoading">Loading your account&hellip;</div></div>
+
+  <div class="foot">
+    <a href="/trainer">&larr; Back to the trainer</a>
+    <a href="/privacy">Privacy</a>
+    <a href="/terms">Terms</a>
+    <a href="mailto:support@rtimagematch.com">support@rtimagematch.com</a>
+  </div>
+</div></main>
+
+<script src="/clerk-auth.js"></script>
+<script>
+  // Account page: requires SIGN-IN only (not an active subscription) so lapsed
+  // subscribers can still reach billing to update a card or re-subscribe.
+  RTAuth.ready.then(function (Clerk) {
+    if (!Clerk.user) {
+      Clerk.redirectToSignIn({ signInForceRedirectUrl: '/account' });
+      return;
+    }
+
+    // Show a prompt to subscribe if there's no active plan.
+    if (!RTAuth.hasActiveSub()) {
+      document.getElementById('subBanner').classList.add('show');
+    }
+
+    // On-brand dark theming for Clerk's prebuilt UserProfile (account + security + billing).
+    var appearance = {
+      variables: {
+        colorPrimary: '#2dd4ee',
+        colorBackground: '#0e131b',
+        colorText: '#eaf1f8',
+        colorTextSecondary: '#9fadbd',
+        colorInputBackground: '#141a24',
+        colorInputText: '#eaf1f8',
+        colorNeutral: '#ffffff',
+        borderRadius: '10px',
+        fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif'
+      },
+      elements: {
+        rootBox: { width: '100%', maxWidth: '880px' },
+        card: { boxShadow: 'none', border: '1px solid rgba(148,170,194,.14)', background: '#0e131b' },
+        navbar: { background: '#0b0f15' }
+      }
+    };
+
+    var node = document.getElementById('user-profile');
+    var loading = document.getElementById('upLoading');
+    try {
+      if (loading) loading.remove();
+      Clerk.mountUserProfile(node, { appearance: appearance });
+    } catch (e) {
+      console.error('mountUserProfile failed', e);
+      node.innerHTML = '<p class="loading">Could not load your account. Please refresh, or email support@rtimagematch.com.</p>';
+    }
+
+    // Keep the subscribe banner in sync if the plan state changes while on the page.
+    Clerk.addListener(function () {
+      document.getElementById('subBanner').classList.toggle('show', !RTAuth.hasActiveSub());
+    });
+  });
+</script>
+</body>
+</html>

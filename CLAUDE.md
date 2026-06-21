@@ -21,6 +21,11 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `trainer.html` — the **trainer app** (`/trainer`). ~220 KB single file: markup + styles + all
   app logic. `<body data-require-auth>` so the auth gate protects it.
 - `subscribe.html` — Clerk pricing table / checkout (`/subscribe`).
+- `account.html` — self-service **account & billing** page (`/account`). Mounts Clerk
+  `mountUserProfile` (profile · security · **billing**: update card / cancel) themed dark via the
+  `appearance` API. Gated on **sign-in only** (not an active subscription) so lapsed subscribers can
+  still reach billing; shows a "Start your free trial" banner when `!hasActiveSub()`. Reached from
+  the trainer start-screen **⚙ Account** link, the progress dashboard Settings tab, and the landing footer.
 - `terms.html`, `privacy.html` — legal pages (`/terms`, `/privacy`; NY governing law,
   `support@rtimagematch.com`).
 - `clerk-auth.js` — client-side auth + billing gate (loaded by all pages).
