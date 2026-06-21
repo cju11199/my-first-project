@@ -1981,7 +1981,7 @@ const CBCT=(function(){
             // Left vestibular schwannoma (acoustic neuroma) SRS: GTV is an "ice-cream-cone" at the
             // IAC/CPA (cistern ball + intracanalicular tail), PTV = GTV + 1 mm; cochlea + brainstem OARs.
             // c = boost centre in world mm from volume centre (Wx=+Left, Wy=+Posterior, Wz=+Superior).
-            ptv:{c:[23,20,-41], gtvR:7, ptvR:8}},
+            ptv:{c:[20,16,-41], gtvR:7, ptvR:8}},
     breast:{file:'breast3d_data.js', get:()=>typeof BREAST3D_VOL!=='undefined'?BREAST3D_VOL:null, win:{l:40,w:400},  contours:true},   // chest: soft-tissue/mediastinum window
     spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:80,w:700},  contours:true}   // thoracic-spine SBRT: vertebral cortex vs soft tissue — this volume's bone tops ~370 HU, so a 1800-wide bone window crushed it flat
   };
