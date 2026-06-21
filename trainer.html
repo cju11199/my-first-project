@@ -77,10 +77,8 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 .viewer-area canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
 .rot-cue{position:absolute;z-index:16;pointer-events:none;opacity:0;transition:opacity .12s var(--ease);display:flex;flex-direction:column;align-items:center;gap:2px;color:rgba(255,95,95,0.95);text-shadow:0 1px 5px rgba(0,0,0,.85);transform:translate(11px,-36px)}
 .rot-cue.show{opacity:1}
-.rot-cue svg{width:30px;height:30px;animation:rotcue-spin 2.2s linear infinite;filter:drop-shadow(0 0 4px rgba(255,60,60,.55))}
-.rot-cue.active svg{animation-duration:.85s}
+.rot-cue svg{width:30px;height:30px;filter:drop-shadow(0 0 4px rgba(255,60,60,.55))}
 .rot-cue .lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.16em}
-@keyframes rotcue-spin{to{transform:rotate(360deg)}}
 .refCanvas{z-index:1}
 .porCanvas{z-index:2}
 
@@ -1045,7 +1043,7 @@ function drawCrosshair(ctx,W,H,scale,col,cx,cy,cmPx,clip){
 }
 
 // Radius of the rotation ring for a view (screen px). Inside = translate, outside = rotate.
-function ringRadius(v){ return Math.min(v.W,v.H)*0.38; }
+function ringRadius(v){ return Math.min(v.W,v.H)*0.42; }
 
 // Big red dotted rotation ring at view centre (isocenter)
 function drawRotationRing(ctx,W,H,r,highlight,cx,cy,col,clip){
