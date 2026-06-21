@@ -51,11 +51,12 @@ for ux, uy, uz in [(-0.85,0.35,0.0),(0.25,-0.9,0.1),(0.55,0.6,-0.4),(-0.25,-0.5,
     for smm, r in [(8,2.4),(11,1.9),(14,1.5)]:
         gtv |= sph(CX+ux*smm/SP, CY+uy*smm/SP, CZ+uz*smm/SP, r)
 
-# bake the tumour into the CT image (solid density + soft partial-volume rim)
+# Bake the tumour into the CT image, hard-edged (= the GTV mask exactly). The hard
+# edge lets the moving CBCT reslice hide the planning-position lesion and redraw it
+# at the drifted position cleanly (the "off-bone" differential-motion behaviour).
+LESION_HU = 74.0
 vol = ct.astype(np.float32)
-rim = ndimage.binary_dilation(gtv, iterations=1) & ~gtv
-vol[gtv] = 74.0
-vol[rim] = (vol[rim] + 74.0) / 2.0
+vol[gtv] = LESION_HU
 vol = np.clip(vol, 0, 255).astype(np.uint8)
 
 # ── label structures ──────────────────────────────────────────────────────────
