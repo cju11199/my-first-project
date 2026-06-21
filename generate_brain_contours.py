@@ -139,8 +139,12 @@ soft = (vol > brain_thr_lo) & (vol < brain_thr_hi) & body_mask & cavity
 lbl_b, nb = ndimage.label(soft)
 sizes_b = ndimage.sum(soft, lbl_b, range(1, nb+1))
 brain = (lbl_b == (np.argmax(sizes_b) + 1))
-brain = ndimage.binary_closing(brain, iterations=2)              # smooth the contour
-for z in range(DZ):                                              # fill ventricles/cisterns (2D-enclosed)
+# Per-slice 2D closing: smooths the contour AND fills the thin vertical notches
+# the orthogonal-fill voting leaves in the posterior fossa (a few voxels wide),
+# then fill any 2D-enclosed holes (ventricles/cisterns).
+struct2d = ndimage.generate_binary_structure(2, 1)
+for z in range(DZ):
+    brain[z] = ndimage.binary_closing(brain[z], structure=struct2d, iterations=4)
     brain[z] = ndimage.binary_fill_holes(brain[z])
 brain = ndimage.binary_erosion(brain, iterations=1)             # pull off the inner skull table
 lbl_b, nb = ndimage.label(brain)                                # drop any small detached specks
