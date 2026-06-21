@@ -93,9 +93,11 @@ Two workflows, picked on the start screen:
     planning-position lesion (baked hard-edged into the CT at `LESION_HU`, so it can be cleanly
     overwritten with lung density) and **redraws** it sampled through the residual *net − drift*
     transform (`movInvFrom`, `gtvAt` bit-1 GTV lookup), i.e. the lesion follows the tumour, the
-    skeleton follows the couch. `check()` grades translations against `e − targetDrift` and, when
-    the bones are aligned but the GTV isn't, shows a hint to match the tumour not the skeleton.
-    Generic to all other cases (`targetDrift` stays `null`), so they remain pure rigid.
+    skeleton follows the couch. `check()` grades this as a **PTV/target match**: translations
+    against `e − targetDrift`, with the 6DOF **rotations shown but not graded** (a small off-bone
+    target can't be put on the PTV by rotating about iso), so acceptance is translation-only; when
+    the bones are aligned but the GTV isn't, it shows a hint to match the tumour not the skeleton.
+    Generic to all other cases (`targetDrift` stays `null`), so they remain pure rigid 6DOF.
 
 ## Auth & paywall (clerk-auth.js)
 

@@ -2790,17 +2790,24 @@ const CBCT=(function(){
     const cc=(v,t1,t2)=>{const a=Math.abs(v);return a<=t1?'error-good':a<=t2?'error-ok':'error-bad';};
     const sT=(id,mm,t1,t2)=>{const el=gid(id),cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
     const sR=(id,dg,t1,t2)=>{const el=gid(id);el.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';el.className='error-val '+cc(dg,t1,t2);};
+    const sRn=(id,dg)=>{const el=gid(id);el.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';el.className='error-val';};   // shown but not graded
+    // Lung off-bone: this is a PTV/target match — grade the translation onto the GTV only;
+    // rotations can't shift a small off-bone target onto the PTV, so they're shown but not graded.
+    const ptvOnly=!!targetDrift;
     sT('cbErrX',-g.x,1,3);sT('cbErrY',g.y,1,3);sT('cbErrZ',g.z,1,3);
-    sR('cbErrPitch',g.pitch,0.5,1.5);sR('cbErrRoll',g.roll,0.5,1.5);sR('cbErrYaw',g.yaw,0.5,1.5);
+    if(ptvOnly){sRn('cbErrPitch',g.pitch);sRn('cbErrRoll',g.roll);sRn('cbErrYaw',g.yaw);}
+    else{sR('cbErrPitch',g.pitch,0.5,1.5);sR('cbErrRoll',g.roll,0.5,1.5);sR('cbErrYaw',g.yaw,0.5,1.5);}
     const tOk=Math.abs(g.x)<=1&&Math.abs(g.y)<=1&&Math.abs(g.z)<=1,rOk=Math.abs(g.pitch)<=0.5&&Math.abs(g.roll)<=0.5&&Math.abs(g.yaw)<=0.5;
-    const close=Math.abs(g.x)<=3&&Math.abs(g.y)<=3&&Math.abs(g.z)<=3&&Math.abs(g.pitch)<=1.5&&Math.abs(g.roll)<=1.5&&Math.abs(g.yaw)<=1.5;
+    const accepted=ptvOnly?tOk:(tOk&&rOk);
+    const close=ptvOnly?(Math.abs(g.x)<=3&&Math.abs(g.y)<=3&&Math.abs(g.z)<=3)
+                       :(Math.abs(g.x)<=3&&Math.abs(g.y)<=3&&Math.abs(g.z)<=3&&Math.abs(g.pitch)<=1.5&&Math.abs(g.roll)<=1.5&&Math.abs(g.yaw)<=1.5);
     const m=gid('cbStatusMsg');
     const ms=cbTimer.elapsed();
     const tt=(ms===null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
     // teaching hint: bones lined up but the (drifted) tumour is not
     const boneMatched=targetDrift&&Math.abs(e.x)<=2&&Math.abs(e.y)<=2&&Math.abs(e.z)<=2&&Math.abs(e.pitch)<=1&&Math.abs(e.roll)<=1&&Math.abs(e.yaw)<=1;
-    if(tOk&&rOk){m.textContent='✓ Registration accepted — within tolerance'+tt;m.style.color='var(--accent)';}
-    else if(boneMatched&&!(tOk&&rOk)){m.textContent='✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton'+tt;m.style.color='var(--accent2)';}
+    if(accepted){m.textContent=(ptvOnly?'✓ PTV aligned — target within tolerance':'✓ Registration accepted — within tolerance')+tt;m.style.color='var(--accent)';}
+    else if(boneMatched&&!accepted){m.textContent='✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton'+tt;m.style.color='var(--accent2)';}
     else if(close){m.textContent='⚡ Close — fine-tune the residual'+tt;m.style.color='var(--accent2-hi)';}
     else{m.textContent='✗ Residual error — keep fusing the planes'+tt;m.style.color='var(--accent2)';}
   }
