@@ -127,33 +127,8 @@
     });
   }
 
-  // Temporary diagnostic: /trainer?authdebug=1 shows the gate decision on-screen
-  // instead of redirecting, so we can see signedIn/email/isComped state.
-  function showAuthDebug(err) {
-    var u = window.Clerk && window.Clerk.user;
-    document.documentElement.classList.remove('auth-pending');
-    var lines = [
-      'AUTHDEBUG',
-      'host: ' + location.hostname,
-      'key: ' + (window.Clerk && window.Clerk.publishableKey),
-      'clerkLoaded: ' + !!(window.Clerk && window.Clerk.loaded),
-      'signedIn: ' + !!u,
-      'userId: ' + (u && u.id),
-      'emails: ' + (u ? JSON.stringify(u.emailAddresses.map(function (e) { return e.emailAddress; })) : 'n/a'),
-      'COMP_EMAILS: ' + JSON.stringify(COMP_EMAILS),
-      'isComped: ' + (function () { try { return isComped(); } catch (e) { return 'ERR ' + e; } })(),
-      'hasActiveSub: ' + (function () { try { return hasActiveSub(); } catch (e) { return 'ERR ' + e; } })(),
-      'error: ' + (err ? (err.stack || err.message || String(err)) : 'none')
-    ];
-    var pre = document.createElement('pre');
-    pre.style.cssText = 'position:fixed;z-index:99999;inset:0 0 auto 0;max-height:70vh;overflow:auto;margin:0;background:#fff;color:#000;padding:16px;font:13px/1.5 monospace;white-space:pre-wrap;border-bottom:3px solid #c00';
-    pre.textContent = lines.join('\n');
-    (document.body || document.documentElement).appendChild(pre);
-  }
-
   function enforceGate() {
     if (!document.body.hasAttribute('data-require-auth')) return;
-    if (location.search.indexOf('authdebug') !== -1) { showAuthDebug(); return; }
     if (!window.Clerk || !window.Clerk.user) {
       window.Clerk.redirectToSignIn({ signInForceRedirectUrl: window.location.pathname });
     } else if (hasActiveSub()) {
@@ -176,7 +151,6 @@
       })
       .catch(function (err) {
         console.error(err);
-        if (location.search.indexOf('authdebug') !== -1) { showAuthDebug(err); return; }
         if (document.body.hasAttribute('data-require-auth')) window.location.href = '/';
       });
   }
