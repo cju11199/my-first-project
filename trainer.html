@@ -193,6 +193,7 @@ main.shifts-collapsed .shift-tab{left:0}
 .start-logo::before{content:'';width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 30% 30%,var(--accent-hi),var(--accent));box-shadow:0 0 0 4px rgba(45,212,238,.14),0 0 18px var(--accent)}
 .start-sub{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.18em;text-transform:uppercase}
 .start-cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center}
+.start-cards.hidden{display:none}
 .start-card{position:relative;width:230px;min-height:188px;display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:24px 22px;cursor:pointer;text-align:left;
   background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:18px;box-shadow:var(--shadow),0 0 0 1px var(--hairline) inset;transition:all .18s var(--ease)}
 .start-card:hover{transform:translateY(-3px);border-color:rgba(45,212,238,.5);box-shadow:var(--shadow),0 0 0 3px var(--accent-dim)}
@@ -202,6 +203,13 @@ main.shifts-collapsed .shift-tab{left:0}
 .start-card .sc-badge{position:absolute;top:14px;right:14px;font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 8px;border-radius:var(--radius-pill)}
 .start-card .sc-badge.ready{color:var(--accent-hi);background:var(--accent-dim);border:1px solid rgba(45,212,238,.4)}
 .start-card .sc-badge.soon{color:var(--accent2-hi);background:var(--accent2-dim);border:1px solid rgba(255,122,69,.4)}
+/* per-case picker: slightly more compact cards, wrap up to 5 across */
+.start-cards.case-cards{max-width:840px}
+.start-card.case-card{width:198px;min-height:132px}
+.start-card.case-card .sc-icon{font-size:24px}
+.start-card.back-card{justify-content:center}
+.start-card.back-card .sc-icon{color:var(--muted)}
+.start-card.back-card:hover .sc-icon{color:var(--accent-hi)}
 .start-card .sc-badge.beta{color:#f5c066;background:rgba(245,192,102,.12);border:1px solid rgba(245,192,102,.35)}
 .start-card.disabled{cursor:not-allowed;opacity:.62}
 .start-card.disabled:hover{transform:none;border-color:rgba(255,122,69,.45);box-shadow:var(--shadow),0 0 0 3px var(--accent2-dim)}
@@ -356,16 +364,16 @@ html:not(.auth-pending) #authGate{display:none}
 <div class="start-screen" id="startScreen">
   <div class="start-brand">
     <div class="start-logo">RT Image Match</div>
-    <div class="start-sub">Select an imaging workflow</div>
+    <div class="start-sub" id="startSub">Select an imaging workflow</div>
   </div>
-  <div class="start-cards">
-    <div class="start-card" id="mode2d2d" onclick="chooseMode('2d2d')">
+  <div class="start-cards" id="modePicker">
+    <div class="start-card" id="mode2d2d" onclick="pickMode('2d2d')">
       <span class="sc-badge ready">Ready</span>
       <div class="sc-icon">&#9783;</div>
       <div class="sc-title">2D / 2D</div>
       <div class="sc-desc">Orthogonal-pair (AP&thinsp;+&thinsp;Lateral) portal-to-DRR matching. All current cases live here.</div>
     </div>
-    <div class="start-card" id="modeCbct" onclick="chooseMode('cbct')">
+    <div class="start-card" id="modeCbct" onclick="pickMode('cbct')">
       <div class="sc-icon">&#9776;</div>
       <div class="sc-title">CBCT</div>
       <div class="sc-desc">Cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction.</div>
@@ -377,6 +385,7 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="sc-desc">New here? A 2-minute visual tour of both workflows &mdash; the gestures, the views and the match.</div>
     </div>
   </div>
+  <div class="start-cards case-cards hidden" id="casePicker"></div>
   <p class="start-disclaimer">Training simulator &mdash; educational use only. Not for clinical decision-making.<br>All patient offsets and values shown are fictional.</p>
   <div class="start-note" id="startNote">&nbsp;</div>
 </div>
@@ -1861,6 +1870,51 @@ window.addEventListener('blur',()=>{ if(axisLock){ axisLock=null; axisLockKey=nu
 //   2d2d -> existing orthogonal-pair portal/DRR tool
 //   cbct -> volumetric 3-plane CBCT registration (CBCT module below)
 let currentMode=null;
+
+// Per-mode case lists for the start-screen case picker (labels mirror the in-app
+// case dropdowns). Clicking a mode reveals these; clicking one launches it.
+const CASE_LISTS={
+  '2d2d':{label:'2D / 2D', icon:'◉', cases:[
+    {v:'brain',  t:'Brain',   d:'CT DRR &middot; orthogonal pair'},
+    {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
+    {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
+    {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
+  ]},
+  'cbct':{label:'CBCT', icon:'☰', cases:[
+    {v:'pelvis', t:'Pelvis',          d:'CBCT &middot; 6DOF'},
+    {v:'brain',  t:'Acoustic neuroma', d:'CBCT &middot; IAC SRS'},
+    {v:'breast', t:'Breast',          d:'CBCT &middot; 6DOF'},
+    {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
+  ]},
+};
+function pickMode(mode){
+  const list=CASE_LISTS[mode]; if(!list) return;
+  const cp=document.getElementById('casePicker');
+  document.getElementById('startSub').textContent=list.label+' — select a case';
+  cp.innerHTML='';
+  const back=document.createElement('div');
+  back.className='start-card case-card back-card';
+  back.innerHTML='<div class="sc-icon">←</div><div class="sc-title">Back</div><div class="sc-desc">Choose a different workflow.</div>';
+  back.onclick=backToModes; cp.appendChild(back);
+  list.cases.forEach(function(c){
+    const el=document.createElement('div');
+    el.className='start-card case-card';
+    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+c.t+'</div><div class="sc-desc">'+c.d+'</div>';
+    el.onclick=function(){ launchCase(mode,c.v); };
+    cp.appendChild(el);
+  });
+  document.getElementById('modePicker').classList.add('hidden');
+  cp.classList.remove('hidden');
+}
+function backToModes(){
+  document.getElementById('modePicker').classList.remove('hidden');
+  document.getElementById('casePicker').classList.add('hidden');
+  document.getElementById('startSub').textContent='Select an imaging workflow';
+}
+function launchCase(mode, key){
+  chooseMode(mode);
+  if(mode==='cbct') CBCT.applyCase(key); else applyCase(key);
+}
 function chooseMode(mode){
   document.getElementById('startScreen').classList.add('hidden');
   currentMode=mode;
@@ -1880,6 +1934,7 @@ function backToMenu(){
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
   ss.classList.remove('hidden');
+  backToModes();   // reopen on the workflow picker, not a stale case list
   const note=document.getElementById('startNote'); note.textContent=' '; note.classList.remove('warn');
 }
 
