@@ -15,8 +15,16 @@
  * The publishable key is public by design and safe to ship in client code.
  */
 (function () {
-  var PUBLISHABLE_KEY = 'pk_test_ZmFuY3ktZmxvdW5kZXItNjMuY2xlcmsuYWNjb3VudHMuZGV2JA';
-  var FRONTEND_API = 'fancy-flounder-63.clerk.accounts.dev';
+  // Production (rtimagematch.com) uses the live Clerk instance; Vercel previews
+  // and localhost stay on the development instance so they remain testable.
+  var HOST = (location.hostname || '').toLowerCase();
+  var IS_DEV = HOST === 'localhost' || HOST === '127.0.0.1' || /\.vercel\.app$/.test(HOST);
+  var PUBLISHABLE_KEY = IS_DEV
+    ? 'pk_test_ZmFuY3ktZmxvdW5kZXItNjMuY2xlcmsuYWNjb3VudHMuZGV2JA'
+    : 'pk_live_Y2xlcmsucnRpbWFnZW1hdGNoLmNvbSQ';
+  var FRONTEND_API = IS_DEV
+    ? 'fancy-flounder-63.clerk.accounts.dev'
+    : 'clerk.rtimagematch.com';
   var PLAN_KEY = 'full_access';
   var TRAINER_URL = '/trainer';
   var SUBSCRIBE_URL = '/subscribe';
