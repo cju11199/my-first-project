@@ -42,6 +42,8 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   - `drr/*.png` — DRR images.
   - `assets/fonts/` — self-hosted web fonts.
 - `generate_brain_contours.py` — offline helper that generated brain contour data.
+- `generate_lung_contours.py` — offline helper that injects the synthetic RLL nodule into the
+  thoracic CT and writes `lung3d_data.js` + `lung3d_labels_data.js` (needs numpy/scipy/pillow).
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -80,7 +82,10 @@ Two workflows, picked on the start screen:
 
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style).
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
-  · Spine SBRT (T7 vertebral target, cord-avoiding PTV).
+  · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule — a
+  **synthetic** soft-tissue lesion baked into the thoracic CT via `generate_lung_contours.py`,
+  `lung3d_data.js` + `lung3d_labels_data.js`; teaches matching the soft-tissue target. Currently
+  rigid; true tumour-vs-bone differential motion is a planned follow-up).
 
 ## Auth & paywall (clerk-auth.js)
 
