@@ -1,0 +1,229 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A clear guide to 2D/2D image matching in radiation therapy: how orthogonal portal/setup images are matched to DRRs, why it is a 5DOF correction, which bony landmarks to use, and how 2D/2D compares to CBCT.">
+<title>2D/2D Portal vs DRR Matching Explained — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/2d-2d-portal-vs-drr-matching">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="2D/2D Portal vs DRR Matching Explained">
+<meta property="og:description" content="How orthogonal portal images are matched to DRRs in radiation therapy — the workflow, 5DOF correction, bony landmarks, tools, and how 2D/2D compares to CBCT.">
+<meta property="og:url" content="https://rtimagematch.com/guides/2d-2d-portal-vs-drr-matching">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="2D/2D Portal vs DRR Matching Explained">
+<meta name="twitter:description" content="How orthogonal portal images are matched to DRRs in radiation therapy — workflow, 5DOF, landmarks, tools, and 2D/2D vs CBCT.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "2D/2D Portal vs DRR Matching Explained",
+      "description": "A guide to 2D/2D image matching in radiation therapy: matching orthogonal portal images to DRRs, the 5DOF correction, bony landmarks, tools, and how 2D/2D compares to CBCT.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-21",
+      "dateModified": "2026-06-21",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/2d-2d-portal-vs-drr-matching"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "2D/2D portal vs DRR matching", "item": "https://rtimagematch.com/guides/2d-2d-portal-vs-drr-matching" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is a DRR in radiation therapy?", "acceptedAnswer": { "@type": "Answer", "text": "A DRR (digitally reconstructed radiograph) is a synthetic X-ray image computed from the planning CT. By casting virtual rays through the CT volume from a given beam direction, the software produces an image that looks like a planar X-ray. The DRR is the reference that setup images are matched against." } },
+        { "@type": "Question", "name": "Why is 2D/2D matching usually a 5DOF correction?", "acceptedAnswer": { "@type": "Answer", "text": "A pair of orthogonal 2D images (for example AP and lateral) reliably resolves the three translations plus two rotations (pitch and roll). The third rotation, yaw, is the couch rotation and is harder to read from planar images, so 2D/2D corrections are typically expressed as 5DOF." } },
+        { "@type": "Question", "name": "What is the difference between 2D/2D matching and CBCT?", "acceptedAnswer": { "@type": "Answer", "text": "2D/2D matches a pair of planar setup images to DRRs and is fast and low-dose, but it shows mainly bony anatomy in projection. CBCT produces a full 3D volume, allowing soft-tissue matching and full rotational assessment, at the cost of more dose and time. Many departments use 2D/2D for routine bony verification and CBCT when volumetric or soft-tissue information is needed." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:160px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; 2D/2D portal vs DRR matching</p>
+  <article>
+    <h1>2D/2D portal vs DRR matching explained</h1>
+    <p class="meta">A guide for radiation therapy students · ~7 min read</p>
+    <p class="lede">Before volumetric imaging became routine, planar image matching was — and in many departments still is — the everyday way to verify a patient's setup. This guide explains what DRRs and portal images are, how a 2D/2D match works, why the correction is usually described as 5DOF, and when you'd reach for 2D/2D instead of CBCT.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#drr">What is a DRR?</a>
+      <a href="#portal">What is a portal / setup image?</a>
+      <a href="#why2d2d">Why "2D/2D"? Orthogonal pairs</a>
+      <a href="#workflow">The 2D/2D matching workflow</a>
+      <a href="#5dof">Why it's a 5DOF correction</a>
+      <a href="#landmarks">Which landmarks to match</a>
+      <a href="#tools">Tools that help</a>
+      <a href="#vs-cbct">2D/2D vs CBCT</a>
+      <a href="#practice">How to practice 2D/2D matching</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="drr">What is a DRR?</h2>
+    <p>A <strong>DRR — digitally reconstructed radiograph</strong> — is a synthetic X-ray generated from the planning CT. The planning system casts virtual rays through the CT volume from a chosen beam direction and sums the densities along each ray, producing an image that looks like a conventional planar X-ray. Because it comes from the planning CT, the DRR represents the patient <em>as planned</em>. It is the reference image that the daily setup image is compared against.</p>
+
+    <h2 id="portal">What is a portal / setup image?</h2>
+    <p>A <strong>setup image</strong> (historically a "portal" image) is a planar X-ray taken at the treatment machine. It can be acquired with the on-board <strong>kV</strong> imager (a diagnostic-energy source and flat panel) or with the <strong>MV</strong> treatment beam itself. kV images are now the most common for setup because they give better bony contrast at lower dose. Whatever the energy, the setup image captures the patient's position right now, on the couch.</p>
+
+    <h2 id="why2d2d">Why "2D/2D"? Orthogonal pairs</h2>
+    <p>A single planar image only tells you about position in the plane of that image — it can't resolve depth along the beam. To localise the patient in 3D you take <strong>two images from roughly perpendicular directions</strong>, classically an <strong>anterior–posterior (AP)</strong> and a <strong>lateral</strong>. Together this orthogonal pair pins down all three translation directions. Matching two setup images to two DRRs is where the name <strong>2D/2D</strong> comes from.</p>
+
+    <h2 id="workflow">The 2D/2D matching workflow</h2>
+    <ol>
+      <li><strong>Set up</strong> the patient to skin marks and lasers.</li>
+      <li><strong>Acquire the orthogonal pair</strong> (e.g. AP + lateral) at the machine.</li>
+      <li><strong>Overlay each setup image on its DRR.</strong> The software shows the live image against the reference.</li>
+      <li><strong>Align bony landmarks</strong> by translating and rotating until the anatomy in the setup image sits on the anatomy in the DRR. You read both images together, because a shift seen on one view is confirmed or refined on the other.</li>
+      <li><strong>Apply the resulting couch correction</strong> within tolerance, then treat.</li>
+    </ol>
+
+    <h2 id="5dof">Why it's a 5DOF correction</h2>
+    <p>An orthogonal image pair reliably resolves five of the six degrees of freedom: the three translations plus two of the rotations.</p>
+    <div class="dof">
+      <div><b>Lateral</b><span>Resolved.</span></div>
+      <div><b>Longitudinal</b><span>Resolved.</span></div>
+      <div><b>Vertical</b><span>Resolved.</span></div>
+      <div><b>Pitch</b><span>Resolved — visible as a tilt on the lateral view.</span></div>
+      <div><b>Roll</b><span>Resolved — visible as a tilt on the AP view.</span></div>
+      <div><b>Yaw</b><span>Hard to read from planar images; usually not corrected from 2D/2D.</span></div>
+    </div>
+    <p>The third rotation, <strong>yaw</strong> (couch rotation about the vertical axis), projects very little onto a front or side view, so it's difficult to measure from a planar pair. That's why a 2D/2D correction is normally expressed as <strong>5DOF</strong> — three translations and two rotations.</p>
+
+    <h2 id="landmarks">Which landmarks to match</h2>
+    <p>Planar images show <strong>bony anatomy</strong> best, so 2D/2D matching is fundamentally a bony match. Useful, high-contrast landmarks include:</p>
+    <ul>
+      <li><strong>Skull / facial bones and sinuses</strong> for head &amp; neck.</li>
+      <li><strong>Vertebral bodies, pedicles, and spinous processes</strong> for spine and many body sites.</li>
+      <li><strong>Pelvic ring, femoral heads, and pubic symphysis</strong> for pelvis.</li>
+      <li><strong>Carina and ribs</strong> as secondary references in the thorax.</li>
+    </ul>
+    <p>Pick landmarks close to the target and stable from day to day, and match the same features you'd use to judge the plan.</p>
+
+    <div class="tip"><p><strong>Tip:</strong> read both views together. A translation that looks ambiguous on the AP image is often obvious on the lateral, and vice-versa — they constrain each other.</p></div>
+
+    <h2 id="tools">Tools that help</h2>
+    <ul>
+      <li><strong>Contrast / windowing</strong> on each image so bone stands out from soft tissue.</li>
+      <li><strong>Colour wash or overlay</strong> to see where the setup image and DRR agree and where they separate.</li>
+      <li><strong>A spyglass / split window</strong> to compare a local region of the two images edge-to-edge.</li>
+      <li><strong>Single-axis locks</strong> so you can adjust one direction at a time without disturbing the others.</li>
+    </ul>
+
+    <h2 id="vs-cbct">2D/2D vs CBCT — when to use which</h2>
+    <p>Neither is simply "better"; they trade off:</p>
+    <ul>
+      <li><strong>2D/2D</strong> is fast, low-dose, and excellent for routine <em>bony</em> verification. It can't show soft tissue well and doesn't resolve yaw.</li>
+      <li><strong>CBCT</strong> gives a full 3D volume, enabling <em>soft-tissue</em> matching and full 6DOF rotational assessment — at the cost of more imaging dose and time.</li>
+    </ul>
+    <p>Many departments use 2D/2D for day-to-day bony checks and bring in CBCT when they need volumetric or soft-tissue information, or for higher-precision treatments. Knowing both is essential, which is why the trainer includes both workflows. For the volumetric side, see our companion guide on <a href="/guides/cbct-6dof-registration">CBCT 6DOF registration</a>.</p>
+
+    <h2 id="practice">How to practice 2D/2D matching</h2>
+    <p>The fastest way to build the eye for a good match is repetition with instant feedback. The <a href="/trainer">RT Image Matching Trainer</a> lets you practice 2D/2D portal-to-DRR matching on brain, pelvis, thorax, and a monoisocentric breast case — dragging to translate and rotate an orthogonal pair, with single-axis "couch locks", contrast and overlay tools, and a live residual-error readout graded against tolerance. Generate a new random setup error and work it back to green.</p>
+
+    <div class="cta-box">
+      <p>Try a 2D/2D case now<span>Orthogonal AP + lateral matching, 5DOF correction, live error feedback.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>What is a DRR in radiation therapy?</h3>
+      <p>A DRR (digitally reconstructed radiograph) is a synthetic X-ray computed from the planning CT by casting virtual rays through the CT volume from a beam direction. It looks like a planar X-ray and is the reference that setup images are matched against.</p>
+      <h3>Why is 2D/2D matching usually a 5DOF correction?</h3>
+      <p>An orthogonal pair (for example AP and lateral) reliably resolves the three translations plus pitch and roll. The third rotation, yaw (couch rotation), is hard to read from planar images, so 2D/2D corrections are typically expressed as 5DOF.</p>
+      <h3>What is the difference between 2D/2D and CBCT?</h3>
+      <p>2D/2D matches planar setup images to DRRs — fast and low-dose, but mostly bony anatomy in projection. CBCT produces a 3D volume allowing soft-tissue matching and full rotational assessment, at the cost of more dose and time. Departments often use 2D/2D for routine bony checks and CBCT when volumetric information is needed.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/cbct-6dof-registration"><span class="k">Companion guide</span><span class="t">CBCT 6DOF registration explained &rarr;</span></a>
+      <a href="/guides"><span class="k">All guides</span><span class="t">Back to the guides hub &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is general background for learning, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>
