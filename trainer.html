@@ -481,6 +481,7 @@ html:not(.auth-pending) #authGate{display:none}
         <option value="breast">Breast &middot; CBCT (CT)</option>
         <option value="spine">Spine SBRT &middot; CBCT (CT)</option>
         <option value="lung">Lung SBRT &middot; CBCT (CT)</option>
+        <option value="prostate">Prostate fiducial &middot; CBCT (CT)</option>
       </select>
     </div>
     <div class="header-controls">
@@ -1987,6 +1988,7 @@ const CASE_LISTS={
     {v:'breast', t:'Breast',          d:'CBCT &middot; 6DOF'},
     {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
     {v:'lung',   t:'Lung SBRT',       d:'CBCT &middot; RLL nodule'},
+    {v:'prostate',t:'Prostate',       d:'CBCT &middot; gold fiducials'},
   ]},
 };
 function pickMode(mode){
@@ -2339,9 +2341,24 @@ const CBCT=(function(){
             ptv:{c:[20,16,-41], gtvR:7, ptvR:8}},
     breast:{file:'breast3d_data.js', get:()=>typeof BREAST3D_VOL!=='undefined'?BREAST3D_VOL:null, win:{l:40,w:400},  contours:true},   // chest: soft-tissue/mediastinum window
     spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:80,w:700},  contours:true},   // thoracic-spine SBRT: vertebral cortex vs soft tissue — this volume's bone tops ~370 HU, so a 1800-wide bone window crushed it flat
-    lung  :{file:'lung3d_data.js',   get:()=>typeof LUNG3D_VOL!=='undefined'?LUNG3D_VOL:null,    win:{l:-150,w:800}, contours:true}   // lung SBRT: window tuned to this atlas's lung HU so the lungs go dark and the peripheral RLL nodule pops (match the soft-tissue target, not bone)
+    lung  :{file:'lung3d_data.js',   get:()=>typeof LUNG3D_VOL!=='undefined'?LUNG3D_VOL:null,    win:{l:-150,w:800}, contours:true,   // lung SBRT: window tuned to this atlas's lung HU so the lungs go dark and the peripheral RLL nodule pops (match the soft-tissue target, not bone)
+            // off-bone differential motion: the GTV(bit 1) drifts vs the skeleton. Moving reslice hides the
+            // planning-position lesion (overwrite with lung air dens 4) and redraws it at net-drift (lesion HU 74).
+            offBone:{driftBit:1, hideDens:4, drawDens:74, drift:{x:[2,5],y:[4,9],z:[2,6]},
+                     okMsg:'✓ PTV aligned — target within tolerance',
+                     hint:'✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton',
+                     setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
+    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true,   // prostate IGRT: soft-tissue pelvis window; 3 implanted gold seeds (bright)
+            // off-bone differential motion: the prostate + its gold fiducials(bit 32) drift vs the bony pelvis
+            // (bladder/rectal filling). Moving reslice hides the planning-position seeds (overwrite with prostate
+            // soft-tissue dens 70) and redraws them at net-drift as bright gold (255). Match the seeds, not bone.
+            offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3],y:[3,6],z:[2,5]},
+                     okMsg:'✓ Seeds aligned — fiducials within tolerance',
+                     hint:'✗ Pelvis aligned, but the seeds are off — match the fiducials, not the bone',
+                     setup:'New setup — the prostate has shifted off the pelvis; match the gold seeds, not the bone'}}
   };
   const hasVol=k=>!!VOLCASE[k];
+  function curOffBone(){return (VOLCASE[caseKey]&&VOLCASE[caseKey].offBone)||null;}
   const RS=224, _mc={}, _refCache={axial:{k:-1,cv:null},coronal:{k:-1,cv:null},sagittal:{k:-1,cv:null}};
   const _movCache={axial:{k:'',cv:null},coronal:{k:'',cv:null},sagittal:{k:'',cv:null}};
   function _invCaches(){['axial','coronal','sagittal'].forEach(n=>{_refCache[n].k=-1;_movCache[n].k='';});}
@@ -2453,12 +2470,13 @@ const CBCT=(function(){
       return [r00*dx+r10*dy+r20*dz, r01*dx+r11*dy+r21*dz, r02*dx+r12*dy+r22*dz];};
   }
   function movInv(){ return movInvFrom(net()); }
-  // GTV occupancy (nearest-neighbour) of the current case's label volume at a voxel coord.
-  function gtvAt(lbl,x,y,z){
+  // Label occupancy (nearest-neighbour) of the current case's label volume at a voxel coord,
+  // for the given structure bit (default 1 = GTV). Used by the off-bone drift compositor.
+  function gtvAt(lbl,x,y,z,bit){
     if(!lbl)return 0;
     const X=lbl.X,Y=lbl.Y,Z=lbl.Z,xi=(x+0.5)|0,yi=(y+0.5)|0,zi=(z+0.5)|0;
     if(xi<0||yi<0||zi<0||xi>=X||yi>=Y||zi>=Z)return 0;
-    return lbl.data[(zi*Y+yi)*X+xi]&1;           // bit 1 = GTV
+    return lbl.data[(zi*Y+yi)*X+xi]&(bit||1);
   }
   function reslice(name,moving){
     // ref cache keyed by slice idx; moving cache keyed by slice idx + the 6DOF residual (+ tumour drift)
@@ -2473,22 +2491,22 @@ const CBCT=(function(){
     const o=id.data,sp=V3.sp,half=VFOV/2,dep=depthMmOf(name),inv=moving?movInv():null;
     const cxv=(V3.X-1)/2,cyv=(V3.Y-1)/2,czv=(V3.Z-1)/2,step=VFOV/RS;let k=0;
     const wlo=winL-winW/2, wsc=255/winW;                    // CT window: HU -> display
-    // "off-bone" tumour drift (lung case): the moving CBCT hides the planning-position lesion
-    // and redraws it at bone+drift. The lesion is sampled with residual (net - drift), so it
-    // aligns when net=drift while the bones align at net=0.
+    // "off-bone" target drift (lung GTV / prostate seeds): the moving CBCT hides the planning-position
+    // feature and redraws it at bone+drift. The feature is sampled with residual (net - drift), so it
+    // aligns when net=drift while the bones align at net=0. Config (driftBit/hideDens/drawDens) per case.
     const _lbl=curLBL();
-    const _drift = moving && caseKey==='lung' && targetDrift && _lbl;
+    const _ob = (moving && targetDrift && _lbl) ? curOffBone() : null;
     let _invL=null;
-    if(_drift){const e=net();_invL=movInvFrom({x:e.x-targetDrift.x,y:e.y-targetDrift.y,z:e.z-targetDrift.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw});}
+    if(_ob){const e=net();_invL=movInvFrom({x:e.x-targetDrift.x,y:e.y-targetDrift.y,z:e.z-targetDrift.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw});}
     for(let r=0;r<RS;r++){const v=(r+0.5)*step-half;
       for(let c=0;c<RS;c++){const u=(c+0.5)*step-half;
         const w0=planeWorld(name,u,v,dep); let w=inv?inv(w0):w0;
         const gx=w[0]/sp+cxv,gy=w[1]/sp+cyv,gz=w[2]/sp+czv;
         let dens=sampleVol(gx,gy,gz);
-        if(_drift){
-          if(gtvAt(_lbl,gx,gy,gz))dens=4;                    // hide the lesion at its planning position
-          const wL=_invL(w0);                                 // and redraw it drifted (residual net-drift)
-          if(gtvAt(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv))dens=74;
+        if(_ob){
+          if(gtvAt(_lbl,gx,gy,gz,_ob.driftBit))dens=_ob.hideDens;   // hide the feature at its planning position
+          const wL=_invL(w0);                                        // and redraw it drifted (residual net-drift)
+          if(gtvAt(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv,_ob.driftBit))dens=_ob.drawDens;
         }
         let val;
         if(dens<=0.5)val=0;                                  // air / outside the scan -> stays black (window only affects tissue)
@@ -2551,30 +2569,43 @@ const CBCT=(function(){
     {key:'ptv',  color:'#ff3b4e', lw:2.3},
   ];
   LUNG_STRUCTS.forEach(S=>S.visible=true);
+  const PROSTATE_STRUCTS=[                            // prostate IGRT: pelvis structures (the gold seeds show as bright CT dots, not a contour)
+    {key:'body',    color:'#36e06a', lw:1.3},
+    {key:'bladder', color:'#ffd23f', lw:1.7},
+    {key:'rectum',  color:'#7bc043', lw:1.7},
+    {key:'sv',      color:'#d36cff', lw:1.6},
+    {key:'prostate',color:'#e8a13a', lw:2.0},
+    {key:'ptv',     color:'#ff3b4e', lw:2.3},
+  ];
+  PROSTATE_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
   let LBL=null, CB_ISO_IDX=[93,66,31];                // pelvis: prostate centroid -> isocentre
   let BRAIN_LBL=null, BRAIN_ISO_IDX=[103,74,88];      // brain:  GTV centre -> isocentre
   let BREAST_LBL=null, BREAST_ISO_IDX=[162,45,126];   // breast: lumpectomy-cavity (boost) centre -> isocentre
   let SPINE_LBL=null, SPINE_ISO_IDX=[100,95,66];      // spine:  target vertebra centroid -> isocentre
   let LUNG_LBL=null, LUNG_ISO_IDX=[60,106,58];        // lung:   RLL nodule centroid -> isocentre
+  let PROSTATE_LBL=null, PROSTATE_ISO_IDX=[99,76,32];  // prostate: gland centroid -> isocentre
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _breastCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _spineCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _lungCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _prostateCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   function _invContours(){
     _ctrCache.axial.k=_ctrCache.coronal.k=_ctrCache.sagittal.k=-1;
     _brainCtrCache.axial.k=_brainCtrCache.coronal.k=_brainCtrCache.sagittal.k=-1;
     _breastCtrCache.axial.k=_breastCtrCache.coronal.k=_breastCtrCache.sagittal.k=-1;
     _spineCtrCache.axial.k=_spineCtrCache.coronal.k=_spineCtrCache.sagittal.k=-1;
     _lungCtrCache.axial.k=_lungCtrCache.coronal.k=_lungCtrCache.sagittal.k=-1;
+    _prostateCtrCache.axial.k=_prostateCtrCache.coronal.k=_prostateCtrCache.sagittal.k=-1;
   }
-  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:LBL;}
-  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:CB_STRUCTS;}
-  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:CB_ISO_IDX;}
-  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:_ctrCache;}
+  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:LBL;}
+  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:CB_STRUCTS;}
+  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:CB_ISO_IDX;}
+  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:_ctrCache;}
   function loadLabelMPR(){
     if(caseKey==='lung'){_loadLungLabelMPR();return;}
+    if(caseKey==='prostate'){_loadProstateLabelMPR();return;}
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
@@ -2690,6 +2721,29 @@ const CBCT=(function(){
     LUNG_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
     if(V.isoIdx)LUNG_ISO_IDX=V.isoIdx.slice();
     _invCaches();_invContours();   // moving reslice needs the GTV mask for the off-bone lesion drift
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
+  function _loadProstateLabelMPR(){
+    if(typeof PROSTATE3D_LABELS==='undefined'){
+      if(_loadProstateLabelMPR._t)return; _loadProstateLabelMPR._t=1;
+      const s=document.createElement('script'); s.src='prostate3d_labels_data.js';
+      s.onload=()=>{_loadProstateLabelMPR._t=0;_loadProstateLabelMPR();}; s.onerror=()=>{_loadProstateLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(PROSTATE_LBL)return;
+    const img=new Image(); img.onload=()=>_decodeProstateLabels(img); img.src=PROSTATE3D_LABELS.atlas;
+  }
+  function _decodeProstateLabels(img){
+    const V=PROSTATE3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    PROSTATE_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    PROSTATE_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)PROSTATE_ISO_IDX=V.isoIdx.slice();
+    _invCaches();_invContours();   // moving reslice needs the fiducial mask for the off-bone seed drift
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
   function centerOnIso(){
@@ -2814,7 +2868,7 @@ const CBCT=(function(){
   // legend and dropdown rows differ per case
   function applyCaseLegend(){
     const brain=caseKey==='brain';
-    const pelvis=caseKey==='pelvis';
+    const pelvis=caseKey==='pelvis'||caseKey==='prostate';
     const breast=caseKey==='breast';
     const spine=caseKey==='spine';
     const lung=caseKey==='lung';
@@ -3066,13 +3120,14 @@ const CBCT=(function(){
     const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
     hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
     hidden.pitch=rh(0,4)*sg();hidden.roll=rh(0,4)*sg();hidden.yaw=rh(0,4)*sg();
-    // Lung: the tumour has also drifted relative to bone (interfraction), so a bony match
-    // leaves the GTV off — the student must match the soft-tissue target. SI (Lng) drifts most.
-    targetDrift = caseKey==='lung' ? {x:ri(2,5)*sg(), y:ri(4,9)*sg(), z:ri(2,6)*sg()} : null;
+    // Off-bone cases (lung GTV / prostate seeds): the target has also drifted relative to bone, so a
+    // bony match leaves it off — the student must match the soft-tissue target / fiducials. Per-case
+    // drift ranges (mm) live in the VOLCASE offBone config.
+    const _ob=curOffBone();
+    targetDrift = _ob ? {x:ri(_ob.drift.x[0],_ob.drift.x[1])*sg(), y:ri(_ob.drift.y[0],_ob.drift.y[1])*sg(), z:ri(_ob.drift.z[0],_ob.drift.z[1])*sg()} : null;
     shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();_invCaches();clearErrors();refreshReadouts();
     const m=gid('cbStatusMsg');
-    m.textContent = targetDrift ? 'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'
-                                : 'New 6DOF setup error applied — register all three planes';
+    m.textContent = _ob ? _ob.setup : 'New 6DOF setup error applied — register all three planes';
     m.style.color='var(--label)';render();
   }
   function check(){
@@ -3085,9 +3140,10 @@ const CBCT=(function(){
     const sT=(id,mm,t1,t2)=>{const el=gid(id),cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
     const sR=(id,dg,t1,t2)=>{const el=gid(id);el.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';el.className='error-val '+cc(dg,t1,t2);};
     const sRn=(id,dg)=>{const el=gid(id);el.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';el.className='error-val';};   // shown but not graded
-    // Lung off-bone: this is a PTV/target match — grade the translation onto the GTV only;
-    // rotations can't shift a small off-bone target onto the PTV, so they're shown but not graded.
+    // Off-bone (lung GTV / prostate seeds): a target/fiducial match — grade the translation onto the
+    // target only; rotations can't shift a small off-bone target on, so they're shown but not graded.
     const ptvOnly=!!targetDrift;
+    const _ob=curOffBone();
     const TOL=rtTol();
     sT('cbErrX',-g.x,TOL.t1,TOL.t2);sT('cbErrY',g.y,TOL.t1,TOL.t2);sT('cbErrZ',g.z,TOL.t1,TOL.t2);
     if(ptvOnly){sRn('cbErrPitch',g.pitch);sRn('cbErrRoll',g.roll);sRn('cbErrYaw',g.yaw);}
@@ -3101,8 +3157,8 @@ const CBCT=(function(){
     const tt=(ms===null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
     // teaching hint: bones lined up but the (drifted) tumour is not
     const boneMatched=targetDrift&&Math.abs(e.x)<=2&&Math.abs(e.y)<=2&&Math.abs(e.z)<=2&&Math.abs(e.pitch)<=1&&Math.abs(e.roll)<=1&&Math.abs(e.yaw)<=1;
-    if(accepted){m.textContent=(ptvOnly?'✓ PTV aligned — target within tolerance':'✓ Registration accepted — within tolerance')+tt;m.style.color='var(--accent)';}
-    else if(boneMatched&&!accepted){m.textContent='✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton'+tt;m.style.color='var(--accent2)';}
+    if(accepted){m.textContent=((ptvOnly&&_ob)?_ob.okMsg:'✓ Registration accepted — within tolerance')+tt;m.style.color='var(--accent)';}
+    else if(boneMatched&&!accepted){m.textContent=(_ob?_ob.hint:'✗ Bones aligned, but the target is off')+tt;m.style.color='var(--accent2)';}
     else if(close){m.textContent='⚡ Close — fine-tune the residual'+tt;m.style.color='var(--accent2-hi)';}
     else{m.textContent='✗ Residual error — keep fusing the planes'+tt;m.style.color='var(--accent2)';}
     // record this attempt for the user's progress profile (translation residual magnitude in mm)
