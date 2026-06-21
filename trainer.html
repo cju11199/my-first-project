@@ -403,6 +403,7 @@ html:not(.auth-pending) #authGate{display:none}
         <option value="brain">Acoustic neuroma &middot; CBCT (CT)</option>
         <option value="breast">Breast &middot; CBCT (CT)</option>
         <option value="spine">Spine SBRT &middot; CBCT (CT)</option>
+        <option value="lung">Lung SBRT &middot; CBCT (CT)</option>
       </select>
     </div>
     <div class="header-controls">
@@ -1885,6 +1886,7 @@ const CASE_LISTS={
     {v:'brain',  t:'Acoustic neuroma', d:'CBCT &middot; IAC SRS'},
     {v:'breast', t:'Breast',          d:'CBCT &middot; 6DOF'},
     {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
+    {v:'lung',   t:'Lung SBRT',       d:'CBCT &middot; RLL nodule'},
   ]},
 };
 function pickMode(mode){
@@ -2038,7 +2040,8 @@ const CBCT=(function(){
             // c = boost centre in world mm from volume centre (Wx=+Left, Wy=+Posterior, Wz=+Superior).
             ptv:{c:[20,16,-41], gtvR:7, ptvR:8}},
     breast:{file:'breast3d_data.js', get:()=>typeof BREAST3D_VOL!=='undefined'?BREAST3D_VOL:null, win:{l:40,w:400},  contours:true},   // chest: soft-tissue/mediastinum window
-    spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:80,w:700},  contours:true}   // thoracic-spine SBRT: vertebral cortex vs soft tissue — this volume's bone tops ~370 HU, so a 1800-wide bone window crushed it flat
+    spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:80,w:700},  contours:true},   // thoracic-spine SBRT: vertebral cortex vs soft tissue — this volume's bone tops ~370 HU, so a 1800-wide bone window crushed it flat
+    lung  :{file:'lung3d_data.js',   get:()=>typeof LUNG3D_VOL!=='undefined'?LUNG3D_VOL:null,    win:{l:-150,w:800}, contours:true}   // lung SBRT: window tuned to this atlas's lung HU so the lungs go dark and the peripheral RLL nodule pops (match the soft-tissue target, not bone)
   };
   const hasVol=k=>!!VOLCASE[k];
   const RS=224, _mc={}, _refCache={axial:{k:-1,cv:null},coronal:{k:-1,cv:null},sagittal:{k:-1,cv:null}};
@@ -2220,26 +2223,37 @@ const CBCT=(function(){
     {key:'cord',     color:'#00e5d0', lw:1.9},
   ];
   SPINE_STRUCTS.forEach(S=>S.visible=true);
+  const LUNG_STRUCTS=[                                // lung SBRT: body/lung context + GTV/PTV target
+    {key:'body', color:'#36e06a', lw:1.3},
+    {key:'lung', color:'#63b3ed', lw:1.4},
+    {key:'gtv',  color:'#e8a13a', lw:2.0},
+    {key:'ptv',  color:'#ff3b4e', lw:2.3},
+  ];
+  LUNG_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
   let LBL=null, CB_ISO_IDX=[93,66,31];                // pelvis: prostate centroid -> isocentre
   let BRAIN_LBL=null, BRAIN_ISO_IDX=[103,74,88];      // brain:  GTV centre -> isocentre
   let BREAST_LBL=null, BREAST_ISO_IDX=[162,45,126];   // breast: lumpectomy-cavity (boost) centre -> isocentre
   let SPINE_LBL=null, SPINE_ISO_IDX=[100,95,66];      // spine:  target vertebra centroid -> isocentre
+  let LUNG_LBL=null, LUNG_ISO_IDX=[60,106,58];        // lung:   RLL nodule centroid -> isocentre
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _breastCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _spineCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _lungCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   function _invContours(){
     _ctrCache.axial.k=_ctrCache.coronal.k=_ctrCache.sagittal.k=-1;
     _brainCtrCache.axial.k=_brainCtrCache.coronal.k=_brainCtrCache.sagittal.k=-1;
     _breastCtrCache.axial.k=_breastCtrCache.coronal.k=_breastCtrCache.sagittal.k=-1;
     _spineCtrCache.axial.k=_spineCtrCache.coronal.k=_spineCtrCache.sagittal.k=-1;
+    _lungCtrCache.axial.k=_lungCtrCache.coronal.k=_lungCtrCache.sagittal.k=-1;
   }
-  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:LBL;}
-  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:CB_STRUCTS;}
-  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:CB_ISO_IDX;}
-  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:_ctrCache;}
+  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:LBL;}
+  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:CB_STRUCTS;}
+  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:CB_ISO_IDX;}
+  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:_ctrCache;}
   function loadLabelMPR(){
+    if(caseKey==='lung'){_loadLungLabelMPR();return;}
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
@@ -2331,6 +2345,29 @@ const CBCT=(function(){
     SPINE_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
     SPINE_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
     if(V.isoIdx)SPINE_ISO_IDX=V.isoIdx.slice();
+    _invContours();
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
+  function _loadLungLabelMPR(){
+    if(typeof LUNG3D_LABELS==='undefined'){
+      if(_loadLungLabelMPR._t)return; _loadLungLabelMPR._t=1;
+      const s=document.createElement('script'); s.src='lung3d_labels_data.js';
+      s.onload=()=>{_loadLungLabelMPR._t=0;_loadLungLabelMPR();}; s.onerror=()=>{_loadLungLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(LUNG_LBL)return;
+    const img=new Image(); img.onload=()=>_decodeLungLabels(img); img.src=LUNG3D_LABELS.atlas;
+  }
+  function _decodeLungLabels(img){
+    const V=LUNG3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    LUNG_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    LUNG_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)LUNG_ISO_IDX=V.isoIdx.slice();
     _invContours();
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
@@ -2459,20 +2496,21 @@ const CBCT=(function(){
     const pelvis=caseKey==='pelvis';
     const breast=caseKey==='breast';
     const spine=caseKey==='spine';
+    const lung=caseKey==='lung';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
-    show('cbLG_gtv',brain);
+    show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
     show('cbLG_rectum',pelvis);show('cbLG_sv',pelvis);
-    show('cbLG_lung',breast||spine);show('cbLG_heart',breast);show('cbLG_cavity',breast);show('cbLG_ctv',breast);show('cbLG_clipmargin',breast);show('cbLG_clips',breast);
+    show('cbLG_lung',breast||spine||lung);show('cbLG_heart',breast);show('cbLG_cavity',breast);show('cbLG_ctv',breast);show('cbLG_clipmargin',breast);show('cbLG_clips',breast);
     show('cbLG_vertebra',spine);show('cbLG_cord',spine);show('cbLG_esophagus',spine);show('cbLG_aorta',spine);
     show('cbLG_body',true);
     // per-structure dropdown items
-    show('cbCM_gtv',brain);show('cbCM_brain',brain);
+    show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);
-    show('cbCM_lung',breast||spine);show('cbCM_heart',breast);show('cbCM_cavity',breast);show('cbCM_ctv',breast);show('cbCM_clipmargin',breast);show('cbCM_clips',breast);
+    show('cbCM_lung',breast||spine||lung);show('cbCM_heart',breast);show('cbCM_cavity',breast);show('cbCM_ctv',breast);show('cbCM_clipmargin',breast);show('cbCM_clips',breast);
     show('cbCM_vertebra',spine);show('cbCM_cord',spine);show('cbCM_esophagus',spine);show('cbCM_aorta',spine);
   }
 
@@ -2927,7 +2965,7 @@ const CBCT=(function(){
     const ccaret=gid('cbContoursCaret');if(ccaret)ccaret.style.display=(vc&&vc.contours)?'':'none';
     applyCaseLegend();
     const lg=gid('cbContourLegend');if(lg)lg.classList.remove('show');
-    if(key==='brain'||key==='breast'||key==='spine'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
+    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
       if(vc&&vc.contours){loadLabelMPR();if(curLBL())centerOnIso();}}   // contours ON by default
     Object.keys(PLANES).forEach(name=>{
       const st=ST[name],truth=makeTruth(key,name);
