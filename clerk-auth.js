@@ -21,6 +21,12 @@
   var TRAINER_URL = '/trainer';
   var SUBSCRIBE_URL = '/subscribe';
 
+  // Comped accounts: full access WITHOUT a paid subscription (owner, testers).
+  // Add your Clerk user id (preferred — opaque; Clerk Dashboard -> Users -> your
+  // user -> copy User ID) and/or the email you sign in with (lowercase).
+  var COMP_USER_IDS = []; // e.g. 'user_2abcDEF456...'
+  var COMP_EMAILS = ['cju11199@pm.me']; // owner — full access, no subscription
+
   var readyResolve;
   var ready = new Promise(function (r) { readyResolve = r; });
 
@@ -40,8 +46,18 @@
 
   // True if the signed-in user has an active subscription to the plan
   // (Clerk Billing counts an active trial as authorized).
+  // Owner / comped accounts bypass the subscription requirement.
+  function isComped() {
+    var u = window.Clerk && window.Clerk.user;
+    if (!u) return false;
+    if (COMP_USER_IDS.indexOf(u.id) !== -1) return true;
+    var em = u.primaryEmailAddress && u.primaryEmailAddress.emailAddress;
+    return !!em && COMP_EMAILS.indexOf(em.toLowerCase()) !== -1;
+  }
+
   function hasActiveSub() {
     try {
+      if (isComped()) return true;
       var s = window.Clerk && window.Clerk.session;
       if (s && typeof s.checkAuthorization === 'function') {
         return !!s.checkAuthorization({ plan: PLAN_KEY });
