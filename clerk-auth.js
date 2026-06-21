@@ -34,6 +34,10 @@
   // user -> copy User ID) and/or the email you sign in with (lowercase).
   var COMP_USER_IDS = []; // e.g. 'user_2abcDEF456...'
   var COMP_EMAILS = ['cju1999@pm.me', 'cju11199@pm.me']; // owner — full access, no subscription
+  // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
+  // of these domains (or a subdomain) gets in free — no subscription. Institution
+  // domains only; a public domain (gmail.com) would free everyone.
+  var COMP_DOMAINS = ['stonybrook.edu', 'mountsinai.org'];
 
   var readyResolve;
   var ready = new Promise(function (r) { readyResolve = r; });
@@ -62,12 +66,30 @@
     var u = window.Clerk && window.Clerk.user;
     if (!u) return false;
     if (COMP_USER_IDS.indexOf(u.id) !== -1) return true;
-    // Match ANY email on the account (not just primary), case-insensitively.
-    var allow = COMP_EMAILS.map(function (e) { return e.toLowerCase(); });
-    var emails = (u.emailAddresses || []).map(function (e) {
-      return (e.emailAddress || '').toLowerCase();
-    });
-    return emails.some(function (e) { return e && allow.indexOf(e) !== -1; });
+    var allowEmails = COMP_EMAILS.map(function (e) { return e.toLowerCase(); });
+    var allowDomains = COMP_DOMAINS.map(function (d) { return d.toLowerCase().replace(/^@/, ''); });
+    var emails = u.emailAddresses || [];
+    for (var i = 0; i < emails.length; i++) {
+      var addr = (emails[i].emailAddress || '').toLowerCase();
+      if (!addr) continue;
+      // Exact-email allowlist (owner/testers): any email on the account, verified or not.
+      if (allowEmails.indexOf(addr) !== -1) return true;
+      // Domain allowlist (students): require a VERIFIED email at the domain (or a
+      // subdomain) so it can't be faked with an unverified address.
+      var v = emails[i].verification;
+      if (v && v.status === 'verified' && allowDomains.length) {
+        var at = addr.lastIndexOf('@');
+        var dom = at >= 0 ? addr.slice(at + 1) : '';
+        for (var j = 0; j < allowDomains.length; j++) {
+          var ad = allowDomains[j];
+          if (ad && (dom === ad ||
+              (dom.length > ad.length && dom.slice(dom.length - ad.length - 1) === '.' + ad))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   function hasActiveSub() {
