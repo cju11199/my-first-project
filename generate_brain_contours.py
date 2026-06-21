@@ -170,7 +170,7 @@ print(f'Brainstem: {bs_final.sum()} voxels')
 zz, yy, xx = np.mgrid[0:DZ, 0:DY, 0:DX]
 def sph(sx, cy, az, rmm):
     return ((xx-sx)*SP)**2 + ((yy-cy)*SP)**2 + ((zz-az)*SP)**2 <= rmm*rmm
-gtv_mask = (sph(94,109,36,6.0)|sph(100,107,37,4.3)|sph(105,104,38,3.0)|sph(110,102,38,2.2))  # CPA ball -> intracanalicular tail (porus is posteromedial; canal runs antero-laterally)
+gtv_mask = (sph(91,105,36,6.0)|sph(98,103,37,4.2)|sph(105,101,38,3.0)|sph(111,100,38,2.2))  # CPA ball (abuts the postero-lateral pons) -> intracanalicular tail along the IAC toward the cochlea/fundus (115,100,39)
 labels[gtv_mask] |= 0x01
 gz,gy,gx = np.where(gtv_mask)
 iso_sx = int(round(gx.mean())); iso_cy = int(round(gy.mean())); iso_az = int(round(gz.mean()))
