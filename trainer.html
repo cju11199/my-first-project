@@ -425,6 +425,9 @@ main.shifts-collapsed .shift-tab{left:0}
 .rt-toggle input{accent-color:var(--accent)}
 .rt-data-row{display:flex;gap:10px;flex-wrap:wrap}
 .rt-data-note{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px}
+.rt-legal-row{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--mono);font-size:11px}
+.rt-legal-row a{color:var(--label);text-decoration:none}
+.rt-legal-row a:hover{color:var(--accent-hi)}
 @media(max-width:560px){.rt-tiles{grid-template-columns:repeat(2,1fr)}.rt-ov-top{justify-content:center}}
 /* paywall: hide the trainer until access is verified */
 #authGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#070a0f;color:#9fadbd;font:15px/1.5 system-ui,sans-serif}
@@ -2207,7 +2210,8 @@ function rtViewSettings(p){
     +'<div class="rt-sec-h">Display</div><label class="rt-toggle"><input type="checkbox"'+(p.prefs.hideCardStats?'':' checked')+' onchange="rtSetPref(\'hideCardStats\',!this.checked)"> Show progress on the case cards</label>'
     +'<div class="rt-sec-h">Account</div><div class="rt-data-row"><button class="btn-ghost" onclick="location.href=\'/account\'">Manage account &amp; subscription →</button></div>'
     +'<div class="rt-sec-h">Data</div><div class="rt-data-row"><button class="btn-ghost" onclick="rtExport()">Export progress (JSON)</button><button class="btn-warn" onclick="rtReset()">Reset progress…</button></div>'
-    +'<div class="rt-data-note">'+(RTProfile.authReady()?'✓ Synced to your account — follows you across devices.':'Stored on this device.')+'</div>';
+    +'<div class="rt-data-note">'+(RTProfile.authReady()?'✓ Synced to your account — follows you across devices.':'Stored on this device.')+'</div>'
+    +'<div class="rt-sec-h">Legal</div><div class="rt-legal-row"><a href="/privacy" target="_blank" rel="noopener">Privacy policy</a><a href="/terms" target="_blank" rel="noopener">Terms of service</a><a href="mailto:support@rtimagematch.com">Support</a></div>';
 }
 function rtSetDiff(k){RTProfile.save(p=>{p.prefs.difficulty=k;});rtRenderModal('settings');}
 function rtSetPref(key,val){RTProfile.save(p=>{p.prefs[key]=val;});}
