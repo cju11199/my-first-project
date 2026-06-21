@@ -1976,21 +1976,21 @@ const CBCT=(function(){
   // get() reads the data file's global by bare identifier (top-level `const` globals are NOT
   // window properties, so window['PELVIS3D_VOL'] would never resolve).
   const VOLCASE={
-    pelvis:{file:'pelvis3d_data.js', get:()=>typeof PELVIS3D_VOL!=='undefined'?PELVIS3D_VOL:null, win:{l:50,w:400},   contours:true},   // abdomen window (soft-tissue pelvis)
-    brain :{file:'brain3d_data.js',  get:()=>typeof BRAIN3D_VOL!=='undefined'?BRAIN3D_VOL:null,   win:{l:400,w:1800}, contours:true,
+    pelvis:{file:'pelvis3d_data.js', get:()=>typeof PELVIS3D_VOL!=='undefined'?PELVIS3D_VOL:null, win:{l:40,w:460},   contours:true},   // soft-tissue + crisp pelvic cortex (auto-tuned to this volume's HU range)
+    brain :{file:'brain3d_data.js',  get:()=>typeof BRAIN3D_VOL!=='undefined'?BRAIN3D_VOL:null,   win:{l:500,w:1500}, contours:true,   // skull-base bone window for the IAC bony match (trims wasted air range vs 400/1800)
             // Left vestibular schwannoma (acoustic neuroma) SRS: GTV is an "ice-cream-cone" at the
             // IAC/CPA (cistern ball + intracanalicular tail), PTV = GTV + 1 mm; cochlea + brainstem OARs.
             // c = boost centre in world mm from volume centre (Wx=+Left, Wy=+Posterior, Wz=+Superior).
             ptv:{c:[23,20,-41], gtvR:7, ptvR:8}},
     breast:{file:'breast3d_data.js', get:()=>typeof BREAST3D_VOL!=='undefined'?BREAST3D_VOL:null, win:{l:40,w:400},  contours:true},   // chest: soft-tissue/mediastinum window
-    spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:400,w:1800}, contours:true}   // thoracic-spine SBRT: bone window (align vertebrae)
+    spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:80,w:700},  contours:true}   // thoracic-spine SBRT: vertebral cortex vs soft tissue — this volume's bone tops ~370 HU, so a 1800-wide bone window crushed it flat
   };
   const hasVol=k=>!!VOLCASE[k];
   const RS=224, _mc={}, _refCache={axial:{k:-1,cv:null},coronal:{k:-1,cv:null},sagittal:{k:-1,cv:null}};
   const _movCache={axial:{k:'',cv:null},coronal:{k:'',cv:null},sagittal:{k:'',cv:null}};
   function _invCaches(){['axial','coronal','sagittal'].forEach(n=>{_refCache[n].k=-1;_movCache[n].k='';});}
   let VFOV=420;                         // square field of view (mm) per reslice
-  let winL=50, winW=400, winMode=false;   // CT display window: level/width (HU) — default: Abdomen
+  let winL=40, winW=460, winMode=false;   // CT display window: level/width (HU) — per-case default set in applyCase()
   const HU_OFF=-500, HU_SCALE=2000/255; // density(0..255) -> HU  (matches generator SOFT_LO/BONE_HI)
   function setWindow(k,v){
     if(k==='wl')winL=v; else winW=v;
@@ -2493,19 +2493,21 @@ const CBCT=(function(){
       // teal CT base + orange CBCT overlay using normal (source-over) compositing.
       // Overlapping tissue reads as a muted teal/orange mix (no additive white-out);
       // mis-registration shows separate teal and orange edges as the alignment cue.
+      // Saturation is kept low (1.6) so bright bone tints rather than blooming into a
+      // glowing cyan/orange halo; brightness 0.78 keeps the high end off full intensity.
       ctx.globalCompositeOperation='source-over';
       const movA=0.25+b*0.5;   // CBCT opacity: blend slider biases the mix, both layers stay visible
       if(useVol||useMPR){
         ctx.globalAlpha=1;
-        ctx.filter='sepia(100%) saturate(4) hue-rotate(148deg) brightness(0.85)';
+        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(148deg) brightness(0.78)';
         ctx.drawImage(refDraw,ox,oy,dw,dw);ctx.filter='none';
         ctx.globalAlpha=movA;
         ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);
-        ctx.filter='sepia(100%) saturate(3) hue-rotate(-20deg) brightness(0.85)';
+        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(-20deg) brightness(0.78)';
         ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.filter='none';
         ctx.restore();
       }else{
-        ctx.filter='brightness(0.85)';
+        ctx.filter='brightness(0.78)';
         ctx.globalAlpha=1;ctx.drawImage(st.refT,ox,oy,dw,dw);
         ctx.globalAlpha=movA;ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(st.movT,-dw/2,-dw/2,dw,dw);ctx.restore();
         ctx.filter='none';
