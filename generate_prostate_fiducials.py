@@ -69,7 +69,8 @@ def snap_inside(c):
     return [int(ix[j]), int(iy[j]), int(iz[j])]
 
 seeds = [snap_inside(c) for c in cands]
-SEED_RMM = 2.0                      # tiny gold marker (single voxel per seed at 2.2 mm) — most seed-like
+SEED_RMM = 3.2                      # solid ~19-voxel marker — small but spans ≥3 slices so it doesn't
+                                    # alias/flicker at the reslice sampling rate (single-voxel seeds were finicky)
 fid = np.zeros((DZ, DY, DX), bool)
 for s in seeds:
     fid |= sph(s, SEED_RMM)
