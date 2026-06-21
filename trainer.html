@@ -501,6 +501,7 @@ html:not(.auth-pending) #authGate{display:none}
           <div class="cb-dd-row on" id="cbCM_bladder"   onclick="CBCT.toggleStruct('bladder')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Bladder</div>
           <div class="cb-dd-row on" id="cbCM_rectum"    onclick="CBCT.toggleStruct('rectum')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Rectum</div>
           <div class="cb-dd-row on" id="cbCM_sv"        onclick="CBCT.toggleStruct('sv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#d36cff;color:#d36cff"></span>Seminal Ves.</div>
+          <div class="cb-dd-row on" id="cbCM_fidctv"    onclick="CBCT.toggleStruct('fidctv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ffffff;color:#ffffff"></span>Fiducials + 5&nbsp;mm</div>
           <div class="cb-dd-row on" id="cbCM_lung"      onclick="CBCT.toggleStruct('lung')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#63b3ed;color:#63b3ed"></span>Lung</div>
           <div class="cb-dd-row on" id="cbCM_heart"     onclick="CBCT.toggleStruct('heart')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff6363;color:#ff6363"></span>Heart</div>
           <div class="cb-dd-row on" id="cbCM_cavity"    onclick="CBCT.toggleStruct('cavity')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff5cd0;color:#ff5cd0"></span>Lumpectomy cavity</div>
@@ -576,6 +577,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="cl-row" id="cbLG_bladder"><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Bladder</div>
         <div class="cl-row" id="cbLG_rectum"><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Rectum</div>
         <div class="cl-row" id="cbLG_sv"><span class="cl-sw" style="background:#d36cff;color:#d36cff"></span>Seminal Ves.</div>
+        <div class="cl-row" id="cbLG_fidctv"><span class="cl-sw" style="background:#ffffff;color:#ffffff"></span>Fiducials + 5&nbsp;mm</div>
         <div class="cl-row" id="cbLG_lung" style="display:none"><span class="cl-sw" style="background:#63b3ed;color:#63b3ed"></span>Lung</div>
         <div class="cl-row" id="cbLG_heart" style="display:none"><span class="cl-sw" style="background:#ff6363;color:#ff6363"></span>Heart</div>
         <div class="cl-row" id="cbLG_cavity" style="display:none"><span class="cl-sw" style="background:#ff5cd0;color:#ff5cd0"></span>Lumpectomy cavity</div>
@@ -2569,13 +2571,14 @@ const CBCT=(function(){
     {key:'ptv',  color:'#ff3b4e', lw:2.3},
   ];
   LUNG_STRUCTS.forEach(S=>S.visible=true);
-  const PROSTATE_STRUCTS=[                            // prostate IGRT: pelvis structures (the gold seeds show as bright CT dots, not a contour)
+  const PROSTATE_STRUCTS=[                            // prostate IGRT: pelvis structures + a 0.5 cm fiducial contour (gold seeds show as bright CT dots)
     {key:'body',    color:'#36e06a', lw:1.3},
     {key:'bladder', color:'#ffd23f', lw:1.7},
     {key:'rectum',  color:'#7bc043', lw:1.7},
     {key:'sv',      color:'#d36cff', lw:1.6},
     {key:'prostate',color:'#e8a13a', lw:2.0},
     {key:'ptv',     color:'#ff3b4e', lw:2.3},
+    {key:'fidctv',  color:'#ffffff', lw:1.8},
   ];
   PROSTATE_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
@@ -2872,19 +2875,20 @@ const CBCT=(function(){
     const breast=caseKey==='breast';
     const spine=caseKey==='spine';
     const lung=caseKey==='lung';
+    const prostate=caseKey==='prostate';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
-    show('cbLG_rectum',pelvis);show('cbLG_sv',pelvis);
+    show('cbLG_rectum',pelvis);show('cbLG_sv',pelvis);show('cbLG_fidctv',prostate);
     show('cbLG_lung',breast||spine||lung);show('cbLG_heart',breast);show('cbLG_cavity',breast);show('cbLG_ctv',breast);show('cbLG_clipmargin',breast);show('cbLG_clips',breast);
     show('cbLG_vertebra',spine);show('cbLG_cord',spine);show('cbLG_esophagus',spine);show('cbLG_aorta',spine);
     show('cbLG_body',true);
     // per-structure dropdown items
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
-    show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);
+    show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
     show('cbCM_lung',breast||spine||lung);show('cbCM_heart',breast);show('cbCM_cavity',breast);show('cbCM_ctv',breast);show('cbCM_clipmargin',breast);show('cbCM_clips',breast);
     show('cbCM_vertebra',spine);show('cbCM_cord',spine);show('cbCM_esophagus',spine);show('cbCM_aorta',spine);
   }
@@ -3058,7 +3062,7 @@ const CBCT=(function(){
     const btn=gid('cbPrimaryBtn');if(btn)btn.textContent='► '+primaryPlane.charAt(0).toUpperCase()+primaryPlane.slice(1);
     setTimeout(()=>{resize();render();},0);
   }
-  function cyclePrimary(){primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();}
+  function cyclePrimary(){primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();select(primaryPlane);}   // the plane rotated to the large left pane becomes the selected one
   function toggleFusion(){fusion=!fusion;gid('cbFusionBtn').classList.toggle('active',fusion);if(fusion&&crossMode){crossMode=false;const cb=gid('cbCrossBtn');if(cb)cb.classList.remove('active');}render();}
   function togglePan(){panMode=!panMode;const b=gid('cbPanBtn');if(b)b.classList.toggle('active',panMode);
     Object.keys(PLANES).forEach(n=>{const el=gid(PLANES[n].pane);if(el)el.style.cursor=panMode?'grab':'';});}
