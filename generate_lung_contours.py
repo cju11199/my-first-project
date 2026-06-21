@@ -39,10 +39,17 @@ def sph(cx, cy, cz, rmm):
     return ((xx-cx)*SP)**2 + ((yy-cy)*SP)**2 + ((zz-cz)*SP)**2 <= rmm*rmm
 
 # ── peripheral RLL nodule (verified subpleural, air-density lung) ──────────────
-CX, CY, CZ, R = 60, 106, 58, 10.0
-gtv = sph(CX, CY, CZ, R)
-gtv |= sph(CX+1.5, CY+1, CZ, R*0.7)      # gentle lobulation
-gtv |= sph(CX-1, CY+1.5, CZ+1, R*0.6)
+CX, CY, CZ = 60, 106, 58
+# Irregular spiculated mass (not a smooth sphere): overlapping lobules of varying size/offset,
+# plus a few coarse pleural/vascular spicules tapering outward — a malignant-looking nodule.
+gtv = np.zeros((DZ, DY, DX), bool)
+for dx, dy, dz, r in [(0,0,0,6.6),(2,-1,0,5.2),(-2,2,1,5.4),(1,2,-1,4.6),
+                      (-1,-2,2,4.4),(3,1,0,3.8),(-1,3,1,3.4),(2,-2,-2,3.4)]:
+    gtv |= sph(CX+dx, CY+dy, CZ+dz, r)
+for ux, uy, uz in [(-0.85,0.35,0.0),(0.25,-0.9,0.1),(0.55,0.6,-0.4),(-0.25,-0.5,0.75)]:
+    nrm = (ux*ux+uy*uy+uz*uz)**0.5; ux, uy, uz = ux/nrm, uy/nrm, uz/nrm
+    for smm, r in [(8,2.4),(11,1.9),(14,1.5)]:
+        gtv |= sph(CX+ux*smm/SP, CY+uy*smm/SP, CZ+uz*smm/SP, r)
 
 # bake the tumour into the CT image (solid density + soft partial-volume rim)
 vol = ct.astype(np.float32)
