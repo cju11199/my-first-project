@@ -161,6 +161,90 @@
     }
   }
 
+  /* ---------------------------------------------------------------------------
+   * Per-user profile (training progress + preferences).
+   * Stored in Clerk `unsafeMetadata.rt` so it follows the user across devices
+   * with no backend. unsafeMetadata is writable from the client and capped at a
+   * few KB, so the payload is kept compact (aggregates + a short recent ring).
+   * The hard paywall (Phase 2) is unaffected — this is per-user UX state only.
+   * ------------------------------------------------------------------------- */
+  var PROFILE_SCHEMA = 1;
+  var _profile = null;        // in-memory working copy
+  var _profileReady = false;
+  var _saveTimer = null;
+  var _saveInFlight = false;
+  var _saveAgain = false;
+
+  function _blankProfile() {
+    return { schema: PROFILE_SCHEMA, stats: {}, prefs: {}, ach: {},
+             totals: { attempts: 0, accepts: 0 }, xp: 0,
+             streak: { count: 0, best: 0, last: null }, recent: [],
+             createdAt: Date.now() };
+  }
+
+  function _loadProfile() {
+    var u = window.Clerk && window.Clerk.user;
+    var raw = u && u.unsafeMetadata && u.unsafeMetadata.rt;
+    if (raw && typeof raw === 'object') {
+      try { _profile = JSON.parse(JSON.stringify(raw)); }
+      catch (e) { _profile = _blankProfile(); }
+      if (!_profile.schema) _profile.schema = PROFILE_SCHEMA;
+      // make sure expected containers exist (forward-compatible)
+      ['stats', 'prefs', 'ach'].forEach(function (k) { if (!_profile[k]) _profile[k] = {}; });
+      if (!_profile.totals) _profile.totals = { attempts: 0, accepts: 0 };
+      if (!_profile.streak) _profile.streak = { count: 0, best: 0, last: null };
+      if (!_profile.recent) _profile.recent = [];
+      if (typeof _profile.xp !== 'number') _profile.xp = 0;
+    } else {
+      _profile = _blankProfile();
+    }
+    _profileReady = true;
+    return _profile;
+  }
+
+  function _persistProfile() {
+    var u = window.Clerk && window.Clerk.user;
+    if (!u || !_profile) return Promise.resolve();
+    if (_saveInFlight) { _saveAgain = true; return Promise.resolve(); }
+    _saveInFlight = true;
+    // Merge so we never clobber other unsafeMetadata keys another feature may own.
+    var meta = {};
+    var cur = u.unsafeMetadata || {};
+    for (var k in cur) { if (Object.prototype.hasOwnProperty.call(cur, k)) meta[k] = cur[k]; }
+    meta.rt = _profile;
+    return u.update({ unsafeMetadata: meta })
+      .catch(function (e) { console.warn('[profile] save failed', e); })
+      .then(function () {
+        _saveInFlight = false;
+        if (_saveAgain) { _saveAgain = false; return _persistProfile(); }
+      });
+  }
+
+  function getProfile() {
+    if (!_profileReady) _loadProfile();
+    return _profile;
+  }
+
+  // Apply a mutation, then persist (debounced to avoid hammering the API).
+  function saveProfile(mutator) {
+    var p = getProfile();
+    if (typeof mutator === 'function') { try { mutator(p); } catch (e) {} }
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(function () { _saveTimer = null; _persistProfile(); }, 900);
+    return p;
+  }
+
+  function flushProfile() {
+    if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+    return _persistProfile();
+  }
+
+  // Best-effort flush when the page is hidden / unloaded so progress isn't lost.
+  window.addEventListener('pagehide', function () { flushProfile(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') flushProfile();
+  });
+
   function start() {
     loadClerk()
       .then(function () { return window.Clerk.load(); })
@@ -168,6 +252,7 @@
         renderHeader();
         wireCtas();
         enforceGate();
+        if (window.Clerk.user) _loadProfile();
         window.Clerk.addListener(function () { renderHeader(); });
         readyResolve(window.Clerk);
       })
@@ -177,12 +262,20 @@
       });
   }
 
-  // Expose helpers for page-specific scripts (e.g. /subscribe).
+  // Expose helpers for page-specific scripts (e.g. /subscribe, /trainer).
   window.RTAuth = {
     ready: ready,
     hasActiveSub: hasActiveSub,
     PLAN_KEY: PLAN_KEY,
-    TRAINER_URL: TRAINER_URL
+    TRAINER_URL: TRAINER_URL,
+    // Per-user progress/preferences store (Clerk unsafeMetadata-backed).
+    profile: {
+      get: getProfile,
+      save: saveProfile,
+      flush: flushProfile,
+      isReady: function () { return _profileReady; },
+      SCHEMA: PROFILE_SCHEMA
+    }
   };
 
   if (document.readyState === 'loading') {
