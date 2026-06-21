@@ -49,8 +49,13 @@ Two workflows, picked on the start screen:
   - **Crosshair** (#70): Varian-style 4-quadrant tool — draggable centre splits each pane;
     TL+BR = CT, TR+BL = CBCT for edge-matching. Grayscale (no fusion tint), all 3 panes.
     Exclusive with Fusion/Spyglass.
-  - **Window/Level**: header toggle with side Level+Width sliders + per-case presets
-    (e.g. Abdomen, Bone, Cerebellum); affects only the CT, not the background.
+  - **Window/Level**: header toggle with side Level+Width sliders + presets (Soft Tissue, Bone,
+    Abdomen, Lung, Cerebellum); affects only the CT, not the background. Each case opens at a
+    per-case default `win:{l,w}` in `VOLCASE` (applied in `applyCase()`), tuned to that volume's
+    actual HU histogram for best viewing on open: pelvis 40/460, brain 500/1500 (skull-base bone
+    for the IAC match), breast 40/400, spine 80/700 (this volume's bone only reaches ~370 HU, so
+    the old 400/1800 bone window crushed it flat). HU model: `HU = density*(2000/255) - 500`,
+    `density<=0.5` = air → black.
   - **Contours**: per-structure show/hide; real label-volume contours.
   - **Pan** tool + middle-mouse drag; **Ctrl+R** cycles the primary view (Axial→Coronal→Sagittal).
   - Arrow-key nudge capped at 0.05 cm (0.5 mm)/press.
