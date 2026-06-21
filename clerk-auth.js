@@ -33,7 +33,7 @@
   // Add your Clerk user id (preferred — opaque; Clerk Dashboard -> Users -> your
   // user -> copy User ID) and/or the email you sign in with (lowercase).
   var COMP_USER_IDS = []; // e.g. 'user_2abcDEF456...'
-  var COMP_EMAILS = ['cju1999@pm.me']; // owner — full access, no subscription
+  var COMP_EMAILS = ['cju1999@pm.me', 'cju11199@pm.me']; // owner — full access, no subscription
 
   var readyResolve;
   var ready = new Promise(function (r) { readyResolve = r; });
