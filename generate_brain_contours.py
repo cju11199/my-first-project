@@ -100,29 +100,57 @@ if n > 1:
 labels[body_mask] |= 0x80
 print(f'Body:  {body_mask.sum()} voxels')
 
-# ── 2b. Brain: soft-tissue threshold inside the skull ───────────────────────
-# Brain tissue typically 0.25-0.55 normalised (HU ~30-80 if bone~255→0.85+)
-# Use a generous range and then restrict to the skull cavity
-brain_thr_lo, brain_thr_hi = 0.18, 0.62
-brain_raw = (vol > brain_thr_lo) & (vol < brain_thr_hi) & body_mask
+# ── 2b. Brain: soft tissue restricted to the INTRACRANIAL CAVITY ────────────
+# The earlier version thresholded soft tissue across the whole head and kept the
+# biggest blob, so it leaked through the skull base into the face, paranasal
+# sinuses, orbits and nasopharynx (brain ended up ~27% of the volume).
+#
+# Fix: build the cranial cavity from the skull. A single 3D fill can't enclose
+# it (the skull base is too open at this resolution) and a per-axial-slice fill
+# fails at the base (the facial opening is in-plane), so use a robust heuristic:
+# fill the bone slice-by-slice in all THREE orthogonal orientations and keep the
+# voxels enclosed in at least TWO of them. The posterior fossa is enclosed in the
+# coronal/sagittal views even where the axial ring is open at the face, while the
+# orbits/sinuses/nasopharynx are open in a majority of views and stay out.
+brain_thr_lo, brain_thr_hi = 0.18, 0.58
+bone = vol > 0.45                                                  # skull (incl. thinner base bone)
 
-# Dilate slightly then keep the biggest blob (should be the brain parenchyma)
-brain_dilated = ndimage.binary_dilation(brain_raw, iterations=2)
-lbl_b, nb = ndimage.label(brain_dilated)
+def _fill_orientation(mask3d, axis, close_it):
+    """Per-slice close+fill of `mask3d` along `axis`; returns the interior voxels."""
+    cav = np.zeros_like(mask3d)
+    for i in range(mask3d.shape[axis]):
+        sl = mask3d[i] if axis == 0 else (mask3d[:, i, :] if axis == 1 else mask3d[:, :, i])
+        ring = ndimage.binary_closing(sl, iterations=close_it)    # seal sutures/small foramina
+        interior = ndimage.binary_fill_holes(ring) & ~ring
+        if axis == 0:   cav[i] = interior
+        elif axis == 1: cav[:, i, :] = interior
+        else:           cav[:, :, i] = interior
+    return cav
+
+votes = (_fill_orientation(bone, 0, 3).astype(np.uint8)
+       + _fill_orientation(bone, 1, 3)
+       + _fill_orientation(bone, 2, 3))
+cavity = (votes >= 2) & body_mask
+cavity = ndimage.binary_closing(cavity, iterations=2)             # smooth blocky voting edges
+cavity = ndimage.binary_fill_holes(cavity)
+
+# Brain-density soft tissue inside the cavity, largest connected component.
+soft = (vol > brain_thr_lo) & (vol < brain_thr_hi) & body_mask & cavity
+lbl_b, nb = ndimage.label(soft)
+sizes_b = ndimage.sum(soft, lbl_b, range(1, nb+1))
+brain = (lbl_b == (np.argmax(sizes_b) + 1))
+brain = ndimage.binary_closing(brain, iterations=2)              # smooth the contour
+for z in range(DZ):                                              # fill ventricles/cisterns (2D-enclosed)
+    brain[z] = ndimage.binary_fill_holes(brain[z])
+brain = ndimage.binary_erosion(brain, iterations=1)             # pull off the inner skull table
+lbl_b, nb = ndimage.label(brain)                                # drop any small detached specks
 if nb > 1:
-    sizes_b = ndimage.sum(brain_dilated, lbl_b, range(1, nb+1))
-    brain_core = (lbl_b == (np.argmax(sizes_b) + 1))
-else:
-    brain_core = brain_dilated
-
-# Intersect back with soft-tissue range to avoid bone edges
-brain_mask = brain_core & brain_raw
-# Fill internal holes (ventricles etc.)
-brain_filled = ndimage.binary_fill_holes(brain_mask)
-# Moderate erosion to pull away from skull boundary
-brain_final = ndimage.binary_erosion(brain_filled, iterations=2)
+    sizes_b = ndimage.sum(brain, lbl_b, range(1, nb+1))
+    brain = (lbl_b == (np.argmax(sizes_b) + 1))
+brain_final  = brain
+brain_filled = brain               # used to clip the brainstem OAR below
 labels[brain_final] |= 0x08
-print(f'Brain: {brain_final.sum()} voxels')
+print(f'Brain: {brain_final.sum()} voxels  ({100*brain_final.sum()/(DX*DY*DZ):.1f}%)')
 
 # ── 2c. Brainstem (OAR): vertical ellipsoid at the midline pons/brainstem ─────
 # Midline column, anterior posterior-fossa, spanning medulla->midbrain; the VS abuts it.
