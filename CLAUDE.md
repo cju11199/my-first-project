@@ -24,6 +24,11 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `terms.html`, `privacy.html` — legal pages (`/terms`, `/privacy`; NY governing law,
   `support@rtimagematch.com`).
 - `clerk-auth.js` — client-side auth + billing gate (loaded by all pages).
+- **Content / SEO guides (indexable):** `guides/index.html` (`/guides` hub) plus articles
+  `guides/cbct-6dof-registration.html` and `guides/2d-2d-portal-vs-drr-matching.html`. On-brand
+  static pages (no auth) with `TechArticle` + `FAQPage` + `BreadcrumbList` JSON-LD, linked from
+  the landing nav/footer and cross-linked to each other and `/trainer`. Built as the organic
+  content layer (the trainer itself can't be indexed — it's gated).
 - **SEO:** `robots.txt` (points to sitemap; disallows gated `/trainer` + `/subscribe`),
   `sitemap.xml` (homepage only — legal pages are `noindex`), `favicon.svg`, and `og-image.png`
   (1200×630 share card, regenerated from an HTML template via headless Chromium). The landing page

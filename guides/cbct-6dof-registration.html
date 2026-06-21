@@ -1,0 +1,233 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A clear guide to CBCT 6DOF registration in radiation therapy: cone-beam CT image matching, the six degrees of freedom, the IGRT workflow, window/level and fusion, tolerances, and common pitfalls.">
+<title>CBCT 6DOF Registration Explained — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/cbct-6dof-registration">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="CBCT 6DOF Registration Explained">
+<meta property="og:description" content="Cone-beam CT image matching for radiation therapy — the six degrees of freedom, the registration workflow, fusion and window/level, tolerances and pitfalls.">
+<meta property="og:url" content="https://rtimagematch.com/guides/cbct-6dof-registration">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CBCT 6DOF Registration Explained">
+<meta name="twitter:description" content="Cone-beam CT image matching for radiation therapy — degrees of freedom, workflow, fusion, tolerances and pitfalls.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "CBCT 6DOF Registration Explained",
+      "description": "A guide to cone-beam CT image matching in radiation therapy: the six degrees of freedom, the registration workflow, fusion and window/level, tolerances and common pitfalls.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-21",
+      "dateModified": "2026-06-21",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/cbct-6dof-registration"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "CBCT 6DOF registration", "item": "https://rtimagematch.com/guides/cbct-6dof-registration" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What does 6DOF mean in radiation therapy?", "acceptedAnswer": { "@type": "Answer", "text": "6DOF stands for six degrees of freedom: three translations (lateral, longitudinal, vertical) and three rotations (pitch, roll, yaw). A 6DOF robotic couch can correct a patient setup error in all six directions, whereas a standard 4DOF couch corrects the three translations plus couch rotation (yaw) only." } },
+        { "@type": "Question", "name": "What is the difference between CBCT and the planning CT?", "acceptedAnswer": { "@type": "Answer", "text": "The planning CT is the high-quality reference scan used to design the treatment plan. CBCT (cone-beam CT) is a lower-dose volumetric image taken at the treatment machine just before delivery. Registration aligns the daily CBCT to the planning CT so the patient is positioned exactly as planned." } },
+        { "@type": "Question", "name": "Should I match to bone or soft tissue on CBCT?", "acceptedAnswer": { "@type": "Answer", "text": "It depends on the site and protocol. Bony anatomy is a stable, high-contrast surrogate and is used for many sites. Soft-tissue matching (for example to the prostate or a tumour) is used when the target moves independently of bone. Many protocols start with a bony match and then verify or refine on soft tissue." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:130px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; CBCT 6DOF registration</p>
+  <article>
+    <h1>CBCT 6DOF registration explained</h1>
+    <p class="meta">A guide for radiation therapy students · ~8 min read</p>
+    <p class="lede">Cone-beam CT (CBCT) registration is how a radiation therapy team confirms — and corrects — a patient's position at the treatment machine before the beam turns on. This guide walks through what CBCT registration is, the six degrees of freedom, the step-by-step matching workflow, and the tools and tolerances that make a match reliable.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#what">What is CBCT in radiation therapy?</a>
+      <a href="#why">Why image-guided setup matters</a>
+      <a href="#6dof">The six degrees of freedom (6DOF)</a>
+      <a href="#workflow">The CBCT registration workflow</a>
+      <a href="#tools">Matching tools: window/level, fusion, views</a>
+      <a href="#bone-soft">Bony match vs soft-tissue match</a>
+      <a href="#tolerances">Tolerances and action levels</a>
+      <a href="#pitfalls">Common pitfalls</a>
+      <a href="#practice">How to practice CBCT matching</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="what">What is CBCT in radiation therapy?</h2>
+    <p>A <strong>cone-beam CT</strong> is a 3D image acquired on the treatment machine itself. The linac's on-board kV imager rotates around the patient and reconstructs a volumetric scan in the treatment position. Unlike a diagnostic CT, a CBCT is lower dose and lower contrast, but it has one decisive advantage: it shows the patient <em>exactly as they lie on the couch right now</em>, immediately before treatment.</p>
+    <p>That daily CBCT is compared against the <strong>planning CT</strong> — the high-quality reference scan the treatment plan was built on. The process of aligning the two is called <strong>registration</strong> (or image matching, or fusion). The output is a set of couch corrections that move the patient so today's anatomy lines up with the plan.</p>
+
+    <h2 id="why">Why image-guided setup matters</h2>
+    <p>Radiation therapy plans are designed to deliver a high dose to a target while sparing nearby healthy tissue. That precision only holds if the patient is in the planned position. Skin marks and lasers get the patient close, but internal anatomy shifts day to day — bladder filling, bowel gas, weight change, or simply a slightly different posture. <strong>Image-guided radiation therapy (IGRT)</strong> uses imaging like CBCT to measure that residual error and correct it, often to within a millimetre or two.</p>
+
+    <h2 id="6dof">The six degrees of freedom (6DOF)</h2>
+    <p>Any rigid object in space can be moved in six independent ways: three <strong>translations</strong> (sliding along an axis) and three <strong>rotations</strong> (turning about an axis). In radiation therapy these are described relative to the patient:</p>
+    <div class="dof">
+      <div><b>Lateral (Lat)</b><span>Translation left ↔ right.</span></div>
+      <div><b>Longitudinal (Lng)</b><span>Translation superior ↔ inferior (head ↔ foot).</span></div>
+      <div><b>Vertical (Vrt)</b><span>Translation anterior ↔ posterior (up ↔ down on the couch).</span></div>
+      <div><b>Pitch</b><span>Rotation about the left–right axis — a nodding "yes" tilt (head up/down vs feet).</span></div>
+      <div><b>Roll</b><span>Rotation about the head–foot axis — the patient log-rolling so one side lifts.</span></div>
+      <div><b>Yaw</b><span>Rotation about the vertical axis — turning like shaking the head "no" (couch rotation).</span></div>
+    </div>
+    <p>A standard treatment couch corrects four of these: the three translations plus yaw (couch rotation) — this is <strong>4DOF</strong>. A <strong>6DOF</strong> robotic couch (such as a Varian PerfectPitch or Elekta HexaPOD) adds pitch and roll, so a rotational setup error can be corrected directly instead of being re-setup by hand. 6DOF is especially valued for stereotactic (SRS/SBRT) treatments, where tolerances are tight and small rotations matter.</p>
+
+    <h2 id="workflow">The CBCT registration workflow</h2>
+    <p>The day-to-day matching process is broadly the same everywhere:</p>
+    <ol>
+      <li><strong>Acquire the CBCT</strong> with the patient set up to marks and lasers.</li>
+      <li><strong>Auto-register</strong> the CBCT to the planning CT. The software finds an initial alignment, usually constrained to a region of interest (a clip box) around the target.</li>
+      <li><strong>Review and refine</strong> the match in all three planes — axial, coronal, and sagittal. The therapist verifies the auto-match and nudges it to favour the most important anatomy.</li>
+      <li><strong>Evaluate the shifts.</strong> The system reports the correction needed in each degree of freedom.</li>
+      <li><strong>Apply the couch correction</strong> (within tolerance and protocol), then proceed to treatment — sometimes with a verification image.</li>
+    </ol>
+    <p>The skill that takes practice is step 3: reading a 3D fusion and deciding when the anatomy truly lines up. That judgement is exactly what an image-matching trainer builds.</p>
+
+    <h2 id="tools">Matching tools: window/level, fusion, views</h2>
+    <p>A few core tools do most of the work in volumetric matching:</p>
+    <ul>
+      <li><strong>Window / level (W/L).</strong> CT data spans a huge range of densities (Hounsfield units). Window/level chooses which slice of that range you actually see — a <em>bone</em> window makes the skeleton crisp; a <em>soft-tissue</em> window brings out organs. Choosing the right window for the anatomy you're matching is half the battle.</li>
+      <li><strong>Fusion / colour wash.</strong> Overlaying the two scans in different colours (for example teal for the reference CT and orange for the CBCT) makes misalignment obvious: matched anatomy blends to a neutral grey, while any offset shows up as separated coloured edges.</li>
+      <li><strong>Blend slider.</strong> Fading between the reference and the CBCT lets you confirm structures sit on top of each other.</li>
+      <li><strong>Three orthogonal planes.</strong> A shift can look perfect in one plane and be off in another, so you always check axial, coronal, and sagittal together.</li>
+      <li><strong>Split / spyglass tools.</strong> Showing one image inside a movable window over the other is a quick way to compare edges locally.</li>
+    </ul>
+
+    <h2 id="bone-soft">Bony match vs soft-tissue match</h2>
+    <p>Two broad strategies exist, and the right one depends on what the target follows:</p>
+    <ul>
+      <li><strong>Bony anatomy</strong> is high-contrast and stable, which makes it an excellent, reproducible surrogate. It's the default for many sites and the natural reference for the spine, pelvis ring, and skull base.</li>
+      <li><strong>Soft tissue</strong> is matched when the target moves independently of bone — the classic example is the prostate shifting with rectal and bladder filling, or a lung tumour. Here the therapist matches the organ or an implanted marker rather than the bones around it.</li>
+    </ul>
+    <p>Many protocols do both: an initial bony match to get close, then a soft-tissue check to confirm the target itself is covered.</p>
+
+    <div class="tip"><p><strong>Rule of thumb:</strong> match the anatomy that the dose is shaped around. If you correct to bone but the target has moved relative to bone, you've aligned the wrong thing.</p></div>
+
+    <h2 id="tolerances">Tolerances and action levels</h2>
+    <p>Every protocol defines how large a measured error must be before you act, and how large it can be before you re-setup or call the physician. Typical conventional treatments work to a few millimetres; stereotactic treatments are much tighter, often around a millimetre and a degree, which is why 6DOF correction and rigorous matching matter most there. Rotations have an outsized effect on long targets (like the spine), because a small angle at the isocentre becomes a large displacement at the ends.</p>
+
+    <h2 id="pitfalls">Common pitfalls</h2>
+    <ul>
+      <li><strong>Trusting the auto-match blindly.</strong> Automatic registration is a starting point, not the answer — always verify in all three planes.</li>
+      <li><strong>Matching in the wrong window.</strong> A soft-tissue window can hide a bony mismatch and vice-versa.</li>
+      <li><strong>Ignoring rotations.</strong> A clean translation match can still leave a pitch or roll error that throws off the far end of the target.</li>
+      <li><strong>Letting the clip box drift.</strong> If the region of interest includes mobile anatomy, the match chases the wrong structures.</li>
+      <li><strong>Over-correcting tiny errors.</strong> Sub-tolerance noise doesn't need chasing; protocol thresholds exist for a reason.</li>
+    </ul>
+
+    <h2 id="practice">How to practice CBCT matching</h2>
+    <p>Image matching is a motor-and-perception skill: you get good by doing many reps and getting immediate feedback on how close you were. The <a href="/trainer">RT Image Matching Trainer</a> lets you practice CBCT 6DOF registration on real 3D volumes — pelvis, an acoustic-neuroma SRS case, breast, and a spine SBRT case — with fusion, window/level, contours, and a live residual-error readout graded against tolerance. You can generate a fresh random setup error any time and work it down to green.</p>
+
+    <div class="cta-box">
+      <p>Try a CBCT case now<span>3D fusion in all three planes, 6DOF couch correction, live error feedback.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>What does 6DOF mean in radiation therapy?</h3>
+      <p>6DOF stands for six degrees of freedom: three translations (lateral, longitudinal, vertical) and three rotations (pitch, roll, yaw). A 6DOF robotic couch can correct a setup error in all six, whereas a standard 4DOF couch corrects the three translations plus couch rotation (yaw) only.</p>
+      <h3>What is the difference between CBCT and the planning CT?</h3>
+      <p>The planning CT is the high-quality reference scan the treatment plan was designed on. CBCT is a lower-dose volumetric image taken at the treatment machine just before delivery. Registration aligns the daily CBCT to the planning CT so the patient is positioned exactly as planned.</p>
+      <h3>Should I match to bone or soft tissue?</h3>
+      <p>It depends on the site and protocol. Bony anatomy is a stable, high-contrast surrogate used for many sites. Soft-tissue matching is used when the target moves independently of bone (for example the prostate). Many protocols start with a bony match and then verify on soft tissue.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/2d-2d-portal-vs-drr-matching"><span class="k">Next guide</span><span class="t">2D/2D portal vs DRR matching &rarr;</span></a>
+      <a href="/guides"><span class="k">All guides</span><span class="t">Back to the guides hub &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is for learning. It is general background, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>
