@@ -1463,7 +1463,7 @@ function attachInteractions(key){
   // is OUTSIDE the red ring (the rotate zone). AP -> ROLL, lateral -> PITCH.
   const rotCue=document.createElement('div');
   rotCue.className='rot-cue';
-  rotCue.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg><span class="lbl">'+(key==='ap'?'ROLL':'PITCH')+'</span>';
+  rotCue.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg><span class="lbl">'+(key==='ap'?'RTN':'PITCH')+'</span>';
   area.appendChild(rotCue);
   function placeCue(e){ const r=area.getBoundingClientRect(); rotCue.style.left=(e.clientX-r.left)+'px'; rotCue.style.top=(e.clientY-r.top)+'px'; }
   function hideCue(){ rotCue.classList.remove('show','active'); }
