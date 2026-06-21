@@ -51,8 +51,12 @@
     var u = window.Clerk && window.Clerk.user;
     if (!u) return false;
     if (COMP_USER_IDS.indexOf(u.id) !== -1) return true;
-    var em = u.primaryEmailAddress && u.primaryEmailAddress.emailAddress;
-    return !!em && COMP_EMAILS.indexOf(em.toLowerCase()) !== -1;
+    // Match ANY email on the account (not just primary), case-insensitively.
+    var allow = COMP_EMAILS.map(function (e) { return e.toLowerCase(); });
+    var emails = (u.emailAddresses || []).map(function (e) {
+      return (e.emailAddress || '').toLowerCase();
+    });
+    return emails.some(function (e) { return e && allow.indexOf(e) !== -1; });
   }
 
   function hasActiveSub() {
