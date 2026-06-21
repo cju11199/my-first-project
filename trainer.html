@@ -1049,12 +1049,12 @@ function ringRadius(v){ return Math.min(v.W,v.H)*0.42; }
 function drawRotationRing(ctx,W,H,r,highlight,cx,cy,col,clip){
   if(cx===undefined) cx=W/2;
   if(cy===undefined) cy=H/2;
-  const baseCol = col || (highlight ? 'rgba(255,70,70,0.6)' : 'rgba(255,60,60,0.4)');
+  const baseCol = col || (highlight ? 'rgba(255,90,90,0.82)' : 'rgba(255,75,75,0.62)');
   ctx.save();
   if(clip){ ctx.beginPath(); ctx.rect(clip.x,clip.y,clip.w,clip.h); ctx.clip(); }  // keep the ring inside the image
   ctx.strokeStyle = baseCol;
-  ctx.lineWidth = highlight ? 2.5 : 2;
-  ctx.setLineDash([3,7]);
+  ctx.lineWidth = highlight ? 3 : 2.5;
+  ctx.setLineDash([4,6]);
   ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2); ctx.stroke();
   // small rotation arrows hinting "spin here" at 4 points just outside the ring
   ctx.setLineDash([]);
@@ -2548,7 +2548,7 @@ const CBCT=(function(){
       ctx.strokeStyle='rgba(244,229,176,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-11,cy);ctx.lineTo(cx+11,cy);ctx.moveTo(cx,cy-11);ctx.lineTo(cx,cy+11);ctx.stroke();
     }
     if(!spyMode&&!crossMode){const ringR=Math.min(W,H)*0.44;
-    ctx.strokeStyle=st.rotating?'rgba(255,70,70,0.6)':'rgba(255,60,60,0.4)';ctx.lineWidth=st.rotating?2.5:2;ctx.setLineDash([3,7]);
+    ctx.strokeStyle=st.rotating?'rgba(255,90,90,0.82)':'rgba(255,75,75,0.62)';ctx.lineWidth=st.rotating?3:2.5;ctx.setLineDash([4,6]);
     ctx.beginPath();ctx.arc(cx,cy,ringR,0,Math.PI*2);ctx.stroke();
     ctx.setLineDash([]);}
     if(useVol||useMPR){
@@ -2676,6 +2676,16 @@ const CBCT=(function(){
   function select(name){active=name;Object.keys(PLANES).forEach(k=>gid(PLANES[k].pane).classList.toggle('selected',k===name));}
   function bindPane(name){
     const P=PLANES[name],el=gid(P.pane);
+    // Static rotate cue (matches 2D/2D): shows this plane's rotation axis when the
+    // cursor is in the rotate zone (outside the ring). No spin animation.
+    const rotCue=document.createElement('div');
+    rotCue.className='rot-cue';
+    rotCue.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg><span class="lbl">'+P.rot.toUpperCase()+'</span>';
+    el.appendChild(rotCue);
+    const placeRotCue=ev=>{rotCue.style.left=ev.offsetX+'px';rotCue.style.top=ev.offsetY+'px';};
+    const showRotCue=ev=>{placeRotCue(ev);rotCue.classList.add('show');};
+    const hideRotCue=()=>rotCue.classList.remove('show');
+    el.addEventListener('pointerleave',()=>{if(!ST[name].rotating)hideRotCue();});
     el.addEventListener('wheel',ev=>{
       if(ev.target.closest('.view-blend'))return;
       if(spyMode){
@@ -2713,13 +2723,15 @@ const CBCT=(function(){
     },{passive:false});
     el.addEventListener('pointermove',ev=>{
       if(ev.buttons!==0)return;
-      if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
-      if(panMode){el.style.cursor='grab';return;}
-      if(crossMode){el.style.cursor='move';return;}
-      if(spyMode){const sp=ST[name].spy;el.style.cursor=(Math.abs(ev.offsetX-sp.x)<=sp.r&&Math.abs(ev.offsetY-sp.y)<=sp.r)?'move':'default';return;}
+      if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar')){hideRotCue();return;}
+      if(panMode){el.style.cursor='grab';hideRotCue();return;}
+      if(crossMode){el.style.cursor='move';hideRotCue();return;}
+      if(spyMode){const sp=ST[name].spy;el.style.cursor=(Math.abs(ev.offsetX-sp.x)<=sp.r&&Math.abs(ev.offsetY-sp.y)<=sp.r)?'move':'default';hideRotCue();return;}
       const st=ST[name],ringR=Math.min(st.W,st.H)*0.38,cx=st.W/2+st.panX,cy=st.H/2+st.panY;
-      el.style.cursor=(st.hasCross&&Math.hypot(ev.offsetX-st.crossX,ev.offsetY-st.crossY)<=14)?'move'
-        :(Math.hypot(ev.offsetX-cx,ev.offsetY-cy)>ringR?'grab':'default');
+      const onCross=st.hasCross&&Math.hypot(ev.offsetX-st.crossX,ev.offsetY-st.crossY)<=14;
+      const rotZone=!onCross&&Math.hypot(ev.offsetX-cx,ev.offsetY-cy)>ringR;
+      el.style.cursor=onCross?'move':(rotZone?'grab':'default');
+      if(rotZone)showRotCue(ev);else hideRotCue();
     });
     // suppress middle-click autoscroll on the panes (we use the wheel button to pan)
     el.addEventListener('mousedown',e=>{if(e.button===1)e.preventDefault();});
@@ -2777,11 +2789,12 @@ const CBCT=(function(){
       const dist=Math.hypot(ev.offsetX-cx,ev.offsetY-cy),ringR=Math.min(st.W,st.H)*0.38;
       const rotMode=dist>ringR;
       let px=ev.offsetX,py=ev.offsetY,lastA=Math.atan2(ev.offsetY-cy,ev.offsetX-cx),accAng=0,moved=false;
-      if(rotMode){st.rotating=true;el.style.cursor='grabbing';drawPlane(name);}
-      else{el.style.cursor='move';}
+      if(rotMode){st.rotating=true;el.style.cursor='grabbing';showRotCue(ev);drawPlane(name);}
+      else{el.style.cursor='move';hideRotCue();}
       el.setPointerCapture(ev.pointerId);pushUndo();
       const mv=e2=>{
         if(rotMode){
+          placeRotCue(e2);
           const a=Math.atan2(e2.offsetY-cy,e2.offsetX-cx);
           let dA=a-lastA;if(dA>Math.PI)dA-=2*Math.PI;else if(dA<-Math.PI)dA+=2*Math.PI;
           lastA=a;accAng+=dA*180/Math.PI;
@@ -2793,7 +2806,7 @@ const CBCT=(function(){
       const up=()=>{
         try{el.releasePointerCapture(ev.pointerId);}catch(_){}
         el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);
-        st.rotating=false;el.style.cursor='';drawPlane(name);
+        st.rotating=false;el.style.cursor='';hideRotCue();drawPlane(name);
         if(!moved)undoStack.pop();
       };
       el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
