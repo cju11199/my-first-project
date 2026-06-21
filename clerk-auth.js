@@ -43,7 +43,10 @@
       if (window.Clerk) return resolve();
       var s = document.createElement('script');
       s.async = true;
-      s.crossOrigin = 'anonymous';
+      // No crossOrigin: load clerk-js as a classic (no-cors) script. Some
+      // antivirus/VPN HTTPS interceptors mangle CORS-mode loads (stripping the
+      // Access-Control-Allow-Origin header), which made the gate fail to load
+      // Clerk. A classic script doesn't need CORS and loads like a direct hit.
       s.setAttribute('data-clerk-publishable-key', PUBLISHABLE_KEY);
       s.src = 'https://' + FRONTEND_API + '/npm/@clerk/clerk-js@5/dist/clerk.browser.js';
       s.onload = resolve;
