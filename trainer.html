@@ -354,6 +354,76 @@ main.shifts-collapsed .shift-tab{left:0}
 .guide-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 26px 18px;border-top:1px solid var(--hairline)}
 .guide-foot-note{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em}
 @media(max-width:620px){.mf-arrow{display:none}.mf-step{min-width:100%}.guide-body{padding:16px 16px 6px}.guide-head{padding:18px}}
+
+/* ===== RT account: progress summary strip, case badges, toasts & dashboard ===== */
+.rt-summary{min-height:34px;display:flex;justify-content:center;align-items:center}
+.rt-sum-btn{display:flex;align-items:center;gap:12px;padding:8px 16px;border-radius:var(--radius-pill);background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);color:var(--label);font-family:var(--mono);font-size:11px;box-shadow:var(--shadow-card)}
+.rt-sum-btn:hover{border-color:rgba(45,212,238,.5);color:var(--text);box-shadow:var(--shadow-card),0 0 0 3px var(--accent-dim)}
+.rt-sum-lvl{font-weight:700;color:var(--accent-hi);letter-spacing:.08em}
+.rt-sum-bar{width:88px;height:6px;border-radius:4px;background:var(--bg);border:1px solid var(--hairline);overflow:hidden}
+.rt-sum-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-hi))}
+.rt-sum-meta{color:var(--muted)}
+.rt-sum-streak{color:var(--accent2-hi)}
+.rt-sum-go{color:var(--accent-hi);font-weight:600}
+/* per-case card stat line + cleared corner */
+.sc-stat{margin-top:auto;padding-top:6px;font-family:var(--mono);font-size:10px;letter-spacing:.03em}
+.sc-stat-done{color:var(--green)}
+.sc-stat-try{color:var(--accent2-hi)}
+.sc-stat-new{color:var(--muted)}
+.start-card.case-card.cleared{border-color:rgba(70,211,154,.45)}
+.start-card.case-card.cleared::after{content:'\2713';position:absolute;top:12px;right:14px;font-family:var(--mono);font-weight:700;font-size:12px;color:var(--green)}
+/* achievement toasts */
+.rt-toast-host{position:fixed;right:18px;bottom:18px;z-index:400;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.rt-toast{display:flex;align-items:center;gap:12px;max-width:330px;padding:12px 14px;border-radius:14px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid rgba(45,212,238,.5);box-shadow:var(--shadow),0 0 0 3px var(--accent-dim);transform:translateY(16px);opacity:0;transition:all .35s var(--ease)}
+.rt-toast.show{transform:none;opacity:1}
+.rt-toast-ic{font-size:22px;color:var(--accent-hi);flex:none}
+.rt-toast-tx{font-family:var(--mono);font-size:11px;color:var(--label);line-height:1.5}
+.rt-toast-tx b{color:var(--accent-hi);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
+/* progress dashboard (reuses .modal-bg/.open) */
+.rt-modal{z-index:270}
+.rt-card{display:flex;flex-direction:column;width:min(720px,94vw);max-height:88vh;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:18px;box-shadow:var(--shadow),0 0 0 1px var(--hairline) inset;overflow:hidden}
+.rt-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:20px 24px 14px;border-bottom:1px solid var(--hairline)}
+.rt-title{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent-hi);letter-spacing:.06em}
+.rt-tabs{margin:12px 24px 0;align-self:flex-start}
+.rt-tab.active{background:linear-gradient(180deg,var(--elev),var(--panel2));color:var(--text);border-color:var(--border2);box-shadow:0 0 0 3px var(--accent-dim)}
+.rt-body{flex:1;overflow-y:auto;padding:18px 24px 14px}
+.rt-ov-top{display:flex;gap:22px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.rt-ring{width:120px;height:120px;flex:none}
+.rt-ring-bg{fill:none;stroke:var(--hairline);stroke-width:9}
+.rt-ring-fg{fill:none;stroke:var(--accent-hi);stroke-width:9;stroke-linecap:round;transform:rotate(-90deg);transform-origin:60px 60px;transition:stroke-dashoffset .6s var(--ease)}
+.rt-ring-lv{fill:var(--text);font-family:var(--mono);font-size:30px;font-weight:700;text-anchor:middle}
+.rt-ring-lb{fill:var(--muted);font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-anchor:middle}
+.rt-ov-side{flex:1;min-width:240px}
+.rt-xpline{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-bottom:10px}
+.rt-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rt-tile{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:10px 12px;text-align:center}
+.rt-tile-v{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent-hi)}
+.rt-tile-k{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;margin-top:3px}
+.rt-sec-h{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:18px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--hairline)}
+.rt-sec-h span{color:var(--accent-hi)}
+.rt-ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.rt-ach{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--border);opacity:.5}
+.rt-ach.on{opacity:1;border-color:rgba(45,212,238,.4);box-shadow:0 0 0 2px var(--accent-dim)}
+.rt-ach-ic{font-size:18px;color:var(--muted);flex:none;width:22px;text-align:center}
+.rt-ach.on .rt-ach-ic{color:var(--accent-hi)}
+.rt-ach-nm{font-family:var(--mono);font-size:10.5px;color:var(--label)}
+.rt-ach.on .rt-ach-nm{color:var(--text)}
+.rt-tbl{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px}
+.rt-tbl th{text-align:left;color:var(--muted);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--hairline)}
+.rt-tbl td{padding:7px 8px;border-bottom:1px solid var(--hairline);color:var(--label)}
+.rt-tbl tr.cl td{color:var(--text)}
+.rt-tbl .ck{color:var(--green)}
+.rt-diffs{display:flex;flex-direction:column;gap:8px}
+.rt-diff{display:flex;gap:11px;align-items:flex-start;padding:11px 13px;border-radius:12px;background:var(--bg);border:1px solid var(--border);cursor:pointer}
+.rt-diff.on{border-color:rgba(45,212,238,.5);box-shadow:0 0 0 2px var(--accent-dim)}
+.rt-diff input{margin-top:3px;accent-color:var(--accent)}
+.rt-diff-h{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)}
+.rt-diff-d{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.5}
+.rt-toggle{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11.5px;color:var(--label);cursor:pointer}
+.rt-toggle input{accent-color:var(--accent)}
+.rt-data-row{display:flex;gap:10px;flex-wrap:wrap}
+.rt-data-note{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px}
+@media(max-width:560px){.rt-tiles{grid-template-columns:repeat(2,1fr)}.rt-ov-top{justify-content:center}}
 /* paywall: hide the trainer until access is verified */
 #authGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#070a0f;color:#9fadbd;font:15px/1.5 system-ui,sans-serif}
 html:not(.auth-pending) #authGate{display:none}
@@ -386,6 +456,7 @@ html:not(.auth-pending) #authGate{display:none}
     </div>
   </div>
   <div class="start-cards case-cards hidden" id="casePicker"></div>
+  <div class="rt-summary" id="rtSummary"></div>
   <p class="start-disclaimer">Training simulator &mdash; educational use only. Not for clinical decision-making.<br>All patient offsets and values shown are fictional.</p>
   <div class="start-note" id="startNote">&nbsp;</div>
 </div>
@@ -767,6 +838,26 @@ html:not(.auth-pending) #authGate{display:none}
     </div>
   </div>
 </div>
+
+<!-- ===== Your-progress dashboard (per-user stats / bests / achievements) ===== -->
+<div class="modal-bg rt-modal" id="rtProgModal" aria-hidden="true">
+  <div class="rt-card" role="dialog" aria-modal="true" aria-label="Your training progress">
+    <div class="rt-head">
+      <div>
+        <h2 class="rt-title">// YOUR PROGRESS</h2>
+        <div class="guide-sub">Stats, personal bests &amp; achievements &mdash; saved to your account.</div>
+      </div>
+      <button class="guide-x" onclick="rtCloseProgress()" aria-label="Close">&times;</button>
+    </div>
+    <div class="step-row rt-tabs" role="tablist">
+      <button class="step-btn rt-tab active" data-tab="overview" onclick="rtProgTab('overview')">Overview</button>
+      <button class="step-btn rt-tab" data-tab="cases" onclick="rtProgTab('cases')">Cases</button>
+      <button class="step-btn rt-tab" data-tab="settings" onclick="rtProgTab('settings')">Settings</button>
+    </div>
+    <div class="rt-body" id="rtProgBody"></div>
+  </div>
+</div>
+<div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
 
 <!-- Breast 2D/2D assets (SCV + medial tangent DRRs, MLC reference + anatomy portal) -->
 <script src="breast_drr_data.js"></script>
@@ -1752,17 +1843,20 @@ function checkMatch(){
   const setT=(id,mm,t1,t2)=>{const el=document.getElementById(id);const cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
   const setR=(id,deg,t1,t2)=>{const el=document.getElementById(id);el.textContent=(deg>=0?'+':'')+deg+'\u00b0';el.className='error-val '+cc(deg,t1,t2);};
   // signs match the live readouts (Varian IEC): Lat=-x, Lng=+y, Vrt=zSign*z
-  setT('errX',-e.x,1,3); setT('errY',e.y,1,3); setT('errZ',zSign*e.z,1,3);
-  setR('errRoll',e.roll,0.5,1.5); setR('errPitch',e.pitch,0.5,1.5);
-  const transOk=Math.abs(e.x)<=1&&Math.abs(e.y)<=1&&Math.abs(e.z)<=1;
-  const rotOk=Math.abs(e.roll)<=0.5&&Math.abs(e.pitch)<=0.5;
+  const TOL=rtTol();
+  setT('errX',-e.x,TOL.t1,TOL.t2); setT('errY',e.y,TOL.t1,TOL.t2); setT('errZ',zSign*e.z,TOL.t1,TOL.t2);
+  setR('errRoll',e.roll,TOL.r1,TOL.r2); setR('errPitch',e.pitch,TOL.r1,TOL.r2);
+  const transOk=Math.abs(e.x)<=TOL.t1&&Math.abs(e.y)<=TOL.t1&&Math.abs(e.z)<=TOL.t1;
+  const rotOk=Math.abs(e.roll)<=TOL.r1&&Math.abs(e.pitch)<=TOL.r1;
   const ok=transOk&&rotOk;
-  const close=Math.abs(e.x)<=3&&Math.abs(e.y)<=3&&Math.abs(e.z)<=3;
+  const close=Math.abs(e.x)<=TOL.t2&&Math.abs(e.y)<=TOL.t2&&Math.abs(e.z)<=TOL.t2;
   const ms=matchTimer2d.elapsed();
   const timeTag=(ms===null)?'':'  \u00b7  \u23f1 '+fmtMatchTime(ms);
   document.getElementById('statusMsg').textContent=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
     :close?'\u26a1 Close \u2014 fine-tune further':'\u2717 Residual error \u2014 keep adjusting')+timeTag;
-  if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within 0.1\u202fcm / 0.5\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
+  if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
+  // record this attempt for the user's progress profile (translation residual magnitude in mm)
+  rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ms});
 }
 function clearErrors(){['errX','errY','errZ','errRoll','errPitch'].forEach(id=>{const e=document.getElementById(id);e.textContent='\u2014';e.className='error-val';});}
 // ===== How-to-use guide (launched from the start menu; replaces the old per-tool help) =====
@@ -1900,8 +1994,9 @@ function pickMode(mode){
   back.onclick=backToModes; cp.appendChild(back);
   list.cases.forEach(function(c){
     const el=document.createElement('div');
-    el.className='start-card case-card';
-    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+c.t+'</div><div class="sc-desc">'+c.d+'</div>';
+    const cid=mode+':'+c.v;
+    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'');
+    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+c.t+'</div><div class="sc-desc">'+c.d+'</div>'+rtCardStat(cid);
     el.onclick=function(){ launchCase(mode,c.v); };
     cp.appendChild(el);
   });
@@ -1931,12 +2026,203 @@ function chooseMode(mode){
   }
 }
 // Return to the workflow picker from either tool.
+/* ----------------------------------------------------------------------------
+   RT Account — per-user training progress, preferences & achievements.
+   Persists to the signed-in user's Clerk unsafeMetadata via window.RTAuth.profile
+   (set up in clerk-auth.js); falls back to localStorage when auth isn't present
+   (e.g. headless tests) so the trainer still records progress locally.
+   ------------------------------------------------------------------------- */
+const RTProfile=(function(){
+  const LS='rtProfile';
+  function blank(){return {schema:1,stats:{},prefs:{},ach:{},totals:{attempts:0,accepts:0},xp:0,streak:{count:0,best:0,last:null},recent:[],createdAt:Date.now()};}
+  let _local=null;
+  function authReady(){return !!(window.RTAuth&&window.RTAuth.profile&&window.RTAuth.profile.isReady&&window.RTAuth.profile.isReady());}
+  function localGet(){
+    if(_local)return _local;
+    try{_local=JSON.parse(localStorage.getItem(LS))||blank();}catch(e){_local=blank();}
+    ['stats','prefs','ach'].forEach(k=>{if(!_local[k])_local[k]={};});
+    if(!_local.totals)_local.totals={attempts:0,accepts:0};
+    if(!_local.streak)_local.streak={count:0,best:0,last:null};
+    if(!_local.recent)_local.recent=[];
+    if(typeof _local.xp!=='number')_local.xp=0;
+    return _local;
+  }
+  function get(){return authReady()?window.RTAuth.profile.get():localGet();}
+  function save(mut){
+    if(authReady())return window.RTAuth.profile.save(mut);
+    const p=localGet();if(typeof mut==='function'){try{mut(p);}catch(e){}}
+    try{localStorage.setItem(LS,JSON.stringify(p));}catch(e){}
+    return p;
+  }
+  return {get,save,authReady};
+})();
+
+// Difficulty -> match tolerances (translation mm / rotation deg).
+const RT_DIFF={
+  relaxed:{key:'relaxed',label:'Relaxed',t1:2,t2:5,r1:1.0,r2:2.0,desc:'Forgiving — pass within 0.2 cm / 1.0°. Good for first attempts.'},
+  standard:{key:'standard',label:'Standard',t1:1,t2:3,r1:0.5,r2:1.5,desc:'Clinical default — pass within 0.1 cm / 0.5°.'},
+  strict:{key:'strict',label:'Strict (SRS)',t1:0.5,t2:1.5,r1:0.3,r2:0.8,desc:'Sub-millimetre — pass within 0.05 cm / 0.3°. Earns bonus XP.'},
+};
+function rtTol(){return RT_DIFF[(RTProfile.get().prefs.difficulty)]||RT_DIFF.standard;}
+
+// XP / levels: level L needs 40*(L-1)^2 cumulative XP (gentle quadratic curve).
+function rtLevel(xp){return Math.floor(Math.sqrt((xp||0)/40))+1;}
+function rtXpForLevel(L){return 40*(L-1)*(L-1);}
+function rtLevelProgress(xp){xp=xp||0;const L=rtLevel(xp),cur=rtXpForLevel(L),nxt=rtXpForLevel(L+1);return {level:L,into:xp-cur,span:nxt-cur,pct:Math.max(0,Math.min(1,(xp-cur)/(nxt-cur)))};}
+
+function rtAllCaseIds(mode){const l=CASE_LISTS[mode];return l?l.cases.map(c=>mode+':'+c.v):[];}
+function rtClearedIds(p,mode){return rtAllCaseIds(mode).filter(id=>{const s=p.stats[id];return s&&s.c>0;});}
+
+// Achievement catalogue. test(profile, ctx) -> boolean; awarded once, then sticky.
+const RT_ACH=[
+  {id:'first',   icon:'✓', name:'First Match',     desc:'Pass any registration.',           test:(p,c)=>c.accepted},
+  {id:'quick',   icon:'⚡', name:'Quick Draw',      desc:'Pass in under 30 seconds.',         test:(p,c)=>c.accepted&&c.timeMs!=null&&c.timeMs<30000},
+  {id:'sharp',   icon:'◎', name:'Sharpshooter',    desc:'Pass within 0.5 mm.',               test:(p,c)=>c.accepted&&c.mag!=null&&c.mag<0.5},
+  {id:'pinpoint',icon:'✦', name:'Pinpoint',        desc:'Pass within 0.2 mm.',               test:(p,c)=>c.accepted&&c.mag!=null&&c.mag<0.2},
+  {id:'strict',  icon:'▣', name:'Tight Tolerance', desc:'Pass on Strict (SRS) difficulty.',  test:(p,c)=>c.accepted&&c.diff==='strict'},
+  {id:'offbone', icon:'◐', name:'Off the Bone',    desc:'Clear the Lung SBRT PTV match.',    test:(p,c)=>c.accepted&&c.id==='cbct:lung'},
+  {id:'cbct_all',icon:'☰', name:'Volumetric',      desc:'Clear every CBCT case.',            test:(p)=>rtClearedIds(p,'cbct').length>=rtAllCaseIds('cbct').length},
+  {id:'twod_all',icon:'◉', name:'Orthogonal',      desc:'Clear every 2D/2D case.',           test:(p)=>rtClearedIds(p,'2d2d').length>=rtAllCaseIds('2d2d').length},
+  {id:'complete',icon:'★', name:'Completionist',   desc:'Clear every case in the trainer.',  test:(p)=>rtClearedIds(p,'cbct').length>=rtAllCaseIds('cbct').length&&rtClearedIds(p,'2d2d').length>=rtAllCaseIds('2d2d').length},
+  {id:'streak3', icon:'▲', name:'On a Roll',       desc:'Practise 3 days running.',          test:(p)=>(p.streak.count||0)>=3},
+  {id:'streak7', icon:'✸', name:'Dedicated',       desc:'Practise 7 days running.',          test:(p)=>(p.streak.count||0)>=7},
+  {id:'grind50', icon:'◆', name:'Grinder',         desc:'50 total attempts.',                test:(p)=>(p.totals.attempts||0)>=50},
+  {id:'grind100',icon:'⬢', name:'Centurion',       desc:'100 total attempts.',               test:(p)=>(p.totals.attempts||0)>=100},
+];
+
+function rtFmtTime(ms){if(ms==null)return '—';const s=ms/1000,m=Math.floor(s/60),r=s-m*60;return m+':'+(r<10?'0':'')+r.toFixed(1);}
+function rtToday(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function rtDayDiff(a,b){const pa=a.split('-').map(Number),pb=b.split('-').map(Number);return Math.round((Date.UTC(pb[0],pb[1]-1,pb[2])-Date.UTC(pa[0],pa[1]-1,pa[2]))/86400000);}
+
+// Record one Check-Match result. o = {accepted, mag (mm), timeMs (or null)}.
+function rtRecord(mode,caseKey,o){
+  const id=mode+':'+caseKey, diffKey=rtTol().key, newly=[];
+  RTProfile.save(p=>{
+    const s=p.stats[id]||(p.stats[id]={a:0,c:0,bt:null,br:null,lt:0,fc:null});
+    s.a++;s.lt=Date.now();
+    p.totals.attempts=(p.totals.attempts||0)+1;
+    let xp=4;
+    if(o.accepted){
+      const firstClear=(s.c===0);
+      s.c++;p.totals.accepts=(p.totals.accepts||0)+1;
+      if(firstClear){s.fc=Date.now();xp+=60;}
+      if(o.timeMs!=null&&(s.bt==null||o.timeMs<s.bt))s.bt=Math.round(o.timeMs);
+      if(o.mag!=null&&(s.br==null||o.mag<s.br))s.br=+o.mag.toFixed(2);
+      xp+=20;
+      if(o.timeMs!=null&&o.timeMs<30000)xp+=15;
+      if(o.mag!=null&&o.mag<0.5)xp+=20;
+      if(diffKey==='strict')xp+=15; else if(diffKey==='relaxed')xp=Math.max(8,xp-10);
+    }
+    p.xp=(p.xp||0)+xp;
+    const t=rtToday();
+    if(p.streak.last==null){p.streak.count=1;}
+    else{const dd=rtDayDiff(p.streak.last,t);if(dd===1)p.streak.count=(p.streak.count||0)+1;else if(dd>1)p.streak.count=1;}
+    p.streak.last=t;if((p.streak.count||0)>(p.streak.best||0))p.streak.best=p.streak.count;
+    p.recent.unshift({id,ok:!!o.accepted,ms:(o.timeMs!=null?Math.round(o.timeMs):null),mag:(o.mag!=null?+o.mag.toFixed(2):null),t:Date.now()});
+    if(p.recent.length>24)p.recent.length=24;
+    const ctx={id,mode,caseKey,accepted:!!o.accepted,mag:o.mag,timeMs:o.timeMs,diff:diffKey};
+    RT_ACH.forEach(a=>{if(!p.ach[a.id]){try{if(a.test(p,ctx)){p.ach[a.id]=Date.now();newly.push(a);}}catch(e){}}});
+  });
+  if(newly.length)rtToast(newly);
+  rtRefreshProgress();
+}
+
+function rtToast(list){
+  const host=document.getElementById('rtToast');if(!host)return;
+  list.forEach((a,i)=>setTimeout(()=>{
+    const el=document.createElement('div');el.className='rt-toast';
+    el.innerHTML='<span class="rt-toast-ic">'+a.icon+'</span><span class="rt-toast-tx"><b>Achievement unlocked</b><br>'+a.name+' — '+a.desc+'</span>';
+    host.appendChild(el);requestAnimationFrame(()=>el.classList.add('show'));
+    setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),420);},4200);
+  },i*460));
+}
+
+/* ---- start-screen summary strip + per-case badges ---- */
+function rtRenderSummary(){
+  const host=document.getElementById('rtSummary');if(!host)return;
+  const p=RTProfile.get(),lp=rtLevelProgress(p.xp||0);
+  const cleared=rtClearedIds(p,'cbct').length+rtClearedIds(p,'2d2d').length;
+  const tot=rtAllCaseIds('cbct').length+rtAllCaseIds('2d2d').length;
+  host.innerHTML='<button class="rt-sum-btn" onclick="rtOpenProgress()" title="View your training progress">'
+    +'<span class="rt-sum-lvl">LV '+lp.level+'</span>'
+    +'<span class="rt-sum-bar"><i style="width:'+Math.round(lp.pct*100)+'%"></i></span>'
+    +'<span class="rt-sum-meta">'+cleared+'/'+tot+' cleared</span>'
+    +((p.streak.count||0)>1?'<span class="rt-sum-streak">▲ '+p.streak.count+'d</span>':'')
+    +'<span class="rt-sum-go">Your progress →</span></button>';
+}
+function rtCardStat(id){
+  const p=RTProfile.get();if(p.prefs.hideCardStats)return '';
+  const s=p.stats[id];
+  if(!s||!s.a)return '<div class="sc-stat sc-stat-new">Not started</div>';
+  if(s.c>0)return '<div class="sc-stat sc-stat-done">✓ best '+rtFmtTime(s.bt)+(s.br!=null?' · '+s.br.toFixed(2)+'mm':'')+'</div>';
+  return '<div class="sc-stat sc-stat-try">Tried ×'+s.a+'</div>';
+}
+function rtCardCleared(id){const s=RTProfile.get().stats[id];return !!(s&&s.c>0);}
+
+/* ---- dashboard ---- */
+let rtModalTab='overview';
+function rtOpenProgress(){rtRenderModal(rtModalTab);const m=document.getElementById('rtProgModal');m.classList.add('open');m.setAttribute('aria-hidden','false');}
+function rtCloseProgress(){const m=document.getElementById('rtProgModal');m.classList.remove('open');m.setAttribute('aria-hidden','true');}
+function rtProgTab(t){rtModalTab=t;document.querySelectorAll('#rtProgModal .rt-tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));rtRenderModal(t);}
+function rtRefreshProgress(){rtRenderSummary();const m=document.getElementById('rtProgModal');if(m&&m.classList.contains('open'))rtRenderModal(rtModalTab);}
+function rtRenderModal(t){
+  const body=document.getElementById('rtProgBody');if(!body)return;
+  const p=RTProfile.get();
+  body.innerHTML=(t==='cases')?rtViewCases(p):(t==='settings')?rtViewSettings(p):rtViewOverview(p);
+}
+function rtViewOverview(p){
+  const lp=rtLevelProgress(p.xp||0);
+  const acc=p.totals.attempts?Math.round(100*p.totals.accepts/p.totals.attempts):0;
+  const R=52,C=2*Math.PI*R,off=C*(1-lp.pct);
+  const ring='<svg class="rt-ring" viewBox="0 0 120 120" aria-hidden="true">'
+    +'<circle cx="60" cy="60" r="'+R+'" class="rt-ring-bg"/>'
+    +'<circle cx="60" cy="60" r="'+R+'" class="rt-ring-fg" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+off.toFixed(1)+'"/>'
+    +'<text x="60" y="56" class="rt-ring-lv">'+lp.level+'</text>'
+    +'<text x="60" y="74" class="rt-ring-lb">LEVEL</text></svg>';
+  const tiles=[['Matches',p.totals.accepts||0],['Attempts',p.totals.attempts||0],['Accuracy',acc+'%'],
+               ['Streak',(p.streak.count||0)+'d'],['Best streak',(p.streak.best||0)+'d'],['XP',p.xp||0]]
+    .map(t=>'<div class="rt-tile"><div class="rt-tile-v">'+t[1]+'</div><div class="rt-tile-k">'+t[0]+'</div></div>').join('');
+  const unlocked=RT_ACH.filter(a=>p.ach[a.id]).length;
+  const ach=RT_ACH.map(a=>'<div class="rt-ach'+(p.ach[a.id]?' on':'')+'" title="'+a.desc+'"><span class="rt-ach-ic">'+a.icon+'</span><span class="rt-ach-nm">'+a.name+'</span></div>').join('');
+  return '<div class="rt-ov-top">'+ring+'<div class="rt-ov-side"><div class="rt-xpline">'+lp.into+' / '+lp.span+' XP to Level '+(lp.level+1)+'</div><div class="rt-tiles">'+tiles+'</div></div></div>'
+    +'<div class="rt-sec-h">Achievements <span>'+unlocked+'/'+RT_ACH.length+'</span></div><div class="rt-ach-grid">'+ach+'</div>';
+}
+function rtViewCases(p){
+  function tbl(mode){
+    const rows=CASE_LISTS[mode].cases.map(c=>{
+      const id=mode+':'+c.v,s=p.stats[id]||{},cl=(s.c>0);
+      return '<tr class="'+(cl?'cl':'')+'"><td>'+(cl?'<b class="ck">✓</b> ':'')+c.t+'</td><td>'+(s.c||0)+'</td><td>'+(s.a||0)+'</td><td>'+rtFmtTime(s.bt)+'</td><td>'+(s.br!=null?s.br.toFixed(2)+' mm':'—')+'</td></tr>';
+    }).join('');
+    return '<div class="rt-sec-h">'+(mode==='cbct'?'CBCT':'2D / 2D')+'</div><table class="rt-tbl"><thead><tr><th>Case</th><th>Clears</th><th>Tries</th><th>Best time</th><th>Best resid.</th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }
+  return tbl('cbct')+tbl('2d2d');
+}
+function rtViewSettings(p){
+  const cur=p.prefs.difficulty||'standard';
+  const diffs=Object.keys(RT_DIFF).map(k=>{const d=RT_DIFF[k];return '<label class="rt-diff'+(cur===k?' on':'')+'"><input type="radio" name="rtdiff" value="'+k+'"'+(cur===k?' checked':'')+' onchange="rtSetDiff(this.value)"><div><div class="rt-diff-h">'+d.label+'</div><div class="rt-diff-d">'+d.desc+'</div></div></label>';}).join('');
+  return '<div class="rt-sec-h">Difficulty &amp; tolerance</div><div class="rt-diffs">'+diffs+'</div>'
+    +'<div class="rt-sec-h">Display</div><label class="rt-toggle"><input type="checkbox"'+(p.prefs.hideCardStats?'':' checked')+' onchange="rtSetPref(\'hideCardStats\',!this.checked)"> Show progress on the case cards</label>'
+    +'<div class="rt-sec-h">Data</div><div class="rt-data-row"><button class="btn-ghost" onclick="rtExport()">Export progress (JSON)</button><button class="btn-warn" onclick="rtReset()">Reset progress…</button></div>'
+    +'<div class="rt-data-note">'+(RTProfile.authReady()?'✓ Synced to your account — follows you across devices.':'Stored on this device.')+'</div>';
+}
+function rtSetDiff(k){RTProfile.save(p=>{p.prefs.difficulty=k;});rtRenderModal('settings');}
+function rtSetPref(key,val){RTProfile.save(p=>{p.prefs[key]=val;});}
+function rtExport(){const p=RTProfile.get();const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='rt-progress.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+function rtReset(){if(!window.confirm('Reset all training progress, stats and achievements? This cannot be undone.'))return;RTProfile.save(p=>{p.stats={};p.ach={};p.totals={attempts:0,accepts:0};p.xp=0;p.streak={count:0,best:0,last:null};p.recent=[];});rtRenderModal(rtModalTab);rtRefreshProgress();}
+
+// backdrop-click + Esc close for the dashboard (capture phase, like the guide).
+document.getElementById('rtProgModal').addEventListener('click',function(e){if(e.target===this)rtCloseProgress();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('rtProgModal').classList.contains('open')){e.stopPropagation();rtCloseProgress();}},true);
+// First paint (local), then refresh once the Clerk/account profile is ready so synced stats appear.
+window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&window.RTAuth.ready&&window.RTAuth.ready.then){window.RTAuth.ready.then(function(){rtRefreshProgress();});}});
+
 function backToMenu(){
   currentMode=null;
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
   ss.classList.remove('hidden');
   backToModes();   // reopen on the workflow picker, not a stale case list
+  rtRefreshProgress();
   const note=document.getElementById('startNote'); note.textContent=' '; note.classList.remove('warn');
 }
 
@@ -2794,13 +3080,14 @@ const CBCT=(function(){
     // Lung off-bone: this is a PTV/target match — grade the translation onto the GTV only;
     // rotations can't shift a small off-bone target onto the PTV, so they're shown but not graded.
     const ptvOnly=!!targetDrift;
-    sT('cbErrX',-g.x,1,3);sT('cbErrY',g.y,1,3);sT('cbErrZ',g.z,1,3);
+    const TOL=rtTol();
+    sT('cbErrX',-g.x,TOL.t1,TOL.t2);sT('cbErrY',g.y,TOL.t1,TOL.t2);sT('cbErrZ',g.z,TOL.t1,TOL.t2);
     if(ptvOnly){sRn('cbErrPitch',g.pitch);sRn('cbErrRoll',g.roll);sRn('cbErrYaw',g.yaw);}
-    else{sR('cbErrPitch',g.pitch,0.5,1.5);sR('cbErrRoll',g.roll,0.5,1.5);sR('cbErrYaw',g.yaw,0.5,1.5);}
-    const tOk=Math.abs(g.x)<=1&&Math.abs(g.y)<=1&&Math.abs(g.z)<=1,rOk=Math.abs(g.pitch)<=0.5&&Math.abs(g.roll)<=0.5&&Math.abs(g.yaw)<=0.5;
+    else{sR('cbErrPitch',g.pitch,TOL.r1,TOL.r2);sR('cbErrRoll',g.roll,TOL.r1,TOL.r2);sR('cbErrYaw',g.yaw,TOL.r1,TOL.r2);}
+    const tOk=Math.abs(g.x)<=TOL.t1&&Math.abs(g.y)<=TOL.t1&&Math.abs(g.z)<=TOL.t1,rOk=Math.abs(g.pitch)<=TOL.r1&&Math.abs(g.roll)<=TOL.r1&&Math.abs(g.yaw)<=TOL.r1;
     const accepted=ptvOnly?tOk:(tOk&&rOk);
-    const close=ptvOnly?(Math.abs(g.x)<=3&&Math.abs(g.y)<=3&&Math.abs(g.z)<=3)
-                       :(Math.abs(g.x)<=3&&Math.abs(g.y)<=3&&Math.abs(g.z)<=3&&Math.abs(g.pitch)<=1.5&&Math.abs(g.roll)<=1.5&&Math.abs(g.yaw)<=1.5);
+    const close=ptvOnly?(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2)
+                       :(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2&&Math.abs(g.pitch)<=TOL.r2&&Math.abs(g.roll)<=TOL.r2&&Math.abs(g.yaw)<=TOL.r2);
     const m=gid('cbStatusMsg');
     const ms=cbTimer.elapsed();
     const tt=(ms===null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
@@ -2810,6 +3097,8 @@ const CBCT=(function(){
     else if(boneMatched&&!accepted){m.textContent='✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton'+tt;m.style.color='var(--accent2)';}
     else if(close){m.textContent='⚡ Close — fine-tune the residual'+tt;m.style.color='var(--accent2-hi)';}
     else{m.textContent='✗ Residual error — keep fusing the planes'+tt;m.style.color='var(--accent2)';}
+    // record this attempt for the user's progress profile (translation residual magnitude in mm)
+    rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:ms});
   }
 
   /* ---- interaction ---- */

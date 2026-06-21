@@ -126,6 +126,35 @@ Stripe code here). Plan key **`full_access`**: $14.99/mo, $120/yr, 3-day trial.
 data only to subscribers — is **Phase 2, not yet built** (see PAYWALL.md). The data files are
 still public on the CDN today.
 
+### Per-user accounts: progress, preferences & achievements
+
+A per-user training profile that follows the account across devices. **No backend** — it persists
+to the signed-in user's **Clerk `unsafeMetadata.rt`** (writable client-side, kept compact:
+aggregates + a 24-entry recent ring).
+
+- **`clerk-auth.js`** owns the store and exposes `window.RTAuth.profile`:
+  `get()`, `save(mutator)` (debounced ~900 ms, merge-safe so it never clobbers other
+  `unsafeMetadata` keys), `flush()` (also auto-flushed on `pagehide`/tab-hide), `isReady()`,
+  `SCHEMA`. Profile is loaded in `start()` once the Clerk user is available.
+- **`trainer.html`** has a self-contained `RTProfile` wrapper that uses `RTAuth.profile` when
+  signed-in, else falls back to **`localStorage('rtProfile')`** (so the trainer still records
+  progress ungated and in headless tests where `clerk-auth.js` is stubbed).
+- **What's tracked** (`rtRecord(mode,caseKey,{accepted,mag,timeMs})`, called from both `checkMatch`
+  (2D) and `CBCT.check`): per-case attempts/clears, **best time** + **best residual** (translation
+  vector magnitude, mm), totals, **XP & level** (`level = floor(sqrt(xp/40))+1`), a **daily
+  streak**, a recent ring, and a **13-badge achievement** catalogue (`RT_ACH`, evaluated each
+  attempt, awarded once). XP rewards accepts/first-clears/speed(<30 s)/precision(<0.5 mm)/strict.
+- **Preferences** (`prefs`): **difficulty** `relaxed | standard | strict` drives the match
+  tolerances live via `rtTol()` (threaded into both checkers' pass/colour thresholds); a
+  show-stats-on-cards toggle.
+- **UI:** a start-screen **summary strip** (level bar · cleared count · streak → opens dashboard),
+  per-case-card **cleared badges** (✓ + best time/residual) rendered in `pickMode`, an
+  **achievement toast** (`#rtToast`) on unlock, and a **"Your Progress" dashboard modal**
+  (`#rtProgModal`, reuses `.modal-bg`) with Overview (level ring + tiles + achievements), Cases
+  (per-case tables) and Settings (difficulty, display, Export JSON / Reset) tabs. All styling
+  reuses the existing tokens; section headers are `text-transform:uppercase` (so `innerText`
+  asserts come back upper-cased in tests).
+
 ## Email (EMAIL.md)
 
 `support@rtimagematch.com` via **Cloudflare Email Routing** (forward-only / receive-only). To send
