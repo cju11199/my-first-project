@@ -94,23 +94,28 @@ Two workflows, picked on the start screen:
   (gold fiducial markers). The last two are **off-bone** cases (see below):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
     `generate_lung_contours.py` (`lung3d_data.js` + `lung3d_labels_data.js`); match the soft-tissue target.
-  - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
-    in via `generate_prostate_fiducials.py` (`prostate3d_data.js` + `prostate3d_labels_data.js`, reuses
-    the pelvis volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fiducial` bit 32 for the seed
-    voxels + a `fidctv` bit 64 = a **0.5 cm contour** around the seeds). The seeds show as bright voxels
-    in the CT and the white "Fiducials + 5 mm" contour marks the planning target — match the **seeds, not the bone**.
+  - Prostate — 3 **gold fiducial markers** in the prostate of the existing pelvis plan, via
+    `generate_prostate_fiducials.py` (`prostate3d_data.js` + `prostate3d_labels_data.js`, reuses the pelvis
+    volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fidctv` bit 64 = a **0.5 cm contour** + a
+    `seeds` list of voxel centres in the label meta). The seeds are **NOT baked** into the CT — they're drawn
+    as **fixed overlay markers** (`drawSeeds`): a teal **planning ring** (reference space, fixed) and a gold
+    **moving dot** that slides with the couch. Vector markers, so they're crisp + stable at any size (the
+    earlier baked single-voxel seeds aliased/flickered at the reslice sampling rate). Match the **seeds, not the bone**.
   - **Off-bone differential motion (config-driven, lung + prostate):** the target moves independently of
     the skeleton, so a bony match leaves it off — only matching the soft-tissue target / fiducials scores.
-    Each off-bone case carries a `VOLCASE[case].offBone` config (`driftBit`, `hideDens`, `drawDens`, per-axis
-    `drift` ranges mm, plus `okMsg`/`hint`/`setup` strings); `curOffBone()` returns it. `randomize()` picks a
-    hidden `targetDrift` {x,y,z} (mm) on top of the usual 6DOF error (lung drift is larger; prostate is "a
-    little off bone"). The CBCT (moving) reslice composites two passes: **hides** the planning-position
-    feature (overwrites the `driftBit` voxels with `hideDens` — lung air 4 / prostate soft-tissue 70) and
-    **redraws** it sampled through the residual *net − drift* transform (`movInvFrom`, `gtvAt(lbl,x,y,z,bit)`
-    occupancy) at `drawDens` (lesion HU 74 / gold 255). `check()` grades a **target/fiducial match**:
-    translations against `e − targetDrift`, with the 6DOF **rotations shown but not graded**, so acceptance
-    is translation-only; the bones-aligned-but-target-off `hint` comes from the config. Other cases keep
-    `targetDrift` `null` (no `offBone` config) so they stay pure rigid 6DOF.
+    Each off-bone case carries a `VOLCASE[case].offBone` config (`render` `'bake'|'overlay'`, `driftBit`,
+    `hideDens`, `drawDens`, per-axis `drift` ranges mm, plus `okMsg`/`hint`/`setup` strings); `curOffBone()`
+    returns it. `randomize()` picks a hidden `targetDrift` {x,y,z} (mm) on top of the usual 6DOF error (lung
+    drift is larger; prostate is "a little off bone").
+    - **Bake mode (lung):** the CBCT (moving) reslice composites two passes — **hides** the planning-position
+      lesion (overwrites the `driftBit` voxels with `hideDens`=air 4) and **redraws** it sampled through the
+      residual *net − drift* transform (`movInvFrom`, `gtvAt(lbl,x,y,z,bit)`) at `drawDens`=lesion HU 74.
+    - **Overlay mode (prostate):** the reslice skips compositing; `drawSeeds` projects each seed twice — the
+      planning ring at the seed's reference world position, the moving dot at `movFrom(net − drift)` of it
+      (`movFrom` = forward of `movInvFrom`). Aligned when the gold dot lands in the teal ring (net = drift).
+    `check()` grades a **target/fiducial match**: translations against `e − targetDrift`, with the 6DOF
+    **rotations shown but not graded**, so acceptance is translation-only; the bones-aligned-but-target-off
+    `hint` comes from the config. Other cases keep `targetDrift` `null` (no `offBone` config) so they stay pure rigid 6DOF.
 
 ## Auth & paywall (clerk-auth.js)
 
