@@ -1134,6 +1134,7 @@ function renderView(v, key){
   // ---- draw helpers (apply zoom/pan base, then optional residual transform) ----
   function drawRef(ctx){
     ctx.save();
+    ctx.filter = imgFilter();   // contrast/brightness on the image only (not the black bg)
     ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
     ctx.scale(v.zoom, v.zoom);
     ctx.translate(-v.W/2, -v.H/2);
@@ -1155,6 +1156,7 @@ function renderView(v, key){
   function drawPor(ctx){
     if(v.useCrop && !(v.porImg.complete && v.porImg.naturalWidth)) return;  // portal not loaded yet
     ctx.save();
+    ctx.filter = imgFilter();   // contrast/brightness on the image only (not the black bg)
     ctx.translate(v.W/2+v.panX, v.H/2+v.panY);
     ctx.scale(v.zoom, v.zoom);
     ctx.translate(-v.W/2, -v.H/2);
@@ -1275,13 +1277,16 @@ function updateContrast(val){
   applyFilters();
   document.querySelectorAll('.vc-preset').forEach(s=>s.value='default');
 }
-function applyFilters(){
+// Contrast/brightness are applied per-image inside drawRef/drawPor (ctx.filter),
+// so they affect the DRR/portal only — the black letterbox background, vignette,
+// crosshair and ring stay unaffected. Changing the values just re-renders.
+function imgFilter(){
   const parts=[];
   if(contrast!==100) parts.push('contrast('+contrast+'%)');
   if(brightness!==100) parts.push('brightness('+brightness+'%)');
-  const f=parts.join(' ')||'';
-  ['apRef','apPor','latRef','latPor'].forEach(id=>{document.getElementById(id).style.filter=f;});
+  return parts.join(' ')||'none';
 }
+function applyFilters(){ render(); }
 const CONTRAST_PRESETS={
   default:{contrast:100,brightness:100},
   bone:{contrast:170,brightness:90},
