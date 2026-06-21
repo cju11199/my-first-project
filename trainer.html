@@ -401,6 +401,7 @@ html:not(.auth-pending) #authGate{display:none}
       <button class="btn-tool" id="cbFusionBtn" onclick="CBCT.toggleFusion()"><span class="glyph">&#9681;</span>Fusion Color</button>
       <button class="btn-tool" id="cbPanBtn" onclick="CBCT.togglePan()" title="Pan the view &mdash; drag to slide the image (or hold the mouse wheel and drag)"><span class="glyph">&#10021;</span>Pan</button>
       <button class="btn-tool" id="cbSpyBtn" onclick="CBCT.toggleSpy()" title="Spyglass — lens reveals the CT reference inside the CBCT"><span class="glyph">&#128269;</span>Spyglass</button>
+      <button class="btn-tool" id="cbCrossBtn" onclick="CBCT.toggleCross()" title="Crosshair match — splits the pane into 4 quadrants (CT &harr; CBCT diagonal); drag the centre"><span class="glyph">&#10010;</span>Crosshair</button>
       <div class="cb-dd">
         <button class="btn-tool cb-dd-main" id="cbContoursBtn" onclick="CBCT.toggleContours()"><span class="glyph">&#9711;</span>Contours</button>
         <button class="btn-tool cb-dd-caret" id="cbContoursCaret" onclick="CBCT.toggleContourMenu(event)" title="Show / hide individual structures">&#9662;</button>
@@ -1917,7 +1918,7 @@ const CBCT=(function(){
   const ORDER=['x','y','z','pitch','roll','yaw'];
   let shift ={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};
   let hidden={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};
-  let active='axial', fusion=false, caseKey='pelvis', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false;
+  let active='axial', fusion=false, caseKey='pelvis', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
     axial:   {cv:'cbAxial',    pane:'cbPaneAxial',    sl:'cbBlendAxial',    sx:'x', sy:'z', rot:'roll',  fx:1, fy:-1},
@@ -2470,7 +2471,25 @@ const CBCT=(function(){
     const s=Math.min(W,H)/S,dw=S*s*st.zoom,ox=W/2-dw/2+st.panX,oy=H/2-dw/2+st.panY,cx=W/2+st.panX,cy=H/2+st.panY,n=net();
     // MPR bakes the full 6DOF into the moving reslice -> no draw-time translate/rotate.
     const dx=useMPR?0:(n[P.sx]/FOV)*dw*P.fx,dy=useMPR?0:(n[P.sy]/FOV)*dw*P.fy,rot=useMPR?0:n[P.rot]*Math.PI/180,b=st.blend/100;
-    if(fusion){
+    if(crossMode&&movDraw){
+      // 4-QUADRANT CROSSHAIR MATCH (Varian-style): diagonal quadrants alternate
+      // CT (reference) and CBCT (moving), split by a draggable centre.
+      // TL + BR = CT, TR + BL = CBCT. Grayscale (no fusion tint) for clean edge matching.
+      const cr=st.cross,qx=cr.x,qy=cr.y;
+      ctx.globalAlpha=1;
+      const qRef=(x,y,w,h)=>{if(w<=0||h<=0)return;ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.drawImage(refDraw,ox,oy,dw,dw);ctx.restore();};
+      const qMov=(x,y,w,h)=>{if(w<=0||h<=0)return;ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.restore();};
+      qRef(0,0,qx,qy); qMov(qx,0,W-qx,qy); qMov(0,qy,qx,H-qy); qRef(qx,qy,W-qx,H-qy);
+      // crosshair lines (full pane) + centre handle
+      ctx.strokeStyle='rgba(255,255,255,0.8)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(0,qy);ctx.lineTo(W,qy);ctx.moveTo(qx,0);ctx.lineTo(qx,H);ctx.stroke();
+      ctx.strokeStyle='rgba(255,255,255,0.95)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(qx,qy,6,0,Math.PI*2);ctx.stroke();
+      // fixed corner labels (CT teal, CBCT orange) — TL/BR = CT, TR/BL = CBCT
+      ctx.font='bold 9px JetBrains Mono,monospace';ctx.textBaseline='top';
+      ctx.fillStyle='rgba(45,212,238,0.92)';ctx.textAlign='left';ctx.fillText('CT',5,5);ctx.textAlign='right';ctx.fillText('CT',W-5,H-15);
+      ctx.fillStyle='rgba(255,150,90,0.95)';ctx.textAlign='right';ctx.fillText('CBCT',W-5,5);ctx.textAlign='left';ctx.fillText('CBCT',5,H-15);
+      ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    }else if(fusion){
       // teal CT base + orange CBCT overlay using normal (source-over) compositing.
       // Overlapping tissue reads as a muted teal/orange mix (no additive white-out);
       // mis-registration shows separate teal and orange edges as the alignment cue.
@@ -2507,7 +2526,8 @@ const CBCT=(function(){
     if(useMPR&&V3&&contoursOn&&curLBL()&&_vc&&_vc.contours)drawContours(ctx,name,cx,cy,dw);  // real label volume (pelvis or brain)
     else if(useMPR&&V3&&contoursOn&&_vc&&_vc.ptv)drawBrainTarget(ctx,name,cx,cy,dw);         // brain: fallback while labels load
     // linked MPR crosshair: lines mark the OTHER two planes' slices; drag the handle to navigate all views
-    if(useMPR&&V3){
+    if(crossMode){st.hasCross=false;}
+    else if(useMPR&&V3){
       const sp=V3.sp;
       const axW=(sliceIdx.axial-(V3.Z-1)/2)*sp, corW=(sliceIdx.coronal-(V3.Y-1)/2)*sp, sagW=(sliceIdx.sagittal-(V3.X-1)/2)*sp;
       let hx,hy;
@@ -2525,7 +2545,7 @@ const CBCT=(function(){
       st.hasCross=false;
       ctx.strokeStyle='rgba(244,229,176,0.5)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(cx-11,cy);ctx.lineTo(cx+11,cy);ctx.moveTo(cx,cy-11);ctx.lineTo(cx,cy+11);ctx.stroke();
     }
-    if(!spyMode){const ringR=Math.min(W,H)*0.44;
+    if(!spyMode&&!crossMode){const ringR=Math.min(W,H)*0.44;
     ctx.strokeStyle=st.rotating?'rgba(255,70,70,0.6)':'rgba(255,60,60,0.4)';ctx.lineWidth=st.rotating?2.5:2;ctx.setLineDash([3,7]);
     ctx.beginPath();ctx.arc(cx,cy,ringR,0,Math.PI*2);ctx.stroke();
     ctx.setLineDash([]);}
@@ -2569,17 +2589,28 @@ const CBCT=(function(){
     setTimeout(()=>{resize();render();},0);
   }
   function cyclePrimary(){primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();}
-  function toggleFusion(){fusion=!fusion;gid('cbFusionBtn').classList.toggle('active',fusion);render();}
+  function toggleFusion(){fusion=!fusion;gid('cbFusionBtn').classList.toggle('active',fusion);if(fusion&&crossMode){crossMode=false;const cb=gid('cbCrossBtn');if(cb)cb.classList.remove('active');}render();}
   function togglePan(){panMode=!panMode;const b=gid('cbPanBtn');if(b)b.classList.toggle('active',panMode);
     Object.keys(PLANES).forEach(n=>{const el=gid(PLANES[n].pane);if(el)el.style.cursor=panMode?'grab':'';});}
   function toggleSpy(){
     spyMode=!spyMode;
     const b=gid('cbSpyBtn');if(b)b.classList.toggle('active',spyMode);
     if(spyMode){
+      if(crossMode){crossMode=false;const cb=gid('cbCrossBtn');if(cb)cb.classList.remove('active');}
       Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});
       setBlendAll(100);
     }
     Object.keys(PLANES).forEach(name=>{const sid='cb'+name.charAt(0).toUpperCase()+name.slice(1)+'Spy';const ring=gid(sid);if(ring)ring.style.display=spyMode?'block':'none';});
+    render();
+  }
+  function toggleCross(){
+    crossMode=!crossMode;
+    const b=gid('cbCrossBtn');if(b)b.classList.toggle('active',crossMode);
+    if(crossMode){
+      if(spyMode)toggleSpy();                                        // exclusive with spyglass (hides its rings)
+      if(fusion){fusion=false;const fb=gid('cbFusionBtn');if(fb)fb.classList.remove('active');}
+      Object.keys(PLANES).forEach(name=>{const st=ST[name];st.cross.x=st.W/2;st.cross.y=st.H/2;});   // centre the crosshair
+    }
     render();
   }
   function toggleContours(){
@@ -2682,6 +2713,7 @@ const CBCT=(function(){
       if(ev.buttons!==0)return;
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
       if(panMode){el.style.cursor='grab';return;}
+      if(crossMode){el.style.cursor='move';return;}
       if(spyMode){const sp=ST[name].spy;el.style.cursor=(Math.abs(ev.offsetX-sp.x)<=sp.r&&Math.abs(ev.offsetY-sp.y)<=sp.r)?'move':'default';return;}
       const st=ST[name],ringR=Math.min(st.W,st.H)*0.38,cx=st.W/2+st.panX,cy=st.H/2+st.panY;
       el.style.cursor=(st.hasCross&&Math.hypot(ev.offsetX-st.crossX,ev.offsetY-st.crossY)<=14)?'move'
@@ -2692,6 +2724,15 @@ const CBCT=(function(){
     el.addEventListener('pointerdown',ev=>{
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
       select(name);
+      if(crossMode){
+        // drag the crosshair centre (click anywhere jumps it there)
+        const st=ST[name],cr=st.cross;
+        try{el.setPointerCapture(ev.pointerId);}catch(_){}
+        const mv=e2=>{cr.x=Math.max(0,Math.min(st.W,e2.offsetX));cr.y=Math.max(0,Math.min(st.H,e2.offsetY));drawPlane(name);};
+        const up=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);};
+        el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
+        mv(ev); ev.stopPropagation(); return;
+      }
       if(spyMode){
         const st=ST[name],sp=st.spy;
         if(ev.target.closest('.spy-handle')){
@@ -2832,7 +2873,7 @@ const CBCT=(function(){
     randomize();
   }
   function build(){
-    Object.keys(PLANES).forEach(name=>{ST[name]={W:0,H:0,blend:50,zoom:1,panX:0,panY:0,rotating:false,ref:null,mov:null,refT:null,movT:null,spy:{x:0,y:0,r:90}};bindPane(name);});
+    Object.keys(PLANES).forEach(name=>{ST[name]={W:0,H:0,blend:50,zoom:1,panX:0,panY:0,rotating:false,ref:null,mov:null,refT:null,movT:null,spy:{x:0,y:0,r:90},cross:{x:0,y:0}};bindPane(name);});
     window.addEventListener('resize',()=>{if(currentMode==='cbct'){resize();render();}});
     select('axial');applyCase(caseKey);refreshReadouts();applyLayout();toggleContours();
   }
@@ -2840,7 +2881,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol};
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol};
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
