@@ -2493,19 +2493,21 @@ const CBCT=(function(){
       // teal CT base + orange CBCT overlay using normal (source-over) compositing.
       // Overlapping tissue reads as a muted teal/orange mix (no additive white-out);
       // mis-registration shows separate teal and orange edges as the alignment cue.
+      // Saturation is kept low (1.6) so bright bone tints rather than blooming into a
+      // glowing cyan/orange halo; brightness 0.78 keeps the high end off full intensity.
       ctx.globalCompositeOperation='source-over';
       const movA=0.25+b*0.5;   // CBCT opacity: blend slider biases the mix, both layers stay visible
       if(useVol||useMPR){
         ctx.globalAlpha=1;
-        ctx.filter='sepia(100%) saturate(4) hue-rotate(148deg) brightness(0.85)';
+        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(148deg) brightness(0.78)';
         ctx.drawImage(refDraw,ox,oy,dw,dw);ctx.filter='none';
         ctx.globalAlpha=movA;
         ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);
-        ctx.filter='sepia(100%) saturate(3) hue-rotate(-20deg) brightness(0.85)';
+        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(-20deg) brightness(0.78)';
         ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.filter='none';
         ctx.restore();
       }else{
-        ctx.filter='brightness(0.85)';
+        ctx.filter='brightness(0.78)';
         ctx.globalAlpha=1;ctx.drawImage(st.refT,ox,oy,dw,dw);
         ctx.globalAlpha=movA;ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);ctx.drawImage(st.movT,-dw/2,-dw/2,dw,dw);ctx.restore();
         ctx.filter='none';
