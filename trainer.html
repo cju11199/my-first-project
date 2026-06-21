@@ -1975,6 +1975,10 @@ const CBCT=(function(){
   const ORDER=['x','y','z','pitch','roll','yaw'];
   let shift ={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};
   let hidden={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};
+  // "off-bone" interfraction tumour drift (Lat/Lng/Vrt mm), relative to bone — lung case only.
+  // The moving CBCT renders the lesion at bone+drift, and grading is against the TARGET: a bony
+  // match (net=0) leaves the GTV off; the GTV aligns at net=targetDrift.
+  let targetDrift=null;
   let active='axial', fusion=false, caseKey='pelvis', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
@@ -2143,8 +2147,8 @@ const CBCT=(function(){
     else if(name==='coronal'){ setI('sagittal',wh/sp+(V3.X-1)/2,V3.X); setI('axial',-wv/sp+(V3.Z-1)/2,V3.Z); }
     else { setI('coronal',wh/sp+(V3.Y-1)/2,V3.Y); setI('axial',-wv/sp+(V3.Z-1)/2,V3.Z); }
   }
-  function movInv(){                              // world p -> ref-volume world: R^T (p - t)
-    const e=net(),d2r=Math.PI/180;
+  function movInvFrom(e){                         // world p -> ref-volume world: R^T (p - t)
+    const d2r=Math.PI/180;
     const tx=e.x, ty=-e.z, tz=e.y;               // Lat->Wx, Vrt->-Wy(ant), Lng->+Wz(sup)
     const a=e.pitch*d2r,b=e.yaw*d2r,g=e.roll*d2r; // pitch:Wx  yaw:Wy  roll:Wz
     const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sg=Math.sin(g);
@@ -2154,9 +2158,18 @@ const CBCT=(function(){
     return function(p){const dx=p[0]-tx,dy=p[1]-ty,dz=p[2]-tz;
       return [r00*dx+r10*dy+r20*dz, r01*dx+r11*dy+r21*dz, r02*dx+r12*dy+r22*dz];};
   }
+  function movInv(){ return movInvFrom(net()); }
+  // GTV occupancy (nearest-neighbour) of the current case's label volume at a voxel coord.
+  function gtvAt(lbl,x,y,z){
+    if(!lbl)return 0;
+    const X=lbl.X,Y=lbl.Y,Z=lbl.Z,xi=(x+0.5)|0,yi=(y+0.5)|0,zi=(z+0.5)|0;
+    if(xi<0||yi<0||zi<0||xi>=X||yi>=Y||zi>=Z)return 0;
+    return lbl.data[(zi*Y+yi)*X+xi]&1;           // bit 1 = GTV
+  }
   function reslice(name,moving){
-    // ref cache keyed by slice idx; moving cache keyed by slice idx + the 6DOF residual
-    const ckey=moving?(sliceIdx[name]+'|'+ORDER.map(k=>shift[k]-hidden[k]).join(',')):sliceIdx[name];
+    // ref cache keyed by slice idx; moving cache keyed by slice idx + the 6DOF residual (+ tumour drift)
+    const _td=(moving&&targetDrift)?('|d'+targetDrift.x+','+targetDrift.y+','+targetDrift.z):'';
+    const ckey=moving?(sliceIdx[name]+'|'+ORDER.map(k=>shift[k]-hidden[k]).join(',')+_td):sliceIdx[name];
     const cache=moving?_movCache[name]:_refCache[name];
     if(cache.cv&&cache.k===ckey)return cache.cv;
     const key=name+(moving?'_m':'_r');let cv=_mc[key];
@@ -2166,10 +2179,24 @@ const CBCT=(function(){
     const o=id.data,sp=V3.sp,half=VFOV/2,dep=depthMmOf(name),inv=moving?movInv():null;
     const cxv=(V3.X-1)/2,cyv=(V3.Y-1)/2,czv=(V3.Z-1)/2,step=VFOV/RS;let k=0;
     const wlo=winL-winW/2, wsc=255/winW;                    // CT window: HU -> display
+    // "off-bone" tumour drift (lung case): the moving CBCT hides the planning-position lesion
+    // and redraws it at bone+drift. The lesion is sampled with residual (net - drift), so it
+    // aligns when net=drift while the bones align at net=0.
+    const _lbl=curLBL();
+    const _drift = moving && caseKey==='lung' && targetDrift && _lbl;
+    let _invL=null;
+    if(_drift){const e=net();_invL=movInvFrom({x:e.x-targetDrift.x,y:e.y-targetDrift.y,z:e.z-targetDrift.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw});}
     for(let r=0;r<RS;r++){const v=(r+0.5)*step-half;
       for(let c=0;c<RS;c++){const u=(c+0.5)*step-half;
-        let w=planeWorld(name,u,v,dep); if(inv)w=inv(w);
-        let dens=sampleVol(w[0]/sp+cxv,w[1]/sp+cyv,w[2]/sp+czv),val;
+        const w0=planeWorld(name,u,v,dep); let w=inv?inv(w0):w0;
+        const gx=w[0]/sp+cxv,gy=w[1]/sp+cyv,gz=w[2]/sp+czv;
+        let dens=sampleVol(gx,gy,gz);
+        if(_drift){
+          if(gtvAt(_lbl,gx,gy,gz))dens=4;                    // hide the lesion at its planning position
+          const wL=_invL(w0);                                 // and redraw it drifted (residual net-drift)
+          if(gtvAt(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv))dens=74;
+        }
+        let val;
         if(dens<=0.5)val=0;                                  // air / outside the scan -> stays black (window only affects tissue)
         else{val=((dens*HU_SCALE+HU_OFF)-wlo)*wsc; val=val<0?0:val>255?255:val;}
         o[k]=o[k+1]=o[k+2]=val; k+=4;
@@ -2368,7 +2395,7 @@ const CBCT=(function(){
     LUNG_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
     LUNG_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
     if(V.isoIdx)LUNG_ISO_IDX=V.isoIdx.slice();
-    _invContours();
+    _invCaches();_invContours();   // moving reslice needs the GTV mask for the off-bone lesion drift
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
   function centerOnIso(){
@@ -2745,22 +2772,35 @@ const CBCT=(function(){
     const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
     hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
     hidden.pitch=rh(0,4)*sg();hidden.roll=rh(0,4)*sg();hidden.yaw=rh(0,4)*sg();
-    shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();clearErrors();refreshReadouts();
-    const m=gid('cbStatusMsg');m.textContent='New 6DOF setup error applied — register all three planes';m.style.color='var(--label)';render();
+    // Lung: the tumour has also drifted relative to bone (interfraction), so a bony match
+    // leaves the GTV off — the student must match the soft-tissue target. SI (Lng) drifts most.
+    targetDrift = caseKey==='lung' ? {x:ri(2,5)*sg(), y:ri(4,9)*sg(), z:ri(2,6)*sg()} : null;
+    shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();_invCaches();clearErrors();refreshReadouts();
+    const m=gid('cbStatusMsg');
+    m.textContent = targetDrift ? 'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'
+                                : 'New 6DOF setup error applied — register all three planes';
+    m.style.color='var(--label)';render();
   }
   function check(){
-    const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
+    const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));   // bony residual
+    // Grade against the TARGET: for the lung case the GTV sits at bone+drift, so the gradable
+    // residual is the bony residual minus the drift on the translation axes.
+    const g={x:e.x,y:e.y,z:e.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw};
+    if(targetDrift){g.x=+(e.x-targetDrift.x).toFixed(1);g.y=+(e.y-targetDrift.y).toFixed(1);g.z=+(e.z-targetDrift.z).toFixed(1);}
     const cc=(v,t1,t2)=>{const a=Math.abs(v);return a<=t1?'error-good':a<=t2?'error-ok':'error-bad';};
     const sT=(id,mm,t1,t2)=>{const el=gid(id),cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
     const sR=(id,dg,t1,t2)=>{const el=gid(id);el.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';el.className='error-val '+cc(dg,t1,t2);};
-    sT('cbErrX',-e.x,1,3);sT('cbErrY',e.y,1,3);sT('cbErrZ',e.z,1,3);
-    sR('cbErrPitch',e.pitch,0.5,1.5);sR('cbErrRoll',e.roll,0.5,1.5);sR('cbErrYaw',e.yaw,0.5,1.5);
-    const tOk=Math.abs(e.x)<=1&&Math.abs(e.y)<=1&&Math.abs(e.z)<=1,rOk=Math.abs(e.pitch)<=0.5&&Math.abs(e.roll)<=0.5&&Math.abs(e.yaw)<=0.5;
-    const close=Math.abs(e.x)<=3&&Math.abs(e.y)<=3&&Math.abs(e.z)<=3&&Math.abs(e.pitch)<=1.5&&Math.abs(e.roll)<=1.5&&Math.abs(e.yaw)<=1.5;
+    sT('cbErrX',-g.x,1,3);sT('cbErrY',g.y,1,3);sT('cbErrZ',g.z,1,3);
+    sR('cbErrPitch',g.pitch,0.5,1.5);sR('cbErrRoll',g.roll,0.5,1.5);sR('cbErrYaw',g.yaw,0.5,1.5);
+    const tOk=Math.abs(g.x)<=1&&Math.abs(g.y)<=1&&Math.abs(g.z)<=1,rOk=Math.abs(g.pitch)<=0.5&&Math.abs(g.roll)<=0.5&&Math.abs(g.yaw)<=0.5;
+    const close=Math.abs(g.x)<=3&&Math.abs(g.y)<=3&&Math.abs(g.z)<=3&&Math.abs(g.pitch)<=1.5&&Math.abs(g.roll)<=1.5&&Math.abs(g.yaw)<=1.5;
     const m=gid('cbStatusMsg');
     const ms=cbTimer.elapsed();
     const tt=(ms===null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
+    // teaching hint: bones lined up but the (drifted) tumour is not
+    const boneMatched=targetDrift&&Math.abs(e.x)<=2&&Math.abs(e.y)<=2&&Math.abs(e.z)<=2&&Math.abs(e.pitch)<=1&&Math.abs(e.roll)<=1&&Math.abs(e.yaw)<=1;
     if(tOk&&rOk){m.textContent='✓ Registration accepted — within tolerance'+tt;m.style.color='var(--accent)';}
+    else if(boneMatched&&!(tOk&&rOk)){m.textContent='✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton'+tt;m.style.color='var(--accent2)';}
     else if(close){m.textContent='⚡ Close — fine-tune the residual'+tt;m.style.color='var(--accent2-hi)';}
     else{m.textContent='✗ Residual error — keep fusing the planes'+tt;m.style.color='var(--accent2)';}
   }

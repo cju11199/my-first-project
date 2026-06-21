@@ -83,9 +83,19 @@ Two workflows, picked on the start screen:
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style).
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule — a
-  **synthetic** soft-tissue lesion baked into the thoracic CT via `generate_lung_contours.py`,
-  `lung3d_data.js` + `lung3d_labels_data.js`; teaches matching the soft-tissue target. Currently
-  rigid; true tumour-vs-bone differential motion is a planned follow-up).
+  **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
+  `generate_lung_contours.py`, `lung3d_data.js` + `lung3d_labels_data.js`; teaches matching the
+  soft-tissue target, **off the bone**).
+  - **Off-bone differential motion (lung only):** the tumour moves independently of the skeleton,
+    so a bony (spine) match leaves the GTV off-target — only matching the soft-tissue lesion scores.
+    `randomize()` picks a hidden per-case `targetDrift` {x,y,z} (cm voxels) on top of the usual
+    6DOF setup error. The CBCT (moving) reslice composites two passes: it **hides** the
+    planning-position lesion (baked hard-edged into the CT at `LESION_HU`, so it can be cleanly
+    overwritten with lung density) and **redraws** it sampled through the residual *net − drift*
+    transform (`movInvFrom`, `gtvAt` bit-1 GTV lookup), i.e. the lesion follows the tumour, the
+    skeleton follows the couch. `check()` grades translations against `e − targetDrift` and, when
+    the bones are aligned but the GTV isn't, shows a hint to match the tumour not the skeleton.
+    Generic to all other cases (`targetDrift` stays `null`), so they remain pure rigid.
 
 ## Auth & paywall (clerk-auth.js)
 
