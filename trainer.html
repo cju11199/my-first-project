@@ -2850,19 +2850,13 @@ const CBCT=(function(){
     ctx.restore();
   }
   // Fiducial seeds as fixed OVERLAY markers (crisp + stable at any size, no volume-sampling aliasing).
-  // Styled like real hyperdense gold seeds: a small bright metallic core + soft bloom. Reference seed =
-  // teal, CBCT seed = gold (the app's fusion convention) — align the gold seeds onto the teal ones.
-  const SEED_PAL={
-    plan:{glow:'235,245,255', core:'#ffffff', mid:'#eaf2f8', edge:'#9fb0be'},   // reference (white)
-    cbct:{glow:'255,206,74',  core:'#fffbe9', mid:'#ffd24a', edge:'#b9820f'},   // moving CBCT (gold)
-  };
-  function _seedMark(ctx,x,y,p){
-    const g=ctx.createRadialGradient(x,y,0,x,y,6.6);                            // hyperdense bloom / halo
-    g.addColorStop(0,'rgba('+p.glow+',0.80)');g.addColorStop(0.5,'rgba('+p.glow+',0.30)');g.addColorStop(1,'rgba('+p.glow+',0)');
-    ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,6.6,0,Math.PI*2);ctx.fill();
-    const c=ctx.createRadialGradient(x-0.9,y-0.9,0,x,y,2.7);                    // bright metallic core
-    c.addColorStop(0,p.core);c.addColorStop(0.55,p.mid);c.addColorStop(1,p.edge);
-    ctx.fillStyle=c;ctx.beginPath();ctx.arc(x,y,2.7,0,Math.PI*2);ctx.fill();
+  // Drawn to look like a real gold seed on CT: a small bright-white hyperdense core with a thin dark
+  // beam-hardening halo. The CBCT seed is full-bright; the planning (reference) seed is ghosted. Align them.
+  function _ctSeed(ctx,x,y,a){
+    ctx.save();ctx.globalAlpha=a;
+    ctx.fillStyle='rgba(8,10,14,0.72)';ctx.beginPath();ctx.arc(x,y,4.0,0,Math.PI*2);ctx.fill();   // beam-hardening dark halo
+    ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(x,y,2.3,0,Math.PI*2);ctx.fill();              // hyperdense bright-white core
+    ctx.restore();
   }
   function drawSeeds(ctx,name,cx,cy,dw){
     const seeds=curSeeds();if(!seeds||!seeds.length||!V3)return;
@@ -2871,15 +2865,13 @@ const CBCT=(function(){
     const fwd=movFrom({x:e.x-td.x,y:e.y-td.y,z:e.z-td.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw});
     const toW=s=>[(s[0]-(V3.X-1)/2)*sp,(s[1]-(V3.Y-1)/2)*sp,(s[2]-(V3.Z-1)/2)*sp];
     const proj=W=>{let u,v,d;if(name==='axial'){u=W[0];v=W[1];d=W[2];}else if(name==='coronal'){u=W[0];v=-W[2];d=W[1];}else{u=W[1];v=-W[2];d=W[0];}return [cx+u*k,cy+v*k,d];};
-    ctx.save();
     for(const s of seeds){
       const Ws=toW(s);
-      const pp=proj(Ws);                                  // planning seed (fixed, reference): teal
-      if(Math.abs(pp[2]-depHere)<=dth)_seedMark(ctx,pp[0],pp[1],SEED_PAL.plan);
-      const mp=proj(fwd(Ws));                              // CBCT seed (drifts with the couch): gold
-      if(Math.abs(mp[2]-depHere)<=dth)_seedMark(ctx,mp[0],mp[1],SEED_PAL.cbct);
+      const pp=proj(Ws);                                  // planning seed (fixed, reference): ghosted
+      if(Math.abs(pp[2]-depHere)<=dth)_ctSeed(ctx,pp[0],pp[1],0.5);
+      const mp=proj(fwd(Ws));                              // CBCT seed (drifts with the couch): bright
+      if(Math.abs(mp[2]-depHere)<=dth)_ctSeed(ctx,mp[0],mp[1],1.0);
     }
-    ctx.restore();
   }
 
   /* ---- synthetic target overlay (volume cases with no label volume, e.g. brain SRS) ----
