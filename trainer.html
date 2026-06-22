@@ -1468,11 +1468,26 @@ const FID2D=(function(){
     // stale image (FID2D draws its own radiographs and ignores v.img / v.ready).
     ['ap','lat'].forEach(k=>{const v=views[k];v.ready=false;v.uzoom=1;v.fitZoom=1;v.zoom=1;v.panX=0;v.panY=0;updateZoomLabel(k);});
     fidPanel(true);randomize();started=true;requestAnimationFrame(()=>{resizeAll();});}
+  // Best mean marker-to-seed distance reachable by TRANSLATION alone (centroid-aligned plan
+  // triad vs the rotated seeds). If this exceeds the pass tolerance, a pure-translation match
+  // can't succeed and the user must rotate (per-marker Ctrl+drag) to seat all three seeds.
+  function transOnlyResid(){
+    const cP=[0,0,0],cQ=[0,0,0];
+    for(let i=0;i<3;i++)for(let k=0;k<3;k++){cP[k]+=P[i][k]/3;cQ[k]+=Qtrue[i][k]/3;}
+    let d=0;for(let i=0;i<3;i++){let s=0;for(let k=0;k<3;k++){const v=(P[i][k]-cP[k])-(Qtrue[i][k]-cQ[k]);s+=v*v;}d+=Math.sqrt(s);}
+    return d/3;
+  }
   function randomize(){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
-    hiddenE={t:[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()],r:[rr(1,3.5)*sg(),rr(1,3.5)*sg(),rr(1,3.5)*sg()]};
-    const R=eulerR(hiddenE.r[0],hiddenE.r[1],hiddenE.r[2]);
-    Qtrue=P.map(p=>applyR(R,hiddenE.t,p));M=P.map(p=>p.slice());
-    setMsg('Drag the markers onto the gold seeds in both views — Ctrl+drag one to rotate','label');solve();render();}
+    const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
+    let rv=[rr(5.5,9)*sg(),rr(5.5,9)*sg(),rr(5.5,9)*sg()];
+    const build=()=>{const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));};
+    build();
+    // Guarantee translation alone leaves a clear residual (FLOOR mm > the 1.5 mm accept), so
+    // every setup genuinely requires rotation. Residual is ~linear in rotation, so one scale fixes it.
+    const FLOOR=2.2,r0=transOnlyResid();
+    if(r0<FLOOR){const k=Math.min(2.5,(FLOOR+0.3)/Math.max(r0,0.4));rv=rv.map(x=>x*k);build();}
+    hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
+    setMsg('Drag the markers onto the seeds in both views — Ctrl+drag a single marker to rotate the triad','label');solve();render();}
   function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
 
   function solve(){const f=fit(P,M);writeReadout(f);return f;}
