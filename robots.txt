@@ -6,4 +6,8 @@ Allow: /
 Disallow: /trainer
 Disallow: /subscribe
 
+# Paid case data (also guarded by edge middleware) — never index the raw assets.
+Disallow: /*_data.js$
+Disallow: /drr/
+
 Sitemap: https://rtimagematch.com/sitemap.xml
