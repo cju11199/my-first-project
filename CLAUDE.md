@@ -52,6 +52,14 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   (`WebApplication` + `Organization` + a `FAQPage` mirroring the on-page `#faq` accordion).
   Only `/` + `/guides*` are indexable; trainer/subscribe/legal pages are `noindex`. Vercel
   auto-`noindex`es preview deployments, so canonical URLs are absolute `https://rtimagematch.com/...`.
+- **Interim case-data guard (until Phase 2 / R2):** `robots.txt` disallows `/*_data.js$` + `/drr/`
+  and `vercel.json` adds `X-Robots-Tag: noindex` for `*_data.js` + `/drr/*` (keeps the raw assets out
+  of search without touching the indexable marketing pages). `middleware.js` (Vercel Edge Middleware,
+  needs the lone `package.json` dep `@vercel/edge`) is a **hotlink/direct-download speed bump**: it
+  allows same-origin subresource loads (`Sec-Fetch-Site`), blocks cross-site hotlinks / direct
+  navigations / non-browser fetches (curl), and **fails open** on anything ambiguous so it can't
+  break a real session. Headers are spoofable — this is NOT subscription enforcement (that's Phase 2);
+  it just stops casual scraping. `allow()` is exported for unit-testing the truth table.
 - **Case data (large, loaded on demand), kept out of HTML for caching:**
   - `image_data.js` (~4.3 MB), `breast_drr_data.js` — embedded DRR/portal images for 2D/2D.
   - `prostate2d_data.js` (~140 KB) — kV-style AP + Lateral pelvis radiographs (ray-sum of the pelvis
@@ -218,7 +226,9 @@ outbound as the address would require switching to a real mailbox (iCloud+ custo
 
 ## Conventions
 
-- No framework, no build, no package.json (until the `/api` serverless functions of Phase 2 land).
+- No framework, no build step. A minimal `package.json` exists only to supply the `@vercel/edge`
+  dependency for `middleware.js` (the interim case-data hotlink guard); Vercel still serves the
+  static files as-is (no build command). Phase 2's `/api` serverless functions will extend it.
 - Keep `trainer.html` small: large data/images go in separate cacheable `.js`/asset files.
 - Self-hosted fonts (no Google Fonts) and a CSP are part of the security/privacy hardening; if you
   add an external origin (e.g. Clerk domains), update the CSP accordingly.

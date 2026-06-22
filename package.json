@@ -1,0 +1,7 @@
+{
+  "private": true,
+  "description": "RT Image Matching Trainer — static site. package.json exists only for the edge middleware dependency (interim case-data hotlink guard); there is no build step.",
+  "dependencies": {
+    "@vercel/edge": "^1.1.0"
+  }
+}
