@@ -1,0 +1,210 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="How gold fiducial markers are used to localise the prostate in radiation therapy: why seeds are implanted, how kV 2D/2D and CBCT marker matching works, the 6DOF read-out, and why a fiducial match beats a bony match.">
+<title>Prostate Fiducial Marker Matching Explained — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/prostate-fiducial-marker-matching">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="Prostate Fiducial Marker Matching Explained">
+<meta property="og:description" content="Why gold seeds are implanted in the prostate, how kV 2D/2D and CBCT fiducial matching works, the 6DOF read-out, and why a marker match beats a bony match.">
+<meta property="og:url" content="https://rtimagematch.com/guides/prostate-fiducial-marker-matching">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Prostate Fiducial Marker Matching Explained">
+<meta name="twitter:description" content="Gold seeds, kV 2D/2D and CBCT marker matching, the 6DOF read-out, and why fiducials beat a bony match for the prostate.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "Prostate Fiducial Marker Matching Explained",
+      "description": "How implanted gold fiducial markers localise the prostate in radiation therapy: kV 2D/2D and CBCT marker matching, the 6DOF read-out, and why a fiducial match outperforms a bony match.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-22",
+      "dateModified": "2026-06-22",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/prostate-fiducial-marker-matching"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "Prostate fiducial marker matching", "item": "https://rtimagematch.com/guides/prostate-fiducial-marker-matching" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Why are gold fiducial markers implanted in the prostate?", "acceptedAnswer": { "@type": "Answer", "text": "The prostate moves independently of the pelvic bones, mainly with rectal and bladder filling, so a bony match does not reliably localise it. Three small gold seeds implanted in the gland give a high-contrast, directly visible surrogate for the prostate's position on daily setup images, allowing the soft-tissue target to be matched precisely." } },
+        { "@type": "Question", "name": "How does fiducial marker matching work?", "acceptedAnswer": { "@type": "Answer", "text": "On the daily setup image — a kV 2D/2D pair or a CBCT — the implanted seeds are aligned to the marker positions from the planning CT. Because three non-collinear markers define a rigid body, the software can solve the translation and rotation that map the planned markers onto the imaged seeds and read out the couch correction." } },
+        { "@type": "Question", "name": "Why match the markers instead of the bones?", "acceptedAnswer": { "@type": "Answer", "text": "Because the prostate can shift several millimetres relative to the pelvis between fractions, aligning the bony pelvis can leave the actual target off-position. Matching the implanted markers follows the gland itself, so the high-dose region stays on the prostate rather than on the skeleton." } },
+        { "@type": "Question", "name": "How many fiducial markers are used and why three?", "acceptedAnswer": { "@type": "Answer", "text": "Three markers are typical. A single marker gives only translation; three non-collinear markers define a rigid body, so they also resolve rotation and provide redundancy — if one seed migrates or is hard to see, the geometry of the others still constrains the match." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:160px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; Prostate fiducial marker matching</p>
+  <article>
+    <h1>Prostate fiducial marker matching explained</h1>
+    <p class="meta">A guide for radiation therapy students · ~7 min read</p>
+    <p class="lede">The prostate is a moving target. It drifts relative to the pelvic bones with bladder and rectal filling, so lining up the skeleton can leave the gland — and the dose — off position. Implanted gold markers solve this by giving a high-contrast surrogate you can match directly. This guide explains why seeds are used, how kV and CBCT fiducial matching works, and why three markers let you read a full 6DOF correction.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#problem">The problem: the prostate moves off the bone</a>
+      <a href="#seeds">What fiducial markers are</a>
+      <a href="#why3">Why three markers</a>
+      <a href="#kv">kV 2D/2D marker matching</a>
+      <a href="#cbct">CBCT marker matching</a>
+      <a href="#6dof">Reading a 6DOF correction</a>
+      <a href="#bone">Fiducial match vs bony match</a>
+      <a href="#practice">How to practice fiducial matching</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="problem">The problem: the prostate moves off the bone</h2>
+    <p>Most setup verification aligns <strong>bony anatomy</strong>, which works well when the target is fixed to the skeleton. The prostate is not. It sits between the bladder and rectum and shifts by several millimetres — most often in the anterior–posterior and superior–inferior directions — as those organs fill and empty. Match the pelvis on a given day and the prostate can still be out of position. For a tightly conformal prostate plan, that residual error matters.</p>
+
+    <h2 id="seeds">What fiducial markers are</h2>
+    <p>A <strong>fiducial marker</strong> is a small, dense, radio-opaque object — typically a gold seed roughly a millimetre across and a few millimetres long — implanted into the prostate before planning, usually under transrectal ultrasound guidance. Because gold is far denser than tissue, each seed shows up as an unmistakable bright spot on any X-ray-based image. The markers move <em>with the gland</em>, so wherever the seeds are, the prostate is.</p>
+
+    <h2 id="why3">Why three markers</h2>
+    <p>The number of markers determines how much of the patient's pose you can recover:</p>
+    <ul>
+      <li><strong>One marker</strong> gives position only — translation in three directions.</li>
+      <li><strong>Three non-collinear markers</strong> define a <strong>rigid body</strong>: they pin down translation <em>and</em> rotation, and they add redundancy. If one seed is hard to see or has migrated slightly, the geometry of the other two still constrains the match.</li>
+    </ul>
+    <p>Three is the common choice because it unlocks rotational information without over-complicating the implant.</p>
+
+    <h2 id="kv">kV 2D/2D marker matching</h2>
+    <p>On a Varian-style kV system, two orthogonal radiographs (an AP and a lateral) are acquired and the three seeds appear as bright dots on each. The therapist aligns a <strong>planning marker triad</strong> — the seed positions from the planning CT — onto the imaged seeds in both views. Because the same three points are seen from two directions, their full 3D arrangement is constrained, and the system computes the shift that brings the planned markers onto today's seeds. This is fast and low-dose, and it is exactly the workflow recreated in the trainer's 2D/2D prostate case.</p>
+
+    <h2 id="cbct">CBCT marker matching</h2>
+    <p>With cone-beam CT, the seeds appear as bright voxels in the reconstructed volume. The registration is driven by the markers rather than the bony pelvis: you align the seeds across the three planes so the planned and imaged markers coincide. CBCT also lets you sanity-check the surrounding soft tissue and the rectum/bladder state at the same time. For the volumetric fundamentals, see <a href="/guides/cbct-6dof-registration">CBCT 6DOF registration</a>.</p>
+
+    <h2 id="6dof">Reading a 6DOF correction</h2>
+    <p>Three markers define a rigid body, so a marker match can resolve all six degrees of freedom:</p>
+    <div class="dof">
+      <div><b>Lateral</b><span>Left–right translation of the seed cluster.</span></div>
+      <div><b>Longitudinal</b><span>Superior–inferior translation.</span></div>
+      <div><b>Vertical</b><span>Anterior–posterior translation.</span></div>
+      <div><b>Pitch / Roll / Yaw</b><span>Rotation of the triad — recovered because three points fix orientation, not just position.</span></div>
+    </div>
+    <p>Mathematically, the software finds the rigid transform that best maps the planned markers onto the imaged seeds (a least-squares point-set fit), then reports the couch correction. Whether all rotations are <em>acted on</em> depends on the couch and protocol, but the markers carry the information.</p>
+
+    <h2 id="bone">Fiducial match vs bony match</h2>
+    <ul>
+      <li><strong>Bony match:</strong> aligns the pelvis. Robust and simple, but it ignores prostate motion relative to the skeleton, so the target can be left off-position.</li>
+      <li><strong>Fiducial match:</strong> aligns the gland directly via its implanted seeds, following the actual target. This is why marker-based localisation is a standard of care for prostate IGRT.</li>
+    </ul>
+    <div class="tip"><p><strong>Tip:</strong> if the markers and the bony pelvis disagree, trust the markers — that disagreement <em>is</em> the prostate motion you implanted the seeds to catch.</p></div>
+
+    <h2 id="practice">How to practice fiducial matching</h2>
+    <p>The <a href="/trainer">RT Image Matching Trainer</a> includes prostate fiducial cases in both workflows: a <strong>Varian-style kV 2D/2D</strong> case where you drag a three-marker triad onto the seeds in the AP and lateral views and the app solves a full 6DOF couch shift, and a <strong>CBCT</strong> prostate case with implanted gold seeds. Each applies a hidden offset you recover to within tolerance, with live feedback — the quickest way to build confidence reading a marker match before you're at the console.</p>
+
+    <div class="cta-box">
+      <p>Try the prostate fiducial case<span>Drag the marker triad onto the seeds; the trainer solves the 6DOF couch shift.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>Why are gold fiducial markers implanted in the prostate?</h3>
+      <p>The prostate moves independently of the pelvic bones with bladder and rectal filling, so a bony match doesn't reliably localise it. Three gold seeds in the gland give a high-contrast, directly visible surrogate for the prostate on daily images, so the soft-tissue target can be matched precisely.</p>
+      <h3>How does fiducial marker matching work?</h3>
+      <p>On the daily kV 2D/2D pair or CBCT, the implanted seeds are aligned to the marker positions from the planning CT. Three non-collinear markers define a rigid body, so the software solves the translation and rotation mapping planned markers onto the imaged seeds and reads out the couch correction.</p>
+      <h3>Why match the markers instead of the bones?</h3>
+      <p>Because the prostate can shift several millimetres relative to the pelvis between fractions, aligning the bony pelvis can leave the target off-position. Matching the markers follows the gland itself, keeping the high-dose region on the prostate.</p>
+      <h3>How many markers are used and why three?</h3>
+      <p>Three is typical. One marker gives only translation; three non-collinear markers define a rigid body, so they also resolve rotation and add redundancy if one seed is hard to see or migrates.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/cbct-6dof-registration"><span class="k">Companion guide</span><span class="t">CBCT 6DOF registration explained &rarr;</span></a>
+      <a href="/guides/2d-2d-portal-vs-drr-matching"><span class="k">Companion guide</span><span class="t">2D/2D portal vs DRR matching &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is general background for learning, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>

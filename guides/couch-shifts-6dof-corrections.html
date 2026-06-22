@@ -1,0 +1,227 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Couch shifts and 6DOF corrections in radiation therapy explained: the six degrees of freedom, the IEC couch coordinate conventions (Lat, Lng, Vrt, pitch, roll, yaw), action levels and tolerances, and how to read and apply a correction.">
+<title>Couch Shifts &amp; 6DOF Corrections Explained — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/couch-shifts-6dof-corrections">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="Couch Shifts &amp; 6DOF Corrections Explained">
+<meta property="og:description" content="The six degrees of freedom, IEC couch coordinates (Lat, Lng, Vrt, pitch, roll, yaw), action levels and tolerances, and how to read and apply a correction.">
+<meta property="og:url" content="https://rtimagematch.com/guides/couch-shifts-6dof-corrections">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Couch Shifts &amp; 6DOF Corrections Explained">
+<meta name="twitter:description" content="Six degrees of freedom, IEC couch coordinates, action levels and tolerances, and how to read and apply a correction.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "Couch Shifts and 6DOF Corrections Explained",
+      "description": "A guide to couch corrections in radiation therapy: the six degrees of freedom, IEC couch coordinate conventions, action levels and tolerances, and how to read and apply a shift.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-22",
+      "dateModified": "2026-06-22",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/couch-shifts-6dof-corrections"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "Couch shifts & 6DOF corrections", "item": "https://rtimagematch.com/guides/couch-shifts-6dof-corrections" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What are the six degrees of freedom in radiation therapy?", "acceptedAnswer": { "@type": "Answer", "text": "The six degrees of freedom (6DOF) are three translations and three rotations of the patient relative to the plan: lateral, longitudinal and vertical translation, plus pitch, roll and yaw rotation. Together they fully describe any rigid displacement of the patient on the couch." } },
+        { "@type": "Question", "name": "What do Lat, Lng and Vrt mean on the couch read-out?", "acceptedAnswer": { "@type": "Answer", "text": "They are the three translation axes. Lat (lateral) is the left–right shift, Lng (longitudinal) is the superior–inferior shift along the couch, and Vrt (vertical) is the up–down shift. A 6DOF read-out adds pitch, roll and yaw for the rotations." } },
+        { "@type": "Question", "name": "What is the difference between a 5DOF and a 6DOF correction?", "acceptedAnswer": { "@type": "Answer", "text": "A 5DOF correction resolves the three translations plus two rotations; the third rotation (yaw, the couch rotation) is not corrected — common with planar 2D/2D imaging and standard couches. A 6DOF correction also applies yaw, which requires a robotic 6DOF couch and volumetric imaging such as CBCT." } },
+        { "@type": "Question", "name": "What is a tolerance or action level for couch shifts?", "acceptedAnswer": { "@type": "Answer", "text": "An action level is the threshold of residual error below which it is acceptable to treat and above which you must intervene — re-image, reposition, or escalate. Typical routine thresholds are on the order of a few millimetres, with much tighter limits for SRS and SBRT. Always follow your department's protocol." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:160px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; Couch shifts &amp; 6DOF corrections</p>
+  <article>
+    <h1>Couch shifts and 6DOF corrections explained</h1>
+    <p class="meta">A guide for radiation therapy students · ~7 min read</p>
+    <p class="lede">Once you've matched today's image to the plan, the result is a couch correction — the shift that moves the patient into the planned position. This guide breaks down the six degrees of freedom, the couch coordinate names you'll see on the read-out, the difference between 5DOF and 6DOF, and how action levels decide whether you treat or intervene.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#6dof">The six degrees of freedom</a>
+      <a href="#axes">Couch axes: Lat, Lng, Vrt</a>
+      <a href="#rotations">The rotations: pitch, roll, yaw</a>
+      <a href="#5v6">5DOF vs 6DOF couches</a>
+      <a href="#read">Reading and applying a correction</a>
+      <a href="#tolerance">Tolerances and action levels</a>
+      <a href="#mistakes">Common mistakes</a>
+      <a href="#practice">How to practice reading shifts</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="6dof">The six degrees of freedom</h2>
+    <p>Any rigid object — including a patient lying on the couch — can be displaced in exactly <strong>six independent ways</strong>: three <strong>translations</strong> (sliding along each axis) and three <strong>rotations</strong> (turning about each axis). Together these are the <strong>six degrees of freedom (6DOF)</strong>, and they completely describe how today's setup differs from the plan. A correction is simply the inverse displacement that cancels the error.</p>
+
+    <h2 id="axes">Couch axes: Lat, Lng, Vrt</h2>
+    <p>The three translations are usually labelled with IEC-style couch names:</p>
+    <div class="dof">
+      <div><b>Lat (lateral)</b><span>Left–right, across the couch.</span></div>
+      <div><b>Lng (longitudinal)</b><span>Superior–inferior, along the couch (head–foot).</span></div>
+      <div><b>Vrt (vertical)</b><span>Up–down, raising or lowering the couch.</span></div>
+    </div>
+    <p>Sign conventions (which direction is positive) vary between systems and are often expressed relative to the patient or the isocenter, so always confirm the convention on the machine you're using rather than assuming.</p>
+
+    <h2 id="rotations">The rotations: pitch, roll, yaw</h2>
+    <p>The three rotations are named for how they tip and turn the patient:</p>
+    <div class="dof">
+      <div><b>Pitch</b><span>Nodding — rotation about the left–right axis. Seen as a tilt on a lateral view.</span></div>
+      <div><b>Roll</b><span>Tilting side to side — rotation about the head–foot axis. Seen as a tilt on an AP view.</span></div>
+      <div><b>Yaw</b><span>Turning left or right — rotation about the vertical axis. This is the couch rotation.</span></div>
+    </div>
+
+    <h2 id="5v6">5DOF vs 6DOF couches</h2>
+    <p>How many of these you can actually <em>correct</em> depends on the couch and the imaging:</p>
+    <ul>
+      <li><strong>Standard (5DOF) couch:</strong> applies the three translations plus yaw (couch rotation), but cannot apply pitch and roll mechanically. With planar 2D/2D imaging, yaw is also hard to measure, so corrections are often described as <strong>5DOF</strong> — three translations and two rotations read from the images.</li>
+      <li><strong>Robotic 6DOF couch:</strong> adds motorised pitch and roll, so a full <strong>6DOF</strong> correction can be applied. This is paired with volumetric imaging (CBCT) that can measure all three rotations, and is common for SRS and SBRT.</li>
+    </ul>
+    <p>For how each imaging method resolves these axes, see <a href="/guides/cbct-6dof-registration">CBCT 6DOF registration</a> and <a href="/guides/2d-2d-portal-vs-drr-matching">2D/2D portal vs DRR matching</a>.</p>
+
+    <h2 id="read">Reading and applying a correction</h2>
+    <ol>
+      <li><strong>Match</strong> the setup image to the reference until the anatomy or markers line up.</li>
+      <li><strong>Read the residual</strong> — the remaining shift and rotation on each axis after your match.</li>
+      <li><strong>Check it against tolerance</strong> before doing anything.</li>
+      <li><strong>Apply the couch move</strong> (automatically or manually) to take out the translations, and the rotations the couch supports.</li>
+      <li><strong>Re-image to confirm</strong> for high-precision treatments, or where the shift was large.</li>
+    </ol>
+    <div class="tip"><p><strong>Tip:</strong> a large rotation can masquerade as a translation near the edges of the field. If a translation won't resolve on both views at once, suspect an uncorrected pitch, roll, or yaw.</p></div>
+
+    <h2 id="tolerance">Tolerances and action levels</h2>
+    <p>An <strong>action level</strong> is the residual-error threshold that separates "treat" from "intervene". Inside it, the remaining error is clinically acceptable and you proceed; outside it, you re-image, reposition, or escalate. Thresholds depend entirely on the technique:</p>
+    <ul>
+      <li><strong>Routine conformal / IMRT:</strong> typically a few millimetres and a degree or two.</li>
+      <li><strong>SRS / SBRT:</strong> sub-millimetre and a fraction of a degree, which is why these treatments need a 6DOF couch and volumetric guidance.</li>
+    </ul>
+    <p>The exact numbers are set by your department's protocol — the principle to learn is that the tolerance scales with how conformal and how high-dose the treatment is.</p>
+
+    <h2 id="mistakes">Common mistakes</h2>
+    <ul>
+      <li><strong>Correcting to the bone when the target moves off it</strong> — for example aligning the pelvis on a prostate case instead of the implanted <a href="/guides/prostate-fiducial-marker-matching">fiducial markers</a>.</li>
+      <li><strong>Ignoring rotation</strong> because the couch can't fully apply it — note it, because it still affects coverage.</li>
+      <li><strong>Assuming a sign convention</strong> instead of confirming which direction is positive on the system in front of you.</li>
+      <li><strong>Over-correcting random error</strong> — chasing a single day's noise rather than the systematic trend.</li>
+    </ul>
+
+    <h2 id="practice">How to practice reading shifts</h2>
+    <p>Reading a couch correction quickly and correctly is a trainable skill. The <a href="/trainer">RT Image Matching Trainer</a> applies a hidden 6DOF (or 5DOF) setup error to each case and shows a live read-out of the residual translation and rotation as you work, graded against tolerance. You can practice on 2D/2D and CBCT cases across multiple sites until reading and applying a shift becomes second nature.</p>
+
+    <div class="cta-box">
+      <p>Practice reading couch shifts<span>Hidden 6DOF errors, live residual read-out, graded to tolerance.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>What are the six degrees of freedom in radiation therapy?</h3>
+      <p>They are three translations and three rotations of the patient relative to the plan: lateral, longitudinal and vertical translation, plus pitch, roll and yaw rotation. Together they fully describe any rigid displacement on the couch.</p>
+      <h3>What do Lat, Lng and Vrt mean on the couch read-out?</h3>
+      <p>They are the three translation axes: Lat (lateral) is left–right, Lng (longitudinal) is superior–inferior along the couch, and Vrt (vertical) is up–down. A 6DOF read-out adds pitch, roll and yaw.</p>
+      <h3>What is the difference between a 5DOF and a 6DOF correction?</h3>
+      <p>A 5DOF correction resolves three translations plus two rotations; yaw (couch rotation) is not corrected — common with planar imaging and standard couches. A 6DOF correction also applies pitch and roll, needing a robotic 6DOF couch and volumetric imaging such as CBCT.</p>
+      <h3>What is a tolerance or action level for couch shifts?</h3>
+      <p>It is the residual-error threshold below which you treat and above which you intervene — re-image, reposition, or escalate. Routine thresholds are a few millimetres; SRS and SBRT are much tighter. Always follow your department's protocol.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/cbct-6dof-registration"><span class="k">Companion guide</span><span class="t">CBCT 6DOF registration explained &rarr;</span></a>
+      <a href="/guides/igrt-image-guided-radiation-therapy"><span class="k">Start here</span><span class="t">What is IGRT? &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is general background for learning, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>

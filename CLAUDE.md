@@ -35,17 +35,22 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `terms.html`, `privacy.html` — legal pages (`/terms`, `/privacy`; NY governing law,
   `support@rtimagematch.com`).
 - `clerk-auth.js` — client-side auth + billing gate (loaded by all pages).
-- **Content / SEO guides (indexable):** `guides/index.html` (`/guides` hub) plus articles
-  `guides/cbct-6dof-registration.html` and `guides/2d-2d-portal-vs-drr-matching.html`. On-brand
-  static pages (no auth) with `TechArticle` + `FAQPage` + `BreadcrumbList` JSON-LD, linked from
-  the landing nav/footer and cross-linked to each other and `/trainer`. Built as the organic
-  content layer (the trainer itself can't be indexed — it's gated).
+- **Content / SEO guides (indexable):** `guides/index.html` (`/guides` hub) plus five articles —
+  `guides/igrt-image-guided-radiation-therapy.html` (the "what is IGRT" primer / start-here),
+  `guides/cbct-6dof-registration.html`, `guides/2d-2d-portal-vs-drr-matching.html`,
+  `guides/couch-shifts-6dof-corrections.html`, and `guides/prostate-fiducial-marker-matching.html`.
+  On-brand static pages (no auth) with `TechArticle` + `FAQPage` + `BreadcrumbList` JSON-LD, linked
+  from the landing nav/footer, cross-linked to each other (`.next` related-guide cards) and `/trainer`.
+  Built as the organic content layer (the trainer itself can't be indexed — it's gated). All five
+  are in `sitemap.xml`. When adding a guide: copy an existing one's `<head>`/CSS verbatim, add it to
+  the hub grid + sitemap, and cross-link it from the related guides.
 - **SEO:** `robots.txt` (points to sitemap; disallows gated `/trainer` + `/subscribe`),
-  `sitemap.xml` (homepage only — legal pages are `noindex`), `favicon.svg`, and `og-image.png`
-  (1200×630 share card, regenerated from an HTML template via headless Chromium). The landing page
-  carries canonical, Open Graph/Twitter tags, and JSON-LD (`WebApplication` + `Organization`).
-  Only `/` is indexable; trainer/subscribe/legal pages are `noindex`. Vercel auto-`noindex`es
-  preview deployments, so canonical URLs are absolute `https://rtimagematch.com/...`.
+  `sitemap.xml` (homepage + `/guides` hub + the five guide articles; legal pages are `noindex`),
+  `favicon.svg`, and `og-image.png` (1200×630 share card, regenerated from an HTML template via
+  headless Chromium). The landing page carries canonical, Open Graph/Twitter tags, and JSON-LD
+  (`WebApplication` + `Organization` + a `FAQPage` mirroring the on-page `#faq` accordion).
+  Only `/` + `/guides*` are indexable; trainer/subscribe/legal pages are `noindex`. Vercel
+  auto-`noindex`es preview deployments, so canonical URLs are absolute `https://rtimagematch.com/...`.
 - **Case data (large, loaded on demand), kept out of HTML for caching:**
   - `image_data.js` (~4.3 MB), `breast_drr_data.js` — embedded DRR/portal images for 2D/2D.
   - `prostate2d_data.js` (~140 KB) — kV-style AP + Lateral pelvis radiographs (ray-sum of the pelvis
