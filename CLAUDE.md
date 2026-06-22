@@ -90,16 +90,17 @@ Two workflows, picked on the start screen:
 
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style).
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
-  · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule) · Prostate
-  (gold fiducial markers). The last two are **off-bone** cases (see below):
+  · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
+  Prostate (gold fiducial markers, **rigid**):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
     `generate_lung_contours.py` (`lung3d_data.js` + `lung3d_labels_data.js`); match the soft-tissue target.
   - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
     in via `generate_prostate_fiducials.py` (`prostate3d_data.js` + `prostate3d_labels_data.js`, reuses
     the pelvis volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fiducial` bit 32 for the seed
-    voxels + a `fidctv` bit 64 = a **0.5 cm contour** around the seeds). The seeds show as bright voxels
-    in the CT and the white "Fiducials + 5 mm" contour marks the planning target — match the **seeds, not the bone**.
-  - **Off-bone differential motion (config-driven, lung + prostate):** the target moves independently of
+    voxels + a `fidctv` bit 64 = a **0.5 cm contour** around the seeds). The seeds are bright baked voxels;
+    the case is a **rigid 6DOF** match (no `offBone` config, so the seeds move with the bone and render as
+    plain trilinear-sampled CT — maximally stable). The off-bone-drift variant was removed at the owner's request.
+  - **Off-bone differential motion (config-driven; lung only today):** the target moves independently of
     the skeleton, so a bony match leaves it off — only matching the soft-tissue target / fiducials scores.
     Each off-bone case carries a `VOLCASE[case].offBone` config (`driftBit`, `hideDens`, `drawDens`, per-axis
     `drift` ranges mm, plus `okMsg`/`hint`/`setup` strings); `curOffBone()` returns it. `randomize()` picks a

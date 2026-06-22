@@ -2350,14 +2350,7 @@ const CBCT=(function(){
                      okMsg:'✓ PTV aligned — target within tolerance',
                      hint:'✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton',
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
-    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true,   // prostate IGRT: soft-tissue pelvis window; 3 implanted gold seeds (bright)
-            // off-bone differential motion: the prostate + its gold fiducials(bit 32) drift vs the bony pelvis
-            // (bladder/rectal filling). Moving reslice hides the planning-position seeds (overwrite with prostate
-            // soft-tissue dens 70) and redraws them at net-drift as bright gold (255). Match the seeds, not bone.
-            offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3],y:[3,6],z:[2,5]},
-                     okMsg:'✓ Seeds aligned — fiducials within tolerance',
-                     hint:'✗ Pelvis aligned, but the seeds are off — match the fiducials, not the bone',
-                     setup:'New setup — the prostate has shifted off the pelvis; match the gold seeds, not the bone'}}
+    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true}   // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
   };
   const hasVol=k=>!!VOLCASE[k];
   function curOffBone(){return (VOLCASE[caseKey]&&VOLCASE[caseKey].offBone)||null;}
