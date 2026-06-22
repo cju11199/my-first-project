@@ -48,6 +48,8 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   preview deployments, so canonical URLs are absolute `https://rtimagematch.com/...`.
 - **Case data (large, loaded on demand), kept out of HTML for caching:**
   - `image_data.js` (~4.3 MB), `breast_drr_data.js` — embedded DRR/portal images for 2D/2D.
+  - `prostate2d_data.js` (~140 KB) — kV-style AP + Lateral pelvis radiographs (ray-sum of the pelvis
+    CT) + planning fiducial-triad geometry for the 2D/2D prostate fiducial-match case (`PROSTATE2D`).
   - `*3d_data.js` (brain, breast, pelvis, spine) — 3D CT volume datasets for CBCT (data-URI atlases).
   - `*3d_labels_data.js` — structure/label volumes for CBCT contours.
   - `drr/*.png` — DRR images.
@@ -57,6 +59,8 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   thoracic CT and writes `lung3d_data.js` + `lung3d_labels_data.js` (needs numpy/scipy/pillow).
 - `generate_prostate_fiducials.py` — offline helper that implants 3 gold fiducials in the pelvis
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
+- `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
+  radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case).
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -68,6 +72,19 @@ Two workflows, picked on the start screen:
   Drag to translate/rotate; **1/2/3** lock to a single axis ("couch lock"); **Ctrl+Z** undo.
   Contrast is applied per-image via `ctx.filter` in `drawRef`/`drawPor` so the letterbox
   background / vignette / crosshair / ring stay unaffected (#69).
+  - **2D/2D fiducial match (Varian-style kV)** — the Prostate case (`CASES.prostate.fidMatch:true`)
+    is a self-contained `FID2D` module, not a DRR overlay match. Two kV radiographs (AP + Lateral,
+    ray-summed from the pelvis CT in `prostate2d_data.js`) show 3 gold seeds at a hidden **6DOF**
+    offset; the user **drags a 3-marker triad** onto them in both views. **Plain drag** translates
+    all three markers (Sup/Inf/Lat); **Ctrl/⌘+drag** moves the nearest single marker (adds rotation).
+    A least-squares rigid fit (**Horn quaternion**, `fit()`) of plan→placed markers reads out the
+    couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. `check()` grades
+    on mean 3D marker-to-seed distance (≤1.5 mm accept); the displayed shift is the *recovered
+    correction* (coloured by overall match quality, not per-axis magnitude). `applyCase`/`resetShift`/
+    `randomizeShift`/`checkMatch` route to `FID2D` when active; the normal drag/zoom/keyboard handlers
+    and blend/contrast/tool widgets are bypassed (`body.fid-mode`). `generate_prostate_2d.py` builds
+    the radiographs (`mu**1.6` bone emphasis + gamma) and the triad geometry (spread in all 3 axes so
+    the fit is well-conditioned in both projections).
 - **CBCT** — 3D cone-beam registration in 3 planes (axial/coronal/sagittal) with **6DOF** couch
   correction (Lat / Lng / Vrt / Pitch / Roll / Yaw). Real 3D CT volumes via MPR reslice.
   - **Fusion**: teal (CT/reference) vs orange (CBCT/moving) overlay (#58, replaced additive blend).
