@@ -138,7 +138,7 @@ main.shifts-collapsed .shift-tab{left:0}
 .ctrl-btn:active{transform:translateY(1px);box-shadow:none}
 .ctrl-val{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:var(--num);color:var(--text);flex:1;min-width:78px;text-align:center;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:9px 4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
 .ctrl-unit{font-family:var(--mono);font-size:13px;color:var(--muted)}
-/* Large-shift alert: a yellow ⚠ shown next to any translation readout exceeding 3.0 cm. */
+/* Large-rotation alert: a yellow ⚠ shown next to a pitch/roll readout exceeding 3.0°. */
 .shift-warn{display:none;align-items:center;margin-left:6px;color:#f5c542;font-size:15px;line-height:1;cursor:default;filter:drop-shadow(0 0 3px rgba(245,197,66,.5))}
 
 .step-row{display:flex;gap:0;align-items:center;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-pill);padding:3px;box-shadow:inset 0 1px 3px rgba(0,0,0,.5)}
@@ -1502,9 +1502,9 @@ const FID2D=(function(){
     const set=(id,v,u)=>{const e=document.getElementById(id);if(e)e.textContent=(v>=0?'+':'')+v.toFixed(u)+(u===2?'':'');};
     // translation: Lat=tx, Vrt=AP=ty, Lng=SI=tz  (cm)
     set('valX',f.t[0]/10,2);set('valZ',f.t[1]/10,2);set('valY',f.t[2]/10,2);
-    shiftWarn('valX',f.t[0]/10);shiftWarn('valZ',f.t[1]/10);shiftWarn('valY',f.t[2]/10);
     // rotations: Pitch=rx, Roll=rz, Yaw=ry  (deg)
     set('valPitch',f.r[2],1);set('valRoll',f.r[0],1);const vy=document.getElementById('valYaw');if(vy)vy.textContent=(f.r[1]>=0?'+':'')+f.r[1].toFixed(1);
+    shiftWarn('valPitch',f.r[2]);shiftWarn('valRoll',f.r[0]);
     // The graded error display reports the *recovered couch shift* (the correction to apply),
     // not a residual — so colour every cell by the overall match quality (cls), not magnitude.
     if(grade){const c='error-val '+(cls||'error-good');
@@ -1922,26 +1922,25 @@ function attachInteractions(key){
 
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
 // Rotation stays in degrees. This helper keeps every readout in sync.
-// Toggle a yellow ⚠ alert next to a translation readout when |shift| on that axis exceeds 3.0 cm.
-// Shared by the 2D, fiducial and CBCT panels (rotations are in degrees, so they're not flagged).
-function shiftWarn(valId,cm){
+// Toggle a yellow ⚠ alert next to a rotation readout when |angle| exceeds 3.0°. Applied only to
+// pitch and roll. Shared by the 2D, fiducial and CBCT panels.
+function shiftWarn(valId,deg){
   const v=document.getElementById(valId); if(!v) return;
   const row=v.parentNode; let w=row.querySelector('.shift-warn');
   if(!w){ w=document.createElement('span'); w.className='shift-warn'; w.textContent='⚠';
-    w.title='Large couch shift (> 3.0 cm)'; row.appendChild(w); }
-  w.style.display = Math.abs(cm)>3.0 ? 'inline-flex' : 'none';
+    w.title='Large rotation (> 3.0°)'; row.appendChild(w); }
+  w.style.display = Math.abs(deg)>3.0 ? 'inline-flex' : 'none';
 }
 function refreshReadouts(){
   // Sign convention (HFS supine): +Lat = patient Right, +Lng = Inferior. Vrt is isocenter-referenced:
   // moving the table/anatomy ANTERIOR -> isocenter posterior -> NEGATIVE Vrt (vertical is inverted).
   // The image follows the cursor; only the displayed sign is adjusted.
-  const cx=-shift.x/10, cy=shift.y/10, cz=zSign*shift.z/10;
-  document.getElementById('valX').textContent=cx.toFixed(2);
-  document.getElementById('valY').textContent=cy.toFixed(2);
-  document.getElementById('valZ').textContent=cz.toFixed(2);
+  document.getElementById('valX').textContent=(-shift.x/10).toFixed(2);
+  document.getElementById('valY').textContent=(shift.y/10).toFixed(2);
+  document.getElementById('valZ').textContent=(zSign*shift.z/10).toFixed(2);
   document.getElementById('valRoll').textContent=shift.roll.toFixed(1);
   document.getElementById('valPitch').textContent=shift.pitch.toFixed(1);
-  shiftWarn('valX',cx); shiftWarn('valY',cy); shiftWarn('valZ',cz);
+  shiftWarn('valRoll',shift.roll); shiftWarn('valPitch',shift.pitch);
 }
 
 // Apply a drag delta (mm) to a shift axis and refresh the readouts (no re-render here;
@@ -3305,10 +3304,9 @@ const CBCT=(function(){
 
   /* ---- state / readouts ---- */
   function refreshReadouts(){
-    const cx=-shift.x/10, cy=shift.y/10, cz=shift.z/10;
-    gid('cbValX').textContent=cx.toFixed(2);gid('cbValY').textContent=cy.toFixed(2);gid('cbValZ').textContent=cz.toFixed(2);
+    gid('cbValX').textContent=(-shift.x/10).toFixed(2);gid('cbValY').textContent=(shift.y/10).toFixed(2);gid('cbValZ').textContent=(shift.z/10).toFixed(2);
     gid('cbValPitch').textContent=shift.pitch.toFixed(1);gid('cbValRoll').textContent=shift.roll.toFixed(1);gid('cbValYaw').textContent=shift.yaw.toFixed(1);
-    shiftWarn('cbValX',cx);shiftWarn('cbValY',cy);shiftWarn('cbValZ',cz);
+    shiftWarn('cbValPitch',shift.pitch);shiftWarn('cbValRoll',shift.roll);
     [['cbSlX',shift.x],['cbSlY',shift.y],['cbSlZ',shift.z],['cbSlPitch',shift.pitch],['cbSlRoll',shift.roll],['cbSlYaw',shift.yaw]].forEach(([id,v])=>{const e=gid(id);if(e)e.value=v;});
   }
   function clearErrors(){['cbErrX','cbErrY','cbErrZ','cbErrPitch','cbErrRoll','cbErrYaw'].forEach(id=>{const e=gid(id);e.textContent='—';e.className='error-val';});}
