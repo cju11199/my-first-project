@@ -19,9 +19,11 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 
 - `index.html` — marketing **landing page** (`/`), with pricing and a **"See it in action"**
   product-screenshot section (`#see`).
-- `assets/shots/*.webp` — trainer product screenshots (CBCT fusion · 2D/2D match · progress
-  dashboard), generated headless and used on the landing + `/subscribe`. WebP is cached like png
-  in `vercel.json`. Since the trainer is gated, these are how prospects see the product.
+- `assets/shots/` — trainer product visuals, generated headless and used on the landing + `/subscribe`
+  (since the trainer is gated, these are how prospects see the product): `trainer-cbct.gif` (a looping
+  CBCT 6DOF match converging — the landing-`#see` hero, also on `/subscribe`), plus `trainer-2d2d.webp`
+  and `trainer-progress.webp` stills. WebP cached like png in `vercel.json`. The GIF was built with
+  Pillow (shared 96-colour palette to avoid flicker, ~600 px, single loop file ~0.6 MB).
 - `trainer.html` — the **trainer app** (`/trainer`). ~220 KB single file: markup + styles + all
   app logic. `<body data-require-auth>` so the auth gate protects it.
 - `subscribe.html` — Clerk pricing table / checkout (`/subscribe`); shows a trainer-screenshot strip above the table.
