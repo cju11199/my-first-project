@@ -61,26 +61,39 @@ paywall works — pricing + paywall launch together.
 - **Vercel env vars set by user:** `CLERK_SECRET_KEY` (sk_test_…), `CLERK_PUBLISHABLE_KEY`.
 
 ### In progress 🔧 — Phase 2 (hard lockdown of case data via Cloudflare R2)
-Currently the ~15 MB of case data is still public on the CDN. Steps:
-- **A. Create R2 bucket** `rtimagematch-data` — *user was doing this when we switched sessions.*
-- **B.** Add R2 env vars to Vercel: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
-  `R2_BUCKET_NAME`, `R2_ENDPOINT` (next: guide user to make a **read-only** R2 API token + find account id/endpoint).
-- **C.** User uploads protected files to R2 (dashboard): the `*_data.js`, `*_labels_data.js`,
-  `image_data.js`, `breast_drr_data.js`, and all `drr/*.png`.
-- **D.** Build `/api/asset` (Vercel serverless fn): verify Clerk session + `has({plan:'full_access'})`
-  via `@clerk/backend`, then return a short-lived **R2 presigned URL** for the big `.js` files
-  (loaded via `<script src>`, no CORS needed) and **proxy** the small `drr/*.png` bytes same-origin
-  (avoids canvas-taint/CORS). Needs `package.json` with `@clerk/backend`, `@aws-sdk/client-s3`,
-  `@aws-sdk/s3-request-presigner`.
-- **E.** Rewire `trainer.html` loaders to fetch via `/api/asset` instead of bare filenames.
-  Load paths to change: static `<script src>` at lines ~757-758; dynamic `createElement('script')`
-  for volumes/labels (search `s.src=`); DRR PNGs via `new Image().src` (search `.png`).
-- **F.** Add data files to `.vercelignore` so they leave the public CDN; test that a
-  non-subscriber gets nothing.
+The data is now ~26 MB across **15** `*_data.js` files + **32** `drr/*.png` (lung + prostate cases
+were added since the list above). The **code (D/E/F) is done**; what remains is owner-only dashboard
+ops (B/C) that no integration can do for us.
 
-**Gotchas:** Vercel serverless response limit ~4.5 MB (image_data.js is 4.3 MB) → use presigned
-R2 URLs for `.js`, not proxying. DRR PNGs are drawn to canvas → serve same-origin (proxy) or set
-R2 CORS + `img.crossOrigin`. Volume "atlas" images are data URIs inside the `.js` (no separate fetch).
+- **A. Create R2 bucket** `rtimagematch-data` — ✅ **done** (exists in the Cloudflare account).
+- **D.** ✅ **done** — `api/asset.mjs` (Vercel serverless fn): `authenticateRequest` via
+  `@clerk/backend` → `auth.has({plan:'full_access'})`, **plus** a server-side mirror of
+  clerk-auth.js `isComped()` (owner emails + verified institution domains, so comped accounts keep
+  access once data is off-CDN). Big `*_data.js` → **302 redirect to a 90 s R2 presigned URL**
+  (loaded via `<script src>`, no CORS; redirect body is empty so we dodge the response cap);
+  `drr/*.png` → **proxied same-origin** (canvas-safe). Allowlisted keys only. `package.json` now
+  carries `@clerk/backend@^3`, `@aws-sdk/client-s3@^3`, `@aws-sdk/s3-request-presigner@^3`.
+- **E.** ✅ **done** — all 12 `trainer.html` load sites fetch via `/api/asset?f=<key>` (3 static
+  dataset `<script>`s, the dynamic CT-volume + 6 label `createElement('script')` loaders, and the
+  DRR `new Image().src`, whose `?v=` cache token became `&v=`). CSP gained
+  `https://*.r2.cloudflarestorage.com` (script-src + connect-src) for the redirect target.
+- **F.** ✅ **done (committed, not yet active)** — `.vercelignore` lists the data files + `drr/`. This
+  is the **final switch**: it only takes effect when merged to `main`. Do NOT merge to production
+  until B and C are complete or the live trainer breaks for everyone.
+
+**Owner-only ops still to do (dashboard):**
+- **B.** Make an R2 API token + set env vars in Vercel for **both** Production and Preview:
+  `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME=rtimagematch-data`,
+  `R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com`. Use **per-environment Clerk keys** too
+  (Preview = dev `sk_test_…`, Production = live `sk_live_…`) to match clerk-auth.js host detection.
+- **C.** Upload the protected files to R2: run `node --env-file=.env.local scripts/upload-to-r2.mjs`
+  (needs an Object **Read & Write** token; the app itself only reads) — or drag-drop them in the
+  dashboard (datasets at the bucket root, PNGs under a `drr/` prefix).
+
+**Gotchas:** Vercel serverless response limit ~4.5 MB (image_data.js is 4.1 MB) → presigned R2 URLs
+for `.js`, not proxying. DRR PNGs are drawn to canvas → served same-origin (proxy). Volume "atlas"
+images are data URIs inside the `.js` (no separate fetch). The interim `middleware.js` hotlink guard
+is now redundant (its matched paths 404 once the files leave the CDN) but harmless — left in place.
 
 ### Phase 3 (later)
 Connect user's real Stripe to Clerk Billing, switch Clerk + keys to live mode, test a real
