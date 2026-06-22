@@ -108,10 +108,11 @@ Two workflows, picked on the start screen:
     the fit is well-conditioned in both projections).
 - **CBCT** — 3D cone-beam registration in 3 planes (axial/coronal/sagittal) with **6DOF** couch
   correction (Lat / Lng / Vrt / Pitch / Roll / Yaw). Real 3D CT volumes via MPR reslice.
-  - **Fusion**: teal (CT/reference) vs orange (CBCT/moving) overlay (#58, replaced additive blend).
-    MPR path colorizes via a `sepia → saturate(1.6) → hue-rotate → brightness(0.78)` CSS filter;
-    saturation is deliberately low so bright bone tints instead of blooming into a glowing
-    cyan/orange halo (earlier `saturate(4)/(3)` glowed on bone).
+  - **Fusion**: orange (CT/reference) vs blue (CBCT/moving) overlay (#58, replaced additive blend;
+    aligned with the 2D/2D Color Wash so reference = orange and moving = blue across all cases).
+    MPR path colorizes via a `sepia → saturate(1.6) → hue-rotate → brightness(0.78)` CSS filter
+    (CT `hue-rotate(-20deg)` → orange, CBCT `hue-rotate(180deg)` → blue); saturation is deliberately
+    low so bright bone tints instead of blooming into a glowing halo (earlier `saturate(4)/(3)` glowed on bone).
   - **Spyglass**: lens revealing the other image; works on all cases; scrolls slices while active (#59).
   - **Crosshair** (#70): Varian-style 4-quadrant tool — draggable centre splits each pane;
     TL+BR = CT, TR+BL = CBCT for edge-matching. Grayscale (no fusion tint), all 3 panes.
