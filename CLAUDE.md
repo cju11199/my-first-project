@@ -21,7 +21,8 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   product-screenshot section (`#see`).
 - `assets/shots/` — trainer product visuals, generated headless and used on the landing + `/subscribe`
   (since the trainer is gated, these are how prospects see the product): `trainer-cbct.gif` (a looping
-  CBCT 6DOF match converging — the landing-`#see` hero, also on `/subscribe`), plus `trainer-2d2d.webp`
+  CBCT 6DOF match converging — the landing-`#see` hero, also on `/subscribe`), plus `trainer-2d2d.webp`,
+  `trainer-fiducial.webp` (the 2D/2D prostate kV fiducial match — on the `/subscribe` 2×2 strip)
   and `trainer-progress.webp` stills. WebP cached like png in `vercel.json`. The GIF was built with
   Pillow (shared 96-colour palette to avoid flicker, ~600 px, single loop file ~0.6 MB).
 - `trainer.html` — the **trainer app** (`/trainer`). ~220 KB single file: markup + styles + all
