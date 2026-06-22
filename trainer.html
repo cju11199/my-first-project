@@ -100,6 +100,8 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 
 .view-blend{position:absolute;z-index:12;bottom:13px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:11px;background:rgba(10,14,20,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border2);border-radius:var(--radius-pill);padding:8px 15px;pointer-events:auto;white-space:nowrap;user-select:none;box-shadow:var(--shadow)}
 .cbct-pane:not(.cb-primary) .view-blend{display:none}   /* blend slider only on the main (left) pane; it drives all three */
+/* Fiducial-match case: hide the blend/contrast/tools that don't apply to the kV marker match. */
+body.fid-mode .view-blend,body.fid-mode .view-contrast,body.fid-mode .view-tools,body.fid-mode .vt-zoom,body.fid-mode .spy-ring,body.fid-mode #washBtn,body.fid-mode #spyBtn,body.fid-mode #contrastBtn,body.fid-mode #gridBtn{display:none !important}
 .vb-lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;font-variant-numeric:var(--num)}
 .vb-lbl.ref{color:var(--accent-hi)}
 .vb-lbl.por{color:var(--accent2)}
@@ -666,6 +668,7 @@ html:not(.auth-pending) #authGate{display:none}
       <option value="pelvis">Pelvis &middot; CT DRR (3D)</option>
       <option value="thorax">Thorax &middot; CT DRR (3D)</option>
       <option value="breast">Breast L &middot; SCV + Tangent</option>
+      <option value="prostate">Prostate &middot; Fiducial Match</option>
     </select>
   </div>
   <div class="header-controls">
@@ -877,6 +880,8 @@ html:not(.auth-pending) #authGate{display:none}
 <!-- Breast 2D/2D assets (SCV + medial tangent DRRs, MLC reference + anatomy portal) -->
 <script src="breast_drr_data.js"></script>
 <script src="image_data.js"></script>
+<!-- 2D/2D prostate fiducial-match case: kV AP + Lateral radiographs + planning fiducial triad -->
+<script src="prostate2d_data.js"></script>
 <script>
 
 
@@ -1016,7 +1021,13 @@ const CASES = {
            fovMm:{ ap:BREAST_META.scv.fovMm, lat:BREAST_META.med.fovMm },
            iso:{ ap:BREAST_META.scv.iso, lat:BREAST_META.med.iso },
            latAntRight:false, tilt:null,
-           viewTags:{ ap:'Supraclav · G0', lat:'Medial tangent · G305' } }
+           viewTags:{ ap:'Supraclav · G0', lat:'Medial tangent · G305' } },
+  // Prostate fiducial match (Varian-style 2D/2D kV): drag a 3-marker triad onto the gold
+  // seeds in both the AP and Lateral radiographs. All logic lives in the FID2D module;
+  // fidMatch:true makes FID2D.active() true so applyCase/reset/randomize/check route to it.
+  prostate:{ name:'Prostate · Fiducial Match', fidMatch:true, latAntRight:false, tilt:null,
+             iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} },
+             viewTags:{ ap:'kV AP · fiducials', lat:'kV Lateral · fiducials' } }
 };
 let currentCase='pelvis';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
@@ -1053,6 +1064,20 @@ function applyCase(key){
   const c=CASES[key]; if(!c) return;
   currentCase=key;
   const sel=document.getElementById('caseSelect'); if(sel) sel.value=key;
+  // Fiducial-match case: the FID2D module owns its own radiographs, markers, readout
+  // (a 6DOF Yaw row is injected) and pointer handlers. Skip the normal portal/DRR setup.
+  if(c.fidMatch){
+    const apT=document.getElementById('apViewTag'), latT=document.getElementById('latViewTag');
+    if(apT) apT.textContent=c.viewTags.ap; if(latT) latT.textContent=c.viewTags.lat;
+    // Lateral orientation labels: anterior left, posterior right (matches the ray-sum backdrop).
+    document.getElementById('latDirLeft').textContent='A';
+    document.getElementById('latDirRight').textContent='P';
+    document.body.classList.add('fid-mode');   // hides blend/contrast/tool widgets that don't apply
+    FID2D.enter();
+    return;
+  }
+  document.body.classList.remove('fid-mode');
+  FID2D.fidPanel(false);   // restore the 5DOF panel labels when leaving a fid case
   views.ap.iso={...c.iso.ap};
   views.lat.iso={...c.iso.lat};
   loadTiltStacks(c);   // 3D-tilt cases load re-projected frame stacks; others clear v.tilt
@@ -1352,7 +1377,191 @@ function renderView(v, key){
   if(tool!=='spy') drawRotationRing(p, v.W, v.H, ringRadius(v), v.rotating, isx, isy, null, imgClip);
 }
 
-function render(){ renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
+/* ============================================================================
+   FID2D — Varian-style 2D/2D prostate fiducial match. Two kV radiographs (AP +
+   Lateral); the patient's 3 gold seeds sit at a hidden 6DOF offset, and the user
+   drags a marker triad onto them in both views. Plain drag translates all three
+   markers; Ctrl+drag moves one (introducing rotation). A least-squares (Horn
+   quaternion) rigid fit of plan→placed markers reads out the 6DOF couch shift.
+   ============================================================================ */
+const FID2D=(function(){
+  let P=[],M=[],Qtrue=[],hiddenE=null,started=false,META=null;
+  const apImg=new Image(),latImg=new Image(); let imgReady=false,imgN=0;
+  function active(){return currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch;}
+  function setMsg(t,c){const m=document.getElementById('statusMsg');if(m){m.textContent=t;m.style.color=c==='ok'?'var(--accent)':c==='bad'?'var(--accent2)':'var(--label)';}}
+
+  /* ---- linear algebra: rigid fit P->M via Horn's quaternion (3 point pairs) ---- */
+  function eulerR(rx,ry,rz){const d=Math.PI/180,a=rx*d,b=ry*d,c=rz*d;
+    const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cc=Math.cos(c),sc=Math.sin(c);
+    return [[cb*cc, sa*sb*cc-ca*sc, ca*sb*cc+sa*sc],
+            [cb*sc, sa*sb*sc+ca*cc, ca*sb*sc-sa*cc],
+            [-sb,   sa*cb,          ca*cb]];}
+  function applyR(R,t,p){return [R[0][0]*p[0]+R[0][1]*p[1]+R[0][2]*p[2]+t[0],
+                                 R[1][0]*p[0]+R[1][1]*p[1]+R[1][2]*p[2]+t[1],
+                                 R[2][0]*p[0]+R[2][1]*p[1]+R[2][2]*p[2]+t[2]];}
+  function jacobiMax(A){ // largest eigenvector of a 4x4 symmetric matrix (Jacobi rotations)
+    const a=A.map(r=>r.slice()),V=[[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]];
+    for(let sweep=0;sweep<24;sweep++){
+      let p=0,q=1,off=0;
+      for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){if(Math.abs(a[i][j])>off){off=Math.abs(a[i][j]);p=i;q=j;}}
+      if(off<1e-10)break;
+      const app=a[p][p],aqq=a[q][q],apq=a[p][q];
+      const phi=0.5*Math.atan2(2*apq,aqq-app),c=Math.cos(phi),s=Math.sin(phi);
+      for(let k=0;k<4;k++){const akp=a[k][p],akq=a[k][q];a[k][p]=c*akp-s*akq;a[k][q]=s*akp+c*akq;}
+      for(let k=0;k<4;k++){const apk=a[p][k],aqk=a[q][k];a[p][k]=c*apk-s*aqk;a[q][k]=s*apk+c*aqk;}
+      for(let k=0;k<4;k++){const vkp=V[k][p],vkq=V[k][q];V[k][p]=c*vkp-s*vkq;V[k][q]=s*vkp+c*vkq;}
+    }
+    let mi=0;for(let i=1;i<4;i++)if(a[i][i]>a[mi][mi])mi=i;
+    return [V[0][mi],V[1][mi],V[2][mi],V[3][mi]];
+  }
+  function fit(Pp,Mp){ // returns {t:[..], r:[deg rx,ry,rz]} mapping Pp->Mp (least squares rigid)
+    const n=Pp.length,cP=[0,0,0],cM=[0,0,0];
+    for(let i=0;i<n;i++)for(let k=0;k<3;k++){cP[k]+=Pp[i][k]/n;cM[k]+=Mp[i][k]/n;}
+    const S=[[0,0,0],[0,0,0],[0,0,0]];
+    for(let i=0;i<n;i++){const p=[Pp[i][0]-cP[0],Pp[i][1]-cP[1],Pp[i][2]-cP[2]],m=[Mp[i][0]-cM[0],Mp[i][1]-cM[1],Mp[i][2]-cM[2]];
+      for(let r=0;r<3;r++)for(let c=0;c<3;c++)S[r][c]+=p[r]*m[c];}
+    const Sxx=S[0][0],Sxy=S[0][1],Sxz=S[0][2],Syx=S[1][0],Syy=S[1][1],Syz=S[1][2],Szx=S[2][0],Szy=S[2][1],Szz=S[2][2];
+    const N=[[Sxx+Syy+Szz, Syz-Szy,      Szx-Sxz,      Sxy-Syx],
+             [Syz-Szy,      Sxx-Syy-Szz,  Sxy+Syx,      Szx+Sxz],
+             [Szx-Sxz,      Sxy+Syx,     -Sxx+Syy-Szz,  Syz+Szy],
+             [Sxy-Syx,      Szx+Sxz,      Syz+Szy,     -Sxx-Syy+Szz]];
+    let q=jacobiMax(N);const ql=Math.hypot(q[0],q[1],q[2],q[3])||1;q=q.map(x=>x/ql);
+    const w=q[0],x=q[1],y=q[2],z=q[3];
+    const R=[[1-2*(y*y+z*z), 2*(x*y-w*z),   2*(x*z+w*y)],
+             [2*(x*y+w*z),   1-2*(x*x+z*z), 2*(y*z-w*x)],
+             [2*(x*z-w*y),   2*(y*z+w*x),   1-2*(x*x+y*y)]];
+    const t=[cM[0]-(R[0][0]*cP[0]+R[0][1]*cP[1]+R[0][2]*cP[2]),
+             cM[1]-(R[1][0]*cP[0]+R[1][1]*cP[1]+R[1][2]*cP[2]),
+             cM[2]-(R[2][0]*cP[0]+R[2][1]*cP[1]+R[2][2]*cP[2])];
+    // rotation vector (log map) -> per-axis degrees
+    const tr=R[0][0]+R[1][1]+R[2][2],ang=Math.acos(Math.max(-1,Math.min(1,(tr-1)/2)));
+    let rv=[R[2][1]-R[1][2],R[0][2]-R[2][0],R[1][0]-R[0][1]];
+    const sn=2*Math.sin(ang);if(Math.abs(sn)>1e-6){rv=rv.map(v=>v/sn*ang);}else{rv=rv.map(v=>v/2);}
+    const deg=180/Math.PI;
+    return {t, r:[rv[0]*deg,rv[1]*deg,rv[2]*deg]};
+  }
+
+  /* ---- projection: patient mm [Lat,AP,SI] (rel. iso) -> screen px, per view ---- */
+  function geom(key){const v=views[key],ph=META.physMm[key],iso=META.isoFrac[key];
+    const s=Math.min(v.W/ph[0],v.H/ph[1])*0.94,dw=ph[0]*s,dh=ph[1]*s,ox=(v.W-dw)/2,oy=(v.H-dh)/2;
+    return {s,ox,oy,dw,dh,isx:ox+iso[0]*dw,isy:oy+iso[1]*dh};}
+  // AP: screen-x = +Lat (patient L to the right), screen-y = -SI (sup up).
+  // LAT: screen-x = +AP (posterior to the right, anterior left — matches the ray-sum backdrop),
+  //      screen-y = -SI. Markers and the drawn seeds both use this, so the match is self-consistent.
+  function proj(key,p){const g=geom(key);
+    return key==='ap'?[g.isx+p[0]*g.s,g.isy-p[2]*g.s]:[g.isx+p[1]*g.s,g.isy-p[2]*g.s];}
+
+  /* ---- state ---- */
+  function loadImgs(){if(typeof PROSTATE2D==='undefined')return false;META=PROSTATE2D;
+    if(!apImg.src){apImg.onload=()=>{if(++imgN>=2){imgReady=true;}render();};apImg.src=PROSTATE2D.ap;}
+    if(!latImg.src){latImg.onload=()=>{if(++imgN>=2){imgReady=true;}render();};latImg.src=PROSTATE2D.lat;}
+    return true;}
+  function enter(){if(!loadImgs())return;P=META.fiducials.map(p=>p.slice());fidPanel(true);randomize();started=true;requestAnimationFrame(()=>{resizeAll();});}
+  function randomize(){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
+    hiddenE={t:[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()],r:[rr(1,3.5)*sg(),rr(1,3.5)*sg(),rr(1,3.5)*sg()]};
+    const R=eulerR(hiddenE.r[0],hiddenE.r[1],hiddenE.r[2]);
+    Qtrue=P.map(p=>applyR(R,hiddenE.t,p));M=P.map(p=>p.slice());
+    setMsg('Drag the markers onto the gold seeds in both views — Ctrl+drag one to rotate','label');solve();render();}
+  function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
+
+  function solve(){const f=fit(P,M);writeReadout(f);return f;}
+  function check(){
+    const f=fit(P,M);
+    let d=0;for(let i=0;i<3;i++)d+=Math.hypot(M[i][0]-Qtrue[i][0],M[i][1]-Qtrue[i][1],M[i][2]-Qtrue[i][2]);
+    d/=3; const ms=matchTimer2d.elapsed(),tag=(ms==null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
+    writeReadout(f,true,d<=1.5?'error-good':d<=4?'error-ok':'error-bad');
+    if(d<=1.5)setMsg('✓ Fiducials matched — couch shift within tolerance'+tag,'ok');
+    else if(d<=4)setMsg('⚡ Close — fine-tune each seed'+tag,'label');
+    else setMsg('✗ Markers off the seeds — align all three in both views'+tag,'bad');
+    if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:d<=1.5,mag:d,timeMs:ms});
+  }
+
+  /* ---- readout (inject a Yaw row + relabel rotations for 6DOF while in this case) ---- */
+  function fidPanel(on){
+    // relabel the two rotation rows + add Yaw, both in the live panel and error display
+    const rows=document.querySelectorAll('.controls-strip:not(.cbct-controls) .ctrl-row');
+    if(rows.length>=5){rows[3].querySelector('.ctrl-label').textContent=on?'Pitch':'RTN';rows[4].querySelector('.ctrl-label').textContent=on?'Roll':'Pitch';}
+    let yawRow=document.getElementById('fidYawRow');
+    if(on&&!yawRow){yawRow=document.createElement('div');yawRow.className='ctrl-row';yawRow.id='fidYawRow';
+      yawRow.innerHTML='<span class="ctrl-label">Yaw</span><div class="ctrl-val" id="valYaw">0.0</div><span class="ctrl-unit">°</span>';
+      rows[4].parentElement.insertBefore(yawRow,rows[4].nextSibling);}
+    if(!on&&yawRow)yawRow.remove();
+    // error display
+    const eRoll=document.getElementById('errRoll'),ePitch=document.getElementById('errPitch');
+    if(eRoll)eRoll.parentElement.querySelector('.error-lbl').textContent=on?'Pitch':'RTN';
+    if(ePitch)ePitch.parentElement.querySelector('.error-lbl').textContent=on?'Roll':'Pitch';
+    let eYaw=document.getElementById('fidErrYaw');
+    if(on&&!eYaw){eYaw=document.createElement('div');eYaw.className='error-item';eYaw.id='fidErrYaw';
+      eYaw.innerHTML='<div class="error-val" id="errYaw">—</div><div class="error-lbl">Yaw</div>';
+      ePitch.parentElement.parentElement.appendChild(eYaw);}
+    if(!on&&eYaw)eYaw.remove();
+  }
+  function writeReadout(f,grade,cls){
+    const set=(id,v,u)=>{const e=document.getElementById(id);if(e)e.textContent=(v>=0?'+':'')+v.toFixed(u)+(u===2?'':'');};
+    // translation: Lat=tx, Vrt=AP=ty, Lng=SI=tz  (cm)
+    set('valX',f.t[0]/10,2);set('valZ',f.t[1]/10,2);set('valY',f.t[2]/10,2);
+    // rotations: Pitch=rx, Roll=rz, Yaw=ry  (deg)
+    set('valPitch',f.r[2],1);set('valRoll',f.r[0],1);const vy=document.getElementById('valYaw');if(vy)vy.textContent=(f.r[1]>=0?'+':'')+f.r[1].toFixed(1);
+    // The graded error display reports the *recovered couch shift* (the correction to apply),
+    // not a residual — so colour every cell by the overall match quality (cls), not magnitude.
+    if(grade){const c='error-val '+(cls||'error-good');
+      const sT=(id,mm)=>{const e=document.getElementById(id);if(e){e.textContent=(mm/10>=0?'+':'')+(mm/10).toFixed(2)+'cm';e.className=c;}};
+      const sR=(id,dg)=>{const e=document.getElementById(id);if(e){e.textContent=(dg>=0?'+':'')+dg.toFixed(1)+'°';e.className=c;}};
+      sT('errX',f.t[0]);sT('errZ',f.t[1]);sT('errY',f.t[2]);sR('errPitch',f.r[2]);sR('errRoll',f.r[0]);sR('errYaw',f.r[1]);}
+  }
+
+  /* ---- rendering ---- */
+  function drawView(key){
+    const v=views[key],ctx=v.porCtx,rc=v.refCtx;if(!ctx)return;
+    rc.clearRect(0,0,v.W,v.H);rc.fillStyle='#000';rc.fillRect(0,0,v.W,v.H);
+    ctx.clearRect(0,0,v.W,v.H);ctx.fillStyle='#000';ctx.fillRect(0,0,v.W,v.H);
+    document.getElementById(v.por).style.opacity=1;
+    const g=geom(key),img=key==='ap'?apImg:latImg;
+    if(img.complete&&img.naturalWidth)ctx.drawImage(img,g.ox,g.oy,g.dw,g.dh);
+    // actual gold seeds (hyperdense bright dots on the kV image)
+    for(const q of Qtrue){const s=proj(key,q);
+      ctx.beginPath();ctx.arc(s[0],s[1],4.6,0,7);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fill();
+      ctx.beginPath();ctx.arc(s[0],s[1],2.7,0,7);ctx.fillStyle='#fff';ctx.fill();}
+    // draggable markers (Varian-style cyan open circle + ticks)
+    for(let i=0;i<M.length;i++){const s=proj(key,M[i]);
+      ctx.strokeStyle='rgba(45,212,238,0.95)';ctx.lineWidth=1.7;
+      ctx.beginPath();ctx.arc(s[0],s[1],8,0,7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(s[0]-12,s[1]);ctx.lineTo(s[0]-4,s[1]);ctx.moveTo(s[0]+4,s[1]);ctx.lineTo(s[0]+12,s[1]);
+      ctx.moveTo(s[0],s[1]-12);ctx.lineTo(s[0],s[1]-4);ctx.moveTo(s[0],s[1]+4);ctx.lineTo(s[0],s[1]+12);ctx.stroke();}
+  }
+  function render(){if(!active())return false;drawView('ap');drawView('lat');return true;}
+
+  /* ---- interaction ---- */
+  function vKey(area){return area==='apArea'?'ap':area==='latArea'?'lat':null;}
+  function localXY(v,ev){const r=document.getElementById(v.area).getBoundingClientRect();return [ev.clientX-r.left,ev.clientY-r.top];}
+  function nearestMarker(key,sx,sy){let best=-1,bd=1e9;for(let i=0;i<M.length;i++){const s=proj(key,M[i]),d=Math.hypot(s[0]-sx,s[1]-sy);if(d<bd){bd=d;best=i;}}return {i:best,d:bd};}
+  function applyDelta(key,one,dxpx,dypx){const g=geom(key);
+    const dA=dxpx/g.s,dB=-dypx/g.s;            // in-view mm deltas
+    const upd=(m)=>{if(key==='ap'){m[0]+=dA;m[2]+=dB;}else{m[1]+=dA;m[2]+=dB;}};  // ap: Lat,SI ; lat: AP,SI
+    if(one>=0)upd(M[one]); else M.forEach(upd);}
+  function bind(area){
+    const el=document.getElementById(area);if(!el)return;
+    el.addEventListener('pointerdown',ev=>{
+      if(!active())return; if(ev.button!==0)return;
+      const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
+      let one=-1;
+      if(ev.ctrlKey||ev.metaKey){const nm=nearestMarker(key,sx,sy);one=nm.i;}     // Ctrl: move one marker
+      matchTimer2d.onMove();
+      let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
+      const mv=e2=>{const [x,y]=localXY(v,e2);applyDelta(key,one,x-px,y-py);px=x;py=y;solve();render();};
+      const up=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);};
+      el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
+      ev.preventDefault();ev.stopPropagation();
+    },true);
+  }
+  document.addEventListener('DOMContentLoaded',()=>{bind('apArea');bind('latArea');});
+  // _dbg: read-only hooks for headless tests (seed/marker geometry + the projection).
+  const _dbg={proj,geom,seeds:()=>Qtrue,markers:()=>M,setMarkers:a=>{M=a.map(p=>p.slice());solve();render();},err:()=>{let d=0;for(let i=0;i<3;i++)d+=Math.hypot(M[i][0]-Qtrue[i][0],M[i][1]-Qtrue[i][1],M[i][2]-Qtrue[i][2]);return d/3;}};
+  return {active,enter,reset,randomize,check,render,fidPanel,resize:()=>{if(active())render();},_dbg};
+})();
+window.FID2D=FID2D;
+
+function render(){ if(FID2D.active()){FID2D.render();return;} renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
 
 // ── Image-matching tools: Color Wash & Spyglass ───────────────────────────────
 function setToolButtons(){
@@ -1595,6 +1804,7 @@ function attachInteractions(key){
   function hideCue(){ rotCue.classList.remove('show','active'); }
   // hover cursor hint + rotation cue (only when idle)
   area.addEventListener('mousemove',e=>{
+    if(FID2D.active()){ hideCue(); return; }       // fiducial case owns its own pointer handling
     if(tool==='spy'){ hideCue(); return; }
     if(hoverDragView===key) return;               // dragging handled below
     const r=area.getBoundingClientRect();
@@ -1606,6 +1816,7 @@ function attachInteractions(key){
   });
   area.addEventListener('mouseleave',()=>{ if(hoverDragView!==key) hideCue(); });
   area.addEventListener('wheel',e=>{
+    if(FID2D.active()) return; // fiducial case: no zoom (fixed radiographs)
     if(tool==='spy') return; // spyglass handles its own wheel (resize)
     e.preventDefault();
     const rect=area.getBoundingClientRect();
@@ -1613,7 +1824,7 @@ function attachInteractions(key){
     zoomAt(key, e.deltaY<0?1.12:1/1.12, cx, cy);
   },{passive:false});
   // double-click toggles fullscreen
-  area.addEventListener('dblclick',e=>{ if(tool==='spy') return; toggleSolo(key); });
+  area.addEventListener('dblclick',e=>{ if(FID2D.active()) return; if(tool==='spy') return; toggleSolo(key); });
 
   // Drag behaviour:
   //   • inside the red ring  -> MOVE the portal image (translation, in mm)
@@ -1623,6 +1834,7 @@ function attachInteractions(key){
   function localPt(e){ const r=area.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
   function angleFromCenter(pt){ return Math.atan2(pt.y-isoScreenY(v), pt.x-isoScreenX(v)); }
   area.addEventListener('mousedown',e=>{
+    if(FID2D.active()) return;          // fiducial case: FID2D's pointer handlers drive the markers
     if(tool==='spy') return;            // spyglass owns its own drag
     const pt=localPt(e);
     const dist=Math.hypot(pt.x-isoScreenX(v), pt.y-isoScreenY(v));
@@ -1800,6 +2012,7 @@ function setStep(v){
   if(el) el.classList.add('active');
 }
 function resetShift(){
+  if(FID2D.active()){ FID2D.reset(); return; }
   pushUndo();                 // a reset can be undone with Ctrl+Z
   matchTimer2d.reset();       // start the clock over on the next move
   shift={x:0,y:0,z:0,roll:0,pitch:0};
@@ -1809,6 +2022,7 @@ function resetShift(){
   render();
 }
 function randomizeShift(){
+  if(FID2D.active()){ matchTimer2d.reset(); FID2D.randomize(); return; }
   const rnd=(mn,mx)=>Math.round((Math.random()*(mx-mn)+mn)*2)/2;
   const sgn=()=>Math.random()<0.5?-1:1;
   hidden.x=rnd(3,18)*sgn();
@@ -1861,6 +2075,7 @@ function fmtMatchTime(ms){
 }
 const matchTimer2d=makeMatchTimer();
 function checkMatch(){
+  if(FID2D.active()){ FID2D.check(); return; }
   const e={};
   ['x','y','z','roll','pitch'].forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
   const cc=(v,t1,t2)=>{const a=Math.abs(v);return a<=t1?'error-good':a<=t2?'error-ok':'error-bad';};
@@ -1921,6 +2136,7 @@ document.addEventListener('keydown',function(e){
 
 document.addEventListener('keydown',e=>{
   if(currentMode!=='2d2d') return; // CBCT mode has its own handler
+  if(FID2D.active()) return;        // fiducial case is mouse-driven; no axis/tool shortcuts
   const tag=e.target.tagName;
   const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA';
   if(isText) return; // don't hijack real text fields
@@ -1999,6 +2215,7 @@ const CASE_LISTS={
     {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
+    {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
   ]},
   'cbct':{label:'CBCT', icon:'☰', cases:[
     {v:'pelvis', t:'Pelvis',          d:'CBCT &middot; 6DOF'},
@@ -2246,6 +2463,7 @@ window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&
 
 function backToMenu(){
   currentMode=null;
+  document.body.classList.remove('fid-mode');   // clear the fiducial-case UI state
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
   ss.classList.remove('hidden');
