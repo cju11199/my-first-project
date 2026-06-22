@@ -83,9 +83,13 @@ Two workflows, picked on the start screen:
     offset; the user **drags a 3-marker triad** onto them in both views. **Plain drag** translates
     all three markers (Sup/Inf/Lat); **Ctrl/⌘+drag** moves the nearest single marker (adds rotation).
     A least-squares rigid fit (**Horn quaternion**, `fit()`) of plan→placed markers reads out the
-    couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. `check()` grades
-    on mean 3D marker-to-seed distance (≤1.5 mm accept); the displayed shift is the *recovered
-    correction* (coloured by overall match quality, not per-axis magnitude). `applyCase`/`resetShift`/
+    couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. The hidden
+    rotation is a realistic **2–3.5°/axis** (compounding to ~4–6° total, scaled up if needed to exceed
+    the accept tolerance so rotation is always required — not solvable by translation alone). `check()`
+    grades the **residual misregistration** `fit(M,Qtrue)`: accept = residual **rotation ≤ a
+    difficulty-tied tolerance** (`fidRotTol`: relaxed 3.5° / standard 3.0° / strict 2.0°) **and**
+    residual translation ≤ `FID_TRANS_TOL` (2 mm). The displayed shift is the *recovered correction*
+    (coloured by overall match quality, not per-axis magnitude). `applyCase`/`resetShift`/
     `randomizeShift`/`checkMatch` route to `FID2D` when active; the normal drag/keyboard handlers
     and blend/contrast widgets are bypassed (`body.fid-mode`). **Zoom/pan**: `FID2D.geom()` honours
     `v.zoom`/`v.panX`/`v.panY` (the app's centre-anchored transform), so the standard wheel zoom (toward
