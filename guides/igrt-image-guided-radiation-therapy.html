@@ -1,0 +1,217 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A plain-English introduction to IGRT (image-guided radiation therapy): what it is, why it's used, the main imaging modalities (kV, MV, 2D/2D, CBCT, surface guidance), and how online vs offline correction works.">
+<title>What Is IGRT? Image-Guided Radiation Therapy Explained — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/igrt-image-guided-radiation-therapy">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="What Is IGRT? Image-Guided Radiation Therapy Explained">
+<meta property="og:description" content="What IGRT is and why it matters — the imaging modalities (kV, MV, 2D/2D, CBCT, surface guidance), the daily workflow, and online vs offline correction, for RT students.">
+<meta property="og:url" content="https://rtimagematch.com/guides/igrt-image-guided-radiation-therapy">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="What Is IGRT? Image-Guided Radiation Therapy Explained">
+<meta name="twitter:description" content="The imaging modalities, daily workflow, and online vs offline correction behind image-guided radiation therapy — for RT students.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "What Is IGRT? Image-Guided Radiation Therapy Explained",
+      "description": "An introduction to image-guided radiation therapy (IGRT): what it is, the imaging modalities, the daily verification workflow, and online vs offline correction.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-22",
+      "dateModified": "2026-06-22",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/igrt-image-guided-radiation-therapy"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "What is IGRT?", "item": "https://rtimagematch.com/guides/igrt-image-guided-radiation-therapy" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What does IGRT stand for?", "acceptedAnswer": { "@type": "Answer", "text": "IGRT stands for image-guided radiation therapy. It is the use of imaging at the treatment machine — immediately before or during each fraction — to verify and correct the patient's position relative to the plan before the beam is delivered." } },
+        { "@type": "Question", "name": "What imaging is used for IGRT?", "acceptedAnswer": { "@type": "Answer", "text": "Common IGRT modalities include planar kV imaging (2D/2D matching to DRRs), MV portal imaging, kV cone-beam CT (CBCT) for volumetric matching, optical surface guidance (SGRT), ultrasound, and implanted electromagnetic or radio-opaque markers. Many departments combine several of these." } },
+        { "@type": "Question", "name": "What is the difference between online and offline correction?", "acceptedAnswer": { "@type": "Answer", "text": "Online correction applies the measured shift immediately, before treating, so today's setup error is removed for today's fraction. Offline correction records errors over several fractions and adjusts based on the trend, targeting systematic error while accepting random day-to-day variation. Most modern IGRT is online." } },
+        { "@type": "Question", "name": "Why is IGRT important?", "acceptedAnswer": { "@type": "Answer", "text": "IGRT reduces geometric uncertainty, which lets planners use smaller margins around the target. Smaller margins mean less healthy tissue is irradiated, supporting higher, more conformal doses such as those used in SBRT and SRS while protecting nearby organs at risk." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:160px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; What is IGRT?</p>
+  <article>
+    <h1>What is IGRT? Image-guided radiation therapy explained</h1>
+    <p class="meta">A guide for radiation therapy students · ~8 min read</p>
+    <p class="lede">Image-guided radiation therapy (IGRT) is the everyday practice of imaging the patient at the treatment machine to confirm they are in the right place before the beam turns on. This guide explains what IGRT is, why it matters, the imaging modalities you'll meet, the daily verification workflow, and the difference between online and offline correction.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#what">What IGRT means</a>
+      <a href="#why">Why IGRT matters: margins and dose</a>
+      <a href="#modalities">IGRT imaging modalities</a>
+      <a href="#workflow">The daily IGRT workflow</a>
+      <a href="#online-offline">Online vs offline correction</a>
+      <a href="#errors">Systematic vs random error</a>
+      <a href="#practice">How to practice IGRT matching</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="what">What IGRT means</h2>
+    <p><strong>IGRT — image-guided radiation therapy</strong> — is the use of imaging immediately before (and sometimes during) each treatment fraction to verify and correct the patient's position relative to the plan. A course of radiotherapy is delivered over many fractions, and the patient is set up fresh each day. Small day-to-day differences in position are unavoidable; IGRT measures them and removes them before treatment, so the dose lands where the plan intended.</p>
+    <p>In practice, IGRT means acquiring a setup image at the machine, <strong>matching it to a reference</strong> derived from the planning CT, reading off the shift, and moving the couch to correct it. The matching step — lining up today's anatomy with the plan — is the skill at the heart of the job.</p>
+
+    <h2 id="why">Why IGRT matters: margins and dose</h2>
+    <p>Every plan adds a margin around the target to account for setup uncertainty and motion. The less certain you are about position, the larger that margin must be — and a larger margin means more healthy tissue inside the high-dose region. By measuring and correcting position each day, IGRT <strong>shrinks geometric uncertainty</strong>, which lets planners use tighter margins.</p>
+    <p>Tighter margins are what make modern high-dose techniques possible. <strong>SBRT</strong> (stereotactic body radiotherapy) and <strong>SRS</strong> (stereotactic radiosurgery) deliver large doses in a few fractions to small targets, and they depend on millimetre-level position confidence — which only daily image guidance can provide while still protecting nearby organs at risk.</p>
+
+    <h2 id="modalities">IGRT imaging modalities</h2>
+    <p>"IGRT" is an umbrella term — several imaging technologies sit under it, often used together:</p>
+    <ul>
+      <li><strong>Planar kV imaging (2D/2D):</strong> a pair of orthogonal kV X-rays matched to DRRs. Fast, low-dose, and excellent for bony verification. See our guide on <a href="/guides/2d-2d-portal-vs-drr-matching">2D/2D portal vs DRR matching</a>.</li>
+      <li><strong>MV portal imaging:</strong> images formed with the treatment beam itself. Lower soft-tissue contrast than kV, but useful for field verification.</li>
+      <li><strong>kV cone-beam CT (CBCT):</strong> the gantry rotates the kV source and panel around the patient to reconstruct a 3D volume, enabling soft-tissue matching and full rotational assessment. See <a href="/guides/cbct-6dof-registration">CBCT 6DOF registration</a>.</li>
+      <li><strong>Implanted markers:</strong> small radio-opaque <a href="/guides/prostate-fiducial-marker-matching">gold fiducial seeds</a> (or electromagnetic transponders) give a precise, high-contrast surrogate for a soft-tissue target such as the prostate.</li>
+      <li><strong>Surface-guided RT (SGRT):</strong> optical cameras track the skin surface in real time for setup and intra-fraction monitoring, with no extra imaging dose.</li>
+      <li><strong>Ultrasound:</strong> used at some centres for soft-tissue localisation, notably in the pelvis.</li>
+    </ul>
+
+    <h2 id="workflow">The daily IGRT workflow</h2>
+    <ol>
+      <li><strong>Initial setup</strong> to skin marks, tattoos, and lasers, with any immobilisation devices in place.</li>
+      <li><strong>Acquire the verification image</strong> — a 2D/2D pair, a CBCT, or a surface capture, depending on the protocol.</li>
+      <li><strong>Register</strong> the image to the reference (DRR or planning CT) by aligning anatomy or markers.</li>
+      <li><strong>Read the correction</strong> — the residual translation and rotation needed to match the plan.</li>
+      <li><strong>Evaluate against tolerance.</strong> Inside the action level, apply the couch shift; outside it, investigate before proceeding.</li>
+      <li><strong>Apply the shift and treat</strong>, sometimes re-imaging to confirm for high-precision cases.</li>
+    </ol>
+
+    <h2 id="online-offline">Online vs offline correction</h2>
+    <p>There are two broad strategies for acting on what the images show:</p>
+    <div class="dof">
+      <div><b>Online</b><span>Measure and correct <em>now</em>, before treating, so today's error is removed for today's fraction. This is the standard for modern IGRT.</span></div>
+      <div><b>Offline</b><span>Record errors over the first several fractions, then adjust based on the <em>trend</em>. This targets systematic error while accepting random day-to-day variation, and uses fewer same-day resources.</span></div>
+    </div>
+    <p>Online correction is the default where volumetric or fast planar imaging is available, because it catches both systematic and random error on the day. Offline protocols still appear where imaging is acquired less frequently.</p>
+
+    <h2 id="errors">Systematic vs random error</h2>
+    <p>Setup error splits into two components, and IGRT handles them differently:</p>
+    <ul>
+      <li><strong>Systematic error</strong> is a consistent offset present from the start (for example a planning-to-treatment difference). It biases every fraction the same way and has the largest dosimetric impact, so it is the priority to detect and remove.</li>
+      <li><strong>Random error</strong> is the day-to-day scatter around the mean. It blurs the delivered dose rather than shifting it, and online imaging is what keeps it in check fraction by fraction.</li>
+    </ul>
+    <div class="tip"><p><strong>Tip:</strong> margin recipes weight systematic error more heavily than random error — which is exactly why a small consistent bias matters more than an occasional large one-off, and why good first-fraction imaging is so valuable.</p></div>
+
+    <h2 id="practice">How to practice IGRT matching</h2>
+    <p>The judgement at the centre of IGRT — is the anatomy actually aligned, and what shift corrects it? — is built by repetition with feedback. The <a href="/trainer">RT Image Matching Trainer</a> lets you practice both planar and volumetric guidance: 2D/2D portal-to-DRR matching and CBCT 6DOF fusion across brain, pelvis, thorax, breast, spine SBRT, lung SBRT, acoustic neuroma, and prostate fiducial cases. Each applies a hidden setup error you work back to within tolerance, with a live residual-error readout.</p>
+
+    <div class="cta-box">
+      <p>Practice image guidance now<span>2D/2D and CBCT cases, hidden setup errors, live error feedback graded to tolerance.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>What does IGRT stand for?</h3>
+      <p>IGRT stands for image-guided radiation therapy — using imaging at the treatment machine, just before or during each fraction, to verify and correct the patient's position relative to the plan before the beam is delivered.</p>
+      <h3>What imaging is used for IGRT?</h3>
+      <p>Common modalities are planar kV imaging (2D/2D matched to DRRs), MV portal imaging, kV cone-beam CT (CBCT), optical surface guidance (SGRT), ultrasound, and implanted radio-opaque or electromagnetic markers. Many departments combine several.</p>
+      <h3>What is the difference between online and offline correction?</h3>
+      <p>Online correction applies the measured shift immediately, before treating, so today's error is removed for today's fraction. Offline correction records errors over several fractions and adjusts on the trend, targeting systematic error. Most modern IGRT is online.</p>
+      <h3>Why is IGRT important?</h3>
+      <p>It reduces geometric uncertainty, letting planners use smaller margins. Smaller margins mean less healthy tissue is treated, which supports higher, more conformal doses such as SBRT and SRS while protecting organs at risk.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/cbct-6dof-registration"><span class="k">Go deeper</span><span class="t">CBCT 6DOF registration explained &rarr;</span></a>
+      <a href="/guides/2d-2d-portal-vs-drr-matching"><span class="k">Go deeper</span><span class="t">2D/2D portal vs DRR matching &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is general background for learning, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>

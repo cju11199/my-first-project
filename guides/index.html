@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Free guides on radiation therapy image matching — CBCT 6DOF registration and 2D/2D portal-to-DRR matching explained for RT students and therapists.">
+<meta name="description" content="Free guides on radiation therapy image matching and IGRT — image guidance basics, CBCT 6DOF registration, 2D/2D portal-to-DRR matching, couch shifts, and prostate fiducial markers, for RT students and therapists.">
 <title>Image Matching Guides — RT Image Matching Trainer</title>
 <link rel="canonical" href="https://rtimagematch.com/guides">
 <meta name="theme-color" content="#070a0f">
@@ -30,7 +30,7 @@
       "@type": "CollectionPage",
       "name": "Image Matching Guides",
       "url": "https://rtimagematch.com/guides",
-      "description": "Guides on radiation therapy image matching: CBCT 6DOF registration and 2D/2D portal-to-DRR matching.",
+      "description": "Guides on radiation therapy image matching and IGRT: image guidance basics, CBCT 6DOF registration, 2D/2D portal-to-DRR matching, couch shifts and 6DOF corrections, and prostate fiducial markers.",
       "isPartOf": { "@type": "WebSite", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" }
     },
     {
@@ -93,6 +93,12 @@ footer .links a{margin-right:18px;color:var(--label)}
   </div>
 
   <div class="grid">
+    <a class="card" href="/guides/igrt-image-guided-radiation-therapy">
+      <span class="tag">Start here · IGRT</span>
+      <h2>What is IGRT?</h2>
+      <p>The big picture: what image-guided radiation therapy is, why it matters for margins and dose, the main imaging modalities, and online vs offline correction.</p>
+      <span class="more">Read the guide &rarr;</span>
+    </a>
     <a class="card" href="/guides/cbct-6dof-registration">
       <span class="tag">CBCT · IGRT</span>
       <h2>CBCT 6DOF registration explained</h2>
@@ -105,10 +111,22 @@ footer .links a{margin-right:18px;color:var(--label)}
       <p>How orthogonal portal images are matched to DRRs, why it's a 5DOF correction, which bony landmarks to use, and how 2D/2D compares to CBCT.</p>
       <span class="more">Read the guide &rarr;</span>
     </a>
+    <a class="card" href="/guides/couch-shifts-6dof-corrections">
+      <span class="tag">Couch · 6DOF</span>
+      <h2>Couch shifts &amp; 6DOF corrections</h2>
+      <p>The six degrees of freedom, the Lat/Lng/Vrt and pitch/roll/yaw read-out, 5DOF vs 6DOF couches, and how action levels decide treat vs intervene.</p>
+      <span class="more">Read the guide &rarr;</span>
+    </a>
+    <a class="card" href="/guides/prostate-fiducial-marker-matching">
+      <span class="tag">Prostate · Fiducials</span>
+      <h2>Prostate fiducial marker matching</h2>
+      <p>Why gold seeds are implanted, how kV 2D/2D and CBCT marker matching works, why three markers give a full 6DOF read-out, and fiducial vs bony match.</p>
+      <span class="more">Read the guide &rarr;</span>
+    </a>
   </div>
 
   <div class="cta-box">
-    <p>Practice on real cases<span>Brain, pelvis, thorax, breast and spine — 2D/2D and CBCT, with live residual-error feedback.</span></p>
+    <p>Practice on real cases<span>Brain, pelvis, thorax, breast, spine SBRT, lung SBRT, acoustic neuroma and prostate fiducials — 2D/2D and CBCT, with live residual-error feedback.</span></p>
     <a class="btn" href="/trainer">Open the trainer</a>
   </div>
 

@@ -61,6 +61,17 @@
       "url": "https://rtimagematch.com/",
       "logo": "https://rtimagematch.com/favicon.svg",
       "email": "support@rtimagematch.com"
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is RT image matching?", "acceptedAnswer": { "@type": "Answer", "text": "RT image matching (image-guided radiation therapy, or IGRT) is lining up a patient's daily setup image with the reference from their planning CT, then reading off the couch correction that puts them in the planned position. It is how therapists verify position before each treatment." } },
+        { "@type": "Question", "name": "What is the difference between 2D/2D and CBCT matching?", "acceptedAnswer": { "@type": "Answer", "text": "2D/2D matches a pair of orthogonal planar setup images to DRRs — fast, low-dose, and great for bony verification (a 5DOF correction). CBCT reconstructs a full 3D volume for soft-tissue matching and full 6DOF rotational assessment, at the cost of more dose and time. The trainer includes both." } },
+        { "@type": "Question", "name": "What are the six degrees of freedom (6DOF)?", "acceptedAnswer": { "@type": "Answer", "text": "Three translations (lateral, longitudinal, vertical) and three rotations (pitch, roll, yaw) that together describe any rigid displacement of the patient on the couch. A 6DOF couch can correct all six." } },
+        { "@type": "Question", "name": "Who is the RT Image Matching Trainer for?", "acceptedAnswer": { "@type": "Answer", "text": "Radiation therapy students, training programs and faculty, and clinical educators — anyone learning or teaching IGRT image matching who wants console-like practice without a treatment machine." } },
+        { "@type": "Question", "name": "Do I need to install anything?", "acceptedAnswer": { "@type": "Answer", "text": "No. It runs entirely in your browser on any device — desktop, laptop, or tablet. There is nothing to download and a 3-day free trial to start." } },
+        { "@type": "Question", "name": "Is this used for real clinical treatment?", "acceptedAnswer": { "@type": "Answer", "text": "No. It is an educational training simulator only. It is not a medical device and not for clinical decision-making; all imaging, patient offsets, and values are fictional." } }
+      ]
     }
   ]
 }
@@ -155,6 +166,16 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justif
 footer a{color:var(--label)}footer a:hover{color:var(--text)}
 footer .links a{margin-right:18px}
 .foot-disc{width:100%;color:var(--muted);font-size:12px;border-top:1px solid var(--hairline);padding-top:16px;margin-top:6px}
+
+/* FAQ */
+.faq{max-width:760px;margin:26px auto 0;text-align:left}
+.faq details{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,var(--panel2),var(--panel));margin-bottom:12px;overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:16px 20px;font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:14px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';color:var(--accent);font-size:20px;font-weight:400;line-height:1}
+.faq details[open] summary::after{content:'\2212'}
+.faq details > p{color:var(--label);font-size:15px;line-height:1.6;padding:0 20px 16px;margin:0}
+.faq .more-faq{display:block;text-align:center;margin-top:18px;color:var(--accent);font-size:14px;font-weight:600}
 </style>
 </head>
 <body>
@@ -166,6 +187,7 @@ footer .links a{margin-right:18px}
     <a href="#cases">Cases</a>
     <a href="/guides">Guides</a>
     <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
     <span id="clerk-auth"><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></span>
   </nav>
 </div></header>
@@ -229,6 +251,7 @@ footer .links a{margin-right:18px}
       <li><b>Spine SBRT</b> · T7 vertebra (CBCT)</li>
       <li><b>Lung SBRT</b> · RLL nodule (CBCT)</li>
       <li><b>Prostate</b> · gold fiducials (CBCT)</li>
+      <li><b>Prostate</b> · kV fiducial match (2D/2D)</li>
     </ul>
   </div></section>
 
@@ -274,6 +297,39 @@ footer .links a{margin-right:18px}
         <a class="btn btn-primary" href="/trainer" data-cta="trial">Start free trial</a>
         <div class="fine">Billed $120/year after trial. Cancel anytime.</div>
       </div>
+    </div>
+  </div></section>
+
+  <section class="block" id="faq"><div class="wrap" style="text-align:center">
+    <div class="eyebrow">FAQ</div>
+    <h2>Common questions</h2>
+    <p class="lead" style="margin:0 auto">What RT image matching is, how the trainer works, and who it's for.</p>
+    <div class="faq">
+      <details>
+        <summary>What is RT image matching?</summary>
+        <p>RT image matching (image-guided radiation therapy, or IGRT) is lining up a patient's daily setup image with the reference from their planning CT, then reading off the couch correction that puts them in the planned position. It's how therapists verify position before each treatment. <a href="/guides/igrt-image-guided-radiation-therapy">Read the IGRT primer &rarr;</a></p>
+      </details>
+      <details>
+        <summary>What's the difference between 2D/2D and CBCT matching?</summary>
+        <p>2D/2D matches a pair of orthogonal planar setup images to DRRs — fast, low-dose, and great for bony verification (a 5DOF correction). CBCT reconstructs a full 3D volume for soft-tissue matching and full 6DOF rotational assessment, at the cost of more dose and time. The trainer includes both. <a href="/guides/2d-2d-portal-vs-drr-matching">Compare them &rarr;</a></p>
+      </details>
+      <details>
+        <summary>What are the six degrees of freedom (6DOF)?</summary>
+        <p>Three translations (lateral, longitudinal, vertical) and three rotations (pitch, roll, yaw) that together describe any rigid displacement of the patient on the couch. A 6DOF couch can correct all six. <a href="/guides/couch-shifts-6dof-corrections">See couch shifts &amp; 6DOF &rarr;</a></p>
+      </details>
+      <details>
+        <summary>Who is the RT Image Matching Trainer for?</summary>
+        <p>Radiation therapy students, training programs and faculty, and clinical educators — anyone learning or teaching IGRT image matching who wants console-like practice without a treatment machine.</p>
+      </details>
+      <details>
+        <summary>Do I need to install anything?</summary>
+        <p>No. It runs entirely in your browser on any device — desktop, laptop, or tablet. There's nothing to download and a 3-day free trial to start.</p>
+      </details>
+      <details>
+        <summary>Is this used for real clinical treatment?</summary>
+        <p>No. It is an educational training simulator only. It is not a medical device and not for clinical decision-making; all imaging, patient offsets, and values are fictional.</p>
+      </details>
+      <a class="more-faq" href="/guides">Browse all image-matching guides &rarr;</a>
     </div>
   </div></section>
 </main>
