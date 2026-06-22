@@ -2480,6 +2480,22 @@ const CBCT=(function(){
     if(xi<0||yi<0||zi<0||xi>=X||yi>=Y||zi>=Z)return 0;
     return lbl.data[(zi*Y+yi)*X+xi]&(bit||1);
   }
+  // Trilinear occupancy [0..1] of a label bit — anti-aliased version of gtvAt so the off-bone
+  // hide/redraw fades smoothly across voxel boundaries (no nearest-neighbour shimmer as the couch moves).
+  function gtvOcc(lbl,x,y,z,bit){
+    if(!lbl)return 0;
+    const X=lbl.X,Y=lbl.Y,Z=lbl.Z,b=bit||1;
+    const x0=Math.floor(x),y0=Math.floor(y),z0=Math.floor(z);
+    if(x0<0||y0<0||z0<0||x0+1>=X||y0+1>=Y||z0+1>=Z)return gtvAt(lbl,x,y,z,b)?1:0;
+    const fx=x-x0,fy=y-y0,fz=z-z0,D=lbl.data;
+    const at=(xi,yi,zi)=>(D[(zi*Y+yi)*X+xi]&b)?1:0;
+    const c00=at(x0,y0,z0)+(at(x0+1,y0,z0)-at(x0,y0,z0))*fx;
+    const c10=at(x0,y0+1,z0)+(at(x0+1,y0+1,z0)-at(x0,y0+1,z0))*fx;
+    const c01=at(x0,y0,z0+1)+(at(x0+1,y0,z0+1)-at(x0,y0,z0+1))*fx;
+    const c11=at(x0,y0+1,z0+1)+(at(x0+1,y0+1,z0+1)-at(x0,y0+1,z0+1))*fx;
+    const c0=c00+(c10-c00)*fy,c1=c01+(c11-c01)*fy;
+    return c0+(c1-c0)*fz;
+  }
   function reslice(name,moving){
     // ref cache keyed by slice idx; moving cache keyed by slice idx + the 6DOF residual (+ tumour drift)
     const _td=(moving&&targetDrift)?('|d'+targetDrift.x+','+targetDrift.y+','+targetDrift.z):'';
@@ -2506,9 +2522,13 @@ const CBCT=(function(){
         const gx=w[0]/sp+cxv,gy=w[1]/sp+cyv,gz=w[2]/sp+czv;
         let dens=sampleVol(gx,gy,gz);
         if(_ob){
-          if(gtvAt(_lbl,gx,gy,gz,_ob.driftBit))dens=_ob.hideDens;   // hide the feature at its planning position
+          // soft (trilinear) occupancy -> blend density by coverage, so the feature has smooth edges
+          // and moves fluidly with the couch instead of popping voxel-by-voxel.
+          const oH=gtvOcc(_lbl,gx,gy,gz,_ob.driftBit);                // hide the feature at its planning position
+          if(oH>0)dens=dens+(_ob.hideDens-dens)*oH;
           const wL=_invL(w0);                                        // and redraw it drifted (residual net-drift)
-          if(gtvAt(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv,_ob.driftBit))dens=_ob.drawDens;
+          const oD=gtvOcc(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv,_ob.driftBit);
+          if(oD>0)dens=dens+(_ob.drawDens-dens)*oD;
         }
         let val;
         if(dens<=0.5)val=0;                                  // air / outside the scan -> stays black (window only affects tissue)

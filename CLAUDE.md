@@ -106,8 +106,10 @@ Two workflows, picked on the start screen:
     hidden `targetDrift` {x,y,z} (mm) on top of the usual 6DOF error (lung drift is larger; prostate is "a
     little off bone"). The CBCT (moving) reslice composites two passes: **hides** the planning-position
     feature (overwrites the `driftBit` voxels with `hideDens` — lung air 4 / prostate soft-tissue 70) and
-    **redraws** it sampled through the residual *net − drift* transform (`movInvFrom`, `gtvAt(lbl,x,y,z,bit)`
-    occupancy) at `drawDens` (lesion HU 74 / gold 255). `check()` grades a **target/fiducial match**:
+    **redraws** it sampled through the residual *net − drift* transform (`movInvFrom`) at `drawDens`
+    (lesion HU 74 / gold 255). Occupancy is **trilinear** (`gtvOcc`, density blended by fractional
+    coverage) so the feature has soft edges and moves fluidly with the couch — nearest-neighbour
+    (`gtvAt`) shimmered/popped, which made small seeds finicky. `check()` grades a **target/fiducial match**:
     translations against `e − targetDrift`, with the 6DOF **rotations shown but not graded**, so acceptance
     is translation-only; the bones-aligned-but-target-off `hint` comes from the config. Other cases keep
     `targetDrift` `null` (no `offBone` config) so they stay pure rigid 6DOF.
