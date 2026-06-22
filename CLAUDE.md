@@ -82,6 +82,10 @@ Two workflows, picked on the start screen:
   - **Contours**: per-structure show/hide; real label-volume contours.
   - **Pan** tool + middle-mouse drag; **Ctrl+R** cycles the primary view (Axial→Coronal→Sagittal);
     the plane rotated into the large left/primary pane is auto-**selected** (`cyclePrimary`→`select`).
+  - **Fullscreen** one pane (per-pane ⛶ button or **F** on the selected pane) via `cbSolo` — the soloed
+    pane fills the grid (`.cbct-panes.cb-has-solo` + `.cb-soloed`), like the 2D solo view. The
+    couch-correction panel is **hidable** (`toggleCbShifts` + the SHIFTS tab) — it reuses the 2D
+    `.shifts-collapsed` slide so the three panes reflow to full width.
   - Arrow-key nudge capped at 0.05 cm (0.5 mm)/press.
 - Shared: blend sliders, isocenter reticle, live residual-error readout graded vs tolerance,
   **New Offset** generates a fresh setup error, match timer, **How to use** guide on start menu.

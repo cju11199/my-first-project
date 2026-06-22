@@ -245,6 +245,11 @@ main.shifts-collapsed .shift-tab{left:0}
 .cb-view-bar{position:absolute;z-index:13;top:6px;right:6px;display:none;align-items:center;background:rgba(8,11,16,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--border2);border-radius:50%;opacity:.85;transition:opacity .18s var(--ease)}
 .cbct-pane.cb-primary .cb-view-bar{display:flex}
 .cbct-pane.cb-primary:hover .cb-view-bar{opacity:1}
+/* fullscreen one pane (like the 2D solo view): the soloed pane fills the whole grid, others hidden */
+.cbct-panes.cb-has-solo>.cbct-pane{display:none}
+.cbct-panes.cb-has-solo>.cbct-pane.cb-soloed{display:block;grid-row:1/3;grid-column:1/3}
+.cbct-pane.cb-soloed .view-blend{display:flex}
+.cbct-pane.cb-soloed .cb-view-bar{display:flex}
 .cb-view-btn{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:15px;color:var(--text);background:transparent;border:none;cursor:pointer;padding:0;border-radius:50%;line-height:1}
 .cb-view-btn:hover{color:var(--accent-hi);background:rgba(45,212,238,.14)}
 .cb-zoom-lbl{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--accent-hi);min-width:32px;text-align:center;padding:0 3px}
@@ -615,7 +620,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">AXIAL</div>
         <div class="spy-ring" id="cbAxialSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendAxial" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('axial')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec1" id="cbPaneCoronal" data-plane="coronal" tabindex="0">
@@ -629,7 +634,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">CORONAL</div>
         <div class="spy-ring" id="cbCoronalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendCoronal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('coronal')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec2" id="cbPaneSagittal" data-plane="sagittal" tabindex="0">
@@ -643,10 +648,11 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">SAGITTAL</div>
         <div class="spy-ring" id="cbSagittalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendSagittal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
     </div>
+    <div class="shift-tab" onclick="toggleCbShifts()" title="Show / hide the couch-correction panel (the views go full-width when hidden)"><span class="chev" id="cbShiftChev">&#10094;</span>SHIFTS</div>
   </main>
 </div>
 <header>
@@ -1523,6 +1529,16 @@ function toggleShifts(){
 document.querySelector('.controls-strip:not(.cbct-controls)').addEventListener('transitionend',e=>{
   if(e.propertyName==='margin-left') resizeAll();
 });
+// CBCT: slide its couch-correction panel in/out (reuses the .shifts-collapsed slide; the three
+// panes reflow to full width). A window resize re-fits the CBCT canvases (see CBCT's resize listener).
+function toggleCbShifts(){
+  const m=document.querySelector('main.cbct-main');
+  const hidden=m.classList.toggle('shifts-collapsed');
+  const chev=document.getElementById('cbShiftChev');
+  if(chev) chev.innerHTML = hidden ? '&#10095;' : '&#10094;';
+  requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+}
+(function(){const c=document.querySelector('.cbct-controls');if(c)c.addEventListener('transitionend',e=>{if(e.propertyName==='margin-left')window.dispatchEvent(new Event('resize'));});})();
 
 // ── Fullscreen / solo ─────────────────────────────────────────────────────────
 function toggleSolo(key){
@@ -3076,6 +3092,16 @@ const CBCT=(function(){
     setTimeout(()=>{resize();render();},0);
   }
   function cyclePrimary(){primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();select(primaryPlane);}   // the plane rotated to the large left pane becomes the selected one
+  // Fullscreen one pane (like the 2D solo view): the soloed pane fills the whole grid; toggle to restore.
+  let soloPane=null;
+  function cbSolo(name){
+    const panes=document.querySelector('.cbct-panes');if(!panes)return;
+    soloPane=(soloPane===name)?null:name;
+    PLANE_ORDER.forEach(n=>gid(PLANES[n].pane).classList.toggle('cb-soloed',!!soloPane&&n===soloPane));
+    panes.classList.toggle('cb-has-solo',!!soloPane);
+    if(soloPane)select(soloPane);
+    setTimeout(()=>{resize();render();},0);
+  }
   function toggleFusion(){fusion=!fusion;gid('cbFusionBtn').classList.toggle('active',fusion);if(fusion&&crossMode){crossMode=false;const cb=gid('cbCrossBtn');if(cb)cb.classList.remove('active');}render();}
   function togglePan(){panMode=!panMode;const b=gid('cbPanBtn');if(b)b.classList.toggle('active',panMode);
     Object.keys(PLANES).forEach(n=>{const el=gid(PLANES[n].pane);if(el)el.style.cursor=panMode?'grab':'';});}
@@ -3361,6 +3387,7 @@ const CBCT=(function(){
       case 'r':case 'R':reset();break;
       case 'n':case 'N':randomize();break;
       case 's':case 'S':toggleSpy();break;
+      case 'f':case 'F':cbSolo(active);break;   // fullscreen the selected pane
       default:h=false;
     }
     if(h)e.preventDefault();
@@ -3406,7 +3433,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol};
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo};
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
