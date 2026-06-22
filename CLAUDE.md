@@ -138,19 +138,23 @@ Two workflows, picked on the start screen:
 
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style)
   · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
-  - **Breast DIBH (`DIBH` module):** Phase-1 button-driven deep-inspiration breath-hold coach shown as a
-    full-screen overlay before the match. A canvas RPM-style amplitude trace (cm) animates; a shaded
-    gating band `[GATE_LO,GATE_HI]` shows the window, the live line is **green in-gate / amber out**.
-    Buttons map to a patient model (`cmd('in'|'hold'|'relax'|'beam'|'abort')`) with selectable
-    **scenarios** (compliant / over-inhaler / shallow / drifter / cough). **Beam On** is a valid delivery
-    only while **in-gate AND holding steady** (`stable()`), else it's scored as out-of-gate (penalty);
-    beaming during a cough is penalised, an appropriate abort is rewarded. A valid delivery computes a
-    0–100 coaching score and **hands off** to the field match via `applyCase('breastDIBH')`
-    (`CASES.breastDIBH` = a copy of `CASES.breast`, so progress records separately). Entered from
-    `launchCase('2d2d','breastDIBH')` (not the in-trainer dropdown); `backToMenu()` calls `DIBH.exit()`.
-    `_dbg` exposes the model for headless tests. **Phase 2 (Web Speech voice → `cmd()`) is not built yet;
-    it must degrade gracefully (Safari/Firefox/no-mic) and never break the button core.** Animation +
-    voice need real-browser (Chrome/Edge) verification — can't be visually tested headless.
+  - **Breast DIBH (`DIBH` module):** Phase-1 button-driven deep-inspiration breath-hold gating, **docked
+    at the bottom of the breast match** (`body.dibh-mode` shows `#dibhDock`; `main` gets bottom padding so
+    the controls/Check stay clear). `launchCase('2d2d','breastDIBH')` calls `DIBH.enter()`, which loads the
+    breast field match (`CASES.breastDIBH` = a copy of `CASES.breast`, so progress records separately) with
+    **both portals gated** (`v.dibhGated && !v.dibhAcq` → `drawPor` skips that field's portal). You **acquire
+    each field SEPARATELY** under its own breath-hold: pick a target (`DIBH.target('ap'|'lat')` → SCV·G0 /
+    Tangent·G305 chips), coach via the trace (`cmd('in'|'hold'|'relax'|'beam'|'abort')`), and **Beam On while
+    in-gate AND holding steady** (`stable()`) reveals that portal (`v.dibhAcq=true`) and scores it 0–100;
+    out-of-gate beam (−25), beaming during a cough (−40) are penalised, an appropriate abort rewarded.
+    A canvas RPM-style amplitude trace (cm) animates with a shaded gating band `[GATE_LO,GATE_HI]`, line
+    **green in-gate / amber out**; **scenarios** = compliant / over-inhaler / shallow / drifter / cough.
+    Acquiring one auto-advances to the other; with both acquired you align + Check Match normally (combined
+    coaching score shown). `backToMenu()` calls `DIBH.exit()` (clears `dibh-mode` + un-gates). `applyCase`
+    defaults `dibhGated=false` so every other case always draws its portal. `_dbg` exposes the model for
+    headless tests. **Phase 2 (Web Speech voice → `cmd()`) is not built yet; it must degrade gracefully
+    (Safari/Firefox/no-mic) and never break the button core.** Trace animation + voice need real-browser
+    (Chrome/Edge) verification — can't be visually tested headless.
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
   Prostate (gold fiducial markers, **rigid**):
