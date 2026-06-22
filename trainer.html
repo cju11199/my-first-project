@@ -1555,8 +1555,8 @@ const FID2D=(function(){
       ctx.beginPath();ctx.moveTo(x-dx,y-dy);ctx.lineTo(x+dx,y+dy);ctx.stroke();};
     const SANG=key==='ap'?[-0.5,0.5,0.15]:[0.4,-0.35,0.85];
     for(let i=0;i<Qtrue.length;i++){const s=proj(key,Qtrue[i]),a=SANG[i%SANG.length];
-      cap(s[0],s[1],a,9.5*Z,5.4*Z,'rgba(0,0,0,.55)');   // dark halo capsule
-      cap(s[0],s[1],a,7.5*Z,3.0*Z,'#fff');}             // bright seed capsule
+      cap(s[0],s[1],a,6.0*Z,3.4*Z,'rgba(0,0,0,.55)');   // dark halo capsule
+      cap(s[0],s[1],a,4.5*Z,2.2*Z,'#fff');}             // bright seed capsule
     // draggable markers — a fine crosshair whose centre ring is SMALLER than the seed,
     // so you nest it on the seed. RED while off the seed, GREEN once it overlaps the fiducial.
     ctx.lineCap='butt';
