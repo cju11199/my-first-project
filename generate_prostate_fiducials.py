@@ -69,8 +69,8 @@ def snap_inside(c):
     return [int(ix[j]), int(iy[j]), int(iz[j])]
 
 seeds = [snap_inside(c) for c in cands]
-SEED_RMM = 2.4                      # small ~7-voxel seed; the trilinear off-bone redraw (gtvOcc) keeps it
-                                    # smooth/stable at this size (no nearest-neighbour flicker)
+SEED_RMM = 2.0                      # tiny single-voxel seed; the case is rigid (plain trilinear CT
+                                    # sampling, no redraw) so it stays smooth/stable at this size
 fid = np.zeros((DZ, DY, DX), bool)
 for s in seeds:
     fid |= sph(s, SEED_RMM)
