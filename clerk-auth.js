@@ -151,6 +151,10 @@
 
   function enforceGate() {
     if (!document.body.hasAttribute('data-require-auth')) return;
+    // Non-production hosts (localhost + Vercel preview deployments) are for testing/review only
+    // and are already noindex + Vercel-protected, so open the trainer without the sign-in/
+    // subscription gate. Production (rtimagematch.com) keeps the full paywall.
+    if (IS_DEV) { document.documentElement.classList.remove('auth-pending'); return; }
     if (!window.Clerk || !window.Clerk.user) {
       window.Clerk.redirectToSignIn({ signInForceRedirectUrl: window.location.pathname });
     } else if (hasActiveSub()) {

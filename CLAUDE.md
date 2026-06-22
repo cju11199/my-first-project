@@ -192,7 +192,9 @@ Stripe code here). Plan key **`full_access`**: $14.99/mo, $120/yr, 3-day trial.
 - clerk-js is loaded as a **classic (no-cors) script** — no `crossOrigin` — because some
   AV/VPN HTTPS interceptors strip CORS headers and broke the gate (#66).
 - Pages with `<body data-require-auth>` (the trainer) are bounced unless signed in **and**
-  authorized for `full_access`.
+  authorized for `full_access`. **Exception:** on non-production hosts (`localhost` + `*.vercel.app`
+  previews) `enforceGate()` opens the trainer without the gate, so PR previews are reviewable
+  without sign-in (previews are noindex + Vercel-protected). Production stays fully gated.
 - **Comp / free-access logic in `isComped()`:**
   - `COMP_USER_IDS` — Clerk user-id allowlist (currently empty).
   - `COMP_EMAILS` — owner emails, full access no subscription: `cju1999@pm.me`, `cju11199@pm.me`
