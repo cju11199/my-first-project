@@ -100,8 +100,9 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 
 .view-blend{position:absolute;z-index:12;bottom:13px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:11px;background:rgba(10,14,20,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border2);border-radius:var(--radius-pill);padding:8px 15px;pointer-events:auto;white-space:nowrap;user-select:none;box-shadow:var(--shadow)}
 .cbct-pane:not(.cb-primary) .view-blend{display:none}   /* blend slider only on the main (left) pane; it drives all three */
-/* Fiducial-match case: hide the blend/contrast/tools that don't apply to the kV marker match. */
-body.fid-mode .view-blend,body.fid-mode .view-contrast,body.fid-mode .view-tools,body.fid-mode .vt-zoom,body.fid-mode .spy-ring,body.fid-mode #washBtn,body.fid-mode #spyBtn,body.fid-mode #contrastBtn,body.fid-mode #gridBtn{display:none !important}
+/* Fiducial-match case: hide the blend/contrast tools that don't apply to the kV marker match.
+   The per-view zoom controls (.view-tools / .vt-zoom) stay so you can zoom into the seeds. */
+body.fid-mode .view-blend,body.fid-mode .view-contrast,body.fid-mode .spy-ring,body.fid-mode #washBtn,body.fid-mode #spyBtn,body.fid-mode #contrastBtn,body.fid-mode #gridBtn{display:none !important}
 .vb-lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;font-variant-numeric:var(--num)}
 .vb-lbl.ref{color:var(--accent-hi)}
 .vb-lbl.por{color:var(--accent2)}
@@ -1443,9 +1444,13 @@ const FID2D=(function(){
     return {t, r:[rv[0]*deg,rv[1]*deg,rv[2]*deg]};
   }
 
-  /* ---- projection: patient mm [Lat,AP,SI] (rel. iso) -> screen px, per view ---- */
+  /* ---- projection: patient mm [Lat,AP,SI] (rel. iso) -> screen px, per view ----
+     Honours the view's zoom/pan (v.zoom, v.panX, v.panY) with the same centre-anchored
+     transform the rest of the app uses, so the standard wheel/zoom buttons zoom the seeds. */
   function geom(key){const v=views[key],ph=META.physMm[key],iso=META.isoFrac[key];
-    const s=Math.min(v.W/ph[0],v.H/ph[1])*0.94,dw=ph[0]*s,dh=ph[1]*s,ox=(v.W-dw)/2,oy=(v.H-dh)/2;
+    const s0=Math.min(v.W/ph[0],v.H/ph[1])*0.94,dw0=ph[0]*s0,dh0=ph[1]*s0,ox0=(v.W-dw0)/2,oy0=(v.H-dh0)/2;
+    const z=v.zoom||1,cx=v.W/2,cy=v.H/2,px=v.panX||0,py=v.panY||0;
+    const ox=cx+px+z*(ox0-cx),oy=cy+py+z*(oy0-cy),dw=dw0*z,dh=dh0*z,s=s0*z;
     return {s,ox,oy,dw,dh,isx:ox+iso[0]*dw,isy:oy+iso[1]*dh};}
   // AP: screen-x = +Lat (patient L to the right), screen-y = -SI (sup up).
   // LAT: screen-x = +AP (posterior to the right, anterior left — matches the ray-sum backdrop),
@@ -1458,7 +1463,11 @@ const FID2D=(function(){
     if(!apImg.src){apImg.onload=()=>{if(++imgN>=2){imgReady=true;}render();};apImg.src=PROSTATE2D.ap;}
     if(!latImg.src){latImg.onload=()=>{if(++imgN>=2){imgReady=true;}render();};latImg.src=PROSTATE2D.lat;}
     return true;}
-  function enter(){if(!loadImgs())return;P=META.fiducials.map(p=>p.slice());fidPanel(true);randomize();started=true;requestAnimationFrame(()=>{resizeAll();});}
+  function enter(){if(!loadImgs())return;P=META.fiducials.map(p=>p.slice());
+    // v.ready=false so computeFit() bails and won't recompute fitZoom from the previous case's
+    // stale image (FID2D draws its own radiographs and ignores v.img / v.ready).
+    ['ap','lat'].forEach(k=>{const v=views[k];v.ready=false;v.uzoom=1;v.fitZoom=1;v.zoom=1;v.panX=0;v.panY=0;updateZoomLabel(k);});
+    fidPanel(true);randomize();started=true;requestAnimationFrame(()=>{resizeAll();});}
   function randomize(){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
     hiddenE={t:[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()],r:[rr(1,3.5)*sg(),rr(1,3.5)*sg(),rr(1,3.5)*sg()]};
     const R=eulerR(hiddenE.r[0],hiddenE.r[1],hiddenE.r[2]);
@@ -1554,12 +1563,22 @@ const FID2D=(function(){
   function bind(area){
     const el=document.getElementById(area);if(!el)return;
     el.addEventListener('pointerdown',ev=>{
-      if(!active())return; if(ev.button!==0)return;
+      if(!active())return;
       const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
+      let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
+      // Middle-mouse, or Shift+drag while zoomed in: PAN the view (instead of moving markers).
+      if(ev.button===1 || (ev.shiftKey && (v.zoom||1)>1.001)){
+        const mvP=e2=>{const [x,y]=localXY(v,e2);v.panX+=x-px;v.panY+=y-py;px=x;py=y;clampPan(v);render();};
+        const upP=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mvP);el.removeEventListener('pointerup',upP);};
+        el.style.cursor='grabbing';
+        el.addEventListener('pointermove',mvP);el.addEventListener('pointerup',upP,{once:true});
+        el.addEventListener('pointerup',()=>{el.style.cursor='';},{once:true});
+        ev.preventDefault();ev.stopPropagation();return;
+      }
+      if(ev.button!==0)return;
       let one=-1;
       if(ev.ctrlKey||ev.metaKey){const nm=nearestMarker(key,sx,sy);one=nm.i;}     // Ctrl: move one marker
       matchTimer2d.onMove();
-      let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
       const mv=e2=>{const [x,y]=localXY(v,e2);applyDelta(key,one,x-px,y-py);px=x;py=y;solve();render();};
       const up=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);};
       el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
@@ -1828,7 +1847,6 @@ function attachInteractions(key){
   });
   area.addEventListener('mouseleave',()=>{ if(hoverDragView!==key) hideCue(); });
   area.addEventListener('wheel',e=>{
-    if(FID2D.active()) return; // fiducial case: no zoom (fixed radiographs)
     if(tool==='spy') return; // spyglass handles its own wheel (resize)
     e.preventDefault();
     const rect=area.getBoundingClientRect();

@@ -86,8 +86,11 @@ Two workflows, picked on the start screen:
     couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. `check()` grades
     on mean 3D marker-to-seed distance (≤1.5 mm accept); the displayed shift is the *recovered
     correction* (coloured by overall match quality, not per-axis magnitude). `applyCase`/`resetShift`/
-    `randomizeShift`/`checkMatch` route to `FID2D` when active; the normal drag/zoom/keyboard handlers
-    and blend/contrast/tool widgets are bypassed (`body.fid-mode`). `generate_prostate_2d.py` builds
+    `randomizeShift`/`checkMatch` route to `FID2D` when active; the normal drag/keyboard handlers
+    and blend/contrast widgets are bypassed (`body.fid-mode`). **Zoom/pan**: `FID2D.geom()` honours
+    `v.zoom`/`v.panX`/`v.panY` (the app's centre-anchored transform), so the standard wheel zoom (toward
+    cursor), per-view zoom buttons (`.view-tools`) and zoom % label all work on the seeds; Shift+drag or
+    middle-mouse pans. `enter()` resets `v.ready=false`+zoom/pan so 100% = true fit. `generate_prostate_2d.py` builds
     the radiographs (`mu**1.6` bone emphasis + gamma) and the triad geometry (spread in all 3 axes so
     the fit is well-conditioned in both projections).
 - **CBCT** — 3D cone-beam registration in 3 planes (axial/coronal/sagittal) with **6DOF** couch
