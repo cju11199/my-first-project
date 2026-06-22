@@ -69,8 +69,8 @@ def snap_inside(c):
     return [int(ix[j]), int(iy[j]), int(iz[j])]
 
 seeds = [snap_inside(c) for c in cands]
-SEED_RMM = 3.2                      # solid ~19-voxel marker — small but spans ≥3 slices so it doesn't
-                                    # alias/flicker at the reslice sampling rate (single-voxel seeds were finicky)
+SEED_RMM = 2.4                      # small ~7-voxel seed; the trilinear off-bone redraw (gtvOcc) keeps it
+                                    # smooth/stable at this size (no nearest-neighbour flicker)
 fid = np.zeros((DZ, DY, DX), bool)
 for s in seeds:
     fid |= sph(s, SEED_RMM)
