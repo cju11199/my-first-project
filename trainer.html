@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com https://*.r2.cloudflarestorage.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com https://*.r2.cloudflarestorage.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -941,11 +941,10 @@ html:not(.auth-pending) #authGate{display:none}
 </div>
 <div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
 
-<!-- Breast 2D/2D assets (SCV + medial tangent DRRs, MLC reference + anatomy portal) -->
-<script src="breast_drr_data.js"></script>
-<script src="image_data.js"></script>
-<!-- 2D/2D prostate fiducial-match case: kV AP + Lateral radiographs + planning fiducial triad -->
-<script src="prostate2d_data.js"></script>
+<!-- Phase 2: the 2D/2D datasets (breast_drr_data.js, image_data.js, prostate2d_data.js) are no
+     longer loaded here. They're served only to authorized sessions via /api/asset, and a bare
+     parse-time script tag can't carry a fresh Clerk token, so they're loaded by rtBootData() once
+     Clerk is ready (which then builds CASES). See the auth-data bootstrap below. -->
 <script>
 
 
@@ -1065,7 +1064,21 @@ setup(views.lat);
 // latAntRight: is the anterior direction on the RIGHT of the lateral image?
 //   (these DRRs + brain have anterior on the LEFT -> latAntRight:false)
 // This drives the ANT/POST labels and the Vrt readout sign so "move ANT -> Vrt decreases" holds.
-const CASES = {
+// ---- Phase 2 auth-data plumbing -------------------------------------------------------------
+// Case data is served by /api/asset only to authorized sessions. Clerk session tokens are
+// short-lived and the __session cookie is usually stale by the time subresources fire, so we
+// attach a freshly-minted token (?t=) to every data request. rtToken is refreshed on a timer.
+let rtToken = null;
+async function rtRefreshToken(){ try{ if(window.Clerk && window.Clerk.session){ rtToken = await window.Clerk.session.getToken(); } }catch(e){} return rtToken; }
+function rtAssetUrl(key){ return '/api/asset?f='+encodeURIComponent(key)+(rtToken?('&t='+encodeURIComponent(rtToken)):''); }
+function rtLoadScript(src){ return new Promise(function(res,rej){ const s=document.createElement('script'); s.onload=function(){res();}; s.onerror=function(){rej(new Error('asset load failed: '+src));}; s.src=src; document.head.appendChild(s); }); }
+
+// CASES is built lazily (rtBuildCases) AFTER the data files load, because it embeds globals from
+// image_data.js / breast_drr_data.js. Building it at parse time (before the auth'd data load) would
+// throw on the undefined globals and kill the whole script (dead start menu). Start empty.
+let CASES = {};
+function rtBuildCases(){
+CASES = {
   brain: { name:'Brain · CT DRR (3D)', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} }, tilt:'brain' },
   pelvis:{ name:'Pelvis · CT DRR (3D)', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
@@ -1097,6 +1110,7 @@ const CASES = {
 // difference is the DIBH breath-hold COACHING that gates entry to the match (DIBH module +
 // launchCase). Kept as its own key so its progress records separately from plain Breast.
 CASES.breastDIBH = Object.assign({}, CASES.breast, { name:'Breast L · DIBH (SCV + Tangent)' });
+}
 let currentCase='pelvis';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
 // For a 3D-tilt case, load the re-projected DRR frames (drr/ files) per view: AP varies
@@ -1113,7 +1127,7 @@ function loadTiltStacks(c){
     // base DRR. When the DRRs are regenerated the embedded reference (and this token)
     // change together, so a reloaded page never pairs a fresh reference (0%) with a
     // stale cached tilt frame (100%) -> no contrast mismatch across the blend slider.
-    const ver = '?v='+assetTag(k==='ap'?c.ap:c.lat);
+    const ver = '&v='+assetTag(k==='ap'?c.ap:c.lat);   // '&' — appended after /api/asset's ?f=
     const frames=[{a:0,img:v.img}];      // 0deg = base DRR (v.img, reloaded below)
     const stack={frames, ready:false};
     let pending=0;
@@ -1121,7 +1135,7 @@ function loadTiltStacks(c){
       const im=new Image(); pending++;
       const done=()=>{ if(--pending===0){ stack.ready=true; render(); } };
       im.onload=done; im.onerror=done;
-      im.src=prefix+tg+'.png'+ver;
+      im.src=rtAssetUrl(prefix+tg+'.png')+ver;
       frames.push({a,img:im});
     });
     frames.sort((p,q)=>p.a-q.a);
@@ -2778,6 +2792,36 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.ge
 // First paint (local), then refresh once the Clerk/account profile is ready so synced stats appear.
 window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&window.RTAuth.ready&&window.RTAuth.ready.then){window.RTAuth.ready.then(function(){rtRefreshProgress();});}});
 
+// Phase 2 auth-data bootstrap: once Clerk is ready, mint a token and load the gated 2D/2D
+// datasets via /api/asset, then build CASES so the 2D/2D cases work. Volumes/labels/DRR PNGs
+// load on demand later (also through rtAssetUrl) while rtToken is kept fresh on a 30 s timer.
+// NOTE: clerk-auth.js is loaded AFTER this app script, so window.RTAuth/Clerk don't exist yet
+// when this runs — we poll for RTAuth, then await its ready promise, before minting a token.
+let rtDataReady=false;
+function rtSleep(ms){ return new Promise(function(r){ setTimeout(r,ms); }); }
+async function rtWaitForAuth(){
+  for(let i=0;i<1200;i++){ // up to ~60 s
+    if(window.RTAuth&&window.RTAuth.ready&&typeof window.RTAuth.ready.then==='function') return window.RTAuth.ready;
+    await rtSleep(50);
+  }
+  return null;
+}
+(async function rtBootData(){
+  try{
+    const rd=await rtWaitForAuth();
+    if(rd){ try{ await rd; }catch(e){} }   // Clerk loaded + gate run -> Clerk.session available
+    // Mint a session token; retry a few times in case session hydration lags behind ready.
+    for(let i=0;i<25 && !(await rtRefreshToken()); i++){ await rtSleep(150); }
+    setInterval(rtRefreshToken, 30000);
+    await rtLoadScript(rtAssetUrl('breast_drr_data.js'));
+    await rtLoadScript(rtAssetUrl('image_data.js'));
+    await rtLoadScript(rtAssetUrl('prostate2d_data.js'));
+    rtBuildCases();
+    if(typeof CBCT!=='undefined' && CBCT.loadRealPelvis) CBCT.loadRealPelvis();   // now that image_data.js is in
+    rtDataReady=true;
+  }catch(e){ console.error('[rt] data bootstrap failed — is the session authorized for full_access?', e); }
+})();
+
 function backToMenu(){
   currentMode=null;
   DIBH.exit();   // stop the breath-hold animation + hide its overlay if it was open
@@ -2846,9 +2890,15 @@ const CBCT=(function(){
   let stacksLoaded=false;
   // existing single-slice real pelvis images (fallback while vol stacks load)
   const realPelvis={};
-  [['axial',PELVIS_CBCT_AXIAL],['coronal',PELVIS_CBCT_CORONAL],['sagittal',PELVIS_CBCT_SAGITTAL]].forEach(function(pr){
-    const im=new Image();im.onload=function(){realPelvis[pr[0]]=im;if(started&&caseKey==='pelvis'&&!stacksLoaded)applyCase('pelvis');};im.src=pr[1];
-  });
+  // Source globals (PELVIS_CBCT_*) live in image_data.js, which is now auth-loaded after Clerk is
+  // ready, so this is a guarded function called by the data bootstrap rather than at module init
+  // (a bare reference here would throw before the data exists and kill the module).
+  function loadRealPelvis(){
+    if(typeof PELVIS_CBCT_AXIAL==='undefined')return;
+    [['axial',PELVIS_CBCT_AXIAL],['coronal',PELVIS_CBCT_CORONAL],['sagittal',PELVIS_CBCT_SAGITTAL]].forEach(function(pr){
+      const im=new Image();im.onload=function(){realPelvis[pr[0]]=im;if(started&&caseKey==='pelvis'&&!stacksLoaded)applyCase('pelvis');};im.src=pr[1];
+    });
+  }
   const gid=id=>document.getElementById(id);
   function net(){const n={};ORDER.forEach(k=>n[k]=shift[k]-hidden[k]);return n;}
 
@@ -2949,7 +2999,7 @@ const CBCT=(function(){
     const V=vc.get();
     if(!V){                                            // lazy-load this case's volume data file
       if(loadVolumeMPR._t)return; loadVolumeMPR._t=1;
-      const s=document.createElement('script'); s.src=vc.file;
+      const s=document.createElement('script'); s.src=rtAssetUrl(vc.file);
       s.onload=()=>{loadVolumeMPR._t=0;loadVolumeMPR();}; s.onerror=()=>{loadVolumeMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3179,7 +3229,7 @@ const CBCT=(function(){
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
     if(typeof PELVIS3D_LABELS==='undefined'){
       if(loadLabelMPR._t)return; loadLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='pelvis3d_labels_data.js';
+      const s=document.createElement('script'); s.src=rtAssetUrl('pelvis3d_labels_data.js');
       s.onload=()=>{loadLabelMPR._t=0;loadLabelMPR();}; s.onerror=()=>{loadLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3189,7 +3239,7 @@ const CBCT=(function(){
   function _loadBrainLabelMPR(){
     if(typeof BRAIN3D_LABELS==='undefined'){
       if(_loadBrainLabelMPR._t)return; _loadBrainLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='brain3d_labels_data.js';
+      const s=document.createElement('script'); s.src=rtAssetUrl('brain3d_labels_data.js');
       s.onload=()=>{_loadBrainLabelMPR._t=0;_loadBrainLabelMPR();}; s.onerror=()=>{_loadBrainLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3225,7 +3275,7 @@ const CBCT=(function(){
   function _loadBreastLabelMPR(){
     if(typeof BREAST3D_LABELS==='undefined'){
       if(_loadBreastLabelMPR._t)return; _loadBreastLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='breast3d_labels_data.js';
+      const s=document.createElement('script'); s.src=rtAssetUrl('breast3d_labels_data.js');
       s.onload=()=>{_loadBreastLabelMPR._t=0;_loadBreastLabelMPR();}; s.onerror=()=>{_loadBreastLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3248,7 +3298,7 @@ const CBCT=(function(){
   function _loadSpineLabelMPR(){
     if(typeof SPINE3D_LABELS==='undefined'){
       if(_loadSpineLabelMPR._t)return; _loadSpineLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='spine3d_labels_data.js';
+      const s=document.createElement('script'); s.src=rtAssetUrl('spine3d_labels_data.js');
       s.onload=()=>{_loadSpineLabelMPR._t=0;_loadSpineLabelMPR();}; s.onerror=()=>{_loadSpineLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3271,7 +3321,7 @@ const CBCT=(function(){
   function _loadLungLabelMPR(){
     if(typeof LUNG3D_LABELS==='undefined'){
       if(_loadLungLabelMPR._t)return; _loadLungLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='lung3d_labels_data.js';
+      const s=document.createElement('script'); s.src=rtAssetUrl('lung3d_labels_data.js');
       s.onload=()=>{_loadLungLabelMPR._t=0;_loadLungLabelMPR();}; s.onerror=()=>{_loadLungLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3294,7 +3344,7 @@ const CBCT=(function(){
   function _loadProstateLabelMPR(){
     if(typeof PROSTATE3D_LABELS==='undefined'){
       if(_loadProstateLabelMPR._t)return; _loadProstateLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='prostate3d_labels_data.js';
+      const s=document.createElement('script'); s.src=rtAssetUrl('prostate3d_labels_data.js');
       s.onload=()=>{_loadProstateLabelMPR._t=0;_loadProstateLabelMPR();}; s.onerror=()=>{_loadProstateLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3970,7 +4020,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo};
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis};
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
@@ -4117,7 +4167,7 @@ const CBCT3D=(function(){
     const cfg=curCfg();
     if(cfg.get())return cb();
     if(!cfg.file){gid('cb3dLoading').textContent='no 3D volume for this case';return;}
-    const s=document.createElement('script'); s.src=cfg.file;
+    const s=document.createElement('script'); s.src=rtAssetUrl(cfg.file);
     s.onload=cb; s.onerror=()=>{gid('cb3dLoading').textContent='volume data failed to load';};
     document.head.appendChild(s);
   }

@@ -60,7 +60,9 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   navigations / non-browser fetches (curl), and **fails open** on anything ambiguous so it can't
   break a real session. Headers are spoofable — this is NOT subscription enforcement (that's Phase 2);
   it just stops casual scraping. `allow()` is exported for unit-testing the truth table.
-- **Case data (large, loaded on demand), kept out of HTML for caching:**
+- **Case data (large, loaded on demand), kept out of HTML for caching.** Phase 2: the trainer now
+  loads every one of these via `/api/asset?f=<key>` (the subscription-gated R2 reader, see below),
+  not by bare filename:
   - `image_data.js` (~4.3 MB), `breast_drr_data.js` — embedded DRR/portal images for 2D/2D.
   - `prostate2d_data.js` (~140 KB) — kV-style AP + Lateral pelvis radiographs (ray-sum of the pelvis
     CT) + planning fiducial-triad geometry for the 2D/2D prostate fiducial-match case (`PROSTATE2D`).
@@ -201,9 +203,11 @@ Stripe code here). Plan key **`full_access`**: $14.99/mo, $120/yr, 3-day trial.
 - `window.RTAuth` exposes `ready`, `hasActiveSub()`, `PLAN_KEY`, `TRAINER_URL` for page scripts
   (e.g. subscribe.html mounts `Clerk.mountPricingTable`).
 
-**Important:** this is the CLIENT (UX) gate only. The hard paywall — serving the ~15 MB of case
-data only to subscribers — is **Phase 2, not yet built** (see PAYWALL.md). The data files are
-still public on the CDN today.
+**Important:** this is the CLIENT (UX) gate only. The hard paywall — serving the ~26 MB of case
+data only to subscribers via `/api/asset` + Cloudflare R2 — is **Phase 2: code built, not yet
+activated** (see PAYWALL.md / Status). The data files are **still public on the CDN today** and stay
+that way until `.vercelignore` is merged to `main` (which requires the R2 bucket populated + env vars
+set first).
 
 ### Per-user accounts: progress, preferences & achievements
 
@@ -251,12 +255,18 @@ outbound as the address would require switching to a real mailbox (iCloud+ custo
 
 ## Status / next steps (Phase 2 — hard data lockdown)
 
-Not started in code. Plan (PAYWALL.md): move case data to **Cloudflare R2**, add a Vercel
-serverless `/api/asset` that verifies the Clerk session + `full_access` via `@clerk/backend`,
-returns short-lived R2 **presigned URLs** for the big `.js` files (Vercel ~4.5 MB response limit
-rules out proxying `image_data.js`) and **proxies** `drr/*.png` same-origin (canvas-taint/CORS),
-rewire `trainer.html` loaders, and `.vercelignore` the data files. R2 env vars are stubbed in
-`.env.example`. Phase 3 = connect real Stripe, switch Clerk to live, test a purchase, launch.
+**Code is built (PR on `claude/nice-galileo-lar86p`).** `api/asset.mjs` is the Vercel serverless
+reader: `@clerk/backend` `authenticateRequest` → `auth.has({plan:'full_access'})` **plus** a
+server-side mirror of `isComped()` (owner emails + verified institution domains), then **302 →
+90 s R2 presigned URL** for the big `*_data.js` (empty redirect body dodges Vercel's ~4.5 MB cap)
+and **same-origin byte proxy** for `drr/*.png` (canvas-taint). All 12 `trainer.html` loaders go
+through `/api/asset?f=<key>`; CSP gained `https://*.r2.cloudflarestorage.com`; `package.json` adds
+`@clerk/backend` + `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`; `scripts/upload-to-r2.mjs`
+pushes the data; `.vercelignore` removes it from the CDN (**the final switch — only active once
+merged to `main`; don't merge to prod until R2 is populated + env vars set, or the live trainer breaks**).
+R2 bucket `rtimagematch-data` exists. **Remaining = owner dashboard ops only:** make an R2 API token,
+set `R2_*` env vars in Vercel (Production + Preview), run the upload script. Phase 3 = connect real
+Stripe, switch Clerk to live, test a purchase, launch.
 
 > Note: PAYWALL.md's "session handoff" section predates PRs #63–#71. Phase 1 (auth + billing gate,
 > #62) is now **merged and live** with host-detected prod/dev keys; the owner allowlist and the

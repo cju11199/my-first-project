@@ -1,7 +1,10 @@
 {
   "private": true,
-  "description": "RT Image Matching Trainer — static site. package.json exists only for the edge middleware dependency (interim case-data hotlink guard); there is no build step.",
+  "description": "RT Image Matching Trainer — static site. package.json supplies the edge-middleware dep (interim case-data hotlink guard) and the Phase 2 /api/asset paywall deps (Clerk session check + Cloudflare R2 presigning). There is still no build step; Vercel serves the static files as-is and installs these for the serverless function.",
   "dependencies": {
-    "@vercel/edge": "^1.1.0"
+    "@vercel/edge": "^1.1.0",
+    "@clerk/backend": "^3.8.2",
+    "@aws-sdk/client-s3": "^3.1074.0",
+    "@aws-sdk/s3-request-presigner": "^3.1074.0"
   }
 }
