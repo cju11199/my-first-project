@@ -652,7 +652,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">AXIAL</div>
         <div class="spy-ring" id="cbAxialSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendAxial" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('axial')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('axial')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec1" id="cbPaneCoronal" data-plane="coronal" tabindex="0">
@@ -666,7 +666,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">CORONAL</div>
         <div class="spy-ring" id="cbCoronalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendCoronal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('coronal')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('coronal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec2" id="cbPaneSagittal" data-plane="sagittal" tabindex="0">
@@ -680,7 +680,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">SAGITTAL</div>
         <div class="spy-ring" id="cbSagittalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendSagittal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
     </div>
@@ -3628,9 +3628,18 @@ const CBCT=(function(){
     const btn=gid('cbPrimaryBtn');if(btn)btn.textContent='► '+primaryPlane.charAt(0).toUpperCase()+primaryPlane.slice(1);
     setTimeout(()=>{resize();render();},0);
   }
-  function cyclePrimary(){primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();select(primaryPlane);}   // the plane rotated to the large left pane becomes the selected one
   // Fullscreen one pane (like the 2D solo view): the soloed pane fills the whole grid; toggle to restore.
   let soloPane=null;
+  function cyclePrimary(){
+    if(soloPane){   // in fullscreen: rotate which plane is shown full-screen (Axial → Coronal → Sagittal) instead of the grid layout
+      soloPane=PLANE_ORDER[(PLANE_ORDER.indexOf(soloPane)+1)%PLANE_ORDER.length];
+      PLANE_ORDER.forEach(n=>gid(PLANES[n].pane).classList.toggle('cb-soloed',n===soloPane));
+      select(soloPane);
+      setTimeout(()=>{resize();render();},0);
+      return;
+    }
+    primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();select(primaryPlane);   // the plane rotated to the large left pane becomes the selected one
+  }
   function cbSolo(name){
     const panes=document.querySelector('.cbct-panes');if(!panes)return;
     soloPane=(soloPane===name)?null:name;
@@ -3808,6 +3817,11 @@ const CBCT=(function(){
     });
     // suppress middle-click autoscroll on the panes (we use the wheel button to pan)
     el.addEventListener('mousedown',e=>{if(e.button===1)e.preventDefault();});
+    // double-click toggles fullscreen for this pane (matches the 2D solo view); ignore the control bars
+    el.addEventListener('dblclick',ev=>{
+      if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
+      cbSolo(name);
+    });
     el.addEventListener('pointerdown',ev=>{
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
       select(name);
