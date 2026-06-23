@@ -1,6 +1,6 @@
 {
   "private": true,
-  "description": "RT Image Matching Trainer — static site served from root. Build step minifies trainer.html (readable source -> opaque served copy); @vercel/edge powers the interim hotlink middleware.",
+  "description": "RT Image Matching Trainer — static site served from root. Build step minifies trainer.html + clerk-auth.js (readable sources -> opaque served copies); @vercel/edge powers the interim hotlink middleware.",
   "scripts": {
     "build": "node build-trainer.mjs"
   },
@@ -8,6 +8,7 @@
     "@vercel/edge": "^1.1.0"
   },
   "devDependencies": {
-    "html-minifier-terser": "^7.2.0"
+    "html-minifier-terser": "^7.2.0",
+    "terser": "^5.0.0"
   }
 }

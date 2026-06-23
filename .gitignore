@@ -27,5 +27,6 @@ _breast_seg/
 # Node
 node_modules/
 
-# Local minified build artifact (Vercel produces this at deploy time; never commit it)
+# Local minified build artifacts (Vercel produces these at deploy time; never commit them)
 trainer.min.html
+clerk-auth.min.js
