@@ -15,4 +15,5 @@
 # Local env + build artifacts
 .env*
 trainer.min.html
+clerk-auth.min.js
 node_modules
