@@ -99,7 +99,7 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 .vt-zoom{position:absolute;z-index:11;bottom:12px;left:14px;font-family:var(--mono);font-size:10px;font-weight:600;font-variant-numeric:var(--num);color:var(--accent-hi);background:rgba(8,11,16,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:4px 9px;border-radius:var(--radius-sm);pointer-events:none;border:1px solid var(--border2)}
 
 .view-blend{position:absolute;z-index:12;bottom:13px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:11px;background:rgba(10,14,20,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border2);border-radius:var(--radius-pill);padding:8px 15px;pointer-events:auto;white-space:nowrap;user-select:none;box-shadow:var(--shadow)}
-.cbct-pane:not(.cb-primary) .view-blend{display:none}   /* blend slider only on the main (left) pane; it drives all three */
+/* blend slider shows on every CBCT pane; setBlendAll keeps all three conjoined to the same value */
 /* Fiducial-match case: hide the blend/contrast tools that don't apply to the kV marker match.
    The per-view zoom controls (.view-tools / .vt-zoom) stay so you can zoom into the seeds. */
 body.fid-mode .view-blend,body.fid-mode .view-contrast,body.fid-mode .spy-ring,body.fid-mode #washBtn,body.fid-mode #spyBtn,body.fid-mode #contrastBtn,body.fid-mode #gridBtn{display:none !important}
@@ -110,6 +110,9 @@ body.fid-mode .view-blend,body.fid-mode .view-contrast,body.fid-mode .spy-ring,b
 .vb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid rgba(8,11,16,.8);box-shadow:0 2px 6px rgba(0,0,0,.7);cursor:pointer;transition:transform .12s var(--ease)}
 .vb-slider::-webkit-slider-thumb:hover{transform:scale(1.12)}
 .vb-slider::-moz-range-thumb{width:16px;height:16px;border:2px solid rgba(8,11,16,.8);border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.7);cursor:pointer}
+/* CBCT blend sliders read "clear" — neutral track + labels rather than the orange/blue gradient (2D Color Wash keeps its colour) */
+.cbct-pane .vb-slider{background:rgba(234,241,248,.28)}
+.cbct-pane .vb-lbl.ref,.cbct-pane .vb-lbl.por{color:var(--label)}
 
 /* vertical contrast slider on the side of each image */
 .view-contrast{position:absolute;z-index:12;top:50%;right:18px;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:10px;background:rgba(10,14,20,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border2);border-radius:16px;padding:14px 10px;pointer-events:auto;user-select:none;box-shadow:var(--shadow)}
@@ -162,6 +165,8 @@ main.shifts-collapsed .shift-tab{left:0}
 .error-bad{color:#f87171}
 .error-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
 .status-msg{font-family:var(--mono);font-size:11px;color:var(--label)}
+.match-timer{font-family:var(--mono);font-size:17px;font-weight:700;letter-spacing:.05em;color:var(--label);text-align:center;font-variant-numeric:var(--num);transition:color .15s var(--ease)}
+.match-timer.running{color:var(--accent-hi)}
 
 .hint-row{display:flex;gap:7px 9px;align-items:center;flex-wrap:wrap;max-width:300px}
 .hint-item{font-family:var(--mono);font-size:9px;color:var(--muted);display:flex;gap:4px;align-items:center}
@@ -582,6 +587,7 @@ html:not(.auth-pending) #authGate{display:none}
           <div class="error-item"><div class="error-val" id="cbErrYaw">&mdash;</div><div class="error-lbl">RTN</div></div>
         </div>
         <div class="status-msg" id="cbStatusMsg">Fuse all three planes to the reference</div>
+        <div class="match-timer" id="cbMatchTimerDisp" title="Match time — starts on your first adjustment, resets each Check Match">&#9201; 0:00.0</div>
         <button class="btn-primary" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
       </div>
     </div>
@@ -652,7 +658,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">AXIAL</div>
         <div class="spy-ring" id="cbAxialSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendAxial" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('axial')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('axial')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec1" id="cbPaneCoronal" data-plane="coronal" tabindex="0">
@@ -666,7 +672,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">CORONAL</div>
         <div class="spy-ring" id="cbCoronalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendCoronal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('coronal')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('coronal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec2" id="cbPaneSagittal" data-plane="sagittal" tabindex="0">
@@ -680,7 +686,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="view-tag">SAGITTAL</div>
         <div class="spy-ring" id="cbSagittalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendSagittal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
-        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F)" style="font-size:12px">&#9974;</button></div>
+        <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
       </div>
     </div>
@@ -773,6 +779,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="error-item"><div class="error-val" id="errPitch">&mdash;</div><div class="error-lbl">Pitch</div></div>
       </div>
       <div class="status-msg" id="statusMsg">Match both views to the reference</div>
+      <div class="match-timer" id="matchTimerDisp" title="Match time — starts on your first adjustment, resets each Check Match">&#9201; 0:00.0</div>
       <button class="btn-primary" onclick="checkMatch()" style="font-size:11px;padding:5px 16px;">Check Match</button>
     </div>
   </div>
@@ -1537,7 +1544,7 @@ const FID2D=(function(){
   function fidRotTol(){const d=(RTProfile&&RTProfile.get&&RTProfile.get().prefs.difficulty)||'standard';
     return d==='relaxed'?3.5:d==='strict'?2.0:3.0;}
   const FID_TRANS_TOL=2.0;   // translation accept tolerance (mm) — markers must be seated too
-  function randomize(){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
+  function randomize(keepResult){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
     const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
     // Realistic per-axis rotation (2–3.5°). Across 3 axes the total angle compounds to ~3.5–6°;
     // ensure that total comfortably exceeds the accept tolerance so rotation must be corrected.
@@ -1546,7 +1553,8 @@ const FID2D=(function(){
     if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
-    setMsg('Drag the markers onto the seeds in both views — Ctrl+drag a single marker to rotate the triad','label');solve();render();}
+    if(!keepResult)setMsg('Drag the markers onto the seeds in both views — Ctrl+drag a single marker to rotate the triad','label');
+    solve();render();}
   function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
 
   function solve(){const f=fit(P,M);writeReadout(f);return f;}
@@ -1558,12 +1566,16 @@ const FID2D=(function(){
     const rotTol=fidRotTol();
     const ok=rotErr<=rotTol && transErr<=FID_TRANS_TOL;
     const close=rotErr<=rotTol*1.8 && transErr<=FID_TRANS_TOL*1.8;
-    const ms=matchTimer2d.elapsed(),tag=(ms==null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
-    writeReadout(f,true,ok?'error-good':close?'error-ok':'error-bad');
-    if(ok)setMsg('✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag,'ok');
-    else if(close)setMsg('⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; Ctrl+drag to rotate'+tag,'label');
-    else setMsg('✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag,'bad');
-    if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:ms});
+    const ms=matchTimer2d.elapsed(),tag=(ok&&ms!=null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // time only counts when within tolerance
+    let msg,cls;
+    if(ok){msg='✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag;cls='ok';}
+    else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; Ctrl+drag to rotate'+tag;cls='label';}
+    else{msg='✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag;cls='bad';}
+    if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:ok?ms:null});
+    // Check Match resets the clock + loads a fresh offset for the next rep, then shows the verdict
+    matchTimer2d.reset();
+    randomize(true);
+    setMsg(msg+'  ·  new offset loaded',cls);
   }
 
   /* ---- readout (inject a Yaw row + relabel rotations for 6DOF while in this case) ---- */
@@ -2334,8 +2346,7 @@ function resetShift(){
   document.getElementById('statusMsg').textContent='Match both views to the reference';
   render();
 }
-function randomizeShift(){
-  if(FID2D.active()){ matchTimer2d.reset(); FID2D.randomize(); return; }
+function applyNewOffset2d(){   // pick a fresh hidden 5DOF setup error (used by New Offset + auto-advance on Check Match)
   const rnd=(mn,mx)=>Math.round((Math.random()*(mx-mn)+mn)*2)/2;
   const sgn=()=>Math.random()<0.5?-1:1;
   hidden.x=rnd(3,18)*sgn();
@@ -2343,6 +2354,10 @@ function randomizeShift(){
   hidden.z=rnd(3,16)*sgn();
   hidden.roll=rnd(0,4)*sgn();
   hidden.pitch=rnd(0,4)*sgn();
+}
+function randomizeShift(){
+  if(FID2D.active()){ matchTimer2d.reset(); FID2D.randomize(); return; }
+  applyNewOffset2d();
   resetShift();
   undoStack=[];               // new target -> previous movements no longer meaningful
   document.getElementById('statusMsg').textContent='New 3D offset applied \u2014 correct both views';
@@ -2387,6 +2402,16 @@ function fmtMatchTime(ms){
   return m+':'+(r<10?'0':'')+r.toFixed(1);   // e.g. 0:47.2, 1:05.4
 }
 const matchTimer2d=makeMatchTimer();
+// Live, visible match-timer readout for both workflows: ticks while a match is in progress,
+// shows 0:00.0 before the first move / after a reset, and turns accent-coloured while running.
+function rtTimerClock(ms){return '⏱ '+(ms==null?'0:00.0':fmtMatchTime(ms));}
+function rtUpdateTimerDisplays(){
+  const a=document.getElementById('matchTimerDisp');
+  if(a){const ms=matchTimer2d.elapsed();a.textContent=rtTimerClock(ms);a.classList.toggle('running',ms!=null);}
+  const c=document.getElementById('cbMatchTimerDisp');
+  if(c&&typeof CBCT!=='undefined'&&CBCT.timerMs){const ms=CBCT.timerMs();c.textContent=rtTimerClock(ms);c.classList.toggle('running',ms!=null);}
+}
+setInterval(rtUpdateTimerDisplays,100);
 function checkMatch(){
   if(FID2D.active()){ FID2D.check(); return; }
   const e={};
@@ -2404,12 +2429,21 @@ function checkMatch(){
   const ok=transOk&&rotOk;
   const close=Math.abs(e.x)<=TOL.t2&&Math.abs(e.y)<=TOL.t2&&Math.abs(e.z)<=TOL.t2;
   const ms=matchTimer2d.elapsed();
-  const timeTag=(ms===null)?'':'  \u00b7  \u23f1 '+fmtMatchTime(ms);
-  document.getElementById('statusMsg').textContent=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
-    :close?'\u26a1 Close \u2014 fine-tune further':'\u2717 Residual error \u2014 keep adjusting')+timeTag;
+  const timeTag=(ok&&ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // time only counts when within tolerance
   if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
-  // record this attempt for the user's progress profile (translation residual magnitude in mm)
-  rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ms});
+  // record this attempt; only document a time when the match is within tolerance
+  rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ok?ms:null});
+  // Check Match resets the clock and loads a fresh offset for the next rep. Keep the verdict and the
+  // per-axis errors on screen (they clear on the first adjustment of the new rep, like a normal move).
+  const verdict=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
+    :close?'\u26a1 Close \u2014 missed tolerance':'\u2717 Residual error \u2014 outside tolerance')+timeTag;
+  applyNewOffset2d();
+  matchTimer2d.reset();
+  shift={x:0,y:0,z:0,roll:0,pitch:0};
+  undoStack=[];
+  refreshReadouts();
+  render();
+  document.getElementById('statusMsg').textContent=verdict+'  \u00b7  new offset loaded';
 }
 function clearErrors(){['errX','errY','errZ','errRoll','errPitch'].forEach(id=>{const e=document.getElementById(id);e.textContent='\u2014';e.className='error-val';});}
 // ===== How-to-use guide (launched from the start menu; replaces the old per-tool help) =====
@@ -3494,6 +3528,21 @@ const CBCT=(function(){
     return c;
   }
   function tint(src,col){const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(src,0,0);const id=g.getImageData(0,0,S,S),d=id.data;for(let i=0;i<d.length;i+=4){const v=d[i]/255;d[i]=v*col[0];d[i+1]=v*col[1];d[i+2]=v*col[2];}g.putImageData(id,0,0);return c;}
+  // Browser-safe fusion tint: Safari ignores canvas ctx.filter (hue-rotate), so the MPR/volume
+  // fusion overlay rendered grey there. Colorize by multiplying the grayscale reslice by the tint
+  // colour instead (same math as tint()), reusing a per-slot scratch canvas at source resolution.
+  const _tintScr={};
+  function tintLayer(slot,src,col){
+    const c=_tintScr[slot]||(_tintScr[slot]=document.createElement('canvas'));
+    const w=src.width,h=src.height;
+    if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
+    const g=c.getContext('2d');
+    g.clearRect(0,0,w,h);g.drawImage(src,0,0);
+    const id=g.getImageData(0,0,w,h),d=id.data;
+    for(let i=0;i<d.length;i+=4){const v=d[i]/255;d[i]=v*col[0];d[i+1]=v*col[1];d[i+2]=v*col[2];}
+    g.putImageData(id,0,0);
+    return c;
+  }
 
   /* ---- rendering ---- */
   function drawPlane(name){
@@ -3535,13 +3584,13 @@ const CBCT=(function(){
       ctx.globalCompositeOperation='source-over';
       const movA=0.25+b*0.5;   // CBCT opacity: blend slider biases the mix, both layers stay visible
       if(useVol||useMPR){
+        // Colorize by per-pixel tint (CT orange / CBCT blue) rather than ctx.filter hue-rotate,
+        // which Safari does not apply to drawImage -> the fusion overlay rendered grey there.
         ctx.globalAlpha=1;
-        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(-20deg) brightness(0.78)';
-        ctx.drawImage(refDraw,ox,oy,dw,dw);ctx.filter='none';
+        ctx.drawImage(tintLayer(name+'R',refDraw,CT_COL),ox,oy,dw,dw);
         ctx.globalAlpha=movA;
         ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);
-        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(180deg) brightness(0.78)';
-        ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.filter='none';
+        ctx.drawImage(tintLayer(name+'M',movDraw,CBCT_COL),-dw/2,-dw/2,dw,dw);
         ctx.restore();
       }else{
         ctx.filter='brightness(0.78)';
@@ -3628,9 +3677,18 @@ const CBCT=(function(){
     const btn=gid('cbPrimaryBtn');if(btn)btn.textContent='► '+primaryPlane.charAt(0).toUpperCase()+primaryPlane.slice(1);
     setTimeout(()=>{resize();render();},0);
   }
-  function cyclePrimary(){primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();select(primaryPlane);}   // the plane rotated to the large left pane becomes the selected one
   // Fullscreen one pane (like the 2D solo view): the soloed pane fills the whole grid; toggle to restore.
   let soloPane=null;
+  function cyclePrimary(){
+    if(soloPane){   // in fullscreen: rotate which plane is shown full-screen (Axial → Coronal → Sagittal) instead of the grid layout
+      soloPane=PLANE_ORDER[(PLANE_ORDER.indexOf(soloPane)+1)%PLANE_ORDER.length];
+      PLANE_ORDER.forEach(n=>gid(PLANES[n].pane).classList.toggle('cb-soloed',n===soloPane));
+      select(soloPane);
+      setTimeout(()=>{resize();render();},0);
+      return;
+    }
+    primaryPlane=PLANE_ORDER[(PLANE_ORDER.indexOf(primaryPlane)+1)%PLANE_ORDER.length];applyLayout();select(primaryPlane);   // the plane rotated to the large left pane becomes the selected one
+  }
   function cbSolo(name){
     const panes=document.querySelector('.cbct-panes');if(!panes)return;
     soloPane=(soloPane===name)?null:name;
@@ -3696,7 +3754,7 @@ const CBCT=(function(){
     render();
   }
   function reset(){pushUndo();cbTimer.reset();shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};clearErrors();refreshReadouts();const m=gid('cbStatusMsg');m.textContent='Fuse all three planes to the reference';m.style.color='var(--label)';render();}
-  function randomize(){
+  function randomize(keepResult){
     const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
     hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
     hidden.pitch=rh(0,4)*sg();hidden.roll=rh(0,4)*sg();hidden.yaw=rh(0,4)*sg();
@@ -3705,10 +3763,14 @@ const CBCT=(function(){
     // drift ranges (mm) live in the VOLCASE offBone config.
     const _ob=curOffBone();
     targetDrift = _ob ? {x:ri(_ob.drift.x[0],_ob.drift.x[1])*sg(), y:ri(_ob.drift.y[0],_ob.drift.y[1])*sg(), z:ri(_ob.drift.z[0],_ob.drift.z[1])*sg()} : null;
-    shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();_invCaches();clearErrors();refreshReadouts();
-    const m=gid('cbStatusMsg');
-    m.textContent = _ob ? _ob.setup : 'New 6DOF setup error applied — register all three planes';
-    m.style.color='var(--label)';render();
+    shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();_invCaches();refreshReadouts();
+    if(!keepResult){   // manual New Offset announces + clears the readouts; auto-advance on Check keeps the verdict + errors on screen
+      clearErrors();
+      const m=gid('cbStatusMsg');
+      m.textContent = _ob ? _ob.setup : 'New 6DOF setup error applied — register all three planes';
+      m.style.color='var(--label)';
+    }
+    render();
   }
   function check(){
     const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));   // bony residual
@@ -3732,17 +3794,22 @@ const CBCT=(function(){
     const accepted=ptvOnly?tOk:(tOk&&rOk);
     const close=ptvOnly?(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2)
                        :(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2&&Math.abs(g.pitch)<=TOL.r2&&Math.abs(g.roll)<=TOL.r2&&Math.abs(g.yaw)<=TOL.r2);
-    const m=gid('cbStatusMsg');
     const ms=cbTimer.elapsed();
-    const tt=(ms===null)?'':'  ·  ⏱ '+fmtMatchTime(ms);
+    const tt=(accepted&&ms!==null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // time only counts when within tolerance
     // teaching hint: bones lined up but the (drifted) tumour is not
     const boneMatched=targetDrift&&Math.abs(e.x)<=2&&Math.abs(e.y)<=2&&Math.abs(e.z)<=2&&Math.abs(e.pitch)<=1&&Math.abs(e.roll)<=1&&Math.abs(e.yaw)<=1;
-    if(accepted){m.textContent=((ptvOnly&&_ob)?_ob.okMsg:'✓ Registration accepted — within tolerance')+tt;m.style.color='var(--accent)';}
-    else if(boneMatched&&!accepted){m.textContent=(_ob?_ob.hint:'✗ Bones aligned, but the target is off')+tt;m.style.color='var(--accent2)';}
-    else if(close){m.textContent='⚡ Close — fine-tune the residual'+tt;m.style.color='var(--accent2-hi)';}
-    else{m.textContent='✗ Residual error — keep fusing the planes'+tt;m.style.color='var(--accent2)';}
-    // record this attempt for the user's progress profile (translation residual magnitude in mm)
-    rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:ms});
+    // build the verdict from THIS attempt before loading the next offset
+    let msg,col;
+    if(accepted){msg=((ptvOnly&&_ob)?_ob.okMsg:'✓ Registration accepted — within tolerance')+tt;col='var(--accent)';}
+    else if(boneMatched&&!accepted){msg=(_ob?_ob.hint:'✗ Bones aligned, but the target is off')+tt;col='var(--accent2)';}
+    else if(close){msg='⚡ Close — fine-tune the residual'+tt;col='var(--accent2-hi)';}
+    else{msg='✗ Residual error — keep fusing the planes'+tt;col='var(--accent2)';}
+    // record this attempt; only document a time when within tolerance
+    rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:accepted?ms:null});
+    // Check Match resets the clock + loads a fresh offset for the next rep; keep the verdict and the
+    // per-axis errors on screen (they clear on the first adjustment of the new rep).
+    randomize(true);
+    const m=gid('cbStatusMsg');m.textContent=msg+'  ·  new offset loaded';m.style.color=col;
   }
 
   /* ---- interaction ---- */
@@ -3808,6 +3875,11 @@ const CBCT=(function(){
     });
     // suppress middle-click autoscroll on the panes (we use the wheel button to pan)
     el.addEventListener('mousedown',e=>{if(e.button===1)e.preventDefault();});
+    // double-click toggles fullscreen for this pane (matches the 2D solo view); ignore the control bars
+    el.addEventListener('dblclick',ev=>{
+      if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
+      cbSolo(name);
+    });
     el.addEventListener('pointerdown',ev=>{
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
       select(name);
@@ -3970,7 +4042,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo};
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,timerMs:()=>cbTimer.elapsed()};
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
