@@ -1,7 +1,16 @@
 {
+  "name": "rtimagematch",
+  "version": "1.0.0",
   "private": true,
-  "description": "RT Image Matching Trainer — static site. package.json exists only for the edge middleware dependency (interim case-data hotlink guard); there is no build step.",
+  "type": "module",
+  "description": "RT Image Matching Trainer — static site + interim hotlink edge middleware + Phase-2 Clerk-gated R2 asset proxy (api/). No build step.",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
-    "@vercel/edge": "^1.1.0"
+    "@vercel/edge": "^1.1.0",
+    "@aws-sdk/client-s3": "^3",
+    "@aws-sdk/s3-request-presigner": "^3",
+    "@clerk/backend": "^3"
   }
 }

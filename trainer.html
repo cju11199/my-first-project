@@ -4,11 +4,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com https://*.r2.cloudflarestorage.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <title>RT Image Matching Trainer</title>
+<!-- R2 asset gate feature flag (DEFAULT OFF — inert unless ?r2=1). Must load before the
+     case-data <script>s below so they can consult window.RT_ASSETS. clerk-auth.js still loads locally. -->
+<script src="/rt-asset-flag.js"></script>
 <style>
 @font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2');}
 @font-face{font-family:'Inter';font-style:normal;font-weight:500;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2');}
@@ -942,10 +945,20 @@ html:not(.auth-pending) #authGate{display:none}
 <div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
 
 <!-- Breast 2D/2D assets (SCV + medial tangent DRRs, MLC reference + anatomy portal) -->
-<script src="breast_drr_data.js"></script>
-<script src="image_data.js"></script>
 <!-- 2D/2D prostate fiducial-match case: kV AP + Lateral radiographs + planning fiducial triad -->
-<script src="prostate2d_data.js"></script>
+<!-- R2 asset flag: OFF (default) writes all three case-data scripts locally & synchronously,
+     byte-for-byte the original. ON defers image_data.js + breast_drr_data.js to RT_ASSETS.boot()
+     (gated via /api/asset after unlock); prostate2d_data.js is out of R2 scope and always local. -->
+<script>
+(function(){
+  var on = window.RT_ASSETS && RT_ASSETS.on;
+  if(!on){
+    document.write('<script src="breast_drr_data.js"><\/script>');
+    document.write('<script src="image_data.js"><\/script>');
+  }
+  document.write('<script src="prostate2d_data.js"><\/script>');
+})();
+</script>
 <script>
 
 
@@ -1065,7 +1078,10 @@ setup(views.lat);
 // latAntRight: is the anterior direction on the RIGHT of the lateral image?
 //   (these DRRs + brain have anterior on the LEFT -> latAntRight:false)
 // This drives the ANT/POST labels and the Vrt readout sign so "move ANT -> Vrt decreases" holds.
-const CASES = {
+// Built in a function so the R2-gate ON path can defer it until image_data.js + breast_drr_data.js
+// (which the literal references below) have loaded via RT_ASSETS.boot(); see the `let CASES` below.
+function buildCases(){
+  const C = {
   brain: { name:'Brain · CT DRR (3D)', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} }, tilt:'brain' },
   pelvis:{ name:'Pelvis · CT DRR (3D)', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
@@ -1092,11 +1108,18 @@ const CASES = {
   prostate:{ name:'Prostate · Fiducial Match', fidMatch:true, latAntRight:false, tilt:null,
              iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} },
              viewTags:{ ap:'kV AP · fiducials', lat:'kV Lateral · fiducials' } }
-};
-// Breast L · DIBH: identical match to the breast field case (same SCV + tangent DRRs); the
-// difference is the DIBH breath-hold COACHING that gates entry to the match (DIBH module +
-// launchCase). Kept as its own key so its progress records separately from plain Breast.
-CASES.breastDIBH = Object.assign({}, CASES.breast, { name:'Breast L · DIBH (SCV + Tangent)' });
+  };
+  // Breast L · DIBH: identical match to the breast field case (same SCV + tangent DRRs); the
+  // difference is the DIBH breath-hold COACHING that gates entry to the match (DIBH module +
+  // launchCase). Kept as its own key so its progress records separately from plain Breast.
+  C.breastDIBH = Object.assign({}, C.breast, { name:'Breast L · DIBH (SCV + Tangent)' });
+  return C;
+}
+// R2 asset flag: OFF (default) -> the case-data scripts above already ran synchronously, so build
+// CASES now (byte-for-byte the original `const CASES = {…}`). ON -> image_data.js + breast_drr_data.js
+// load (gated) via RT_ASSETS.boot(); start empty and rebuild CASES in the boot continuation before
+// the first applyCase() (see the init tail at the end of this script).
+let CASES = (window.RT_ASSETS && RT_ASSETS.on) ? {} : buildCases();
 let currentCase='pelvis';
 let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocenter moves posterior)
 // For a 3D-tilt case, load the re-projected DRR frames (drr/ files) per view: AP varies
@@ -1121,7 +1144,7 @@ function loadTiltStacks(c){
       const im=new Image(); pending++;
       const done=()=>{ if(--pending===0){ stack.ready=true; render(); } };
       im.onload=done; im.onerror=done;
-      im.src=prefix+tg+'.png'+ver;
+      im.src=(window.RT_ASSETS?RT_ASSETS.drr(prefix+tg+'.png',ver):prefix+tg+'.png'+ver);   // R2 flag: gated PNG proxy when ON, else local
       frames.push({a,img:im});
     });
     frames.sort((p,q)=>p.a-q.a);
@@ -2949,7 +2972,7 @@ const CBCT=(function(){
     const V=vc.get();
     if(!V){                                            // lazy-load this case's volume data file
       if(loadVolumeMPR._t)return; loadVolumeMPR._t=1;
-      const s=document.createElement('script'); s.src=vc.file;
+      const s=document.createElement('script'); s.src=(window.RT_ASSETS?RT_ASSETS.url(vc.file):vc.file);   // R2 flag: gated when ON & in-scope
       s.onload=()=>{loadVolumeMPR._t=0;loadVolumeMPR();}; s.onerror=()=>{loadVolumeMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3179,7 +3202,7 @@ const CBCT=(function(){
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
     if(typeof PELVIS3D_LABELS==='undefined'){
       if(loadLabelMPR._t)return; loadLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='pelvis3d_labels_data.js';
+      const s=document.createElement('script'); s.src=(window.RT_ASSETS?RT_ASSETS.url('pelvis3d_labels_data.js'):'pelvis3d_labels_data.js');
       s.onload=()=>{loadLabelMPR._t=0;loadLabelMPR();}; s.onerror=()=>{loadLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3189,7 +3212,7 @@ const CBCT=(function(){
   function _loadBrainLabelMPR(){
     if(typeof BRAIN3D_LABELS==='undefined'){
       if(_loadBrainLabelMPR._t)return; _loadBrainLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='brain3d_labels_data.js';
+      const s=document.createElement('script'); s.src=(window.RT_ASSETS?RT_ASSETS.url('brain3d_labels_data.js'):'brain3d_labels_data.js');
       s.onload=()=>{_loadBrainLabelMPR._t=0;_loadBrainLabelMPR();}; s.onerror=()=>{_loadBrainLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3225,7 +3248,7 @@ const CBCT=(function(){
   function _loadBreastLabelMPR(){
     if(typeof BREAST3D_LABELS==='undefined'){
       if(_loadBreastLabelMPR._t)return; _loadBreastLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='breast3d_labels_data.js';
+      const s=document.createElement('script'); s.src=(window.RT_ASSETS?RT_ASSETS.url('breast3d_labels_data.js'):'breast3d_labels_data.js');
       s.onload=()=>{_loadBreastLabelMPR._t=0;_loadBreastLabelMPR();}; s.onerror=()=>{_loadBreastLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3248,7 +3271,7 @@ const CBCT=(function(){
   function _loadSpineLabelMPR(){
     if(typeof SPINE3D_LABELS==='undefined'){
       if(_loadSpineLabelMPR._t)return; _loadSpineLabelMPR._t=1;
-      const s=document.createElement('script'); s.src='spine3d_labels_data.js';
+      const s=document.createElement('script'); s.src=(window.RT_ASSETS?RT_ASSETS.url('spine3d_labels_data.js'):'spine3d_labels_data.js');
       s.onload=()=>{_loadSpineLabelMPR._t=0;_loadSpineLabelMPR();}; s.onerror=()=>{_loadSpineLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -4117,7 +4140,7 @@ const CBCT3D=(function(){
     const cfg=curCfg();
     if(cfg.get())return cb();
     if(!cfg.file){gid('cb3dLoading').textContent='no 3D volume for this case';return;}
-    const s=document.createElement('script'); s.src=cfg.file;
+    const s=document.createElement('script'); s.src=(window.RT_ASSETS?RT_ASSETS.url(cfg.file):cfg.file);   // R2 flag: gated when ON & in-scope
     s.onload=cb; s.onerror=()=>{gid('cb3dLoading').textContent='volume data failed to load';};
     document.head.appendChild(s);
   }
@@ -4149,14 +4172,24 @@ const CBCT3D=(function(){
 
 window.addEventListener('resize',resizeAll);
 setStep(1);
-applyCase(currentCase);   // loads the starting case's images + isocenter + random offset
-setToolButtons();
-selectView('ap');
-requestAnimationFrame(()=>{
-  resizeAll();
-  // seed spyglass to each view's center now that dimensions exist
-  ['ap','lat'].forEach(k=>{const v=views[k]; v.spy.x=v.W/2; v.spy.y=v.H/2; v.spy.r=Math.min(v.W,v.H)*0.18;});
-});
+// R2 asset flag startup. OFF (default): run the original startup synchronously, unchanged.
+// ON: first bootstrap the unlock cookie + load the gated parse-time data (image_data.js +
+// breast_drr_data.js) via RT_ASSETS.boot(), rebuild CASES, THEN start.
+function __rtStart(){
+  applyCase(currentCase);   // loads the starting case's images + isocenter + random offset
+  setToolButtons();
+  selectView('ap');
+  requestAnimationFrame(()=>{
+    resizeAll();
+    // seed spyglass to each view's center now that dimensions exist
+    ['ap','lat'].forEach(k=>{const v=views[k]; v.spy.x=v.W/2; v.spy.y=v.H/2; v.spy.r=Math.min(v.W,v.H)*0.18;});
+  });
+}
+if(window.RT_ASSETS && RT_ASSETS.on){
+  RT_ASSETS.boot().then(()=>{ CASES = buildCases(); __rtStart(); });
+} else {
+  __rtStart();
+}
 </script>
 <div class="disclaimer-bar" aria-hidden="true"><span>Training simulator · Not for clinical use · Values are fictional</span></div>
 <script src="/clerk-auth.js"></script>
