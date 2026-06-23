@@ -80,16 +80,23 @@ async function authorized(req) {
   const request = new Request(`${proto}://${host}${req.url}`, { headers: req.headers });
   const state = await clerk.authenticateRequest(request);
   const auth = state.toAuth();
-  if (!auth || !auth.userId) return false;
+  // detail is a TEMPORARY debug aid surfaced only when ?debug=1 (see handler). Remove before merge.
+  const detail = {
+    status: state.status, reason: state.reason || null,
+    signedIn: !!(auth && auth.userId), userId: (auth && auth.userId) || null,
+    plan: false, emails: [],
+  };
+  if (!detail.signedIn) return { ok: false, detail };
   // Active subscription (an active trial counts) via Clerk Billing.
-  try { if (auth.has && auth.has({ plan: PLAN_KEY })) return true; } catch { /* fall through */ }
+  try { if (auth.has && auth.has({ plan: PLAN_KEY })) { detail.plan = true; return { ok: true, detail }; } } catch { /* fall through */ }
   // Comp tiers.
-  if (COMP_USER_IDS.includes(auth.userId)) return true;
+  if (COMP_USER_IDS.includes(auth.userId)) return { ok: true, detail };
   try {
     const user = await clerk.users.getUser(auth.userId);
-    if (compedByEmail(user.emailAddresses)) return true;
-  } catch { /* ignore — treat as not comped */ }
-  return false;
+    detail.emails = (user.emailAddresses || []).map((e) => ({ email: e.emailAddress, verified: e.verification && e.verification.status === 'verified' }));
+    if (compedByEmail(user.emailAddresses)) return { ok: true, detail };
+  } catch (err) { detail.getUserError = String((err && err.message) || err); }
+  return { ok: false, detail };
 }
 
 export default async function handler(req, res) {
@@ -98,13 +105,16 @@ export default async function handler(req, res) {
   const isDrr = DRR_KEY.test(key);
   if (!isDataset && !isDrr) return res.status(404).json({ error: 'unknown asset' });
 
-  let ok;
+  const debug = !!req.query.debug;
+  let result;
   try {
-    ok = await authorized(req);
-  } catch {
-    return res.status(500).json({ error: 'authorization check failed' });
+    result = await authorized(req);
+  } catch (e) {
+    return res.status(500).json({ error: 'authorization check failed', detail: debug ? String((e && e.message) || e) : undefined });
   }
-  if (!ok) return res.status(403).json({ error: 'active subscription required' });
+  if (!result.ok) {
+    return res.status(403).json({ error: 'active subscription required', debug: debug ? result.detail : undefined });
+  }
 
   const Bucket = process.env.R2_BUCKET_NAME;
   try {
