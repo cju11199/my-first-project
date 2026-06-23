@@ -1,0 +1,18 @@
+# Keep non-served source out of the deployment.
+#
+# outputDirectory:"." (see vercel.json) would otherwise serve the entire repo
+# root, which undercuts the point of the minify build (don't ship readable
+# source). Ignore only files needed neither for the build nor for serving.
+#
+# IMPORTANT: do NOT ignore build-trainer.mjs — the deploy buildCommand runs it.
+
+# Offline data-generation helpers (synthetic-data / teaching logic)
+*.py
+
+# Internal docs and notes
+*.md
+
+# Local env + build artifacts
+.env*
+trainer.min.html
+node_modules

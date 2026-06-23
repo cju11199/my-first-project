@@ -26,3 +26,6 @@ _breast_seg/
 
 # Node
 node_modules/
+
+# Local minified build artifact (Vercel produces this at deploy time; never commit it)
+trainer.min.html
