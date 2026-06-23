@@ -3497,6 +3497,21 @@ const CBCT=(function(){
     return c;
   }
   function tint(src,col){const c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');g.drawImage(src,0,0);const id=g.getImageData(0,0,S,S),d=id.data;for(let i=0;i<d.length;i+=4){const v=d[i]/255;d[i]=v*col[0];d[i+1]=v*col[1];d[i+2]=v*col[2];}g.putImageData(id,0,0);return c;}
+  // Browser-safe fusion tint: Safari ignores canvas ctx.filter (hue-rotate), so the MPR/volume
+  // fusion overlay rendered grey there. Colorize by multiplying the grayscale reslice by the tint
+  // colour instead (same math as tint()), reusing a per-slot scratch canvas at source resolution.
+  const _tintScr={};
+  function tintLayer(slot,src,col){
+    const c=_tintScr[slot]||(_tintScr[slot]=document.createElement('canvas'));
+    const w=src.width,h=src.height;
+    if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
+    const g=c.getContext('2d');
+    g.clearRect(0,0,w,h);g.drawImage(src,0,0);
+    const id=g.getImageData(0,0,w,h),d=id.data;
+    for(let i=0;i<d.length;i+=4){const v=d[i]/255;d[i]=v*col[0];d[i+1]=v*col[1];d[i+2]=v*col[2];}
+    g.putImageData(id,0,0);
+    return c;
+  }
 
   /* ---- rendering ---- */
   function drawPlane(name){
@@ -3538,13 +3553,13 @@ const CBCT=(function(){
       ctx.globalCompositeOperation='source-over';
       const movA=0.25+b*0.5;   // CBCT opacity: blend slider biases the mix, both layers stay visible
       if(useVol||useMPR){
+        // Colorize by per-pixel tint (CT orange / CBCT blue) rather than ctx.filter hue-rotate,
+        // which Safari does not apply to drawImage -> the fusion overlay rendered grey there.
         ctx.globalAlpha=1;
-        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(-20deg) brightness(0.78)';
-        ctx.drawImage(refDraw,ox,oy,dw,dw);ctx.filter='none';
+        ctx.drawImage(tintLayer(name+'R',refDraw,CT_COL),ox,oy,dw,dw);
         ctx.globalAlpha=movA;
         ctx.save();ctx.translate(cx+dx,cy+dy);ctx.rotate(rot);
-        ctx.filter='sepia(100%) saturate(1.6) hue-rotate(180deg) brightness(0.78)';
-        ctx.drawImage(movDraw,-dw/2,-dw/2,dw,dw);ctx.filter='none';
+        ctx.drawImage(tintLayer(name+'M',movDraw,CBCT_COL),-dw/2,-dw/2,dw,dw);
         ctx.restore();
       }else{
         ctx.filter='brightness(0.78)';
