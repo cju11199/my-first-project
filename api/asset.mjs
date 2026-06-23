@@ -76,9 +76,16 @@ function compedByEmail(emailAddresses) {
 async function authorized(req) {
   const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0];
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  // authenticateRequest reads the first-party __session cookie (or Bearer token).
-  const request = new Request(`${proto}://${host}${req.url}`, { headers: req.headers });
-  const state = await clerk.authenticateRequest(request);
+  // Subresource loads (<script>/<img>) can't set headers, so the client passes a freshly-minted
+  // Clerk session token as ?t=. We promote it to an Authorization: Bearer header — that path is
+  // verified networklessly with no handshake, so it doesn't depend on the (short-lived, often
+  // already-expired-at-parse-time) __session cookie. Falls back to the cookie when ?t= is absent.
+  const headers = new Headers();
+  for (const [k, v] of Object.entries(req.headers)) { if (typeof v === 'string') headers.set(k, v); }
+  const tok = typeof req.query.t === 'string' ? req.query.t : '';
+  if (tok) headers.set('authorization', 'Bearer ' + tok);
+  const request = new Request(`${proto}://${host}${req.url}`, { headers });
+  const state = await clerk.authenticateRequest(request, tok ? { acceptsToken: 'session_token' } : undefined);
   const auth = state.toAuth();
   // detail is a TEMPORARY debug aid surfaced only when ?debug=1 (see handler). Remove before merge.
   const detail = {
