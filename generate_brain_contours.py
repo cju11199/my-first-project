@@ -17,9 +17,8 @@ Volume metadata (from brain3d_data.js):
   tilesPerRow = 12
   x0=patient-right  y0=anterior  z0=inferior
 
-GTV/PTV centre (from VOLCASE.brain.ptv.c):
-  world coords (mm from volume centre): Wx=30, Wy=-20, Wz=22
-  → voxel: sx=103, cy=74, az=88  (sagittal/coronal/axial index)
+GTV/PTV: a synthetic left-IAC/CPA vestibular-schwannoma "ice-cream-cone" (§2d); the isocentre is the
+GTV mask centroid (~voxel [95, 104, 36]), written to BRAIN3D_LABELS.isoIdx.
 """
 
 import re, base64, io, math
@@ -73,19 +72,7 @@ print(f'CT atlas decoded  min={vol.min():.3f}  max={vol.max():.3f}')
 
 labels = np.zeros((DZ, DY, DX), dtype=np.uint8)
 
-# Volume centre in voxel coords
-cxv = (DX - 1) / 2.0   # sagittal  (x-axis)
-cyv = (DY - 1) / 2.0   # coronal   (y-axis)
-czv = (DZ - 1) / 2.0   # axial     (z-axis)
-
-# GTV/PTV world-mm centre (from VOLCASE.brain.ptv.c = [30, -20, 22])
-Wx, Wy, Wz = 30.0, -20.0, 22.0
-# Convert to voxel indices
-iso_sx = round(Wx / SP + cxv)   # sagittal → x  index = 103
-iso_cy = round(Wy / SP + cyv)   # coronal  → y  index = 74
-iso_az = round(Wz / SP + czv)   # axial    → z  index = 88
-
-print(f'GTV/PTV voxel centre: x={iso_sx} y={iso_cy} z={iso_az}')
+# (The GTV/PTV centre / isocentre is the GTV mask centroid, computed in §2d below — see iso_sx/cy/az.)
 
 # ── 2a. Body: CT > ~5% (any tissue, excludes air background) ────────────────
 body_thr = 0.08
@@ -97,6 +84,11 @@ lbl_arr, n = ndimage.label(body_mask)
 if n > 1:
     sizes = ndimage.sum(body_mask, lbl_arr, range(1, n+1))
     body_mask = (lbl_arr == (np.argmax(sizes) + 1))
+# Seal the paranasal-sinus/nasal air: a 3D fill leaves it unfilled (it connects to the exterior via
+# the nostrils), so the resliced body contour would loop through the face. A per-axial-slice 2D fill
+# closes those in-plane air pockets (mirrors the per-slice fill the brain mask already uses below).
+for z in range(DZ):
+    body_mask[z] = ndimage.binary_fill_holes(body_mask[z])
 labels[body_mask] |= 0x80
 print(f'Body:  {body_mask.sum()} voxels')
 

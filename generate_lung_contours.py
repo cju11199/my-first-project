@@ -61,8 +61,13 @@ vol = np.clip(vol, 0, 255).astype(np.uint8)
 
 # ── label structures ──────────────────────────────────────────────────────────
 labels = np.zeros((DZ, DY, DX), np.uint8)
-# Body: any tissue, filled, largest component
-body = ndimage.binary_fill_holes(ct > 30)
+# Body: external patient contour. Use a PER-SLICE 2D fill (not a 3D fill): the lungs/airways
+# connect to exterior air via the trachea/volume border, so a 3D binary_fill_holes leaves them as
+# holes and the body contour ends up tracing around the lungs. A per-axial-slice fill keeps the
+# lungs INSIDE the body (they are enclosed in-plane); then keep the largest component.
+body = np.zeros(ct.shape, bool)
+for z in range(DZ):
+    body[z] = ndimage.binary_fill_holes(ct[z] > 30)
 lb, n = ndimage.label(body)
 if n > 1:
     body = (lb == (np.argmax(ndimage.sum(body, lb, range(1, n+1))) + 1))
