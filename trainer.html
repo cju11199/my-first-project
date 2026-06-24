@@ -698,7 +698,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="spy-ring" id="cbAxialSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendAxial" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
         <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomAxial">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('axial',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('axial')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('axial')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
-        <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
+        <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; press V or Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec1" id="cbPaneCoronal" data-plane="coronal" tabindex="0">
         <canvas id="cbCoronal"></canvas>
@@ -712,7 +712,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="spy-ring" id="cbCoronalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendCoronal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
         <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomCoronal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('coronal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('coronal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('coronal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
-        <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
+        <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; press V or Ctrl+R">&#10227;</button></div>
       </div>
       <div class="cbct-pane cb-sec2" id="cbPaneSagittal" data-plane="sagittal" tabindex="0">
         <canvas id="cbSagittal"></canvas>
@@ -726,7 +726,7 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="spy-ring" id="cbSagittalSpy"><div class="spy-handle"></div></div>
         <div class="view-blend"><span class="vb-lbl ref">0</span><input type="range" class="vb-slider" id="cbBlendSagittal" min="0" max="100" value="50" oninput="CBCT.setBlendAll(this.value)"><span class="vb-lbl por">100</span></div>
         <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
-        <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; Ctrl+R">&#10227;</button></div>
+        <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; press V or Ctrl+R">&#10227;</button></div>
       </div>
     </div>
     <div class="shift-tab" onclick="toggleCbShifts()" title="Show / hide the couch-correction panel (the views go full-width when hidden)"><span class="chev" id="cbShiftChev">&#10094;</span>SHIFTS</div>
@@ -925,12 +925,12 @@ html:not(.auth-pending) #authGate{display:none}
           <li><span class="dot red"></span><strong>Drag inside the red ring = move</strong>; drag outside = rotate (<strong>roll</strong> on AP, <strong>pitch</strong> on lateral).</li>
           <li><span class="dot gold"></span><strong>Hold <span class="kbd">1</span>/<span class="kbd">2</span>/<span class="kbd">3</span> + drag to lock one couch axis</strong> &mdash; <span class="kbd">1</span> A&#8209;P (drag &#8597;), <span class="kbd">2</span> S&#8209;I (drag &#8597;), <span class="kbd">3</span> L&#8209;R (drag &#8596;). Works from either view.</li>
           <li><span class="dot mov"></span>Each view has <strong>its own blend slider</strong> &mdash; fade cyan reference &harr; orange portal.</li>
-          <li><span class="dot ref"></span>Tap <span class="kbd">Ctrl</span>+<span class="kbd">A</span> to flip the slider and <strong>flicker</strong> the two images so misalignment pops.</li>
+          <li><span class="dot ref"></span>Tap <span class="kbd kmod">Ctrl</span>+<span class="kbd">A</span> to flip the slider and <strong>flicker</strong> the two images so misalignment pops.</li>
           <li><span class="dot grn"></span><span class="kbd">C</span> Color Wash (aligned anatomy &rarr; white) &middot; <span class="kbd">S</span> Spyglass lens.</li>
-          <li><span class="dot gold"></span><strong>Prostate (kV fiducial)</strong> works differently &mdash; instead of overlaying a DRR you <strong>drag a 3&#8209;marker triad</strong> onto the gold seeds in both views: plain drag moves all three (translation), <span class="kbd">Ctrl</span>/<span class="kbd">&#8984;</span>+drag moves the nearest marker (adds rotation). Check Match reads out the recovered couch shift.</li>
+          <li><span class="dot gold"></span><strong>Prostate (kV fiducial)</strong> works differently &mdash; instead of overlaying a DRR you <strong>drag a 3&#8209;marker triad</strong> onto the gold seeds in both views: plain drag moves all three (translation), <span class="kbd kmod">Ctrl</span>+drag moves the nearest marker (adds rotation). Check Match reads out the recovered couch shift.</li>
           <li><span class="dot grn"></span><strong>Breast&nbsp;L &middot; DIBH</strong> adds voice-coached breath-hold before the match &mdash; see the <strong>DIBH</strong> tab.</li>
         </ul>
-        <div class="guide-hero sm"><svg viewBox="0 0 560 150" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono',monospace" role="img" aria-label="Blend slider fades reference to moving; Ctrl plus A flickers between them"><defs><linearGradient id="s4grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient><marker id="s4a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker><marker id="s4b" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker></defs><rect x="1" y="1" width="558" height="148" rx="12" fill="var(--panel)" stroke="var(--border)"/><text x="20" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">BLEND</text><text x="20" y="44" fill="var(--muted)" font-size="9">fade reference &#8596; moving</text><rect x="20" y="66" width="230" height="6" rx="3" fill="url(#s4grad)"/><text x="20" y="92" fill="var(--accent-hi)" font-size="8.5">REF</text><text x="232" y="92" fill="var(--accent2)" font-size="8.5">MOV</text><circle cx="135" cy="69" r="9" fill="#fff" stroke="rgba(8,11,16,.8)" stroke-width="2"/><line x1="300" y1="24" x2="300" y2="126" stroke="var(--border)" stroke-dasharray="3 6"/><text x="330" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">FLICKER</text><g transform="translate(330,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="43" cy="33" rx="22" ry="26" fill="none" stroke="var(--accent)" stroke-width="2"/></g><g transform="translate(440,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="49" cy="28" rx="22" ry="26" fill="none" stroke="var(--accent2)" stroke-width="2"/></g><path d="M420,60 a16,16 0 0 1 18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4a)"/><path d="M438,94 a16,16 0 0 1 -18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4b)"/><text x="428" y="132" text-anchor="middle" fill="var(--muted)" font-size="9">Ctrl+A swaps the two</text></svg></div>
+        <div class="guide-hero sm"><svg viewBox="0 0 560 150" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono',monospace" role="img" aria-label="Blend slider fades reference to moving; Ctrl plus A flickers between them"><defs><linearGradient id="s4grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient><marker id="s4a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker><marker id="s4b" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker></defs><rect x="1" y="1" width="558" height="148" rx="12" fill="var(--panel)" stroke="var(--border)"/><text x="20" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">BLEND</text><text x="20" y="44" fill="var(--muted)" font-size="9">fade reference &#8596; moving</text><rect x="20" y="66" width="230" height="6" rx="3" fill="url(#s4grad)"/><text x="20" y="92" fill="var(--accent-hi)" font-size="8.5">REF</text><text x="232" y="92" fill="var(--accent2)" font-size="8.5">MOV</text><circle cx="135" cy="69" r="9" fill="#fff" stroke="rgba(8,11,16,.8)" stroke-width="2"/><line x1="300" y1="24" x2="300" y2="126" stroke="var(--border)" stroke-dasharray="3 6"/><text x="330" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">FLICKER</text><g transform="translate(330,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="43" cy="33" rx="22" ry="26" fill="none" stroke="var(--accent)" stroke-width="2"/></g><g transform="translate(440,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="49" cy="28" rx="22" ry="26" fill="none" stroke="var(--accent2)" stroke-width="2"/></g><path d="M420,60 a16,16 0 0 1 18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4a)"/><path d="M438,94 a16,16 0 0 1 -18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4b)"/><text x="428" y="132" text-anchor="middle" fill="var(--muted)" font-size="9" data-macmod>Ctrl+A swaps the two</text></svg></div>
       </section>
 
       <!-- CBCT -->
@@ -984,9 +984,9 @@ html:not(.auth-pending) #authGate{display:none}
             <div class="key-line"><span><span class="kbd">A</span><span class="kbd">D</span></span> Pitch</div>
             <div class="key-line"><span><span class="kbd">+</span><span class="kbd">&minus;</span> / wheel</span> Zoom</div>
             <div class="key-line"><span><span class="kbd">[</span><span class="kbd">]</span></span> Blend</div>
-            <div class="key-line"><span><span class="kbd">Ctrl</span>+<span class="kbd">A</span></span> Flip / flicker</div>
+            <div class="key-line"><span><span class="kbd kmod">Ctrl</span>+<span class="kbd">A</span></span> Flip / flicker</div>
             <div class="key-line"><span><span class="kbd">C</span><span class="kbd">S</span><span class="kbd">G</span><span class="kbd">F</span></span> Wash / Spy / Grid / Full</div>
-            <div class="key-line"><span><span class="kbd">Ctrl</span>+<span class="kbd">Z</span> &middot; <span class="kbd">R</span> &middot; <span class="kbd">N</span></span> Undo / Reset / New</div>
+            <div class="key-line"><span><span class="kbd kmod">Ctrl</span>+<span class="kbd">Z</span> &middot; <span class="kbd">R</span> &middot; <span class="kbd">N</span></span> Undo / Reset / New</div>
           </div>
           <div class="key-col">
             <div class="key-col-h">CBCT changes</div>
@@ -994,6 +994,7 @@ html:not(.auth-pending) #authGate{display:none}
             <div class="key-line"><span><span class="kbd">&larr;</span><span class="kbd">&rarr;</span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span></span> Translate</div>
             <div class="key-line"><span><span class="kbd">Q</span><span class="kbd">E</span></span> Rotate</div>
             <div class="key-line"><span><span class="kbd">Shift</span>+drag</span> Rotate</div>
+            <div class="key-line"><span><span class="kbd">V</span> &middot; <span class="kbd">Ctrl</span>+<span class="kbd">R</span></span> Cycle main pane</div>
             <div class="key-line"><span>Wheel</span> Browse slices</div>
             <div class="key-line"><span><span class="kbd">[</span><span class="kbd">]</span></span> CT &harr; CBCT blend</div>
           </div>
@@ -1636,7 +1637,7 @@ const FID2D=(function(){
     if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
-    if(!keepResult)setMsg('Drag the markers onto the seeds in both views — Ctrl+drag a single marker to rotate the triad','label');
+    if(!keepResult)setMsg('Drag the markers onto the seeds in both views — '+KMOD+'+drag a single marker to rotate the triad','label');
     solve();render();}
   function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
 
@@ -1652,7 +1653,7 @@ const FID2D=(function(){
     const tag='';   // 2D fiducial case: match time is not tracked
     let msg,cls;
     if(ok){msg='✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag;cls='ok';}
-    else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; Ctrl+drag to rotate'+tag;cls='label';}
+    else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; '+KMOD+'+drag to rotate'+tag;cls='label';}
     else{msg='✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag;cls='bad';}
     if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:null});
     // Check Match resets the clock + loads a fresh offset for the next rep, then shows the verdict
@@ -2923,6 +2924,31 @@ function guideTab(name){
   const body=document.querySelector('#guideModal .guide-body');
   if(body)body.scrollTop=0;
 }
+/* ---- macOS keyboard labels: present ⌘/⌥ instead of Ctrl/Alt on Mac ----
+   The handlers already accept e.metaKey everywhere, so this is presentation only.
+   Chips tagged `.kbd.kmod` and elements with `data-macmod` get swapped on Mac;
+   KMOD/KALT are used directly when building dynamic strings (e.g. fiducial hints). */
+var IS_MAC = (function(){ try{
+  var p=(navigator.userAgentData&&navigator.userAgentData.platform)||navigator.platform||navigator.userAgent||'';
+  return /mac|iphone|ipad|ipod/i.test(p);
+}catch(_){ return false; } })();
+var KMOD = IS_MAC ? '⌘' : 'Ctrl';   // ⌘
+var KALT = IS_MAC ? '⌥' : 'Alt';    // ⌥
+function macifyLabels(){
+  if(!IS_MAC) return;
+  document.querySelectorAll('.kbd.kmod').forEach(function(el){
+    var t=el.textContent.trim();
+    if(t==='Ctrl') el.textContent='⌘';
+    else if(t==='Alt') el.textContent='⌥';
+  });
+  document.querySelectorAll('[data-macmod]').forEach(function(el){
+    if(el.children.length===0)
+      el.textContent=el.textContent.replace(/Ctrl/g,'⌘').replace(/\bAlt\b/g,'⌥');
+  });
+}
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',macifyLabels);
+else macifyLabels();
+
 // Esc to close + click-backdrop to close (backdrop = the .modal-bg itself)
 document.getElementById('guideModal').addEventListener('click',function(e){
   if(e.target===this)closeGuide();
@@ -4443,8 +4469,9 @@ const CBCT=(function(){
     if(currentMode!=='cbct')return;
     const tag=e.target.tagName;if((tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA')return;
     if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();undo();return;}
-    // Ctrl/Cmd+R: rotate which plane fills the large left (primary) pane — Axial → Coronal → Sagittal
-    if((e.ctrlKey||e.metaKey)&&(e.key==='r'||e.key==='R')){e.preventDefault();cyclePrimary();return;}
+    // Ctrl+R (or the V key): rotate which plane fills the large left (primary) pane — Axial → Coronal → Sagittal.
+    // metaKey intentionally NOT matched here so ⌘R stays free for browser reload on macOS.
+    if(e.ctrlKey&&!e.metaKey&&(e.key==='r'||e.key==='R')){e.preventDefault();cyclePrimary();return;}
     // Ctrl+A: A/B flicker — mirror all three planes' blend (same as 2D-2D flipBlend)
     if((e.ctrlKey||e.metaKey)&&(e.key==='a'||e.key==='A')){
       e.preventDefault();
@@ -4477,7 +4504,7 @@ const CBCT=(function(){
       case ']':blendKey(6);break;
       case 'r':case 'R':reset();break;
       case 'n':case 'N':randomize();break;
-      case 's':case 'S':toggleSpy();break;
+      case 'v':case 'V':cyclePrimary();break;   // cycle primary pane (plain key; Mac-friendly alt to Ctrl+R)
       case 'f':case 'F':cbSolo(active);break;   // fullscreen the selected pane
       default:h=false;
     }
