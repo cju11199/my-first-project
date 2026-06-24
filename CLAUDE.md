@@ -22,9 +22,12 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `assets/shots/` — trainer product visuals, generated headless and used on the landing + `/subscribe`
   (since the trainer is gated, these are how prospects see the product): `trainer-cbct.gif` (a looping
   CBCT 6DOF match converging — the landing-`#see` hero, also on `/subscribe`), plus `trainer-2d2d.webp`,
-  `trainer-fiducial.webp` (the 2D/2D prostate kV fiducial match — on the `/subscribe` 2×2 strip)
-  and `trainer-progress.webp` stills. WebP cached like png in `vercel.json`. The GIF was built with
-  Pillow (shared 96-colour palette to avoid flicker, ~600 px, single loop file ~0.6 MB).
+  `trainer-dibh.webp` (Breast L · DIBH breath-hold coaching — the RPM gating trace; on the landing `#see`
+  strip **and** the `/subscribe` 2×2 strip, replacing the older `trainer-fiducial.webp`, which is kept in
+  the repo but no longer referenced) and `trainer-progress.webp` stills. WebP cached like png in
+  `vercel.json`. The GIF was built with Pillow (shared 96-colour palette to avoid flicker, ~600 px,
+  single loop file ~0.6 MB). `trainer-dibh.webp` was captured headless (Puppeteer driving the DIBH case
+  via `window.DIBH._dbg` to a steady in-gate breath-hold; 1600×975).
 - `trainer.html` — the **trainer app** (`/trainer`). ~220 KB single file: markup + styles + all
   app logic. `<body data-require-auth>` so the auth gate protects it.
 - `subscribe.html` — Clerk pricing table / checkout (`/subscribe`); shows a trainer-screenshot strip above the table.
