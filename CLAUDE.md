@@ -156,10 +156,25 @@ Two workflows, picked on the start screen:
     until its field is beamed); per-pane `.viewer-area.awaiting` badges show the un-acquired state.
     `CASES.breastDIBH` = a copy of `CASES.breast` (progress records separately). Entered from
     `launchCase('2d2d','breastDIBH')` (not the in-trainer dropdown) → `DIBH.enter()` (calls `applyCase('breastDIBH')`
-    itself); `backToMenu()` calls `DIBH.exit()`. `_dbg` exposes the model for headless tests (`set`/`state`/
-    `advance`/`beam`/`cmd`). **Phase 2 (Web Speech voice → `cmd()`) is not built yet; it must degrade gracefully
-    (Safari/Firefox/no-mic) and never break the button core.** Trace animation + the on-screen layout need
-    real-browser (Chrome/Edge) verification — the model logic is headless-tested but visuals can't be.
+    itself); `backToMenu()` calls `DIBH.exit()` (which also tears down voice). `_dbg` exposes the model for headless
+    tests (`set`/`state`/`advance`/`beam`/`cmd`). Trace animation + the on-screen layout need real-browser
+    (Chrome/Edge) verification — the model logic is headless-tested but visuals can't be.
+  - **Voice coaching — Phase 2, BUILT (`DIBHVoice` module):** a thin **Web Speech API** adapter that maps spoken
+    coaching phrases to `DIBH.cmd('in'|'relax'|'beam'|'abort')` — the SAME entry point the buttons use, so voice is
+    purely additive and the button core stays canonical. A mic control in the strip (`#dibhVoice`): **push-to-talk**
+    by default (hold the mic button or the **V** key — V is gated to an active DIBH acquisition — like keying a room
+    intercom), with an opt-in **Hands-free** checkbox for continuous listening (Chrome stops on silence, so `onend`
+    restarts behind guards: `recognizing` driven from events, `ignoreOnend` on terminal errors, `lastStart` throttle,
+    `restartCount` cap). Phrase matching is normalized substring + per-command synonym/mishearing tables in **safety
+    priority order** (`abort`→`beam`→`in`→`relax`) with a short-utterance Levenshtein≤1 fallback; interim results fire
+    once per utterance (per-utterance lock + per-command cooldown + `isFinal` re-arm), and `beam` (the only scored
+    command) is hardened to final/high-confidence in hands-free mode. **Graceful degradation** (the hard contract):
+    `voicePossible = SpeechRecognition && isSecureContext && !standalone-PWA` — on Firefox / old Safari / iOS-PWA /
+    WebView / insecure context / denied mic, the mic UI is **never shown or is disabled** and the four buttons remain
+    the sole path; terminal error codes (`not-allowed`/`audio-capture`/`service-not-allowed`/`language-not-supported`)
+    route to `degrade()`. **No CSP or `Permissions-Policy` change is needed** (speech recognition is a JS API, not a
+    fetched origin; mic Permissions-Policy defaults to `self` and the trainer is same-origin). `_match`/`_possible`
+    are exposed for headless tests (the phrase matcher is unit-tested); live mic + recognition need real Chrome/Edge.
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
   Prostate (gold fiducial markers, **rigid**):
