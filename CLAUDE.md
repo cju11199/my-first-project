@@ -95,9 +95,10 @@ Two workflows, picked on the start screen:
     couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. The hidden
     rotation is a realistic **2–3.5°/axis** (compounding to ~4–6° total, scaled up if needed to exceed
     the accept tolerance so rotation is always required — not solvable by translation alone). `check()`
-    grades the **residual misregistration** `fit(M,Qtrue)`: accept = residual **rotation ≤ a
-    difficulty-tied tolerance** (`fidRotTol`: relaxed 3.5° / standard 3.0° / strict 2.0°) **and**
-    residual translation ≤ `FID_TRANS_TOL` (2 mm). The displayed shift is the *recovered correction*
+    grades the **residual misregistration** `fit(M,Qtrue)`: accept = residual **rotation ≤ the case
+    rotation tolerance** (`fidRotTol()` → the `2d2d:prostate` `CASE_TOL` entry's r1 = 3°) **and**
+    residual translation ≤ the case translation tolerance (`fidTransTol()` → t1 = 2 mm). **Match time
+    is not tracked for this case** (timer reads `⏱ —`, `timeMs:null`). The displayed shift is the *recovered correction*
     (coloured by overall match quality, not per-axis magnitude). `applyCase`/`resetShift`/
     `randomizeShift`/`checkMatch` route to `FID2D` when active; the normal drag/keyboard handlers
     and blend/contrast widgets are bypassed (`body.fid-mode`). **Zoom/pan**: `FID2D.geom()` honours
@@ -268,15 +269,21 @@ aggregates + a 24-entry recent ring).
   (2D) and `CBCT.check`): per-case attempts/clears, **best time** + **best residual** (translation
   vector magnitude, mm), totals, **XP & level** (`level = floor(sqrt(xp/40))+1`), a **daily
   streak**, a recent ring, and a **13-badge achievement** catalogue (`RT_ACH`, evaluated each
-  attempt, awarded once). XP rewards accepts/first-clears/speed(<30 s)/precision(<0.5 mm)/strict.
-- **Preferences** (`prefs`): **difficulty** `relaxed | standard | strict` drives the match
-  tolerances live via `rtTol()` (threaded into both checkers' pass/colour thresholds); a
-  show-stats-on-cards toggle.
+  attempt, awarded once). XP rewards accepts/first-clears/speed(<30 s)/precision(<0.5 mm)/**case
+  tightness** (tighter accept tol → bonus; the `strict` badge clears any case with t1 ≤ 1 mm).
+- **Match tolerances are per-case, not a user setting:** `CASE_TOL` (keyed `mode+':'+caseKey`) →
+  `rtTol(mode,caseKey)` returns `{t1,t2,r1,r2}` (translation accept/close mm, rotation accept/close °),
+  threaded into both checkers + `FID2D` (via `fidRotTol()`/`fidTransTol()`). Anchored to clinical action
+  levels — intracranial **SRS (`cbct:brain`) tightest (1 mm / 1°)**, spine SBRT 1 mm, lung SBRT / fiducial
+  2 mm, conventional 3–5 mm (breast loosest); `RT_TOL_DEFAULT` is the fallback. The 2D hidden-offset floor
+  is ≥ 6 mm so even the loosest case (breast t1 = 5) never starts already-accepted. (The old global
+  `prefs.difficulty` relaxed/standard/strict selector + `RT_DIFF` were removed.)
+- **Preferences** (`prefs`): a show-stats-on-cards toggle.
 - **UI:** a start-screen **summary strip** (level bar · cleared count · streak → opens dashboard),
   per-case-card **cleared badges** (✓ + best time/residual) rendered in `pickMode`, an
   **achievement toast** (`#rtToast`) on unlock, and a **"Your Progress" dashboard modal**
   (`#rtProgModal`, reuses `.modal-bg`) with Overview (level ring + tiles + achievements), Cases
-  (per-case tables) and Settings (difficulty, display, Export JSON / Reset) tabs. All styling
+  (per-case tables) and Settings (display, Export JSON / Reset) tabs. All styling
   reuses the existing tokens; section headers are `text-transform:uppercase` (so `innerText`
   asserts come back upper-cased in tests).
 
