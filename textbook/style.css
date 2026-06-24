@@ -1,0 +1,124 @@
+/* ---- Page setup ---- */
+@page {
+  size: Letter;
+  margin: 2.3cm 2.1cm 2.0cm 2.1cm;
+  @bottom-center {
+    content: counter(page);
+    font-family: Georgia, "DejaVu Serif", serif;
+    font-size: 9pt;
+    color: #7a8794;
+  }
+  @top-center {
+    content: "Registry Review — ARRT Radiation Therapy";
+    font-family: Georgia, "DejaVu Serif", serif;
+    font-size: 8pt;
+    color: #aab4be;
+    letter-spacing: 0.04em;
+  }
+}
+/* No header/footer on the cover */
+@page cover { margin: 0; @bottom-center { content: none; } @top-center { content: none; } }
+/* No top header on first content pages of each chapter is fine to keep; keep simple */
+
+/* ---- Base typography ---- */
+html { font-family: Georgia, "DejaVu Serif", serif; font-size: 10.7pt; line-height: 1.5; color: #1b2733; }
+body { margin: 0; }
+p { margin: 0 0 0.7em 0; text-align: justify; }
+strong { color: #122; }
+em { color: #243; }
+
+/* ---- Cover ---- */
+.cover {
+  page: cover;
+  break-after: page;
+  height: 100vh;
+  background: linear-gradient(160deg, #0b2a3a 0%, #12506b 55%, #1f7fa0 100%);
+  color: #fff;
+  padding: 3.4cm 2.6cm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+.cover .kicker { font-size: 12pt; letter-spacing: 0.32em; text-transform: uppercase; color: #aee3f2; margin-bottom: 1.2cm; }
+.cover h1 { font-size: 40pt; line-height: 1.06; margin: 0 0 0.5cm 0; color: #fff; border: 0; padding: 0; }
+.cover .sub { font-size: 15pt; color: #d6eef6; font-style: italic; margin-bottom: auto; }
+.cover .meta { font-size: 10.5pt; color: #cfe7f0; line-height: 1.5; }
+.cover .disclaim { margin-top: 0.8cm; font-size: 8.5pt; color: #9fc4d3; border-top: 1px solid rgba(255,255,255,0.25); padding-top: 0.5cm; }
+
+/* ---- Contents ---- */
+.toc { break-after: page; }
+.toc h1 { border: 0; }
+.toc ul { list-style: none; padding-left: 0; margin: 0.4em 0 0 0; }
+.toc > .toc > ul > li, .toc li { margin: 0.32em 0; }
+.toc a { text-decoration: none; color: #16384a; font-size: 11pt; }
+.toc a::after {
+  content: leader('.  ') target-counter(attr(href), page);
+  color: #8aa0ae;
+  font-size: 10pt;
+}
+.toc ul ul { display: none; } /* only top-level entries */
+
+/* ---- Headings ---- */
+h1 {
+  break-before: page;
+  font-size: 22pt;
+  line-height: 1.15;
+  color: #0e3a4f;
+  margin: 0 0 0.5em 0;
+  padding-bottom: 0.25em;
+  border-bottom: 2.5px solid #1f7fa0;
+}
+h2 { font-size: 14.5pt; color: #14506b; margin: 1.1em 0 0.35em 0; }
+h3 { font-size: 12pt; color: #1c6079; margin: 0.9em 0 0.25em 0; }
+h1 + p, h2 + p { margin-top: 0.2em; }
+
+/* keep first heading of front-matter from forcing a blank page after cover */
+.toc + h1 { break-before: avoid; }
+
+/* ---- Lists ---- */
+ul, ol { margin: 0 0 0.7em 0; padding-left: 1.3em; }
+li { margin: 0.18em 0; }
+
+/* ---- Callout blockquotes ---- */
+blockquote {
+  margin: 0.8em 0;
+  padding: 0.55em 0.9em;
+  border-left: 4px solid #1f7fa0;
+  background: #eef6f9;
+  border-radius: 3px;
+  break-inside: avoid;
+}
+blockquote p { margin: 0; text-align: left; }
+blockquote.keypoint { border-left-color: #1f7fa0; background: #eaf4f8; }
+blockquote.mixup { border-left-color: #d98a1f; background: #fbf2e3; }
+blockquote.keypoint strong:first-child { color: #0e3a4f; }
+blockquote.mixup strong:first-child { color: #9a5d09; }
+
+/* ---- Tables ---- */
+table { border-collapse: collapse; width: 100%; margin: 0.8em 0; font-size: 9.7pt; break-inside: avoid; }
+th, td { border: 1px solid #c4d2db; padding: 5px 8px; text-align: left; vertical-align: top; }
+thead th { background: #143f54; color: #fff; font-weight: bold; }
+tbody tr:nth-child(even) { background: #f1f6f9; }
+
+/* ---- Code / worked examples ---- */
+pre {
+  background: #0e2733;
+  color: #e6f1f6;
+  padding: 0.7em 0.9em;
+  border-radius: 5px;
+  font-family: "DejaVu Sans Mono", monospace;
+  font-size: 9pt;
+  line-height: 1.45;
+  overflow-x: auto;
+  break-inside: avoid;
+  white-space: pre-wrap;
+}
+code { font-family: "DejaVu Sans Mono", monospace; font-size: 0.92em; background: #eef2f4; padding: 0.05em 0.3em; border-radius: 3px; }
+pre code { background: none; padding: 0; color: inherit; }
+
+/* ---- Horizontal rule (used before final disclaimer) ---- */
+hr { border: 0; border-top: 1px solid #c4d2db; margin: 1.2em 0; }
+
+/* widows/orphans */
+p, li { orphans: 2; widows: 2; }
+h1, h2, h3 { break-after: avoid; }
