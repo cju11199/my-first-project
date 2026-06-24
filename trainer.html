@@ -468,7 +468,14 @@ html:not(.auth-pending) #authGate{display:none}
 .dibh-field .pip{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.18);border:1px solid var(--border2)}
 .dibh-field .pip.on{background:var(--green);border-color:var(--green)}
 .dibh-field .pip.cur{background:var(--accent);border-color:var(--accent)}
-.dibh-controls{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.dibh-controls{display:grid;grid-template-columns:1fr;gap:7px}
+.dibh-controls .dibh-btn.beam{padding:14px 12px;font-size:15px;letter-spacing:.02em}
+.dibh-coach-fallback{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:7px}
+.dibh-coach-fallback.hidden{display:none}
+/* start-screen: mic-required case (Breast DIBH) lock affordance */
+.start-card.locked{opacity:.55}
+.start-card.locked .sc-title{color:var(--muted)}
+.sc-title .mic-req{font-size:.85em;opacity:.9;margin-left:3px}
 .dibh-btn{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:10px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .dibh-btn:hover{border-color:var(--accent)}
 .dibh-btn.beam{background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a;border-color:transparent}
@@ -812,17 +819,20 @@ html:not(.auth-pending) #authGate{display:none}
         <span class="pips"><span class="pip cur" id="dibhPip0"></span><span class="pip" id="dibhPip1"></span></span>
       </div>
       <div class="dibh-controls">
+        <button class="dibh-btn beam" id="dibhBtnBeam" onclick="DIBH.cmd('beam')">Beam On</button>
+      </div>
+      <!-- Coaching commands (in / relax / abort) are issued BY VOICE. These buttons stay in the DOM
+           but hidden; they're revealed only as a fallback if the microphone fails mid-session. -->
+      <div class="dibh-coach-fallback hidden" id="dibhCoachFallback">
         <button class="dibh-btn" id="dibhBtnIn" onclick="DIBH.cmd('in')">Breathe In &amp; Hold</button>
         <button class="dibh-btn" id="dibhBtnRelax" onclick="DIBH.cmd('relax')">Breathe Normally</button>
-        <button class="dibh-btn beam" id="dibhBtnBeam" onclick="DIBH.cmd('beam')">Beam On</button>
         <button class="dibh-btn abort" id="dibhBtnAbort" onclick="DIBH.cmd('abort')">Abort</button>
       </div>
-      <!-- Phase-2 voice coaching: hidden unless the Web Speech API is usable (DIBHVoice.init unhides it).
-           Push-to-talk by default; the buttons above stay the canonical control. -->
+      <!-- Voice coaching mic. This case is gated on mic availability, so this is always shown here. -->
       <div class="dibh-voice hidden" id="dibhVoice">
         <button class="dibh-mic" id="dibhMicBtn" type="button" aria-pressed="false"
           aria-label="Push to talk — hold to speak a coaching command"
-          title="Hold to talk (or hold the V key) and speak: “breathe in and hold”, “breathe normally”, “beam on”, “abort”.">
+          title="Coach by voice: hold to talk (or hold the V key) and say “breathe in and hold”, “breathe normally”, or “abort”. Press the Beam On button to deliver.">
           <span class="mic-ico" aria-hidden="true">&#127908;</span><span id="dibhMicLbl">Hold to talk</span>
         </button>
         <label class="dibh-handsfree" title="Listen continuously instead of holding to talk"><input type="checkbox" id="dibhHandsfree">Hands-free</label>
@@ -1888,6 +1898,7 @@ const DIBH=(function(){
     const score=Math.max(0,Math.min(100,Math.round(100-penalty-timePen+abortBonus)));
     lastScore=score;
     phase='free'; holdSince=null; stableSince=null;
+    if(window.DIBHVoice && DIBHVoice.suspend) DIBHVoice.suspend();   // coaching done -> stop listening
     updateFieldLabel(); updateBadges(); updateButtons();
     setMsg('✓ Both fields acquired — now match both views to the plan DRRs.','ok');
     const sc=el('dibhScore'); if(sc)sc.textContent='DIBH coaching score '+score+'/100';
@@ -1985,9 +1996,10 @@ const DIBH=(function(){
     const g=el('dibhGate'); if(g)g.textContent=GATE_LO.toFixed(1)+'–'+GATE_HI.toFixed(1);
     if(typeof applyCase==='function') applyCase('breastDIBH');   // load DRRs + hidden offset (portals stay hidden until beamed)
     updateFieldLabel(); updateBadges(); updateButtons();
-    setMsg('Field 1 of 2: coach a breath-hold (Breathe In & Hold), then Beam On while steady in the gate.','');
+    setMsg('Field 1 of 2 — coach BY VOICE: say “breathe in and hold”, then press Beam On while steady in the gate. (“breathe normally” / “abort” as needed.)','');
     const sc=el('dibhScore'); if(sc)sc.textContent='';
-    const sm=el('statusMsg'); if(sm)sm.textContent='Breast DIBH — acquire both fields below, then match.';
+    const sm=el('statusMsg'); if(sm)sm.textContent='Breast DIBH — voice-coach and acquire both fields below, then match.';
+    if(window.DIBHVoice && DIBHVoice.begin) DIBHVoice.begin();   // auto-arm hands-free listening (mic already granted at launch)
     requestAnimationFrame(()=>{resize();});   // strip is now visible -> measure the canvas
     start();
   }
@@ -2033,11 +2045,11 @@ const DIBHVoice=(function(){
   function el(id){return document.getElementById(id);}
 
   // Command vocabulary: spoken phrases + common ASR mishearings -> DIBH.cmd id.
-  // Priority order matters: abort first (safety), then beam before 'in' so "beam on"
-  // is never shadowed by the holding word "in". ('hold' aliases 'in' in DIBH.cmd.)
+  // VOICE handles coaching only (abort / in / relax); 'beam' is intentionally NOT a voice
+  // command — delivery is a deliberate button press, so a stray/misheard word can't beam.
+  // Priority order matters: abort first (safety). ('hold' aliases 'in' in DIBH.cmd.)
   const COMMANDS=[
     {id:'abort', btn:'dibhBtnAbort', kw:['abort','stop','hold off','cancel'],                  hear:['a board','aboard','a bort','the board','a port']},
-    {id:'beam',  btn:'dibhBtnBeam',  kw:['beam on','beam','beaming','shoot','expose'],          hear:['be on','been on','bean on','beamon','beam own','b on','beam o']},
     {id:'in',    btn:'dibhBtnIn',    kw:['breathe in','breath in','big breath','take a breath','breath and hold','in and hold','hold it','hold steady','hold your breath','hold','inhale'], hear:['breathin','breeze in']},
     {id:'relax', btn:'dibhBtnRelax', kw:['breathe normally','breath normally','breathe normal','normal breathing','breathe out','breath out','relax','release','let go','breathe naturally'], hear:['breath normally']},
   ];
@@ -2051,14 +2063,15 @@ const DIBHVoice=(function(){
     for(const c of COMMANDS){ if(c.kw.some(p=>t.includes(p))||c.hear.some(p=>t.includes(p)))return c.id; }
     const toks=t.split(' ');                                  // short-utterance edit-distance fallback (one-edit slips)
     if(toks.length<=3){
-      const KEYS=[['abort',['abort','stop']],['beam',['beam']],['in',['hold','inhale']],['relax',['relax']]];
+      const KEYS=[['abort',['abort','stop']],['in',['hold','inhale']],['relax',['relax']]];
       for(const k of KEYS){ if(k[1].some(key=>toks.some(w=>lev(w,key)<=1)))return k[0]; }
     }
     return null;
   }
 
-  let rec=null, recognizing=false, manualStop=false, ignoreOnend=false, lastStart=0, restartCount=0, continuousMode=false;
-  let firedThisUtterance=false; const lastFire={}; const COOLDOWN=800; let idleTimer=0; let dead=false;
+  let rec=null, recognizing=false, manualStop=false, ignoreOnend=false, lastStart=0, continuousMode=false;
+  let netFails=0, lastError=null, pttHeld=false;                 // consecutive network errors / last error code / mouse-held PTT
+  let firedThisUtterance=false; const lastFire={}; const COOLDOWN=1500; let idleTimer=0; let dead=false;
 
   function pill(text,cls){const p=el('dibhMicPill');if(p){p.textContent=text;p.className='dibh-mic-pill'+(cls?(' '+cls):'');}}
   function micLive(on){const b=el('dibhMicBtn');if(b){b.classList.toggle('live',on);b.setAttribute('aria-pressed',on?'true':'false');}}
@@ -2079,30 +2092,30 @@ const DIBHVoice=(function(){
   function build(){
     rec=new SR();
     rec.continuous=continuousMode; rec.interimResults=true; rec.maxAlternatives=3; rec.lang='en-US';
-    rec.onstart=()=>{recognizing=true;restartCount=0;micLive(true);pill('Listening…','live');};
+    rec.onstart=()=>{recognizing=true;micLive(true);pill('Listening…','live');};
     rec.onresult=(e)=>{
+      netFails=0; lastError=null;                               // a real result -> healthy session
       const r=e.results[e.resultIndex]; if(!r)return;
-      let raw='';
-      for(let i=0;i<r.length;i++){
+      let raw=''; const cand={};
+      for(let i=0;i<r.length;i++){                              // collect one candidate per alternative...
         const alt=r[i]; if(!alt)continue; if(!raw)raw=alt.transcript;
-        if(!r.isFinal && alt.confidence && alt.confidence<0.3) continue;   // low-floor reject for interim guesses
         const id=matchCommand(alt.transcript);
-        if(id){
-          if(id==='beam' && continuousMode && !r.isFinal && !(alt.confidence>=0.6)) continue;  // harden the only scored command in hands-free
-          fire(id, norm(alt.transcript)); break;
-        }
+        if(id && !cand[id]) cand[id]=norm(alt.transcript);
       }
-      if(raw && !firedThisUtterance) showHeard(norm(raw), null);
+      const pick=['abort','in','relax'].find(o=>cand[o]);      // ...then resolve by safety priority (abort always wins)
+      if(pick) fire(pick, cand[pick]);
+      else if(raw && !firedThisUtterance) showHeard(norm(raw), null);
       if(r.isFinal) firedThisUtterance=false;                  // close utterance -> re-arm
       clearTimeout(idleTimer); idleTimer=setTimeout(()=>{firedThisUtterance=false;},1200);
     };
     rec.onerror=(e)=>{
-      switch(e&&e.error){
+      lastError=(e&&e.error)||null;
+      switch(lastError){
         case 'no-speech': break;                               // benign silence timeout
-        case 'network': pill('Voice offline','warn'); break;   // transient -> onend restarts (continuous)
+        case 'network': pill('Voice offline','warn'); break;   // transient -> onend tallies toward degrade
         case 'aborted': if(manualStop)ignoreOnend=true; break; // we stopped it
         case 'not-allowed': case 'service-not-allowed': case 'audio-capture': case 'language-not-supported':
-          ignoreOnend=true; degrade(e.error); break;           // terminal -> buttons only
+          ignoreOnend=true; degrade(lastError); break;         // terminal -> buttons restored
         default: break;
       }
     };
@@ -2111,8 +2124,11 @@ const DIBHVoice=(function(){
       if(dead)return;
       if(!continuousMode){ pill('Voice off',''); return; }     // push-to-talk: one utterance per press
       if(manualStop||ignoreOnend){ pill('Voice off',''); return; }
-      if(restartCount++>8){ degrade('too-many-restarts'); return; }   // runaway cap -> buttons
-      startRec();                                             // benign Chrome silence stop -> respawn
+      if(!dibhAcquiring()){ pill('Voice off',''); return; }    // stop listening once coaching is over
+      if(lastError==='network'){ if(++netFails>=4){ ignoreOnend=true; degrade('network'); return; } }  // sustained outage -> buttons
+      else { netFails=0; }                                     // benign (silence) -> keep listening indefinitely
+      lastError=null;
+      startRec();                                              // benign Chrome silence stop -> respawn
     };
   }
   function startRec(){
@@ -2130,14 +2146,50 @@ const DIBHVoice=(function(){
     if(rec){try{rec.abort();}catch(e){}}
     const b=el('dibhMicBtn'); if(b)b.disabled=true;
     const hf=el('dibhHandsfree'); if(hf){hf.checked=false;hf.disabled=true;}
-    pill(reason==='not-allowed'?'Mic blocked — use buttons'
-        :reason==='audio-capture'?'No microphone — use buttons'
-        :'Voice unavailable — use buttons','warn');
+    const fb=el('dibhCoachFallback'); if(fb)fb.classList.remove('hidden');   // mic lost -> restore coaching buttons so the student isn't stuck
+    pill(reason==='not-allowed'?'Mic blocked — buttons restored'
+        :reason==='audio-capture'?'No microphone — buttons restored'
+        :reason==='network'?'Voice offline — buttons restored'
+        :'Voice unavailable — buttons restored','warn');
+  }
+  // Verify a real microphone is actually available + permitted (the case is gated on this).
+  // Resolves true only if getUserMedia grants audio; the stream is released immediately.
+  function requestAccess(){
+    if(!voicePossible) return Promise.resolve(false);
+    try{
+      if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        return navigator.mediaDevices.getUserMedia({audio:true})
+          .then(function(stream){ stream.getTracks().forEach(function(t){t.stop();}); return true; })
+          .catch(function(){ return false; });
+      }
+    }catch(e){}
+    return Promise.resolve(true);   // no getUserMedia API but SR exists -> proceed, runtime errors degrade
+  }
+  // Auto-arm hands-free listening on entering the (mic-gated) case. Permission is already granted
+  // (requestAccess ran), so this revives from any prior denial and starts continuous recognition.
+  function begin(){
+    if(!voicePossible) return;
+    dead=false; manualStop=false; ignoreOnend=false; netFails=0; lastError=null;
+    const b=el('dibhMicBtn'); if(b)b.disabled=false;
+    const hf=el('dibhHandsfree'); if(hf){hf.disabled=false;hf.checked=true;}
+    const fb=el('dibhCoachFallback'); if(fb)fb.classList.add('hidden');
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Listening (hands-free)';
+    continuousMode=true; if(rec)rec.continuous=true;
+    startRec();
+  }
+  // Coaching done (both fields acquired): stop listening but keep the UI present.
+  function suspend(){
+    if(!voicePossible) return;
+    manualStop=true; ignoreOnend=true; continuousMode=false;
+    const hf=el('dibhHandsfree'); if(hf)hf.checked=false;
+    if(rec){ rec.continuous=false; try{rec.stop();}catch(e){} }
+    micLive(false); if(!dead)pill('Voice off','');
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
   }
 
   // push-to-talk (mouse / touch / V key) + hands-free toggle
-  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); startRec(); }
-  function pttUp(){ if(dead||continuousMode)return; if(recognizing||!manualStop)stopRec(); }
+  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); pttHeld=true; startRec(); }
+  function pttUp(){ if(dead||continuousMode)return; pttHeld=false; stopRec(); }
   function dibhAcquiring(){ return !!(window.DIBH && DIBH.acquiring && DIBH.acquiring()); }
   function onHandsfree(){ const hf=el('dibhHandsfree'); if(!hf||dead)return;
     continuousMode=hf.checked; if(rec)rec.continuous=continuousMode;
@@ -2161,24 +2213,25 @@ const DIBHVoice=(function(){
     const b=el('dibhMicBtn');
     if(b){
       b.addEventListener('mousedown',pttDown);
-      b.addEventListener('mouseleave',()=>{ if(!continuousMode&&recognizing)stopRec(); });
+      b.addEventListener('mouseleave',()=>{ if(pttHeld)pttUp(); });
       b.addEventListener('touchstart',pttDown,{passive:false});
       b.addEventListener('touchend',pttUp);
     }
-    window.addEventListener('mouseup',pttUp);
+    window.addEventListener('mouseup',()=>{ if(pttHeld)pttUp(); });   // only end a hold the mic button started
     const hf=el('dibhHandsfree'); if(hf)hf.addEventListener('change',onHandsfree);
     window.addEventListener('keydown',onKeyDown); window.addEventListener('keyup',onKeyUp);
   }
   function teardown(){                                          // called from DIBH.exit()/backToMenu -> abort cleanly
     if(!voicePossible)return;
     abortRec();
+    clearTimeout(idleTimer); firedThisUtterance=false; pttHeld=false; netFails=0; lastError=null;   // clear per-utterance state for a clean re-entry
     const hf=el('dibhHandsfree'); if(hf)hf.checked=false; continuousMode=false; if(rec)rec.continuous=false;
     const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
     if(!dead)pill('Voice off','');
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
-  return { init, teardown, _possible:voicePossible, _match:matchCommand };
+  return { init, teardown, requestAccess, begin, suspend, _possible:voicePossible, _match:matchCommand };
 })();
 window.DIBHVoice=DIBHVoice;
 
@@ -2874,7 +2927,7 @@ const CASE_LISTS={
     {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
-    {v:'breastDIBH', t:'Breast L · DIBH', d:'Breath-hold gating + match'},
+    {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
   ]},
   'cbct':{label:'CBCT', icon:'☰', cases:[
@@ -2898,8 +2951,11 @@ function pickMode(mode){
   list.cases.forEach(function(c){
     const el=document.createElement('div');
     const cid=mode+':'+c.v;
-    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'');
-    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+c.t+'</div><div class="sc-desc">'+c.d+'</div>'+rtCardStat(cid);
+    const micCase=(mode==='2d2d' && c.v==='breastDIBH');               // voice-coached, mic-gated
+    const locked=micCase && !(window.DIBHVoice && DIBHVoice._possible);
+    const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
+    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'')+(locked?' locked':'');
+    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+title+'</div><div class="sc-desc">'+c.d+'</div>'+rtCardStat(cid);
     el.onclick=function(){ launchCase(mode,c.v); };
     cp.appendChild(el);
   });
@@ -2912,10 +2968,23 @@ function backToModes(){
   document.getElementById('startSub').textContent='Select an imaging workflow';
 }
 function launchCase(mode, key){
-  // Breast DIBH: open the 2D/2D match screen with the breath-hold coaching strip docked at the
-  // bottom; DIBH.enter() loads the case (portals hidden) and gates matching until both fields are
-  // acquired, each at its own breath-hold (DIBH.onBeam -> per-field capture -> reveal portal).
-  if(mode==='2d2d' && key==='breastDIBH'){ chooseMode('2d2d'); DIBH.enter(); return; }
+  // Breast DIBH is VOICE-COACHED and gated on microphone availability: coaching commands
+  // (in/relax/abort) are spoken; only Beam On is a button. Block entry unless the Web Speech API
+  // is usable AND a real mic grants access, then open the match screen (DIBH.enter auto-arms voice).
+  if(mode==='2d2d' && key==='breastDIBH'){
+    const note=document.getElementById('startNote');
+    if(!(window.DIBHVoice && DIBHVoice._possible)){
+      if(note){ note.textContent='Breast L · DIBH is voice-coached — it needs a microphone and a supported browser (Chrome or Edge).'; note.classList.add('warn'); }
+      return;
+    }
+    if(note){ note.textContent='Requesting microphone access for voice coaching…'; note.classList.remove('warn'); }
+    DIBHVoice.requestAccess().then(function(ok){
+      if(!ok){ if(note){ note.textContent='Microphone access is required for Breast L · DIBH. Allow the mic and try again.'; note.classList.add('warn'); } return; }
+      if(note){ note.textContent=' '; note.classList.remove('warn'); }
+      chooseMode('2d2d'); DIBH.enter();
+    });
+    return;
+  }
   chooseMode(mode);
   if(mode==='cbct') CBCT.applyCase(key); else applyCase(key);
 }

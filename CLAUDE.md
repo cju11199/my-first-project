@@ -150,7 +150,10 @@ Two workflows, picked on the start screen:
     must **stay in-gate through** — drift out / cough / relax interrupts it (`failExposure`, penalty). A clean
     exposure captures the current field (`completeExposure` → reveals that view's portal), then re-randomizes
     the patient for the next field; once both are captured, `finishAcq()` computes a 0–100 coaching score and
-    **unblocks the match**. Buttons: `cmd('in'|'relax'|'beam'|'abort')` (`'in'` = "Breathe In & Hold"). Gating
+    **unblocks the match**. The case is **voice-coached and mic-gated** (see DIBHVoice below): the **only on-screen
+    button is `Beam On`** (`cmd('beam')`); the coaching commands `cmd('in'|'relax'|'abort')` (`'in'` = "Breathe In &
+    Hold") are issued **by voice**. The three coaching buttons live in a hidden `#dibhCoachFallback` group that is
+    revealed only if the mic fails mid-session. Gating
     hooks consumed by the core code: `DIBH.acquiring()` (blocks match drag in the `mousedown` handler +
     `checkMatch` until both fields acquired) and `DIBH.hidesPortal(key)` (in `drawPor`, hides each view's portal
     until its field is beamed); per-pane `.viewer-area.awaiting` badges show the un-acquired state.
@@ -159,20 +162,24 @@ Two workflows, picked on the start screen:
     itself); `backToMenu()` calls `DIBH.exit()` (which also tears down voice). `_dbg` exposes the model for headless
     tests (`set`/`state`/`advance`/`beam`/`cmd`). Trace animation + the on-screen layout need real-browser
     (Chrome/Edge) verification — the model logic is headless-tested but visuals can't be.
-  - **Voice coaching — Phase 2, BUILT (`DIBHVoice` module):** a thin **Web Speech API** adapter that maps spoken
-    coaching phrases to `DIBH.cmd('in'|'relax'|'beam'|'abort')` — the SAME entry point the buttons use, so voice is
-    purely additive and the button core stays canonical. A mic control in the strip (`#dibhVoice`): **push-to-talk**
-    by default (hold the mic button or the **V** key — V is gated to an active DIBH acquisition — like keying a room
-    intercom), with an opt-in **Hands-free** checkbox for continuous listening (Chrome stops on silence, so `onend`
-    restarts behind guards: `recognizing` driven from events, `ignoreOnend` on terminal errors, `lastStart` throttle,
-    `restartCount` cap). Phrase matching is normalized substring + per-command synonym/mishearing tables in **safety
-    priority order** (`abort`→`beam`→`in`→`relax`) with a short-utterance Levenshtein≤1 fallback; interim results fire
-    once per utterance (per-utterance lock + per-command cooldown + `isFinal` re-arm), and `beam` (the only scored
-    command) is hardened to final/high-confidence in hands-free mode. **Graceful degradation** (the hard contract):
-    `voicePossible = SpeechRecognition && isSecureContext && !standalone-PWA` — on Firefox / old Safari / iOS-PWA /
-    WebView / insecure context / denied mic, the mic UI is **never shown or is disabled** and the four buttons remain
-    the sole path; terminal error codes (`not-allowed`/`audio-capture`/`service-not-allowed`/`language-not-supported`)
-    route to `degrade()`. **No CSP or `Permissions-Policy` change is needed** (speech recognition is a JS API, not a
+  - **Voice coaching — Phase 2, BUILT (`DIBHVoice` module):** the Breast DIBH case is **VOICE-COACHED and gated on
+    microphone availability** — coaching is done by speaking; `Beam On` is the only button. A thin **Web Speech API**
+    adapter maps spoken phrases to `DIBH.cmd('in'|'relax'|'abort')` (the SAME entry point the buttons use). **`beam`
+    is intentionally NOT a voice command** — delivery is a deliberate button press, so a stray/misheard word can't
+    beam. **Access gate:** `launchCase('2d2d','breastDIBH')` blocks unless `DIBHVoice._possible`
+    (`SpeechRecognition && isSecureContext && !standalone-PWA`) AND `requestAccess()` (a `getUserMedia({audio:true})`
+    probe) grants a real mic; otherwise the start-card is `.locked` with a 🎤 and a note explains the requirement.
+    On entry `DIBH.enter()` calls `DIBHVoice.begin()` to **auto-arm hands-free** continuous listening (mic already
+    granted); `finishAcq()` calls `suspend()` to stop once both fields are acquired. A push-to-talk fallback remains
+    (hold the mic button or **V** key, gated to an active acquisition). **Lifecycle:** `recognizing` driven from
+    `onstart`/`onend`; Chrome stops on silence so `onend` respawns, but only while `dibhAcquiring()` and not after a
+    terminal error; a sustained `network` outage tallies `netFails` and `degrade()`s after 4. **Phrase matching** is
+    normalized substring + synonym/mishearing tables; `onresult` collects a candidate per recognition alternative and
+    resolves by **safety priority `abort`→`in`→`relax`** (abort always wins across alternatives); one action per
+    utterance (per-utterance lock + `COOLDOWN`≥`idleTimer` + `isFinal` re-arm). **Degradation / safety net:** if the
+    mic fails mid-session, `degrade()` reveals the hidden `#dibhCoachFallback` buttons (in/relax/abort) so the student
+    is never stuck; terminal codes (`not-allowed`/`audio-capture`/`service-not-allowed`/`language-not-supported`/sustained
+    `network`) route there. **No CSP or `Permissions-Policy` change is needed** (speech recognition is a JS API, not a
     fetched origin; mic Permissions-Policy defaults to `self` and the trainer is same-origin). `_match`/`_possible`
     are exposed for headless tests (the phrase matcher is unit-tested); live mic + recognition need real Chrome/Edge.
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
