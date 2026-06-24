@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 300" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="560" height="300" fill="white"/>
+<text x="280" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">A Wedge Tilts the Isodose Lines</text>
+<!-- beam arrows -->
+<line x1="150" y1="45" x2="150" y2="78" stroke="#d98a1f" stroke-width="2"/><polygon points="150,78 145,68 155,68" fill="#d98a1f"/>
+<line x1="280" y1="45" x2="280" y2="78" stroke="#d98a1f" stroke-width="2"/><polygon points="280,78 275,68 285,68" fill="#d98a1f"/>
+<line x1="410" y1="45" x2="410" y2="78" stroke="#d98a1f" stroke-width="2"/><polygon points="410,78 405,68 415,68" fill="#d98a1f"/>
+<text x="280" y="42" text-anchor="middle" font-size="11" fill="#d98a1f">beam</text>
+<!-- wedge (triangle): thick on left -->
+<polygon points="120,85 450,85 450,120 120,150" fill="#0e3a4f" fill-opacity="0.85"/>
+<text x="150" y="110" font-size="11" fill="white">thick (heel)</text>
+<text x="380" y="112" font-size="11" fill="white">thin (toe)</text>
+<!-- patient box -->
+<rect x="120" y="160" width="330" height="110" fill="#eef6f9" stroke="#cdd9e0"/>
+<!-- tilted isodose lines -->
+<line x1="135" y1="200" x2="440" y2="180" stroke="#1f7fa0" stroke-width="2"/>
+<line x1="135" y1="230" x2="440" y2="208" stroke="#1f7fa0" stroke-width="2"/>
+<line x1="135" y1="258" x2="440" y2="236" stroke="#1f7fa0" stroke-width="2"/>
+<text x="455" y="184" font-size="10" fill="#1f7fa0">isodose</text>
+<text x="455" y="196" font-size="10" fill="#1f7fa0">lines tilt</text>
+</svg>

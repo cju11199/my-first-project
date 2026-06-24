@@ -7,22 +7,25 @@ areas. Built as the reading-material layer for the planned gated **Registry Revi
 ## Files
 - `Registry_Review_RT_Exam_Study_Guide.pdf` — the rendered book (91 pp, ~26,000 words).
 - `front.md`, `chapters/ch1.md` … `chapters/ch8.md`, `back.md` — the editable source.
-- `figures/*.svg` — labeled diagrams (currently the Chapter 3 physics illustrations).
-- `make_figures.py` — generates the SVG diagrams.
+- `figures/*.svg` — labeled diagrams (Chapter 3 physics + Chapter 7 dose-calculation illustrations).
+- `make_figures.py`, `make_figures_ch7.py` — generate the SVG diagrams.
 - `style.css` — print stylesheet (cover, contents with page numbers, callout boxes, tables, figures).
 - `build.py` — assembles the Markdown and renders the PDF with WeasyPrint.
 
 ## Rebuild
 ```
 pip install markdown weasyprint pymupdf
-python3 make_figures.py   # (re)generate diagrams
-python3 build.py          # assemble + render the PDF
+python3 make_figures.py        # Chapter 3 diagrams
+python3 make_figures_ch7.py    # Chapter 7 diagrams
+python3 build.py               # assemble + render the PDF
 ```
 
-Chapter 3 (Radiation Physics & Radiobiology) is expanded and illustrated with ten diagrams
-(decay scheme, bremsstrahlung, photon interactions, interaction-dominance, inverse-square,
-attenuation/HVL, depth dose, cell-survival, oxygen effect, deterministic vs stochastic),
-since physics is the area students find hardest.
+Chapters 3 (Radiation Physics & Radiobiology) and 7 (Prescription & Dose Calculation) are
+expanded and illustrated, since physics and the dose-calc math are where students struggle most.
+Chapter 3 has ten diagrams (decay scheme, bremsstrahlung, photon interactions, dominance map,
+inverse-square, attenuation/HVL, depth dose, cell-survival, oxygen effect, deterministic vs
+stochastic). Chapter 7 has seven (SSD vs SAD geometry, equivalent square, MU-equation anatomy,
+wedge isodose tilt, field-junction gap, electron depth dose, dose-volume histogram).
 
 ## Notes
 - Accuracy guardrails from the plan are applied: US NRC dose limits (not ICRP), inverse-square as

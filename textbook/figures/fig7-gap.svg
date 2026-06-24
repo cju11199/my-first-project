@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 320" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="580" height="320" fill="white"/>
+<text x="290" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">Field-Junction Gap</text>
+<rect x="40" y="44" width="80" height="16" rx="2" fill="#0e3a4f"/><text x="80" y="57" text-anchor="middle" font-size="10" fill="white">field 1</text>
+<rect x="460" y="44" width="80" height="16" rx="2" fill="#0e3a4f"/><text x="500" y="57" text-anchor="middle" font-size="10" fill="white">field 2</text>
+<!-- skin line -->
+<line x1="40" y1="150" x2="540" y2="150" stroke="#1b2733" stroke-width="1.5"/>
+<text x="544" y="154" font-size="10" fill="#1b2733">skin</text>
+<!-- diverging edges of field 1 (from source1 at 80,60) -->
+<line x1="80" y1="60" x2="250" y2="250" stroke="#1f7fa0" stroke-width="1.8"/>
+<line x1="80" y1="60" x2="200" y2="150" stroke="#7a8794" stroke-width="1" stroke-dasharray="3 3"/>
+<!-- diverging edges of field 2 (from source2 at 500,60) -->
+<line x1="500" y1="60" x2="330" y2="250" stroke="#d98a1f" stroke-width="1.8"/>
+<line x1="500" y1="60" x2="380" y2="150" stroke="#7a8794" stroke-width="1" stroke-dasharray="3 3"/>
+<!-- gap bracket at skin -->
+<line x1="200" y1="138" x2="380" y2="138" stroke="#c0392b" stroke-width="1.4"/>
+<text x="290" y="132" text-anchor="middle" font-size="12" fill="#c0392b">gap at skin (g)</text>
+<!-- meeting point at depth -->
+<circle cx="290" cy="250" r="5" fill="#2e8b57"/>
+<text x="300" y="254" font-size="11" fill="#2e8b57">fields meet at depth d</text>
+<text x="290" y="298" text-anchor="middle" font-size="12" fill="#7a8794">Gap = (L/2) × (d / SSD) per field — leave a skin gap so the beams meet at depth.</text>
+</svg>

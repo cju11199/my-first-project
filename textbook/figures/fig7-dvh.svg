@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 320" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="580" height="320" fill="white"/>
+<text x="290" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">Reading a Dose-Volume Histogram (DVH)</text>
+<line x1="75" y1="265" x2="540" y2="265" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="75" y1="265" x2="75" y2="55" stroke="#1b2733" stroke-width="1.5"/>
+<text x="305" y="300" text-anchor="middle" font-size="13" fill="#1b2733">Dose (% of prescription) →</text>
+<text x="42" y="165" text-anchor="middle" font-size="12" fill="#1b2733" transform="rotate(-90 42 165)">Volume (%) →</text>
+<!-- target: flat near 100% then sharp cliff near 100% dose -->
+<path d="M75,70 L360,70 C400,70 415,120 430,200 C438,240 445,262 470,265" stroke="#1f7fa0" stroke-width="3" fill="none"/>
+<text x="150" y="62" font-size="11" fill="#1f7fa0">target (want a sharp cliff near Rx)</text>
+<!-- OAR: drops early/left -->
+<path d="M75,70 C120,120 160,200 220,245 C260,262 300,265 340,265" stroke="#c0392b" stroke-width="3" fill="none"/>
+<text x="250" y="150" font-size="11" fill="#c0392b">organ at risk (want it low &amp; to the left)</text>
+</svg>

@@ -2,396 +2,257 @@
 
 ## What you'll learn
 
-- How a radiation oncologist's prescription turns into numbers you can calculate: total dose, dose per fraction, and beam energy.
-- How to describe a treatment field's size and shape, and how to turn a rectangle into its **equivalent square**.
-- The difference between an **SSD** (source-to-surface) setup and an **SAD/isocentric** (source-to-axis) setup, and which depth-dose table each one uses.
-- The depth-dose functions — **PDD, TMR, TPR, TAR** — and the **inverse-square law**, all explained one symbol at a time.
-- How to calculate **monitor units (MU)** for an isocentric beam, step by step.
-- A first look at tissue inhomogeneity corrections, field-junction gaps, electron ranges, and plan-quality metrics.
+- What a radiation prescription actually specifies, and where the dose is "prescribed to."
+- The single most important setup distinction in dose calculation: **SSD versus SAD**, and which depth-dose table each one uses.
+- How to turn a rectangular field into an **equivalent square**, and why we bother.
+- What **PDD, TMR, TPR, and TAR** mean — in plain words — and how to read a dose off them.
+- How to do a **monitor-unit (MU) calculation** step by step, for both setups, including wedges and trays.
+- The special cases that trip people up: tissue inhomogeneity, field-junction gaps, and electron-beam ranges.
+- How we judge a finished plan with the homogeneity index, conformity index, and the dose-volume histogram.
 
-## Why this matters
+If math makes you tense, take a breath — this chapter is built for you. Every formula is introduced in words first, then shown with a fully worked example where we write out *every* step. You will never be asked to do anything more complicated than multiply, divide, and square a number. Go slowly, keep a calculator handy, and let each example sink in before moving on.
 
-Every treatment you deliver starts as a prescription written in plain clinical language, and ends as a number of monitor units you punch into the machine. The math in between is what keeps the right dose landing in the right place. If you can move calmly from "prescribe 200 cGy" to "deliver 235 MU," you understand the heart of what a radiation therapist does. We'll go slowly, define every letter, and show every arithmetic step — no skipped lines.
+## Part 1 · The prescription and the language of dose
 
----
+A radiation **prescription** is the physician's order. At minimum it names the **total dose**, the **dose per fraction**, the **number of fractions**, and the **technique and energy**. For example, "60 Gy in 30 fractions, 6 MV, IMRT" means 2 Gy each day for 30 days.
 
-## 1. Dose specification: reading the prescription
+Dose has to be prescribed **to a point or volume**, because dose is not the same everywhere in the beam. Historically we prescribed to the **ICRU reference point** — a clearly defined point (often at or near the isocenter, in the center of the target) chosen so that different clinics report dose the same way. Modern conformal and intensity-modulated plans usually prescribe so that a chosen **isodose line** covers the target, but the ICRU reference point is still how we talk about and report the dose.
 
-A radiation oncologist prescribes a **total dose** delivered in small daily pieces called **fractions**. Splitting the dose up (fractionation) lets healthy tissue repair between treatments while the tumor falls behind on repair.
+> **Key Point:** "Dose" always comes with a *location*. A prescription of 200 cGy means 200 cGy *at the prescription point or isodose line* — not everywhere in the beam.
 
-The relationship is simple multiplication:
+The physician also picks a **beam energy** based on how deep the target is (Chapter 3: higher energy = deeper d_max and more penetration) and may add **beam modifiers** such as **wedges** to shape the dose. All of these choices feed into the calculation that tells the machine how long to stay on — the monitor-unit calculation we build toward in this chapter.
 
-```
-Total dose = (dose per fraction) × (number of fractions)
-```
+## Part 2 · Two ways to set up: SSD versus SAD
 
-Example: 200 cGy per fraction × 35 fractions = 7000 cGy = 70 Gy total.
+Before any numbers, you must know **how the patient is set up**, because it decides which table you use. There are two setups, and confusing them is the number-one dose-calc mistake.
 
-> **Key Point:** 1 Gray (Gy) = 100 centigray (cGy). Most clinics talk in cGy day-to-day because doses per fraction are tidy whole numbers (like 180 or 200 cGy). Keep your units straight and most "hard" problems become easy.
+![SSD versus SAD setup geometry](figures/fig7-ssd-vs-sad.svg)
 
-### Where is the dose prescribed *to*?
+*Figure 7.1 — In an SSD setup the fixed 100 cm runs from the source to the patient's skin, and the target sits at some depth below it. In an SAD setup the fixed 100 cm runs all the way to the isocenter inside the patient. The difference decides which depth-dose table you use.*
 
-The dose has to be specified at a defined point so everyone agrees on what "70 Gy" means. The **ICRU reference point** is that agreed-upon spot — usually at or near the center of the target (often the isocenter for an isocentric plan). It is chosen to be in a region of uniform dose, away from steep gradients and away from tissue boundaries, so the number is reproducible and clinically meaningful [3].
+- **SSD (Source-to-Surface Distance) setup.** You fix the distance from the source to the **skin** (commonly 100 cm). The target is then at some depth *below* that fixed point. SSD setups use **PDD** tables.
+- **SAD (Source-to-Axis Distance) setup**, also called **isocentric**. You fix the distance from the source to the **isocenter**, which sits *inside* the patient at the target. The skin is somewhere above it. SAD setups use **TMR** (or TPR) tables. This is the standard for modern linac treatments because you can rotate the gantry all the way around without moving the patient.
 
-### Choosing beam energy by depth
+> **Common mix-up:** In **SSD** the fixed distance lands on the **skin**; in **SAD** the fixed distance lands on the **isocenter inside the patient**. SSD → PDD. SAD → TMR/TPR. Lock this pairing in and half the chapter falls into place.
 
-Higher-energy photon beams penetrate deeper before their dose peaks and fall off more slowly. So a deep tumor (like a pelvic target) usually gets a higher energy (say 15–18 MV), while a shallow target may use 6 MV. The rule of thumb: **deeper target → higher energy.**
+## Part 3 · Field size and the equivalent square
 
-### Beam modifiers (wedges)
+The beam's **field size** (set by the jaws and the multileaf collimator) affects how much scattered dose reaches a point — a bigger field means more scatter and a bit more dose. Our depth-dose tables are written for **square** fields, but real fields are often **rectangular**. So we convert a rectangle into the square that behaves the same way: its **equivalent square**.
 
-A **wedge** tilts the dose distribution to compensate for a sloping patient surface or to blend two beams.
+![Equivalent square of a rectangle](figures/fig7-equivalent-square.svg)
 
-- A **physical wedge** is a literal metal block placed in the beam.
-- A **dynamic (or virtual) wedge** is created by moving a collimator jaw across the field while the beam is on, sweeping the dose into a wedge shape — no metal needed.
+*Figure 7.2 — A 10 cm × 6 cm rectangle scatters dose like a 7.5 cm × 7.5 cm square. We use the equivalent-square size to look up depth-dose and scatter factors.*
 
-Either way, the wedge absorbs some beam, so it changes your MU calculation through the **wedge factor (WF)**, which we'll meet later.
+> **Key Point:** **Equivalent square = 2ab / (a + b)** (the same as 4 × Area ÷ Perimeter), where *a* and *b* are the rectangle's sides.
 
----
-
-## 2. Geometry: field size, shape, and depth
-
-### Field size and the equivalent square
-
-Treatment fields are often rectangles, but our depth-dose tables are built for **squares**. So we convert a rectangle into the square that scatters radiation the same way. That square is the **equivalent square**.
-
-For a rectangle with sides **a** and **b**:
+**Worked example.** A field is 10 cm × 6 cm. What is its equivalent square?
 
 ```
-Equivalent square side = 2ab / (a + b)
+Equivalent square = 2ab / (a + b)
+                  = 2 × 10 × 6 / (10 + 6)
+                  = 120 / 16
+                  = 7.5 cm
 ```
 
-where:
-- **a** = length of one side (cm)
-- **b** = length of the other side (cm)
+So you would look up your depth-dose and scatter numbers for a **7.5 cm × 7.5 cm** field.
 
-An equivalent way to write the same idea is **4 × Area / Perimeter**, since Area = a×b and Perimeter = 2a + 2b. Both give the identical answer; use whichever feels natural.
+## Part 4 · Depth-dose functions
 
-> **Common mix-up:** Don't just average the two sides. The equivalent square is **not** (a + b)/2. It uses the **2ab/(a+b)** formula, which weights toward the smaller side because scatter depends on field area and edges, not a plain average.
+These four "ratios" all describe how dose changes with depth. You do not have to derive them — you just need to know what each one means and which setup it belongs to.
 
-### Measuring depth
+- **PDD (Percent Depth Dose).** The dose at a depth, written as a percentage of the dose at d_max:
 
-**Depth (d)** is how far below the skin surface your point of interest sits, measured in cm along the beam. The special depth where the dose first reaches its maximum is **dmax** (also written d_max). For a 6 MV photon beam, dmax is about 1.5 cm; higher energies have a deeper dmax.
+> **Key Point:** **PDD = (dose at depth d ÷ dose at d_max) × 100.** PDD belongs to **SSD** setups. PDD goes *up* with higher energy, larger field size, and longer SSD; it goes *down* with depth.
 
-### Two setup styles: SSD vs SAD
-
-This is one of the most important distinctions in the whole chapter.
-
-| | **SSD setup** | **SAD / isocentric setup** |
-|---|---|---|
-| Stands for | Source-to-**Surface** Distance | Source-to-**Axis** Distance |
-| What's fixed | Distance from source to skin | Distance from source to isocenter |
-| Reference point | Often dmax under the skin | The isocenter (axis), usually inside the patient |
-| Table used | **PDD** | **TMR** or **TPR** |
-| Typical use | Single fields, simple setups | Multi-field plans rotating around one point |
-
-> **Key Point:** **SSD pairs with PDD. SAD pairs with TMR/TPR.** Memorize this pairing. If a problem says "isocentric," your brain should immediately reach for TMR.
-
-In an **SAD** setup the machine rotates around a fixed point (the isocenter, "the axis"), so every beam aims at the same spot inside the patient. That's why it's so popular — you set up once and treat from many angles.
-
----
-
-## 3. Depth-dose functions
-
-These are all just ratios that describe how dose changes with depth. Don't let the acronyms scare you; each is a fraction comparing dose at one place to dose at another.
-
-### Percent Depth Dose (PDD) — used with SSD
+  **Worked example.** A beam deposits 100 cGy at d_max. If the PDD at 10 cm is 66%, what is the dose at 10 cm depth?
 
 ```
-PDD = (dose at depth d / dose at dmax) × 100
+Dose at depth = dose at d_max × (PDD ÷ 100)
+              = 100 cGy × (66 ÷ 100)
+              = 66 cGy
 ```
 
-- **dose at depth d** = the dose at your point of interest
-- **dose at dmax** = the dose at the depth of maximum buildup
-- The ×100 turns the fraction into a percent.
+- **TMR (Tissue-Maximum Ratio).** The dose at a depth divided by the dose at d_max **at the same point in space** — so it does not change when you move the source closer or farther. That distance-independence is exactly what an isocentric (**SAD**) setup needs.
+- **TPR (Tissue-Phantom Ratio).** Almost the same as TMR, but the reference depth is a fixed depth (often 10 cm) instead of d_max. Also used for SAD.
+- **TAR (Tissue-Air Ratio).** An older ratio (dose in tissue ÷ dose in air at the same point). You should recognize the name, but TMR has largely replaced it for high-energy beams.
 
-PDD answers: "Compared to the peak, what percent of the dose survives down at depth d?" It's measured at a fixed SSD, so it's the natural partner for SSD setups.
+> **Common mix-up:** **PDD changes with distance** (it is tied to a fixed SSD), while **TMR/TPR do not** (they are tied to a fixed point). That is the whole reason isocentric treatments use TMR.
 
-### Tissue-Maximum Ratio (TMR) and Tissue-Phantom Ratio (TPR) — used with SAD
+## Part 5 · The inverse-square law, revisited
 
-TMR is the dose at depth d divided by the dose at dmax, **but measured at the same distance from the source** (the point stays at the axis while tissue is added or removed). Because the point-to-source distance doesn't change, TMR is **distance-independent** — perfect for isocentric setups where the isocenter is always at the same distance.
+Recall from Chapter 3 (Figure 3.3) that dose rate falls with the **square** of the distance from the source: **D₂ = D₁ × (d₁/d₂)²**. In dose calculation this is how you correct for treating at a distance other than the calibration distance.
 
-**TPR** is the same idea but the reference is a fixed depth (commonly 10 cm) instead of dmax. TMR is just the special case of TPR where the reference depth is dmax.
-
-> **Common mix-up:** **PDD vs TMR.** PDD changes if you change the SSD (it bakes in an inverse-square effect). TMR/TPR are built to be distance-independent. That's exactly why SSD work uses PDD and isocentric work uses TMR/TPR.
-
-### Tissue-Air Ratio (TAR) — the older one
-
-**TAR** compares dose at depth in tissue to dose at the same point "in air" (in a tiny bit of tissue, no full phantom). It's largely historical for photons today but still appears in registry questions, so recognize the name.
-
----
-
-## 4. The inverse-square law
-
-Radiation spreads out as it travels, like light from a flashlight. Double the distance and the same energy covers four times the area, so intensity drops to one-quarter. That's the inverse-square law:
+**Worked example.** A machine gives 200 cGy at 100 cm. What is the dose rate at 120 cm?
 
 ```
 D2 = D1 × (d1 / d2)²
+   = 200 × (100 / 120)²
+   = 200 × (0.833)²
+   = 200 × 0.694
+   ≈ 139 cGy
 ```
 
-where:
-- **D1** = known dose (or dose rate) at the first distance
-- **D2** = the dose you're solving for at the new distance
-- **d1** = the original distance from the source
-- **d2** = the new distance from the source
+## Part 6 · Scatter, wedges, and trays — the correction factors
 
-Notice the order: the **original** distance is on top, the **new** distance is on the bottom, and the whole ratio is **squared**.
+A real calculation includes a handful of multiplying factors. Each one answers "how much does *this* change the dose per MU?"
 
-> **Key Point:** If you get farther away, dose goes **down** — so your answer should be smaller than D1. If it came out bigger, you flipped the ratio. Use that sanity check every time.
+- **Collimator (head) scatter, S_c.** Extra dose scattered from the machine head as the field opens up. It depends on the **collimator setting**, measured in air.
+- **Phantom (patient) scatter, S_p.** Extra dose scattered from the **patient's own tissue**. It depends on the field size at the patient. Together, **S_cp = S_c × S_p** is the total scatter factor.
 
----
+> **Common mix-up:** **S_c is scatter from the machine** (collimator/head, measured in air); **S_p is scatter from the patient** (phantom). Both grow as the field gets bigger.
 
-## 5. Monitor-unit (MU) calculation
+- **Wedge factor, WF.** A **wedge** is a metal block, thick on one side, that sits in the beam to tilt the dose. Because it absorbs part of the beam, it lowers the dose per MU — so you need *more* MUs. Its effect is captured by the wedge factor (a number less than 1, e.g., 0.70 for a steep wedge).
 
-A **monitor unit** is the machine's internal "click" of output. The linac is calibrated so that under reference conditions, 1 MU delivers a known dose. Our job is to figure out how many MU produce the prescribed dose for *this* patient's geometry.
+![A wedge tilts the isodose lines](figures/fig7-wedge.svg)
 
-### The SAD (isocentric) formula
+*Figure 7.3 — A wedge is thick on one edge (the heel) and thin on the other (the toe). The thick heel absorbs more of the beam, so the isodose lines tilt — useful for matching sloping surfaces or blending adjacent fields.*
 
-```
-MU = Dose / (D0 × TMR × Sc × Sp × WF × TF)
-```
+- **Tray (block) factor, TF.** A tray that holds shielding blocks also absorbs a little beam (often around 0.97), so it too is a factor in the calculation.
 
-Let's define every term:
+## Part 7 · Putting it together: the monitor-unit calculation
 
-| Symbol | Name | What it means |
-|---|---|---|
-| **Dose** | prescribed dose | cGy you want at the point (e.g., isocenter) |
-| **D0** | reference dose rate | cGy delivered per MU at calibration conditions (often ≈ 1.000 cGy/MU) |
-| **TMR** | tissue-maximum ratio | depth-dose factor for this depth & field size |
-| **Sc** | collimator (head) scatter factor | extra dose from scatter in the machine head as field size changes |
-| **Sp** | phantom scatter factor | extra dose from scatter inside the patient as field size changes |
-| **WF** | wedge factor | fraction of beam transmitted through a wedge (≤ 1) |
-| **TF** | tray factor | fraction transmitted through a blocking tray (≤ 1) |
+A **monitor unit (MU)** is how a linac measures its output — roughly, "how long the beam stays on." The MU calculation asks: *given everything above, how many MUs deliver the prescribed dose?* The logic is always the same — **divide the dose you want by the dose you get per MU**, after accounting for every factor.
 
-You'll also see **Scp = Sc × Sp**, the combined "total scatter factor," when the two are tabulated together.
+![Anatomy of the monitor-unit equation](figures/fig7-mu-anatomy.svg)
 
-> **Common mix-up:** **Sc vs Sp.** **Sc** is scatter from the machine **head/collimator** (set by the jaw/collimator opening). **Sp** is scatter from inside the **patient/phantom**. One happens before the beam reaches the patient; the other happens in the patient. Both grow as the field gets bigger.
+*Figure 7.4 — Reading the SAD monitor-unit equation factor by factor. Anything in the denominator that lowers the dose per MU (a wedge, depth, a tray) means more monitor units are needed to reach the prescribed dose.*
 
-### The SSD form
-
-For an SSD setup you swap the depth-dose term: replace **TMR** with **PDD/100**.
+For an **isocentric (SAD)** setup:
 
 ```
-MU = Dose / (D0 × (PDD/100) × Sc × Sp × WF × TF)
+MU = Dose ÷ ( D0 × TMR × Sc × Sp × WF × TF )
+   D0  = machine output (cGy per MU) at the reference conditions
+   TMR = tissue-maximum ratio at the treatment depth & field size
+   Sc, Sp = collimator and phantom scatter factors
+   WF, TF = wedge and tray factors
 ```
 
-We divide PDD by 100 because PDD is a percent and we need a plain fraction.
-
-### Electrons
-
-Electron beams are calibrated and normalized at **dmax** (not at depth), and they have their own scatter/output factors that depend strongly on the cutout shape. The structure of the formula is similar, but the normalization point is dmax. We cover electron ranges in Section 8.
-
-The TG-71 report is the standard reference for these hand-calculation formulas [1].
-
----
-
-## Worked Example A — Equivalent square
-
-**Problem:** A treatment field is 10 cm × 6 cm. What is its equivalent square?
-
-**Step 1 — Write the formula.**
-```
-Equivalent square side = 2ab / (a + b)
-```
-
-**Step 2 — Plug in a = 10 cm, b = 6 cm.**
-```
-= 2 × 10 × 6 / (10 + 6)
-```
-
-**Step 3 — Do the top (numerator).**
-```
-2 × 10 × 6 = 120
-```
-
-**Step 4 — Do the bottom (denominator).**
-```
-10 + 6 = 16
-```
-
-**Step 5 — Divide.**
-```
-120 / 16 = 7.5
-```
-
-**Answer:** The 10 × 6 field behaves like a **7.5 cm × 7.5 cm square**. You'd look up TMR, PDD, Sc, and Sp using a 7.5 cm field size.
-
----
-
-## Worked Example B — Inverse-square law
-
-**Problem:** A beam delivers 100 cGy at a distance of 100 cm from the source. What is the dose at 110 cm?
-
-**Step 1 — Write the formula.**
-```
-D2 = D1 × (d1 / d2)²
-```
-
-**Step 2 — Identify the numbers.**
-- D1 = 100 cGy (the known dose)
-- d1 = 100 cm (original distance)
-- d2 = 110 cm (new distance)
-
-**Step 3 — Form the distance ratio (original over new).**
-```
-d1 / d2 = 100 / 110 = 0.9091
-```
-
-**Step 4 — Square the ratio.**
-```
-0.9091² = 0.8264
-```
-
-**Step 5 — Multiply by D1.**
-```
-D2 = 100 × 0.8264 = 82.64 cGy
-```
-
-**Answer:** About **82.6 cGy.** Sanity check: we moved farther away, so the dose dropped below 100 — exactly what we expect.
-
----
-
-## Worked Example C — Monitor units (SAD setup)
-
-**Problem:** Prescribe **200 cGy** to the isocenter on an isocentric beam. Reference dose rate **D0 = 1.000 cGy/MU**, **TMR = 0.85**, **Sc = 1.00**, **Sp = 1.00**, **WF = 1.00**, **TF = 1.00**. Find the MU. Then redo it with a wedge of **WF = 0.70**.
-
-**Step 1 — Write the SAD formula.**
-```
-MU = Dose / (D0 × TMR × Sc × Sp × WF × TF)
-```
-
-**Step 2 — Plug in the open-field numbers.**
-```
-MU = 200 / (1.000 × 0.85 × 1.00 × 1.00 × 1.00 × 1.00)
-```
-
-**Step 3 — Multiply the denominator.** Everything except TMR is 1.00, so:
-```
-1.000 × 0.85 × 1.00 × 1.00 × 1.00 × 1.00 = 0.85
-```
-
-**Step 4 — Divide.**
-```
-MU = 200 / 0.85 = 235.3
-```
-
-**Open-field answer: ≈ 235 MU.**
-
-**Now add a wedge (WF = 0.70).**
-
-**Step 5 — Rebuild the denominator with the wedge.**
-```
-1.000 × 0.85 × 1.00 × 1.00 × 0.70 × 1.00 = 0.595
-```
-
-**Step 6 — Divide again.**
-```
-MU = 200 / 0.595 = 336.1
-```
-
-**Wedged answer: ≈ 336 MU.**
-
-**Why did MU go up?** The wedge absorbs about 30% of the beam (WF = 0.70 means only 70% gets through). To still deliver 200 cGy, the machine must run longer — more MU. Anything that *blocks* the beam (smaller WF or TF) makes MU **rise**; that's a great built-in sanity check.
-
----
-
-## 6. Tissue inhomogeneity corrections
-
-Our basic tables assume the patient is uniform water. Real bodies are not. **Lung** is much less dense than water, so the beam passes through more easily (less attenuation, higher dose downstream). **Bone** is denser, so it attenuates more.
-
-To account for this, planning systems apply **heterogeneity (inhomogeneity) corrections**:
-
-- **Effective-depth (ratio of TAR) method** — replaces physical depth with a "water-equivalent" depth that accounts for the actual densities the beam crossed.
-- **Batho power-law method** — a more refined correction that weights each tissue layer's density.
-- **Modern convolution/superposition and Monte Carlo** — today's treatment-planning systems model scatter and electron transport directly, which is far more accurate, especially near lung and air cavities.
-
-AAPM Report 85 (Task Group 65) is the classic reference on tissue inhomogeneity corrections [4].
-
-> **Key Point:** Ignore inhomogeneities in the lung and you can be off by 10% or more. This is why we no longer hand-calculate complex thoracic plans the old way.
-
----
-
-## 7. Field-junction gap
-
-When two adjacent fields meet — think **craniospinal irradiation**, where a brain field abuts a spine field — the beams diverge and would either overlap (a **hot spot**) or leave a cold strip at depth. To make them meet cleanly *at depth*, we leave a small skin **gap** between the field edges.
-
-For each field, the gap contribution is:
+**Worked example (SAD, open field).** Prescribe **200 cGy** to the isocenter. The machine is calibrated to **1.000 cGy/MU**. At this depth and field size, **TMR = 0.85**; **S_c = 1.00**, **S_p = 1.00**; no wedge or tray (WF = TF = 1.00).
 
 ```
-Gap (per field) = (L / 2) × (d / SSD)
+MU = 200 ÷ (1.000 × 0.85 × 1.00 × 1.00 × 1.00 × 1.00)
+   = 200 ÷ 0.85
+   ≈ 235 MU
 ```
 
-where:
-- **L** = field length at the surface (cm)
-- **d** = depth at which you want the fields to match (cm)
-- **SSD** = source-to-surface distance (cm)
-
-You compute this for each field and add the two contributions to get the total skin gap. The idea: the beam edges fan outward with depth, so a calculated surface gap lets the diverging edges meet exactly where the target sits.
-
----
-
-## 8. Electron specifics: ranges
-
-Electrons behave very differently from photons. They deposit dose to a fairly uniform depth and then stop, which is great for shallow targets. Key range terms:
-
-| Term | Meaning |
-|---|---|
-| **dmax** | depth of maximum dose |
-| **R90** | the **therapeutic range** — depth where dose falls to 90% of max; this is the deepest point you can usually treat |
-| **R50** | depth where dose falls to 50% of max (used to define beam energy) |
-| **Rp** | the **practical range** — where the falling dose curve, extrapolated, hits the background; essentially the deepest electron penetration |
-
-A couple of handy approximations for the depth in **cm of tissue**, where **E** is the electron energy in MeV:
+**Now add a wedge.** Keep everything the same but insert a wedge with **WF = 0.70**.
 
 ```
-Therapeutic range R90  ≈  E / 3.2  to  E / 4   (cm)
-Practical range Rp     ≈  E / 2            (cm, rough)
+MU = 200 ÷ (1.000 × 0.85 × 0.70)
+   = 200 ÷ 0.595
+   ≈ 336 MU
 ```
 
-Example: a 12 MeV beam has R90 ≈ 12 / 4 = 3 cm to 12 / 3.2 ≈ 3.75 cm — so it treats nicely down to roughly 3 cm.
+See how adding the wedge — which *lowers* dose per MU — *raises* the MUs from 235 to 336. Every factor below 1 in the denominator pushes the MU count up.
 
-> **Key Point:** For electrons, **dmax and range both increase with energy.** Pick the energy from how deep the target sits — a useful rule is that R90 (cm) ≈ energy (MeV) divided by about 3 to 4.
+For an **SSD** setup, the only change is that **PDD/100 replaces TMR**:
 
----
+```
+MU = Dose ÷ ( D0 × (PDD/100) × Sc × Sp × WF × TF )
+```
 
-## 9. Plan-quality metrics
+**Worked example (SSD).** Deliver **200 cGy** to a depth where **PDD = 66%**, with D0 = 1.000 cGy/MU and all other factors = 1.00.
 
-Once a plan exists, we grade it with numbers:
+```
+MU = 200 ÷ (1.000 × 0.66)
+   ≈ 303 MU
+```
 
-- **Dose-Volume Histogram (DVH):** a graph showing what volume of each structure receives what dose. You read it as "X% of the target gets at least Y dose." It's the single most useful picture in planning.
-- **Homogeneity Index (HI):** how *uniform* the dose is inside the target. Lower (closer to a flat dose) is better. A common form is (D2% − D98%) / D50% — small spread, small index.
-- **Conformity Index (CI):** how well the prescription dose *wraps* the target without spilling into normal tissue. Closer to 1.0 means the high-dose region matches the target shape.
+For **electron beams**, the dose is normalized at **d_max** rather than at depth, and electron-specific output factors are used — but the same "dose ÷ dose-per-MU" logic applies.
 
-You don't usually hand-calculate these on the registry, but you should recognize what each one tells you: **DVH = the whole picture, HI = uniformity inside the target, CI = tightness around the target.**
+## Part 8 · Corrections and special cases
 
----
+### Tissue inhomogeneity
+
+Our basic tables assume the body is all water. Real patients contain **lung** (low density — the beam passes through more easily, so dose downstream is *higher* than the water assumption) and **bone** (high density — more attenuation). Treatment-planning systems correct for this. Older hand methods include the **effective-depth** method and the **Batho power-law** method; modern systems use convolution or Monte Carlo algorithms that handle it automatically. The takeaway for you: **ignoring lung and bone can be off by 5–20%**, which is why these corrections matter most in the chest.
+
+### Field-junction gaps
+
+When two beams sit next to each other (for example, treating the spine in two segments), their edges **diverge** outward as they go deeper. If you butt them right together at the skin, they will **overlap** at depth and create a hot spot. The fix is to leave a small **gap at the skin** so the field edges meet cleanly at the target depth.
+
+![Field-junction gap geometry](figures/fig7-gap.svg)
+
+*Figure 7.5 — Each beam spreads as it goes deeper. Leaving a calculated gap at the skin lets the diverging edges meet at the treatment depth instead of overlapping (a hot spot) or separating (a cold spot).*
+
+> **Key Point:** **Gap = (L/2) × (d / SSD)** for each field, where L is the field length, d is the junction depth, and SSD is the source-to-surface distance. Add the two fields' contributions for the total skin gap.
+
+**Worked example.** Two fields, each **20 cm** long, are to join at a depth of **8 cm**, with **SSD = 100 cm**.
+
+```
+Each field's contribution = (L / 2) × (d / SSD)
+                          = (20 / 2) × (8 / 100)
+                          = 10 × 0.08
+                          = 0.8 cm
+Total gap = 0.8 cm + 0.8 cm = 1.6 cm
+```
+
+### Electron beams: ranges and energy choice
+
+Electrons are wonderful for **superficial** targets because they deposit dose and then **stop**, sparing whatever is behind them. Three "range" numbers describe an electron beam's depth-dose curve:
+
+![Electron depth dose with R90, R50, and Rp](figures/fig7-electron-depthdose.svg)
+
+*Figure 7.6 — Electrons give a high surface dose, a quick d_max, then a steep fall-off and a small bremsstrahlung tail. R₉₀ (the therapeutic range) is the depth that still gets 90% of the dose; R₅₀ is the half-dose depth; Rp is the practical range where the steep slope, extended, hits the axis.*
+
+- **R₉₀** — the depth still receiving 90% of the dose. This is the **therapeutic range**: cover your target inside R₉₀.
+- **R₅₀** — the depth of 50% dose (used to define the beam's quality/energy).
+- **Rp** — the **practical range**, where the steepest part of the curve, extended down, crosses the axis.
+
+A handy rule of thumb is that **R₉₀ ≈ E ÷ 3.2** (in cm, for energy E in MeV), and the practical range **Rp ≈ E ÷ 2**. Both depths get **deeper as energy rises**.
+
+**Worked example.** A lesion needs coverage to **3 cm** deep. Roughly what electron energy do you need?
+
+```
+We need R90 ≥ 3 cm.
+R90 ≈ E / 3.2   →   E ≈ 3.2 × R90 = 3.2 × 3 = ~10 MeV
+Pick the next available energy up (e.g., 12 MeV) to be safe.
+```
+
+## Part 9 · Judging the plan: HI, CI, and the DVH
+
+Once a plan exists, we score it with a few quick numbers:
+
+- **Homogeneity Index (HI)** — how *uniform* the dose is across the target. A common form is HI = D₅ ÷ D₉₅ (the dose to the hottest 5% over the dose to the coldest 95%); closer to **1.0** is more uniform.
+- **Conformity Index (CI)** — how tightly the prescription dose *wraps* the target: the volume covered by the prescription isodose ÷ the target volume. Around **1.0** is ideal (covers the target without spilling dose into normal tissue).
+- **Dose-Volume Histogram (DVH)** — the single most useful plan-evaluation picture.
+
+![Reading a dose-volume histogram](figures/fig7-dvh.svg)
+
+*Figure 7.7 — A DVH plots, for each structure, the volume receiving at least a given dose. You want the target curve to stay high and then drop in a sharp cliff near the prescription dose, and each organ-at-risk curve to fall away early (low and to the left).*
+
+> **Key Point:** On a DVH, a **good target** curve holds near 100% volume and then falls off a cliff right at the prescription dose; a **well-spared organ at risk** drops off early, staying low and to the left.
 
 ## Check yourself
 
-**1.** A field is 20 cm × 5 cm. What is its equivalent square?
-*Use 2ab/(a+b) = 2 × 20 × 5 / (20 + 5) = 200 / 25 = 8 cm. The equivalent square is 8 × 8 cm.*
+**1. Which depth-dose table goes with an SSD setup, and which goes with a SAD setup?**
+*SSD uses PDD; SAD (isocentric) uses TMR (or TPR).*
 
-**2.** Which depth-dose table goes with an isocentric (SAD) setup — PDD or TMR?
-*TMR (or TPR). PDD is for SSD setups. Remember: SSD–PDD, SAD–TMR.*
+**2. Find the equivalent square of a 15 cm × 5 cm field.**
+*2ab/(a+b) = 2 × 15 × 5 / (15 + 5) = 150 / 20 = 7.5 cm.*
 
-**3.** A point gets 150 cGy at 100 cm from the source. What does it get at 120 cm?
-*D2 = 150 × (100/120)² = 150 × (0.8333)² = 150 × 0.6944 = 104.2 cGy. It dropped because we moved farther away.*
+**3. A beam gives 100 cGy at d_max. If the PDD at 12 cm is 60%, what is the dose at 12 cm?**
+*100 × (60/100) = 60 cGy.*
 
-**4.** In an MU calculation, what's the difference between Sc and Sp?
-*Sc is collimator/head scatter (from the machine), and Sp is phantom scatter (from inside the patient). Both increase with field size.*
+**4. Calculate the MU for 250 cGy to the isocenter with D0 = 1.000 cGy/MU, TMR = 0.80, and all other factors = 1.00.**
+*MU = 250 ÷ (1.000 × 0.80) = 312.5 ≈ 313 MU.*
 
-**5.** You add a physical wedge (WF = 0.75) to a beam that needed 200 MU open. Will the MU go up or down, and roughly to what?
-*Up, because the wedge blocks part of the beam. New MU ≈ 200 / 0.75 = 267 MU.*
+**5. You insert a wedge (WF = 0.75) into the setup in question 4. What happens to the MU, and what is the new value?**
+*The MU goes up: MU = 250 ÷ (0.80 × 0.75) = 250 ÷ 0.60 ≈ 417 MU.*
 
-**6.** Why is TMR called "distance-independent" while PDD is not?
-*TMR keeps the measurement point at the same distance from the source while changing the tissue, so it removes the inverse-square effect. PDD is measured at a fixed SSD and includes inverse-square changes, so it shifts when SSD changes.*
+**6. Two 18 cm fields join at 6 cm depth, SSD = 100 cm. What is the total skin gap?**
+*Each field: (18/2) × (6/100) = 9 × 0.06 = 0.54 cm. Total = 0.54 + 0.54 = 1.08 cm.*
 
----
+**7. Why do we use electron beams for superficial lesions?**
+*Electrons deposit their dose over a short range and then stop, sparing the deeper tissue behind the target.*
+
+**8. On a DVH, what does an ideal target curve look like?**
+*It stays near 100% volume across the lower doses and then drops in a sharp cliff right around the prescription dose — meaning the whole target gets the dose and little more.*
 
 ## Chapter references
 
-1. Gibbons JP, et al. *Monitor Unit Calculations for External Photon and Electron Beams* — AAPM Task Group 71 (TG-71). Report of the AAPM Therapy Physics Committee Task Group No. 71, 2014. [1]
-2. Khan FM, Gibbons JP. *Khan's The Physics of Radiation Therapy.* Wolters Kluwer / Lippincott Williams & Wilkins. [2]
-3. International Commission on Radiation Units and Measurements (ICRU). Reports on prescribing, recording, and reporting photon-beam therapy (reference-point dose specification). [3]
-4. Papanikolaou N, et al. *Tissue Inhomogeneity Corrections for Megavoltage Photon Beams* — AAPM Report No. 85 (Task Group 65). Medical Physics Publishing, 2004. [4]
+1. AAPM Task Group 71. *Monitor unit calculations for external photon and electron beams.* (Equivalent square, S_c/S_p, MU formalism for SSD and SAD, electron MU.)
+2. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer. (PDD, TMR/TPR/TAR, inverse-square, wedges, field separation/gaps, electron ranges.)
+3. International Commission on Radiation Units & Measurements (ICRU). *Reference-point dose specification and reporting* (Reports 50/62/83).
+4. AAPM Report 85 / Task Group 65. *Tissue inhomogeneity corrections for megavoltage photon beams.*
 
-*This is an independent educational text with original explanations. It is not affiliated with the ARRT, and the questions here are not actual ARRT exam items.*
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*
