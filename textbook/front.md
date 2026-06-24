@@ -20,8 +20,11 @@ Here is how to get the most out of each chapter:
   exam day.
 - **Do the "Check yourself" questions.** Cover the italic answer, try the question, then reveal it. Active
   recall is one of the most powerful study tools there is.
-- **Use the references.** Every chapter ends with the authoritative sources behind its facts, so you can
-  dig deeper or confirm anything for yourself.
+- **Use the references.** Key facts carry a small bracketed number, like [1], that points to the numbered
+  source list at the end of that chapter — so you can trace any claim to where it is backed and read more.
+  Free, clickable sources are listed first; textbooks come under "for deeper reading."
+- **Keep the appendices handy.** The back of the book has a one-stop **Quick Reference** of every formula
+  and key value, and a **Glossary** of terms and abbreviations — perfect for last-minute review.
 
 A quick word on the numbers in this book. In radiation therapy, the exact dose and number of treatments
 for a given cancer vary from clinic to clinic and from protocol to protocol. When you see a specific dose

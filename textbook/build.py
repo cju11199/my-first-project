@@ -9,11 +9,15 @@ def read(p):
     with open(p, encoding="utf-8") as f:
         return f.read()
 
-# Assemble: front matter -> chapters 1..8 -> back matter
+# Assemble: front matter -> chapters 1..8 -> back matter -> appendices
 parts = [read(os.path.join(BASE, "front.md"))]
 for i in range(1, 9):
     parts.append(read(os.path.join(CH, f"ch{i}.md")))
 parts.append(read(os.path.join(BASE, "back.md")))
+for extra in ("quickref.md", "glossary.md"):   # appendices, if present
+    p = os.path.join(BASE, extra)
+    if os.path.exists(p):
+        parts.append(read(p))
 big_md = "\n\n".join(parts)
 
 md = markdown.Markdown(extensions=["tables", "fenced_code", "attr_list",
