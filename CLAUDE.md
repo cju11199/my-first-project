@@ -39,17 +39,20 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `terms.html`, `privacy.html` — legal pages (`/terms`, `/privacy`; NY governing law,
   `support@rtimagematch.com`).
 - `clerk-auth.js` — client-side auth + billing gate (loaded by all pages).
-- **Content / SEO guides (indexable):** `guides/index.html` (`/guides` hub) plus five articles —
+- **Content / SEO guides (indexable):** `guides/index.html` (`/guides` hub) plus seven articles —
   `guides/igrt-image-guided-radiation-therapy.html` (the "what is IGRT" primer / start-here),
   `guides/cbct-6dof-registration.html`, `guides/2d-2d-portal-vs-drr-matching.html`,
-  `guides/couch-shifts-6dof-corrections.html`, and `guides/prostate-fiducial-marker-matching.html`.
+  `guides/couch-shifts-6dof-corrections.html`, `guides/prostate-fiducial-marker-matching.html`,
+  `guides/kv-vs-mv-imaging-radiation-therapy.html` (kilovoltage vs megavoltage setup imaging — OBI/EPID,
+  planar vs CBCT), and `guides/dibh-deep-inspiration-breath-hold.html` (deep-inspiration breath-hold
+  cardiac sparing + RPM gating, ties to the Breast L · DIBH case).
   On-brand static pages (no auth) with `TechArticle` + `FAQPage` + `BreadcrumbList` JSON-LD, linked
   from the landing nav/footer, cross-linked to each other (`.next` related-guide cards) and `/trainer`.
-  Built as the organic content layer (the trainer itself can't be indexed — it's gated). All five
+  Built as the organic content layer (the trainer itself can't be indexed — it's gated). All seven
   are in `sitemap.xml`. When adding a guide: copy an existing one's `<head>`/CSS verbatim, add it to
   the hub grid + sitemap, and cross-link it from the related guides.
 - **SEO:** `robots.txt` (points to sitemap; disallows gated `/trainer` + `/subscribe`),
-  `sitemap.xml` (homepage + `/guides` hub + the five guide articles; legal pages are `noindex`),
+  `sitemap.xml` (homepage + `/guides` hub + the seven guide articles; legal pages are `noindex`),
   `favicon.svg`, and `og-image.png` (1200×630 share card, regenerated from an HTML template via
   headless Chromium). The landing page carries canonical, Open Graph/Twitter tags, and JSON-LD
   (`WebApplication` + `Organization` + a `FAQPage` mirroring the on-page `#faq` accordion).

@@ -1,0 +1,244 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A clear guide to DIBH (deep inspiration breath-hold) in radiation therapy: why breath-hold spares the heart in left-breast treatment, how the gating window and surface/RPM monitoring work, the coaching workflow, and how to practice it.">
+<title>DIBH Deep Inspiration Breath-Hold Explained — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/dibh-deep-inspiration-breath-hold">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="DIBH Deep Inspiration Breath-Hold Explained">
+<meta property="og:description" content="Deep inspiration breath-hold in radiation therapy — heart sparing for left-breast treatment, gating windows, surface and RPM monitoring, and the coaching workflow.">
+<meta property="og:url" content="https://rtimagematch.com/guides/dibh-deep-inspiration-breath-hold">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="DIBH Deep Inspiration Breath-Hold Explained">
+<meta name="twitter:description" content="Deep inspiration breath-hold in radiation therapy — heart sparing, gating windows, surface/RPM monitoring, and coaching.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "DIBH Deep Inspiration Breath-Hold Explained",
+      "description": "A guide to deep inspiration breath-hold (DIBH) in radiation therapy: cardiac sparing for left-breast treatment, gating windows, surface and RPM monitoring, the coaching workflow, and common pitfalls.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-24",
+      "dateModified": "2026-06-24",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/dibh-deep-inspiration-breath-hold"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "DIBH deep inspiration breath-hold", "item": "https://rtimagematch.com/guides/dibh-deep-inspiration-breath-hold" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is DIBH in radiation therapy?", "acceptedAnswer": { "@type": "Answer", "text": "DIBH (deep inspiration breath-hold) is a technique where the patient takes a deep breath and holds it while the treatment beam is on. The inflated lungs push the heart down and away from the chest wall, which in left-breast treatment can substantially reduce the dose delivered to the heart and the left anterior descending coronary artery." } },
+        { "@type": "Question", "name": "Why is DIBH used for left-breast cancer?", "acceptedAnswer": { "@type": "Answer", "text": "In left-sided breast treatment the heart sits close to the chest wall and tangent fields. Holding a deep breath inflates the lungs, increasing the distance between the heart and the treated breast tissue, which lowers cardiac and coronary-artery dose and the associated long-term risk. It is also used for some lung and mediastinal treatments to reduce tumour motion." } },
+        { "@type": "Question", "name": "How is the breath-hold monitored during treatment?", "acceptedAnswer": { "@type": "Answer", "text": "The chest wall or abdomen position is tracked in real time, commonly with an optical surface-guidance system or a marker block monitored by an infrared camera (such as the RPM system). The amplitude is displayed as a moving trace, and the beam is only allowed on while the level sits inside a predefined gating window, confirming the patient is reproducing the planned breath-hold." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:130px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; DIBH deep inspiration breath-hold</p>
+  <article>
+    <h1>DIBH deep inspiration breath-hold explained</h1>
+    <p class="meta">A guide for radiation therapy students · ~8 min read</p>
+    <p class="lede">Deep inspiration breath-hold (DIBH) is one of the most common ways radiation therapy protects the heart during left-breast treatment. The patient takes a deep breath and holds it; the inflated lungs move the heart away from the treatment field; and the beam only turns on while that breath-hold sits inside a tight window. This guide explains why DIBH works, how the breath-hold is monitored and gated, and what good breath-hold coaching looks like.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#what">What is DIBH?</a>
+      <a href="#why">Why DIBH spares the heart</a>
+      <a href="#monitor">How the breath-hold is monitored</a>
+      <a href="#gating">The gating window and beam gating</a>
+      <a href="#workflow">The DIBH treatment workflow</a>
+      <a href="#coaching">Coaching the breath-hold</a>
+      <a href="#uses">Where else DIBH is used</a>
+      <a href="#pitfalls">Common pitfalls</a>
+      <a href="#practice">How to practice DIBH coaching</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="what">What is DIBH?</h2>
+    <p><strong>Deep inspiration breath-hold</strong> is a delivery technique in which the patient breathes in deeply and <em>holds</em> that breath while each treatment field is delivered. Instead of treating through the patient's normal in-and-out breathing, the team treats only at a single, reproducible point near full inspiration. Each beam is broken into short segments that fit inside one comfortable breath-hold, with the patient breathing freely in between.</p>
+    <p>The technique trades a little extra time and coordination for a meaningful clinical gain: in the right anatomy, holding a deep breath physically moves healthy tissue out of the path of the beam.</p>
+
+    <h2 id="why">Why DIBH spares the heart</h2>
+    <p>The headline application is <strong>left-sided breast cancer</strong>. The heart sits just behind the left chest wall, close to the tangent fields used to treat the breast or chest wall. During a normal shallow breath, part of the heart — and in particular the <strong>left anterior descending (LAD) coronary artery</strong> — can fall inside or right at the edge of the treated volume.</p>
+    <p>When the patient takes a deep breath in, two things happen:</p>
+    <ul>
+      <li>The lungs inflate and the diaphragm drops, which pulls the heart <strong>inferiorly and posteriorly</strong> — down and away from the chest wall.</li>
+      <li>The chest wall lifts forward, increasing the distance between the breast tissue being treated and the heart behind it.</li>
+    </ul>
+    <p>The net effect is more air and more distance between the target and the heart, which can substantially reduce the mean heart dose and the dose to the LAD. Because cardiac dose is linked to long-term cardiac risk, that reduction matters for patients who may live for decades after treatment.</p>
+
+    <div class="tip"><p><strong>The core idea:</strong> DIBH doesn't change the beam — it changes the anatomy. A reproducible deep breath moves the heart out of harm's way, so the value of the technique depends entirely on the breath-hold being the <em>same</em> every time.</p></div>
+
+    <h2 id="monitor">How the breath-hold is monitored</h2>
+    <p>For DIBH to be safe, the team has to <em>know</em> the patient is holding the planned breath — not a shallower or deeper one — at the moment the beam is on. The breath-hold level is tracked in real time, usually one of two ways:</p>
+    <ul>
+      <li><strong>Optical surface guidance.</strong> Cameras map the surface of the chest and abdomen and report how far it has moved, with no markers on the patient.</li>
+      <li><strong>Marker-block / RPM-style tracking.</strong> A reflective block sits on the patient's chest or abdomen and an infrared camera follows it. The vertical motion of the block is the breathing signal. (Varian's Real-time Position Management, or RPM, is the classic example.)</li>
+    </ul>
+    <p>Either way, the system produces a live <strong>amplitude trace</strong> — a line that rises as the patient breathes in and falls as they breathe out, scrolling across the screen like a respiratory waveform.</p>
+
+    <h2 id="gating">The gating window and beam gating</h2>
+    <p>On top of that trace, the plan defines a <strong>gating window</strong>: a narrow band of amplitude that corresponds to the breath-hold position captured on the planning CT. The rule is simple and strict:</p>
+    <div class="dof">
+      <div><b>In the window</b><span>The patient is holding the planned breath. The beam is allowed to deliver.</span></div>
+      <div><b>Above the window</b><span>Breath is too deep. Beam holds off — coach the patient to let a little out.</span></div>
+      <div><b>Below the window</b><span>Breath is too shallow, or the hold has sagged. Beam holds off — coach a little more in.</span></div>
+    </div>
+    <p>This is called <strong>respiratory gating</strong>: the beam is automatically gated on and off by where the trace sits. The live line is typically shown <em>green when it is inside the gate and amber when it drifts out</em>, so the therapist can see at a glance whether it is safe to treat. If the patient coughs, relaxes, or the hold drifts out of the band mid-exposure, the beam interrupts immediately.</p>
+
+    <h2 id="workflow">The DIBH treatment workflow</h2>
+    <ol>
+      <li><strong>Planning in breath-hold.</strong> The planning CT is acquired with the patient holding the same deep breath they will use at treatment, so the plan is built around that anatomy.</li>
+      <li><strong>Set up to marks and lasers</strong> with the patient breathing freely.</li>
+      <li><strong>Coach a practice breath-hold</strong> and confirm the trace reaches the gating window comfortably and reproducibly.</li>
+      <li><strong>Image and verify</strong> in breath-hold — setup imaging (for example 2D/2D or CBCT) is taken at the held-breath position so it matches the plan.</li>
+      <li><strong>Gate the beam on.</strong> The patient breathes in and holds; the therapist confirms the trace is in-gate and stable, then delivers a segment that fits inside the hold.</li>
+      <li><strong>Repeat per segment / per field.</strong> The patient relaxes and breathes between holds; each breast tangent or field is delivered across one or more clean breath-holds.</li>
+    </ol>
+
+    <h2 id="coaching">Coaching the breath-hold</h2>
+    <p>The part that takes real skill is <strong>coaching</strong> — talking the patient into and out of a reproducible hold. A natural full breath often lands above or below the planned window, so the therapist guides it in with small, calm instructions:</p>
+    <ul>
+      <li><strong>"Take a deep breath in and hold"</strong> — the patient inhales toward their full-inspiration level and locks it there.</li>
+      <li><strong>"A little more in" / "a little less"</strong> — fine nudges to move the held level up or down into the gate, rather than asking for a whole new breath.</li>
+      <li><strong>"Hold it right there"</strong> — catch a rising breath at the right level before it overshoots.</li>
+      <li><strong>"Breathe normally"</strong> — release between segments.</li>
+    </ul>
+    <p>Good coaching is steady and unhurried: patients can only hold comfortably for so long, so the therapist confirms the trace is in-gate and <em>settled</em> before turning the beam on, and keeps the patient calm through the exposure. Each field is captured at its own breath-hold, so the rhythm of coach &rarr; confirm in-gate &rarr; beam &rarr; relax repeats for every segment.</p>
+
+    <div class="callout"><p><strong>Why reproducibility is everything:</strong> the plan only protects the heart if today's breath-hold matches the one on the planning CT. A hold that is consistently too shallow can pull the heart back toward the field — which is exactly what the gating window is there to prevent.</p></div>
+
+    <h2 id="uses">Where else DIBH is used</h2>
+    <p>Beyond left-breast treatment, breath-hold is used wherever inflating the lungs helps:</p>
+    <ul>
+      <li><strong>Right breast and chest wall</strong> — sometimes used to reduce lung dose even when cardiac sparing is less of a concern.</li>
+      <li><strong>Lung and mediastinal tumours</strong> — a held breath freezes respiratory tumour motion, so the target sits still during delivery and the margin around it can be smaller.</li>
+      <li><strong>Mediastinal lymphoma (e.g. Hodgkin)</strong> — often young patients, where reducing heart and lung dose has a large long-term payoff.</li>
+      <li><strong>Some upper-abdominal sites</strong> — where breath-hold reproducibly repositions mobile anatomy.</li>
+    </ul>
+
+    <h2 id="pitfalls">Common pitfalls</h2>
+    <ul>
+      <li><strong>An inconsistent breath-hold.</strong> If the held level wanders from day to day, the anatomy no longer matches the plan. Coaching to the <em>window</em>, not just "a big breath", keeps it consistent.</li>
+      <li><strong>Beaming before the hold is settled.</strong> Delivering while the trace is still rising risks the level drifting out mid-exposure. Confirm in-gate <em>and</em> stable first.</li>
+      <li><strong>Coaching too fast.</strong> Rushing the patient leads to overshoot, fatigue, and aborted holds. Calm, incremental cues work better than one big command.</li>
+      <li><strong>Ignoring a cough or drift.</strong> Any interruption should stop the beam; the segment is simply repeated on a clean hold.</li>
+      <li><strong>Forgetting to image in breath-hold.</strong> Verification imaging has to be taken at the held position, or it won't represent the treated anatomy.</li>
+    </ul>
+
+    <h2 id="practice">How to practice DIBH coaching</h2>
+    <p>Breath-hold coaching is a timing-and-communication skill, and like image matching it rewards repetition with feedback. The <a href="/trainer">RT Image Matching Trainer</a> includes a <strong>Breast L · DIBH</strong> case that simulates exactly this: a live RPM-style amplitude trace with a shaded gating band, a patient whose natural breath usually lands outside the window so you have to coach them in, and a beam that only delivers while the hold is in-gate and settled — interrupting if it drifts, coughs, or relaxes. You coach with the same cues a therapist uses (the case is voice-coached), capture each breast field at its own breath-hold, and get a coaching score at the end. It pairs naturally with the breast tangent image-matching that follows.</p>
+
+    <div class="cta-box">
+      <p>Try the DIBH coaching case<span>Coach a live breath-hold into the gate, then match the breast tangents.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>What is DIBH in radiation therapy?</h3>
+      <p>DIBH (deep inspiration breath-hold) is a technique where the patient takes a deep breath and holds it while the treatment beam is on. The inflated lungs push the heart down and away from the chest wall, which in left-breast treatment can substantially reduce the dose to the heart and the left anterior descending coronary artery.</p>
+      <h3>Why is DIBH used for left-breast cancer?</h3>
+      <p>In left-sided treatment the heart sits close to the chest wall and tangent fields. Holding a deep breath increases the distance between the heart and the treated breast tissue, lowering cardiac and coronary-artery dose and the associated long-term risk. It is also used for some lung and mediastinal treatments to reduce tumour motion.</p>
+      <h3>How is the breath-hold monitored during treatment?</h3>
+      <p>The chest or abdomen position is tracked in real time, commonly with optical surface guidance or a reflective marker block followed by an infrared camera (such as the RPM system). The amplitude is shown as a moving trace, and the beam is only allowed on while the level sits inside a predefined gating window.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/2d-2d-portal-vs-drr-matching"><span class="k">Next guide</span><span class="t">2D/2D portal vs DRR matching &rarr;</span></a>
+      <a href="/guides/igrt-image-guided-radiation-therapy"><span class="k">Start here</span><span class="t">What is IGRT? &rarr;</span></a>
+      <a href="/guides/couch-shifts-6dof-corrections"><span class="k">Related</span><span class="t">Couch shifts &amp; 6DOF corrections &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is for learning. It is general background, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>
