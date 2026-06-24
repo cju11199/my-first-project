@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 320" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="580" height="320" fill="white"/>
+<text x="290" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">The Oxygen Effect (OER)</text>
+<line x1="80" y1="275" x2="540" y2="275" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="80" y1="275" x2="80" y2="55" stroke="#1b2733" stroke-width="1.5"/>
+<text x="310" y="305" text-anchor="middle" font-size="13" fill="#1b2733">Dose (Gy)  →</text>
+<text x="40" y="165" text-anchor="middle" font-size="12" fill="#1b2733" transform="rotate(-90 40 165)">Surviving fraction (log) →</text>
+<!-- oxic curve (more sensitive, left) -->
+<path d="M80,68 C140,90 190,140 250,205 C290,248 320,265 360,272" stroke="#1f7fa0" stroke-width="3" fill="none"/>
+<text x="150" y="150" font-size="12" fill="#1f7fa0">oxygenated (sensitive)</text>
+<!-- hypoxic curve (resistant, right) -->
+<path d="M80,68 C170,82 250,120 330,180 C400,232 450,260 510,272" stroke="#c0392b" stroke-width="3" fill="none"/>
+<text x="360" y="150" font-size="12" fill="#c0392b">hypoxic (resistant)</text>
+<!-- OER bracket -->
+<line x1="300" y1="230" x2="430" y2="230" stroke="#0e3a4f" stroke-dasharray="3 3"/>
+<text x="312" y="222" font-size="12" fill="#0e3a4f">OER ≈ 2.5–3×</text>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 732 250" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="732" height="250" fill="white"/><g transform="translate(0,12)"><text x="120" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#0e3a4f">Photoelectric</text>
+<circle cx="120" cy="120" r="30" fill="none" stroke="#7a8794" stroke-width="1.5"/><circle cx="120" cy="120" r="9" fill="#0e3a4f"/>
+<line x1="20" y1="120" x2="92" y2="120" stroke="#d98a1f" stroke-width="2.5"/>
+<polygon points="92,120 80,114 80,126" fill="#d98a1f"/>
+<text x="20" y="110" font-size="11" fill="#d98a1f">photon</text>
+<line x1="120" y1="111" x2="185" y2="60" stroke="#1f7fa0" stroke-width="2.5"/>
+<polygon points="185,60 172,66 178,73" fill="#1f7fa0"/>
+<text x="150" y="52" font-size="11" fill="#1f7fa0">photoelectron</text>
+<text x="120" y="175" text-anchor="middle" font-size="11" fill="#7a8794">photon fully absorbed</text>
+<text x="120" y="192" text-anchor="middle" font-size="11" fill="#7a8794">low energy · high Z</text></g><line x1="244" y1="20" x2="244" y2="225" stroke="#dde6ec"/><g transform="translate(244,12)"><text x="120" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#0e3a4f">Compton scatter</text>
+<circle cx="120" cy="120" r="30" fill="none" stroke="#7a8794" stroke-width="1.5"/><circle cx="120" cy="120" r="9" fill="#0e3a4f"/>
+<line x1="20" y1="120" x2="92" y2="120" stroke="#d98a1f" stroke-width="2.5"/>
+<polygon points="92,120 80,114 80,126" fill="#d98a1f"/>
+<text x="20" y="110" font-size="11" fill="#d98a1f">photon</text>
+<path d="M148,108 l50,-34" stroke="#d98a1f" stroke-width="2.5" fill="none" stroke-dasharray="1 0"/>
+<polygon points="198,74 185,79 191,86" fill="#d98a1f"/>
+<text x="170" y="66" font-size="11" fill="#d98a1f">scattered photon</text>
+<line x1="120" y1="129" x2="180" y2="170" stroke="#1f7fa0" stroke-width="2.5"/>
+<polygon points="180,170 167,164 165,176" fill="#1f7fa0"/>
+<text x="150" y="188" font-size="11" fill="#1f7fa0">recoil e⁻</text>
+<text x="120" y="205" text-anchor="middle" font-size="11" fill="#c0392b">dominant at MV therapy energies</text></g><line x1="488" y1="20" x2="488" y2="225" stroke="#dde6ec"/><g transform="translate(488,12)"><text x="120" y="30" text-anchor="middle" font-size="14" font-weight="bold" fill="#0e3a4f">Pair production</text>
+<circle cx="120" cy="120" r="30" fill="none" stroke="#7a8794" stroke-width="1.5"/><circle cx="120" cy="120" r="9" fill="#0e3a4f"/>
+<line x1="20" y1="120" x2="92" y2="120" stroke="#d98a1f" stroke-width="2.5"/>
+<polygon points="92,120 80,114 80,126" fill="#d98a1f"/>
+<text x="20" y="110" font-size="11" fill="#d98a1f">photon</text>
+<line x1="120" y1="120" x2="190" y2="78" stroke="#1f7fa0" stroke-width="2.5"/>
+<polygon points="190,78 177,83 183,90" fill="#1f7fa0"/>
+<text x="193" y="74" font-size="12" fill="#1f7fa0">e⁻</text>
+<line x1="120" y1="120" x2="190" y2="162" stroke="#c0392b" stroke-width="2.5"/>
+<polygon points="190,162 177,157 183,150" fill="#c0392b"/>
+<text x="193" y="166" font-size="12" fill="#c0392b">e⁺</text>
+<text x="120" y="188" text-anchor="middle" font-size="11" fill="#7a8794">threshold &gt; 1.02 MeV</text></g></svg>

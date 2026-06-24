@@ -5,16 +5,24 @@ areas. Built as the reading-material layer for the planned gated **Registry Revi
 (see `../REGISTRY_REVIEW_PLAN.md` and `../REGISTRY_REVIEW_SOURCES.md`).
 
 ## Files
-- `Registry_Review_RT_Exam_Study_Guide.pdf` — the rendered book (86 pp, ~25,600 words).
+- `Registry_Review_RT_Exam_Study_Guide.pdf` — the rendered book (91 pp, ~26,000 words).
 - `front.md`, `chapters/ch1.md` … `chapters/ch8.md`, `back.md` — the editable source.
-- `style.css` — print stylesheet (cover, contents with page numbers, callout boxes, tables).
+- `figures/*.svg` — labeled diagrams (currently the Chapter 3 physics illustrations).
+- `make_figures.py` — generates the SVG diagrams.
+- `style.css` — print stylesheet (cover, contents with page numbers, callout boxes, tables, figures).
 - `build.py` — assembles the Markdown and renders the PDF with WeasyPrint.
 
 ## Rebuild
 ```
 pip install markdown weasyprint pymupdf
-python3 build.py
+python3 make_figures.py   # (re)generate diagrams
+python3 build.py          # assemble + render the PDF
 ```
+
+Chapter 3 (Radiation Physics & Radiobiology) is expanded and illustrated with ten diagrams
+(decay scheme, bremsstrahlung, photon interactions, interaction-dominance, inverse-square,
+attenuation/HVL, depth dose, cell-survival, oxygen effect, deterministic vs stochastic),
+since physics is the area students find hardest.
 
 ## Notes
 - Accuracy guardrails from the plan are applied: US NRC dose limits (not ICRP), inverse-square as

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 320" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="580" height="320" fill="white"/>
+<text x="290" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">Depth Dose of a Megavoltage Beam</text>
+<line x1="70" y1="270" x2="540" y2="270" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="70" y1="270" x2="70" y2="55" stroke="#1b2733" stroke-width="1.5"/>
+<text x="305" y="305" text-anchor="middle" font-size="13" fill="#1b2733">Depth in tissue (cm)  →</text>
+<text x="40" y="165" text-anchor="middle" font-size="13" fill="#1b2733" transform="rotate(-90 40 165)">% dose →</text>
+<path d="M70,205 C95,150 125,80 165,72 C230,60 330,150 540,250" stroke="#1f7fa0" stroke-width="3" fill="none"/>
+<line x1="165" y1="72" x2="165" y2="270" stroke="#d98a1f" stroke-dasharray="4 3"/>
+<text x="150" y="64" font-size="12" fill="#d98a1f">d_max (100%)</text>
+<circle cx="70" cy="205" r="4" fill="#c0392b"/>
+<text x="78" y="200" font-size="11" fill="#c0392b">low skin dose</text>
+<text x="95" y="150" font-size="11" fill="#7a8794">build-up</text>
+<text x="100" y="165" font-size="11" fill="#7a8794">region</text>
+<text x="330" y="200" font-size="11" fill="#7a8794">fall-off with depth</text>
+</svg>

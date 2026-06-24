@@ -2,256 +2,285 @@
 
 ## What you'll learn
 
-- Where therapy radiation comes from, and how Cobalt-60 and linear-accelerator x-rays are produced.
-- How beams are described by energy and "quality," and how they fade as they pass through matter.
-- The three ways photons hand their energy to tissue, and which one rules at the energies you use every day.
-- The units of radiation — Gray, Sievert, Becquerel — and how to keep them straight.
-- How cells respond to dose, the linear-quadratic model, the α/β (alpha-beta) ratio, and the Four R's of radiobiology.
-- How to do fractionation math (BED and EQD2) and tell deterministic from stochastic effects.
+- Where therapy radiation comes from — radioactive decay and machine-made x-rays.
+- How a beam weakens with distance (the inverse-square law) and with shielding (attenuation and the half-value layer).
+- The three ways photons interact with matter, and why **Compton scatter** is the one that matters most in treatment.
+- The units we measure radiation in — gray, sievert, and becquerel — and what each one really means.
+- How radiation damages cells, why we split treatment into many small fractions, and the math behind it (the linear-quadratic model, BED, and EQD2).
+- The difference between deterministic and stochastic effects, and what normal-tissue tolerance means.
 
-## Why this matters
+Physics is the part of the registry that worries students the most, so we are going to slow down, build each idea from the ground up, and lean on pictures. Nothing here requires fancy math — just a willingness to take it one step at a time. Every concept ties back to a real job you will do at the machine: choosing an energy, keeping yourself safe, and understanding why the prescription is written the way it is.
 
-Every plan you deliver is physics made personal: a beam of known energy, aimed with millimeter care, depositing dose that biology then turns into a clinical result. If you understand how the beam is made, how it interacts, and how cells respond, you can reason about why a regimen is written the way it is — and catch the rare error before it reaches a patient.
+## Part 1 · Where radiation comes from
 
-## Radiation Sources
+### The atom, in sixty seconds
 
-### Cobalt-60: a radioactive source
+Everything starts with the atom: a tiny, dense **nucleus** (protons and neutrons, positively charged) surrounded by **electrons** in shells. Radiation therapy is all about adding enough energy to knock electrons loose. When a photon or particle has enough energy to eject an electron from an atom, we call it **ionizing radiation**, and the atom left behind is now an **ion**. That single act — ionization — is the seed of everything that follows, from the image on your screen to the DNA break inside a tumor cell.
 
-Cobalt-60 (written Co-60) is a radioactive isotope sealed inside a treatment head. It decays steadily, and as it does it emits two **gamma rays** — high-energy photons born in the nucleus — with energies of **1.17 MeV and 1.33 MeV**. (One **MeV**, or million electron volts, is a unit of energy; the *average* photon energy of a Co-60 beam is about 1.25 MeV.)
+> **Key Point:** "Ionizing" means "able to knock electrons off atoms." That is the dividing line between the radiation we use to treat cancer and the harmless radiation of, say, a radio wave.
 
-Co-60 has a **half-life of 5.27 years**. Half-life is the time for half of the radioactive atoms to decay. Think of it like a pile of popcorn kernels popping at random: after one half-life, half are "popped" (decayed). This matters clinically because the source weakens over time, so the machine takes longer to deliver the same dose as it ages, and the source must eventually be replaced.
+### Radioactive sources and decay
 
-> **Key Point:** Co-60 emits 1.17 and 1.33 MeV gammas (mean ≈ 1.25 MeV) and has a 5.27-year half-life. Its output decays predictably, so treatment times lengthen as the source ages.
+Some atoms are unstable and shed energy over time — they are **radioactive**. The classic therapy example is **Cobalt-60**. Cobalt-60 first emits a beta particle, turning into an excited nickel atom, which then releases its extra energy as **two gamma rays** of 1.17 MeV and 1.33 MeV. (An *MeV*, mega-electron-volt, is just a unit of energy.) Because the two gammas come out together, we usually treat the average therapy energy as about **1.25 MeV**.
 
-### Linac x-rays: bremsstrahlung and characteristic x-rays
+![Cobalt-60 decay scheme](figures/fig-co60-decay.svg)
 
-A medical **linear accelerator (linac)** does not use a radioactive source. Instead it accelerates electrons to high speed and slams them into a metal **target** (usually tungsten). Two kinds of x-rays come out.
+*Figure 3.1 — Cobalt-60 decays by beta emission to excited nickel-60, which drops to its stable ground state by releasing two gamma rays. Their average energy (~1.25 MeV) is the effective treatment energy.*
 
-**Bremsstrahlung** (German for "braking radiation") is the main one. When a fast electron passes near a heavy nucleus, the nucleus's positive charge tugs on it and bends its path. The electron slows and swerves, and the energy it loses is released as an x-ray photon. Picture a car braking hard and throwing off heat — except here the "heat" is an x-ray. Bremsstrahlung produces a *spectrum* of energies, from very low up to the full energy of the incoming electron.
+Two terms describe a radioactive source:
 
-**Characteristic x-rays** are the second kind. An incoming electron can knock an inner-shell electron out of a target atom. An outer electron then drops down to fill the gap, releasing a photon whose energy equals the difference between the two shells. Because that energy gap is fixed for each element, these photons have sharp, "characteristic" energies — a fingerprint of the target material.
+- **Half-life** — the time for half of the atoms to decay. Cobalt-60's half-life is **5.27 years**, which is why cobalt units must eventually have their source replaced: after about five years, the source is only half as "bright."
+- **Activity** — how many atoms decay per second. The modern unit is the **becquerel (Bq)** = 1 decay per second. The older unit is the **curie (Ci)**, where 1 Ci = 3.7 × 10¹⁰ Bq.
 
-## Beam Quality and Attenuation
+> **Common mix-up:** Half-life is about *time* (how fast a source weakens); activity is about *rate* (how many decays happen each second). They are related but not the same number.
 
-### Energy ranges: kV vs MV
+### Machine-made x-rays
 
-Beams are grouped by energy. **Kilovoltage (kV)** beams — thousands of volts — are low energy, used for superficial skin lesions and for imaging. **Megavoltage (MV)** beams — millions of volts — are high energy and penetrate deep, which is what you need to treat tumors inside the body. Most external-beam treatment uses MV photons (commonly 6–18 MV).
+Most modern treatment uses a **linear accelerator (linac)**, which makes x-rays on demand rather than relying on a radioactive source. It speeds electrons up to high energy and slams them into a metal **target** (usually tungsten). Two things happen:
 
-### Half-value layer (HVL)
+- **Bremsstrahlung** ("braking radiation," Figure 3.2). An electron passes close to a nucleus, gets deflected and slowed, and the energy it loses flies off as an x-ray. This is the **main** source of the treatment beam. The higher the electron energy, the more — and more penetrating — the x-rays.
+- **Characteristic x-rays.** An incoming electron knocks out an inner-shell electron; when an outer electron drops in to fill the gap, it releases an x-ray whose energy is *characteristic* of that element. These make up a small part of the beam.
 
-Energy alone does not fully describe a kV beam, because it is a mix of energies. So we add **half-value layer (HVL)**: the thickness of a chosen material (often aluminum or copper) that cuts the beam intensity in half. A "harder" (more penetrating) beam needs a thicker HVL. HVL is a practical stand-in for beam quality, especially in the kV range.
+![Bremsstrahlung production](figures/fig-bremsstrahlung.svg)
 
-### Exponential attenuation
+*Figure 3.2 — Bremsstrahlung: a fast electron is deflected by a nucleus, loses energy, and that energy leaves as an x-ray photon. This is how a linac builds its treatment beam.*
 
-As a photon beam passes through material, it gets weaker — it is **attenuated**. For a narrow beam this follows an exponential law:
+## Part 2 · How a beam travels and weakens
 
-> I = I₀ · e^(−µx)
+### Photon energy: kV versus MV
 
-Reading the symbols:
-- **I** is the intensity that comes out the far side.
-- **I₀** ("I-naught") is the intensity going in.
-- **e** is the mathematical constant ≈ 2.718.
-- **µ** ("mu") is the **linear attenuation coefficient** — how strongly this material absorbs this beam (units of per-centimeter).
-- **x** is the thickness of material.
+Beam energy is described by voltage. **Kilovoltage (kV)** beams (tens to a few hundred kV) are low energy — good for superficial skin lesions and for the crisp, bony-contrast images you match at the machine. **Megavoltage (MV)** beams (typically 6–18 MV from a linac) are high energy and penetrating — that is what reaches deep tumors. Keeping this kV-versus-MV distinction in mind explains a lot, including why your setup images and your treatment beam look so different.
 
-The exponential shape means the beam never quite reaches zero; each equal slab removes the same *fraction*, not the same amount. After one HVL, I = ½·I₀; after two HVLs, ¼·I₀; after three, ⅛·I₀, and so on.
+### The inverse-square law
 
-## The Three Photon Interactions
+Radiation spreads out from its source like light from a bare bulb. As it travels, the same energy is smeared over a larger and larger area, so the intensity drops — and it drops with the **square** of the distance.
 
-When a photon deposits energy in tissue, it does so through one of three main interactions. Which one dominates depends mostly on **photon energy** and on **Z**, the atomic number of the material (the number of protons; higher Z means a "heavier," more electron-rich atom).
+![Inverse-square law](figures/fig-inverse-square.svg)
 
-| Interaction | Dominant energy range | Z dependence | Plain-language picture |
+*Figure 3.3 — The same rays cover four times the area at twice the distance, so the dose rate falls to one-quarter. At three times the distance it is one-ninth.*
+
+We write it as:
+
+> **Key Point:** **D₂ = D₁ × (d₁/d₂)²**, where d₁ and d₂ are distances from the source.
+
+**Worked example.** A point source delivers 100 cGy at 80 cm. What is the dose rate at 100 cm?
+
+```
+D2 = D1 × (d1 / d2)²
+D2 = 100 × (80 / 100)²
+D2 = 100 × (0.8)²
+D2 = 100 × 0.64  =  64 cGy
+```
+
+Notice the dose did not drop by 20% just because the distance grew by 20% — it dropped by 36%, because of the squaring. This is also your friend in radiation protection: **stepping back a little buys a lot of safety** (more on that in Chapter 4).
+
+### Attenuation and the half-value layer
+
+Distance is one way a beam weakens; passing through material is the other. As photons travel through tissue or shielding, some are absorbed or scattered away. This follows an **exponential** pattern: each equal thickness removes the *same fraction* of what is left, not the same amount.
+
+The handiest measure of this is the **half-value layer (HVL)** — the thickness of a material that cuts the beam intensity in half.
+
+![Exponential attenuation and HVL](figures/fig-attenuation-hvl.svg)
+
+*Figure 3.4 — Each half-value layer removes half of the remaining beam: 100% → 50% → 25% → 12.5%. Because it is always "half of what's left," the beam approaches zero but never quite gets there.*
+
+**Worked example.** A beam starts at 100%. If the HVL of a shielding material is 1.2 cm, how much gets through 3.6 cm?
+
+```
+3.6 cm ÷ 1.2 cm = 3 half-value layers
+After 1 HVL: 50%
+After 2 HVL: 25%
+After 3 HVL: 12.5%
+```
+
+So 12.5% of the beam comes through. HVL is also a measure of **beam quality** (penetrating power): a higher-energy, more penetrating beam has a larger HVL because it takes more material to halve it.
+
+> **Common mix-up:** Attenuation is **exponential**, not linear. Three HVLs do not block "150%" — each layer halves what remains, so you get 50% → 25% → 12.5%.
+
+## Part 3 · How photons interact with matter
+
+When a photon does interact, it does so in one of three main ways. Knowing them explains image contrast, beam penetration, and why MV beams are skin-sparing.
+
+![Three photon interactions](figures/fig-photon-interactions.svg)
+
+*Figure 3.5 — The three photon interactions. Photoelectric: the photon is fully absorbed and an inner electron is ejected. Compton: the photon scatters off an outer electron, giving up part of its energy. Pair production: a high-energy photon converts into an electron–positron pair near the nucleus.*
+
+- **Photoelectric effect.** The photon hands **all** of its energy to a tightly bound inner-shell electron, which is ejected; no scattered photon survives. It dominates at **low energies** and is very sensitive to atomic number — roughly proportional to **Z³**. That strong Z dependence is exactly why **bone (high Z, calcium) shows up bright on kV images**: bone soaks up low-energy photons far more than soft tissue does. This is the physics behind the crisp skeletal detail you use when you bone-match a setup image.
+- **Compton scatter.** The photon strikes a loosely bound **outer** electron, gives up part of its energy, and **scatters** off in a new direction while the electron recoils. Compton is almost independent of atomic number and **dominates across the megavoltage therapy range**. Two consequences follow: MV treatment beams deposit dose similarly in bone and soft tissue (so MV images have poor bone contrast), and scattered photons are the reason treatment rooms need **secondary** shielding (Chapter 4).
+- **Pair production.** Only above a **threshold of 1.02 MeV**, a photon passing near a nucleus can convert into an **electron–positron pair** (matter created from energy). It becomes significant only at high energies and high Z, so it plays a minor role at common therapy energies.
+
+![Which interaction dominates](figures/fig-interaction-dominance.svg)
+
+*Figure 3.6 — Photoelectric rules at low energy/high Z, pair production at very high energy/high Z, and Compton owns the broad middle band — which is exactly where megavoltage therapy lives.*
+
+> **Key Point:** In the **megavoltage** beams you treat with every day, **Compton scatter dominates**. That single fact explains poor bone contrast on MV images, the need for scatter shielding, and the uniform way MV dose is deposited.
+
+### Build-up and skin-sparing
+
+Here is a payoff of all that interaction physics. When an MV photon interacts, it sets fast electrons moving *forward*. Those electrons travel a short distance before they deposit their dose, so the maximum dose lands a little **below** the skin, not on it. The result is the **build-up region** and the skin-sparing that makes high-energy x-rays so useful.
+
+![Megavoltage depth dose](figures/fig-depth-dose.svg)
+
+*Figure 3.7 — A megavoltage beam enters with a low surface (skin) dose, builds up to its maximum at d_max, then falls off with depth. Higher energy pushes d_max deeper and spares the skin more.*
+
+The depth of maximum dose, **d_max**, gets deeper as energy rises (for example, roughly 1.5 cm for a 6 MV beam and around 3 cm for an 18 MV beam). This is why higher energies are chosen for deeper tumors — they put their peak dose where the target is, while keeping the skin dose comfortable.
+
+## Part 4 · Measuring radiation: the units
+
+Three units cover almost everything on the exam.
+
+| Quantity | SI unit | Plain-English meaning | Older unit |
 |---|---|---|---|
-| Photoelectric | Low (kV) | Strong (≈ Z³) | Photon is fully absorbed; ejects an inner electron |
-| Compton scatter | Megavoltage therapy | Nearly none | Photon glances off an outer electron, like a billiard break |
-| Pair production | Above 1.02 MeV (matters at high MV) | Increases with Z | Photon converts into an electron–positron pair |
+| **Absorbed dose** | **Gray (Gy)** | Energy actually deposited: 1 Gy = 1 joule per kilogram | rad (1 Gy = 100 rad) |
+| **Equivalent dose** | **Sievert (Sv)** | Absorbed dose adjusted for how harmful the radiation type is | rem (1 Sv = 100 rem) |
+| **Activity** | **Becquerel (Bq)** | How many atoms decay per second | curie (1 Ci = 3.7 × 10¹⁰ Bq) |
 
-### Photoelectric effect
+A couple of anchors worth memorizing: **1 Gy = 100 rad** and **1 Sv = 100 rem**. For the x-rays, gammas, and electrons used in radiation therapy, the "harm factor" (radiation weighting factor) is 1, so **1 Gy of our beam equals 1 Sv**. The gray and sievert only diverge for high-LET radiations like alpha particles and neutrons.
 
-A low-energy photon is **completely absorbed** by an atom, which then ejects an inner-shell electron. Because the probability rises sharply with atomic number (roughly Z³), bone (higher Z, due to calcium) absorbs far more than soft tissue at kV energies. That strong Z dependence is exactly what makes bone show up bright on a diagnostic x-ray — and why the photoelectric effect dominates in the kV range.
+> **Common mix-up:** **Gray** measures energy *deposited in tissue* — it is what the prescription is written in. **Sievert** measures *biological risk* and is the unit of dose limits and badge readings (Chapter 4). Same size for our beams, different jobs.
 
-### Compton scatter
+A quick word on calibration: physicists make sure "what the machine says" equals "what the patient gets" using the **AAPM TG-51** protocol, which calibrates photon beams at a reference depth of **10 cm in water** and specifies an electron beam's quality by **R₅₀** (the depth where dose falls to 50%). You do not perform this, but you should recognize the names.
 
-At **megavoltage therapy energies, Compton scatter dominates.** Here the photon strikes a loosely bound outer electron, knocks it loose, and **scatters** off in a new direction with less energy — like one billiard ball striking another and ricocheting. The key clinical fact: Compton probability barely depends on Z. That is why MV beams treat bone, fat, and muscle fairly uniformly, and why dense bone does not cast the heavy shadows on MV images that it does on kV images.
+## Part 5 · Radiobiology: what radiation does to cells
 
-> **Key Point:** At the MV energies used for treatment, **Compton scatter is the dominant interaction**, and it is nearly independent of atomic number — so dose deposits relatively evenly across tissue types.
+### Direct and indirect action
 
-### Pair production
+Radiation kills cells mainly by damaging **DNA**. It can do this two ways: **directly**, by breaking the DNA strand itself, or **indirectly**, by ionizing nearby water to create reactive **free radicals** that then attack the DNA. For the low-LET radiation we use most, the **indirect** path through water and free radicals causes the majority of the damage — which is also why **oxygen matters** so much (coming up).
 
-If a photon carries more than **1.02 MeV**, it can pass near a nucleus and convert its energy into matter: an electron and a positron (its antimatter twin). That 1.02 MeV is the **threshold** because the two particles together require that much energy to exist (each rest mass is 0.511 MeV; 0.511 + 0.511 = 1.022). Pair production becomes meaningful only at high MV energies and increases with Z.
+### The cell survival curve and the linear-quadratic model
 
-## The Inverse-Square Law
+If you irradiate a population of cells with rising doses and plot the fraction that survive on a log scale, you get the famous **cell survival curve**.
 
-Radiation from a point source spreads out as it travels, so intensity drops with distance. The **inverse-square law** lets you scale dose from one distance to another:
+![Cell survival curve](figures/fig-cell-survival.svg)
 
-> D₂ = D₁ × (d₁ / d₂)²
+*Figure 3.8 — For low-LET x-rays the curve has a "shoulder" at low dose (cells repairing sublethal damage) before bending steeply downward. High-LET radiation gives a straighter, steeper line — more lethal per gray, with little repair.*
 
-where **D₁** is the dose (or dose rate) at distance **d₁**, and **D₂** is the dose at the new distance **d₂**. The relationship is squared, so doubling the distance cuts intensity to one-quarter, and tripling it to one-ninth.
+We describe the curve with the **linear-quadratic (LQ) model**:
 
-A quick example: if the dose rate is 100 cGy/min at 100 cm, what is it at 200 cm?
+> **Key Point:** **S = e^(−αD − βD²)** — survival falls off with a single-hit term (**α**, linear in dose) and a two-hit term (**β**, dose-squared).
 
-D₂ = 100 × (100 / 200)² = 100 × (0.5)² = 100 × 0.25 = **25 cGy/min**.
+The ratio **α/β** captures how a tissue responds to the *size* of each dose:
 
-Think of a flashlight: step back and the same light spreads over a much larger wall, so any one spot looks dimmer.
+- **High α/β (≈ 10 Gy)** — tumors and early-responding tissues (skin, mucosa, gut). These care more about *total* dose.
+- **Low α/β (≈ 3 Gy)** — late-responding tissues (spinal cord, lung, kidney). These are very sensitive to *large* doses per fraction.
 
-## Units of Radiation
-
-Three quantities, three units — keep them separate.
-
-| Quantity | SI unit | What it measures | Legacy unit | Conversion |
-|---|---|---|---|---|
-| Absorbed dose | **Gray (Gy)** | Energy absorbed per mass = 1 joule/kg | rad | 1 Gy = 100 rad |
-| Equivalent dose | **Sievert (Sv)** | Dose weighted for biological harm | rem | 1 Sv = 100 rem |
-| Activity | **Becquerel (Bq)** | Decays per second of a source | curie (Ci) | — |
-| Exposure (legacy) | — | Ionization of air | roentgen (R) | — |
-
-- **Gray** is the workhorse of treatment. One Gray equals one joule of energy deposited per kilogram of tissue.
-- **Sievert** adjusts the dose for how damaging the radiation type is (more on that under RBE). For the photons and electrons you use, the numerical Gray and Sievert values are essentially the same.
-- **Becquerel** counts radioactive decays per second — it describes a *source*, not a patient's dose.
-
-> **Common mix-up:** *Gray vs Sievert.* Gray is pure physical energy deposited (1 J/kg). Sievert is that energy **weighted for biological effect**, used in radiation protection. In therapy you prescribe and report in **Gray**; you'll see Sievert mostly in dose-limit and safety contexts.
-
-## Calibration Basics (TG-51)
-
-Before a beam can be trusted, it must be **calibrated** — its output measured against a standard. In North America, photon and electron beams are calibrated using the **AAPM TG-51** protocol [3], which is based on absorbed dose to water.
-
-- For **photon beams**, the reference measurement is taken with an ion chamber at **10 cm depth in water**. Water is used because it closely mimics soft tissue.
-- For **electron beams**, beam quality is specified by **R50** — the depth in water at which the dose has fallen to **50%** of its maximum. R50 stands in for electron energy, much as HVL stands in for kV photon quality.
-
-## Cell Survival and the Linear-Quadratic Model
-
-Radiobiology asks: when you deliver dose, how many cells survive? Plotting surviving fraction against dose gives a **cell survival curve**. The most-used description is the **linear-quadratic (LQ) model**:
-
-> S = e^(−αD − βD²)
-
-Reading it:
-- **S** is the surviving fraction (the share of cells still able to divide).
-- **D** is the dose in Gray.
-- **α** ("alpha") describes damage proportional to dose — single, lethal, "one-hit" hits.
-- **β** ("beta") describes damage proportional to dose-squared — two separate sublethal hits that combine to kill.
-
-At low dose the α term (the straight part) leads; at higher dose the β term (the curving "shoulder") bends the curve down more steeply.
-
-### The α/β ratio
-
-The **α/β ratio** (in Gray) is the dose at which the α-kill and β-kill are equal. It captures how a tissue responds to fraction size:
-
-- **≈ 10 Gy** for most tumors and **early-responding** tissues (skin, gut lining) — they tolerate larger fractions relatively well.
-- **≈ 3 Gy** for **late-responding** tissues (spinal cord, lung, kidney) — they are *more* sensitive to large fraction sizes.
-
-This single number is why we fractionate: many small daily doses spare low-α/β late-responding normal tissue while still controlling the tumor.
-
-## The Four R's of Radiobiology
-
-These explain why splitting dose into fractions works [5]:
-
-1. **Repair** — Between fractions, normal cells repair sublethal damage better than tumor cells, so the gap favors healthy tissue.
-2. **Repopulation** — Surviving cells divide to replace losses. Helpful for normal tissue; a problem if a tumor repopulates during a long course.
-3. **Reoxygenation** — After each fraction, previously oxygen-starved (hypoxic) tumor cells gain oxygen and become more radiosensitive for the next dose.
-4. **Reassortment (redistribution)** — Cells move through the cell cycle and tend to redistribute into more radiosensitive phases between fractions.
-
-> **Key Point:** Fractionation exploits the Four R's — chiefly **Repair** and **Reoxygenation** — to widen the gap between tumor kill and normal-tissue damage.
-
-## The Oxygen Effect, LET, and RBE
-
-### Oxygen effect
-
-Oxygen makes radiation damage permanent by "fixing" it chemically. So well-oxygenated cells are killed more easily than hypoxic ones; **hypoxia causes radioresistance**. We quantify this with the **oxygen enhancement ratio (OER)** — the dose needed without oxygen divided by the dose needed with oxygen for the same effect. For low-LET radiation, **OER ≈ 2.5–3.0**, meaning a hypoxic cell needs up to about three times the dose.
+This difference is the whole reason we usually give many **small** fractions: small daily doses spare the low-α/β late-responding normal tissues while still controlling the tumor.
 
 ### LET and RBE
 
-**LET (linear energy transfer)** is how densely a particle deposits energy along its track. Photons and electrons are **low-LET** — they sprinkle energy sparsely, like light rain. Alpha particles, neutrons, and carbon ions are **high-LET** — they dump energy in a dense trail, like a knife cut, causing clustered, hard-to-repair damage.
+- **LET (Linear Energy Transfer)** is how densely a radiation deposits energy along its track. X-rays and electrons are **low-LET** (sparse ionizations); alpha particles, neutrons, and carbon ions are **high-LET** (dense ionizations that overwhelm repair).
+- **RBE (Relative Biological Effectiveness)** compares how much of a reference radiation it takes to get the same effect as a test radiation. High-LET radiation has **RBE > 1** — it does more biological damage per gray.
 
-**RBE (relative biological effectiveness)** compares radiation types: the dose of a reference (low-LET) beam divided by the dose of the test beam that produces the *same* biological effect.
+> **Common mix-up:** LET describes the *radiation's* track structure; RBE describes the *biological result*. As LET rises, RBE generally rises with it — up to a point.
 
-> **Key Point:** Low-LET photons/electrons have RBE ≈ 1. **High-LET** radiation (alpha, neutron, carbon) packs damage densely, so its **RBE > 1**, and high-LET damage is also less oxygen-dependent (lower OER).
+### The oxygen effect
 
-## Fractionation Math: BED and EQD2
+Because so much damage is done indirectly through free radicals, **oxygen** dramatically increases radiation's killing power: it "fixes" (makes permanent) the chemical damage. Well-oxygenated cells are far more radiosensitive than hypoxic (oxygen-starved) ones.
 
-Two formulas let you compare regimens with different fraction sizes on a common biological scale.
+![The oxygen effect](figures/fig-oxygen-effect.svg)
 
-**Biologically Effective Dose (BED):**
+*Figure 3.9 — Oxygenated cells (left curve) die at lower doses than hypoxic cells (right curve). The ratio of doses needed for the same effect is the Oxygen Enhancement Ratio, about 2.5–3 for low-LET radiation.*
 
-> BED = n · d · (1 + d / (α/β))
+We quantify this with the **Oxygen Enhancement Ratio (OER) ≈ 2.5–3** for x-rays. Tumors often contain hypoxic, resistant pockets — and this is one more reason fractionation helps: between fractions, tumors **reoxygenate**, turning resistant cells into sensitive ones.
 
-- **n** = number of fractions
-- **d** = dose per fraction (Gy)
-- **n · d** = total physical dose
-- the bracket adds the extra "punch" of larger fractions
+### The Four R's of radiobiology
 
-**Equivalent Dose in 2-Gy fractions (EQD2)** rescales BED into the familiar 2 Gy/fraction world:
+These four processes explain *why fractionation works*:
 
-> EQD2 = BED / (1 + 2 / (α/β))
+1. **Repair** — between fractions, normal cells repair sublethal damage (the "shoulder" returns each day). Late-responding normal tissue benefits most.
+2. **Repopulation** — surviving cells divide during a long course; this is why dragging treatment out too long can let a tumor regrow.
+3. **Reoxygenation** — hypoxic tumor regions regain oxygen between fractions and become easier to kill.
+4. **Reassortment (redistribution)** — cells get caught in radiosensitive phases of their cycle over repeated fractions.
 
-### Fully worked example
+> **Key Point:** Repair and Repopulation tend to **protect** tissues; Reoxygenation and Reassortment tend to **sensitize** the tumor. Fractionation is the art of tilting that balance in the patient's favor.
 
-A lung SBRT (stereotactic body radiation therapy) regimen delivers **50 Gy in 5 fractions**. Convert it to BED and EQD2, using **α/β = 10 Gy** (tumor).
+### Fractionation math: BED and EQD2
 
-**Step 1 — find dose per fraction (d):**
-d = total dose ÷ number of fractions = 50 Gy ÷ 5 = **10 Gy per fraction**. And n = 5.
+To compare different fraction schemes fairly, we use **Biologically Effective Dose (BED)** and the **Equivalent Dose in 2-Gy fractions (EQD2)**:
 
-**Step 2 — compute the bracket for BED:**
-d / (α/β) = 10 / 10 = 1.
-1 + 1 = **2**.
+```
+BED  = n · d · (1 + d / (α/β))
+EQD2 = BED / (1 + 2 / (α/β))
+   n = number of fractions
+   d = dose per fraction
+```
 
-**Step 3 — compute BED:**
-BED = n · d · (bracket) = 5 × 10 × 2 = **100 Gy** (often written 100 Gy₁₀ to note α/β = 10).
+**Worked example 1 — a standard course, two tissues.** 60 Gy in 30 fractions (so n = 30, d = 2 Gy).
 
-**Step 4 — compute the EQD2 denominator:**
-2 / (α/β) = 2 / 10 = 0.2.
-1 + 0.2 = **1.2**.
+```
+Tumor (α/β = 10):       BED = 60 × (1 + 2/10) = 60 × 1.2   = 72 Gy
+Late tissue (α/β = 3):  BED = 60 × (1 + 2/3)  = 60 × 1.667 ≈ 100 Gy
+```
 
-**Step 5 — compute EQD2:**
-EQD2 = BED ÷ 1.2 = 100 ÷ 1.2 ≈ **83.3 Gy**.
+The same physical 60 Gy is biologically "heavier" for the late-responding tissue — which is precisely why we respect its dose limits.
 
-So 50 Gy in 5 fractions is biologically like delivering about **83 Gy** in standard 2 Gy fractions — far more potent than its 50 Gy physical dose suggests, which is exactly why SBRT controls tumors so well in few fractions.
+**Worked example 2 — converting an SBRT course to EQD2.** A lung tumor gets 50 Gy in 5 fractions (n = 5, d = 10 Gy, α/β = 10).
 
-## Deterministic vs Stochastic Effects
+```
+BED  = 5 × 10 × (1 + 10/10) = 50 × 2 = 100 Gy
+EQD2 = 100 / (1 + 2/10)     = 100 / 1.2 ≈ 83 Gy
+```
 
-Radiation effects fall into two camps.
+So that short, punchy SBRT course is biologically like ~83 Gy given in gentle 2-Gy fractions — far more than its 50 Gy "sticker price." This is why high-dose-per-fraction treatments are so potent (and why their normal-tissue limits are handled carefully).
 
-**Deterministic effects** have a **threshold** dose; below it nothing happens, and above it **severity rises with dose**. Examples: skin erythema (reddening), cataract, and sterility. Think of a dam: nothing spills until the water passes the rim, then more water means more flooding.
+## Part 6 · Effects on tissue and people
 
-**Stochastic effects** have **no threshold**; instead the **probability** rises with dose, while severity does not depend on dose. Examples: cancer and heritable (genetic) effects. Here every drop adds a little to the *chance* of an event, but a cancer that occurs is no "worse" because the dose was higher [4].
+### Deterministic versus stochastic effects
 
-> **Common mix-up:** *Deterministic vs stochastic.* Deterministic = threshold + dose-dependent **severity** (tissue reactions). Stochastic = no threshold + dose-dependent **probability** (cancer, heritable). A useful tag: deterministic effects you can *see at the bedside*; stochastic effects are statistical risks.
+Radiation's harmful effects come in two flavors, and the exam loves to test the distinction.
 
-## Tissue Tolerance (TD5/5 Examples)
+![Deterministic versus stochastic effects](figures/fig-deterministic-stochastic.svg)
 
-**TD5/5** is the tolerance dose expected to cause a serious complication in 5% of patients within 5 years. A few values worth knowing:
+*Figure 3.10 — Deterministic effects have a threshold: below it, nothing; above it, severity grows with dose. Stochastic effects have no threshold: the probability rises with dose, but severity does not.*
 
-| Tissue | Approximate limit |
-|---|---|
-| Spinal cord | ~45–50 Gy |
-| Lung | mean dose ≤ ~20 Gy, or V20 ≤ ~35% |
-| Eye lens | ~0.5 Gy |
+- **Deterministic (tissue reactions)** — there is a **threshold dose**, and above it the **severity** climbs with dose. Examples: skin erythema, cataracts, sterility, fibrosis. These are predictable and dose-dependent.
+- **Stochastic (chance) effects** — **no threshold**; the **probability** of the effect rises with dose, but the severity does not depend on dose. Examples: radiation-induced cancer and heritable effects. This is the basis of the "no safe dose" precaution behind ALARA.
 
-(Here **V20** means the percentage of lung volume receiving 20 Gy or more.) The eye lens is strikingly sensitive — a cataract (a deterministic effect) can follow a dose far below what other tissues tolerate, which is why we shield eyes whenever the plan allows.
+> **Common mix-up:** Deterministic = *severity* rises with dose, above a threshold. Stochastic = *probability* rises with dose, no threshold. A cataract is deterministic; a radiation-induced cancer is stochastic.
+
+### Normal-tissue tolerance
+
+Every organ has a dose it can tolerate before complications become likely. A common shorthand is **TD₅/₅** — the dose expected to cause a 5% complication rate within 5 years. A few values worth recognizing (conventional fractionation):
+
+- **Spinal cord:** about **45–50 Gy** (we keep cord dose well under this to avoid myelopathy).
+- **Lung:** mean dose roughly **≤ 20 Gy**, or keep the volume getting ≥ 20 Gy (V20) under about 35%, to limit pneumonitis.
+- **Eye lens:** a threshold around **0.5 Gy** for cataract formation.
+
+These numbers are why the prescription and plan obey **organ-at-risk constraints**, and why the dose-volume histogram (Chapter 6) is checked so carefully.
 
 ## Check yourself
 
-**1. Which interaction dominates at megavoltage therapy energies, and does it depend on atomic number?**
-*Compton scatter dominates at MV therapy energies, and it is nearly independent of atomic number — so MV dose deposits fairly evenly across bone, fat, and muscle.*
+**1. Cobalt-60 emits gamma rays of what energies, and what is its half-life?**
+*1.17 and 1.33 MeV (average ≈ 1.25 MeV), with a half-life of 5.27 years.*
 
-**2. A source reads 80 cGy/min at 100 cm. What is the dose rate at 50 cm?**
-*Using D₂ = D₁ × (d₁/d₂)²: D₂ = 80 × (100/50)² = 80 × 4 = 320 cGy/min.*
+**2. Which photon interaction dominates at megavoltage therapy energies, and name one practical consequence.**
+*Compton scatter. Consequences include poor bone contrast on MV images and the need for secondary (scatter) shielding.*
 
-**3. What is the difference between a Gray and a Sievert?**
-*A Gray is absorbed dose — pure energy deposited (1 joule/kg). A Sievert is equivalent dose — that energy weighted for biological harm, used in radiation protection.*
+**3. A source gives 200 cGy at 100 cm. Using the inverse-square law, what is the dose rate at 140 cm?**
+*D₂ = 200 × (100/140)² = 200 × 0.510 ≈ 102 cGy.*
 
-**4. A regimen is 60 Gy in 3 fractions (20 Gy/fx), α/β = 10. What is the BED?**
-*BED = n·d·(1 + d/(α/β)) = 3 × 20 × (1 + 20/10) = 60 × 3 = 180 Gy.*
+**4. A beam is 100%. After passing through 2 half-value layers, how much remains?**
+*25% (100% → 50% → 25%). Attenuation is exponential — each HVL halves what is left.*
 
-**5. Erythema, cataract, and sterility are which kind of effect, and why?**
-*Deterministic — they have a threshold dose, below which they do not occur, and their severity increases with dose.*
+**5. What is the difference between the gray and the sievert?**
+*The gray measures absorbed dose (energy deposited, used for prescriptions); the sievert measures equivalent dose (biological risk, used for dose limits). For therapy x-rays they are numerically equal.*
 
-**6. Why does hypoxia make a tumor harder to treat, and what number describes it?**
-*Oxygen "fixes" radiation damage, so oxygen-poor (hypoxic) cells are more radioresistant. The oxygen enhancement ratio (OER ≈ 2.5–3.0 for low-LET radiation) quantifies how much more dose hypoxic cells need.*
+**6. Convert 50 Gy in 5 fractions (α/β = 10) to BED.**
+*BED = 5 × 10 × (1 + 10/10) = 100 Gy.*
+
+**7. A cataract from radiation is which type of effect — deterministic or stochastic — and why?**
+*Deterministic: it has a threshold dose, and severity increases with dose above that threshold.*
+
+**8. Why does fractionation help spare late-responding normal tissue?**
+*Late-responding tissue has a low α/β (~3 Gy), making it very sensitive to large doses per fraction; small daily fractions plus overnight Repair keep its biological dose low while the tumor is still controlled.*
 
 ## Chapter references
 
-1. Khan FM, Gibbons JP. *Khan's The Physics of Radiation Therapy.* Wolters Kluwer / Lippincott Williams & Wilkins. (Radiation sources, photon interactions, attenuation, inverse-square law, units, calibration.)
-2. Hall EJ, Giaccia AJ. *Radiobiology for the Radiologist.* Wolters Kluwer. (Cell survival, linear-quadratic model, α/β ratio, Four R's, oxygen effect, LET/RBE, fractionation.)
-3. Almond PR, et al. AAPM TG-51: Protocol for clinical reference dosimetry of high-energy photon and electron beams. *Medical Physics*. (Photon calibration at 10 cm depth in water; electron beam quality by R50.)
-4. International Commission on Radiological Protection (ICRP) and U.S. Nuclear Regulatory Commission (NRC). Radiation units, deterministic vs stochastic effects, and dose-limit context. (Gray, Sievert, Becquerel; legacy rad/rem/roentgen.)
-5. Centers for Disease Control and Prevention (CDC). Radiation health effects: deterministic (tissue reactions) and stochastic (cancer, heritable) effects. (Public-health framing of dose-response.)
+1. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer. (Beam production, interactions, attenuation, depth dose, units.)
+2. Hall EJ, Giaccia AJ. *Radiobiology for the Radiologist.* Wolters Kluwer. (Cell survival, LQ model, the Four R's, oxygen effect, LET/RBE, deterministic vs stochastic.)
+3. AAPM Task Group 51. *Protocol for clinical reference dosimetry of high-energy photon and electron beams.* (Calibration; R₅₀ for electron beam quality.)
+4. International Commission on Radiation Units & Measurements (ICRU) and U.S. NRC. *Quantities and units of radiation* (gray, sievert, becquerel; legacy rad/rem/curie).
+5. Emami B, et al. *Tolerance of normal tissue to therapeutic irradiation* (the TD₅/₅ tissue-tolerance concept).
+6. Centers for Disease Control and Prevention (CDC). *Radiation health effects* (deterministic vs stochastic effects).
+
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

@@ -28,6 +28,12 @@ body_html = re.sub(r'<blockquote>\s*<p><strong>Key Point',
 body_html = re.sub(r'<blockquote>\s*<p><strong>Common mix-up',
                    '<blockquote class="mixup"><p><strong>Common mix-up', body_html)
 
+# Wrap "image paragraph + italic Figure caption" into a <figure>
+body_html = re.sub(
+    r'<p>(<img\b[^>]*>)</p>\s*<p><em>(Figure.*?)</em></p>',
+    r'<figure>\1<figcaption>\2</figcaption></figure>',
+    body_html, flags=re.S)
+
 cover = """
 <section class="cover">
   <div class="kicker">Radiation Therapy Board Prep</div>
