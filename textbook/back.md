@@ -15,7 +15,13 @@ authoritative source. Those sources fall into a few trusted families:
 - **The textbooks.** Three classics underpin most of this material: *Khan's The Physics of Radiation
   Therapy*, *Washington & Leaver's Principles and Practice of Radiation Therapy*, and *Gunderson &
   Tepper's Clinical Radiation Oncology*. For radiobiology, *Hall & Giaccia's Radiobiology for the
-  Radiologist* is the standard.
+  Radiologist* is the standard. These are commercial books — find them through a library or program.
+
+Wherever a fact can be checked in a **free, full-text** source, the chapter references now lead with it,
+so you can click straight through and verify for yourself. The most useful free resources are the IAEA's
+*Radiation Oncology Physics: A Handbook for Teachers and Students* (a complete physics text, free PDF), the
+AAPM Task Group reports, the U.S. NRC's 10 CFR 20, the CDC's radiation-safety pages, and the NCI's PDQ
+cancer summaries. The commercial textbooks above are listed under "for deeper reading."
 
 A few accuracy notes worth carrying with you, because they are exactly the places where casual study
 materials often go wrong:

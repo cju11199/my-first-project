@@ -304,10 +304,15 @@ Preop uses a smaller field and lower dose (the tumor defines the target); postop
 
 ## Chapter references
 
-1. Amin MB, Edge SB, Greene FL, et al., eds. *AJCC Cancer Staging Manual.* 8th ed. American Joint Committee on Cancer / Springer; 2017.
-2. National Comprehensive Cancer Network. *NCCN Clinical Practice Guidelines in Oncology* (by disease site). National Comprehensive Cancer Network; accessed 2024.
-3. Gunderson LL, Tepper JE, eds. *Clinical Radiation Oncology.* 4th ed. Elsevier; 2016.
-4. Washington CM, Leaver DT, eds. *Principles and Practice of Radiation Therapy.* 5th ed. Elsevier; 2021.
-5. National Cancer Institute. *Adult Central Nervous System Tumors Treatment (PDQ®) — Health Professional Version.* NCI; updated 2024.
-6. National Cancer Institute. *Childhood Cancer Treatment summaries (PDQ®) — Health Professional Version.* NCI; updated 2024.
-7. National Cancer Institute. *Cancer Pain and Bone Metastasis Palliation (PDQ®) — Health Professional Version.* NCI; updated 2024.
+**Free, full-text sources**
+
+1. NCI — PDQ cancer treatment summaries by site (histology, staging, routes of spread, typical management): <https://www.cancer.gov/types>.
+2. NCCN — Clinical Practice Guidelines in Oncology (free with registration): <https://www.nccn.org/guidelines/category_1>.
+
+**For deeper reading (library / textbook)**
+
+3. Gunderson LL, Tepper JE. *Clinical Radiation Oncology.* Elsevier — disease-site chapters and dose/fractionation.
+4. Washington CM, Leaver DT. *Principles and Practice of Radiation Therapy.* Elsevier.
+5. AJCC *Cancer Staging Manual*, 8th ed. — TNM staging.
+
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

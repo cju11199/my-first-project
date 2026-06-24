@@ -276,11 +276,16 @@ These numbers are why the prescription and plan obey **organ-at-risk constraints
 
 ## Chapter references
 
-1. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer. (Beam production, interactions, attenuation, depth dose, units.)
-2. Hall EJ, Giaccia AJ. *Radiobiology for the Radiologist.* Wolters Kluwer. (Cell survival, LQ model, the Four R's, oxygen effect, LET/RBE, deterministic vs stochastic.)
-3. AAPM Task Group 51. *Protocol for clinical reference dosimetry of high-energy photon and electron beams.* (Calibration; R₅₀ for electron beam quality.)
-4. International Commission on Radiation Units & Measurements (ICRU) and U.S. NRC. *Quantities and units of radiation* (gray, sievert, becquerel; legacy rad/rem/curie).
-5. Emami B, et al. *Tolerance of normal tissue to therapeutic irradiation* (the TD₅/₅ tissue-tolerance concept).
-6. Centers for Disease Control and Prevention (CDC). *Radiation health effects* (deterministic vs stochastic effects).
+**Free, full-text sources**
+
+1. IAEA — *Radiation Oncology Physics: A Handbook for Teachers and Students* (free PDF; beam production, interactions, attenuation, depth dose, units, radiobiology): <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>.
+2. AAPM Reports — TG-51 reference dosimetry (R₅₀ for electron beam quality), free: <https://www.aapm.org/pubs/reports/>.
+3. U.S. NRC — 10 CFR Part 20, Standards for Protection Against Radiation (quantities, units): <https://www.nrc.gov/reading-rm/doc-collections/cfr/part020/>.
+4. CDC — Radiation and your health (deterministic vs stochastic effects, ALARA): <https://www.cdc.gov/radiation-health/>.
+
+**For deeper reading (library / textbook)**
+
+5. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer.
+6. Hall EJ, Giaccia AJ. *Radiobiology for the Radiologist.* Wolters Kluwer.
 
 *This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

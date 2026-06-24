@@ -65,6 +65,11 @@
 
 ## Tier 2 — Textbooks (standard ARRT review references)
 
+> **Free full-text physics text (use first):** IAEA — *Radiation Oncology Physics: A Handbook for Teachers
+> and Students* (Podgorsak, ed.), a complete, openly published physics textbook covering interactions,
+> dosimetry, treatment planning, brachytherapy, electrons, QA, and radiobiology — a legal free substitute
+> for much of Khan: <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>
+
 - **Khan & Gibbons — *The Physics of Radiation Therapy*** (physics, dosimetry, MU calc, radiobiology, linac) — review: <https://pmc.ncbi.nlm.nih.gov/articles/PMC7416864/>
 - **Washington & Leaver — *Principles and Practice of Radiation Therapy* (6th ed.)** (simulation, patient care, sites, delivery) — <https://www.us.elsevierhealth.com/washington-and-leavers-principles-and-practice-of-radiation-therapy-9780443121784.html>
 - **Gunderson & Tepper — *Clinical Radiation Oncology*** (disease sites, staging, dose/fractionation) — <https://www.sciencedirect.com/book/9780443114762/gunderson-and-teppers-clinical-radiation-oncology>

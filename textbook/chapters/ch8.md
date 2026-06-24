@@ -219,12 +219,16 @@ Clinicians grade side effects with the **Common Terminology Criteria for Adverse
 
 ## Chapter references
 
-1. Benedict SH, Yenice KM, Followill D, et al. Stereotactic body radiation therapy: The report of AAPM Task Group 101. *Medical Physics*. 2010;37(8):4078–4101.
-2. Khan FM, Gibbons JP. *Khan's The Physics of Radiation Therapy*. 6th ed. Wolters Kluwer; 2020.
-3. Gunderson LL, Tepper JE, eds. *Clinical Radiation Oncology*. 4th ed. Elsevier; 2016.
-4. International Commission on Radiation Units and Measurements. *ICRU Report 38: Dose and Volume Specification for Reporting Intracavitary Therapy in Gynecology*. ICRU; 1985.
-5. International Commission on Radiation Units and Measurements. *ICRU Report 89: Prescribing, Recording, and Reporting Brachytherapy for Cancer of the Cervix*. ICRU; 2016.
-6. Wong JYC, Filippi AR, Dabaja BS, et al. Total body irradiation: ILROG (International Lymphoma Radiation Oncology Group) guidelines. *International Journal of Radiation Oncology, Biology, Physics*. 2018 and related ILROG TBI guidance.
-7. U.S. Department of Health and Human Services, National Cancer Institute. *Common Terminology Criteria for Adverse Events (CTCAE) Version 5.0*. NIH/NCI; 2017.
+**Free, full-text sources**
 
-*This is an independent educational text with original explanations. It is not a set of actual ARRT examination items and claims no affiliation with the ARRT.*
+1. IAEA — *Radiation Oncology Physics: A Handbook for Teachers and Students* (free PDF; external-beam techniques, brachytherapy, electrons): <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>.
+2. AAPM Reports — stereotactic body radiotherapy (TG-101) and related delivery/QA, free: <https://www.aapm.org/pubs/reports/>.
+3. NCI — CTCAE v5.0 (Common Terminology Criteria for Adverse Events), free: <https://ctep.cancer.gov/protocoldevelopment/electronic_applications/ctc.htm>.
+4. NCI — PDQ treatment summaries (modality selection by site): <https://www.cancer.gov/types>.
+
+**For deeper reading (library / standards)**
+
+5. ICRU Reports 38 and 89 — brachytherapy dose and reporting (ICRU; purchase).
+6. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer; Gunderson & Tepper, *Clinical Radiation Oncology.*
+
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

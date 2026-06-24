@@ -228,11 +228,14 @@ Common triggers:
 
 ## Chapter references
 
-1. International Commission on Radiation Units and Measurements. *ICRU Report 50: Prescribing, Recording, and Reporting Photon Beam Therapy.* Bethesda, MD: ICRU; 1993. [1]
-2. International Commission on Radiation Units and Measurements. *ICRU Report 62: Prescribing, Recording, and Reporting Photon Beam Therapy (Supplement to ICRU Report 50).* Bethesda, MD: ICRU; 1999. [2]
-3. International Commission on Radiation Units and Measurements. *ICRU Report 83: Prescribing, Recording, and Reporting Intensity-Modulated Photon-Beam Therapy (IMRT).* J ICRU. 2010;10(1). [3]
-4. van Herk M. Errors and margins in radiotherapy. *Semin Radiat Oncol.* 2004;14(1):52–64. (The van Herk margin recipe.) [4]
-5. Keall PJ, Mageras GS, Balter JM, et al. The management of respiratory motion in radiation oncology: AAPM Task Group 76 (TG-76). *Med Phys.* 2006;33(10):3874–3900. [5]
-6. Bissonnette JP, Balter PA, Dong L, et al. Quality assurance for image-guided radiation therapy utilizing CT-based technologies: AAPM Task Group 179 (TG-179). *Med Phys.* 2012;39(4):1946–1963. [6]
-7. American Association of Physicists in Medicine. *Image Guidance Doses Delivered During Radiotherapy: AAPM Task Group 168 (TG-168).* College Park, MD: AAPM. [7]
-8. Washington CM, Leaver DT. *Principles and Practice of Radiation Therapy.* 5th ed. St. Louis, MO: Elsevier; 2021. [8]
+**Free, full-text sources**
+
+1. IAEA — *Radiation Oncology Physics: A Handbook for Teachers and Students* (free PDF; simulation, treatment planning, target-volume and image-guidance chapters): <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>.
+2. AAPM Reports — respiratory motion (TG-76), CBCT/IGRT QA (TG-179), IGRT (TG-104/TG-147), all free: <https://www.aapm.org/pubs/reports/>.
+
+**For deeper reading (library / standards)**
+
+3. ICRU Reports 50, 62, and 83 — the defining documents for GTV/CTV/ITV/PTV/PRV and margins (ICRU; purchase).
+4. Washington CM, Leaver DT. *Principles and Practice of Radiation Therapy.* Elsevier — simulation and IGRT chapters.
+
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

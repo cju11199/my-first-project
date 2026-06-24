@@ -249,12 +249,16 @@ Radiation protection is a system of layers. **ALARA** sets the mindset; **time, 
 
 ## Chapter references
 
-1. U.S. Nuclear Regulatory Commission. *Standards for Protection Against Radiation.* 10 CFR Part 20. Washington, DC: NRC. [1]
-2. National Council on Radiation Protection and Measurements. *Structural Shielding Design and Evaluation for Megavoltage X- and Gamma-Ray Radiotherapy Facilities.* NCRP Report No. 151. Bethesda, MD: NCRP; 2005. [2]
-3. Klein EE, Hanley J, Bayouth J, et al. *Task Group 142 Report: Quality Assurance of Medical Accelerators.* Med Phys. 2009;36(9):4197–4212 (AAPM TG-142). [3]
-4. Bissonnette JP, Balter PA, Dong L, et al. *Quality Assurance for Image-Guided Radiation Therapy Utilizing CT-Based Technologies.* Med Phys. 2012;39(4):1946–1963 (AAPM TG-179). [4]
-5. Mutic S, Palta JR, Butker EK, et al. *Quality Assurance for Computed-Tomography Simulators and the Computed-Tomography-Simulation Process.* Med Phys. 2003;30(10):2762–2792 (AAPM TG-66). [5]
-6. Centers for Disease Control and Prevention. *ALARA — As Low As Reasonably Achievable.* Radiation and Your Health. Atlanta, GA: CDC. [6]
-7. Khan FM, Gibbons JP. *Khan's The Physics of Radiation Therapy.* Philadelphia, PA: Wolters Kluwer. [7]
+**Free, full-text sources**
 
-*This chapter is an independent educational text with original explanations. It is not affiliated with the ARRT, and its contents are not actual ARRT examination items.*
+1. U.S. NRC — 10 CFR Part 20, Standards for Protection Against Radiation (occupational, public, and embryo/fetus dose limits): <https://www.nrc.gov/reading-rm/doc-collections/cfr/part020/>.
+2. AAPM Reports — linac QA (TG-142), IGRT/CBCT QA (TG-179), CT-simulator QA (TG-66), all free: <https://www.aapm.org/pubs/reports/>.
+3. CDC — ALARA and radiation safety: <https://www.cdc.gov/radiation-health/>.
+4. IAEA — *Radiation Oncology Physics: A Handbook for Teachers and Students* (free PDF; shielding, equipment, QA chapters): <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>.
+
+**For deeper reading (library / standards)**
+
+5. NCRP Report 151 — Structural shielding design for megavoltage radiotherapy facilities (NCRP; purchase).
+6. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer.
+
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

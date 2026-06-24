@@ -226,10 +226,17 @@ Preventing infection protects vulnerable, often immunocompromised patients [4].
 
 ## Chapter references
 
-1. American Society of Radiologic Technologists (ASRT). *Radiation Therapy Practice Standards* and *Scope of Practice*. ASRT, current edition.
-2. American Registry of Radiologic Technologists (ARRT). *Standards of Ethics* (Code of Ethics and Rules of Ethics). ARRT, current edition.
-3. U.S. Department of Health & Human Services. *HIPAA Privacy Rule and Security Rule.* 45 CFR Parts 160 and 164.
-4. Centers for Disease Control and Prevention (CDC). *Guideline for Isolation Precautions: Preventing Transmission of Infectious Agents in Healthcare Settings* and *Hand Hygiene in Healthcare Settings*.
-5. Washington CM, Leaver D. *Principles and Practice of Radiation Therapy.* Elsevier, current edition.
-6. American College of Radiology & American Radium Society. *ACR–ARS Practice Parameter on Informed Consent for Image-Guided / Radiation Procedures.* ACR, current edition.
-7. American Heart Association (AHA). *Basic Life Support (BLS) Provider Manual* and *Advanced Cardiovascular Life Support (ACLS)* guidelines.
+**Free, full-text sources**
+
+1. ASRT — Practice Standards for Medical Imaging & Radiation Therapy: <https://www.asrt.org/main/standards-and-regulations/professional-practice/practice-standards-online> (scope of practice, patient care).
+2. ARRT — Standards of Ethics: <https://www.arrt.org/pages/arrt-reference-documents/by-document-type/standards-of-ethics>.
+3. U.S. HHS — HIPAA for Professionals (Privacy & Security Rules): <https://www.hhs.gov/hipaa/for-professionals/>.
+4. CDC — Infection control in outpatient/oncology settings: <https://www.cdc.gov/infection-control/>.
+5. American Heart Association — CPR & ECC (BLS): <https://cpr.heart.org/>.
+6. ACR–ASTRO Practice Parameter on Informed Consent in Radiation Oncology (open access): <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC10425961/>.
+
+**For deeper reading (library / textbook)**
+
+7. Washington CM, Leaver DT. *Principles and Practice of Radiation Therapy.* Elsevier — patient care, immobilization, and clinical workflow chapters.
+
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

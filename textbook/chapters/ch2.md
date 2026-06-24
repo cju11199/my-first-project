@@ -181,14 +181,16 @@ You see the patient more than anyone else on the team — often every weekday fo
 
 ## Chapter references
 
-[1] International Commission on Radiation Units and Measurements. *ICRU Report 24: Determination of Absorbed Dose in a Patient Irradiated by Beams of X or Gamma Rays in Radiotherapy Procedures.* ICRU.
+**Free, full-text sources**
 
-[2] Amin MB, Edge SB, Greene FL, et al., eds. *AJCC Cancer Staging Manual.* 8th ed. American Joint Committee on Cancer / Springer.
+1. NCI — Cancer Information / PDQ summaries (epidemiology, risk factors, staging, imaging, treatment by site): <https://www.cancer.gov/types>.
+2. ASRT — Practice Standards for Medical Imaging & Radiation Therapy: <https://www.asrt.org/main/standards-and-regulations/professional-practice/practice-standards-online>.
+3. IAEA — *Radiation Oncology Physics: A Handbook for Teachers and Students* (free PDF; treatment-record and dose-reporting context): <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>.
+4. AAPM Reports — monitor-unit verification (e.g., TG-71, TG-114), free: <https://www.aapm.org/pubs/reports/>.
 
-[3] National Comprehensive Cancer Network. *NCCN Clinical Practice Guidelines in Oncology (NCCN Guidelines).* NCCN.
+**For deeper reading (library / textbook)**
 
-[4] American Society of Radiologic Technologists. *ASRT Practice Standards for Medical Imaging and Radiation Therapy — Radiation Therapy.* ASRT.
+5. AJCC *Cancer Staging Manual*, 8th ed. — the TNM staging reference.
+6. Washington CM, Leaver DT. *Principles and Practice of Radiation Therapy.* Elsevier.
 
-[5] Washington CM, Leaver DT. *Principles and Practice of Radiation Therapy.* Elsevier/Mosby.
-
-[6] International Commission on Radiation Units and Measurements. *ICRU Report 50 / Report 83: Prescribing, Recording, and Reporting Photon-Beam Therapy* (dose-reporting and the ±5% dose-delivery accuracy goal). ICRU.
+*This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*

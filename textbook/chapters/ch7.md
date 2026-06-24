@@ -250,9 +250,14 @@ Once a plan exists, we score it with a few quick numbers:
 
 ## Chapter references
 
-1. AAPM Task Group 71. *Monitor unit calculations for external photon and electron beams.* (Equivalent square, S_c/S_p, MU formalism for SSD and SAD, electron MU.)
-2. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer. (PDD, TMR/TPR/TAR, inverse-square, wedges, field separation/gaps, electron ranges.)
-3. International Commission on Radiation Units & Measurements (ICRU). *Reference-point dose specification and reporting* (Reports 50/62/83).
-4. AAPM Report 85 / Task Group 65. *Tissue inhomogeneity corrections for megavoltage photon beams.*
+**Free, full-text sources**
+
+1. AAPM — Task Group 71, *Monitor unit calculations for external photon and electron beams* (free report; equivalent square, S_c/S_p, SSD & SAD MU, electron MU): <https://www.aapm.org/pubs/reports/detail.asp?docid=151>.
+2. IAEA — *Radiation Oncology Physics: A Handbook for Teachers and Students* (free PDF; PDD/TMR/TPR, dose calculation, electron ranges, treatment planning): <https://www-pub.iaea.org/MTCD/Publications/PDF/Pub1196_web.pdf>.
+3. AAPM Reports — tissue inhomogeneity corrections (Report 85 / TG-65), free: <https://www.aapm.org/pubs/reports/>.
+
+**For deeper reading (library / textbook)**
+
+4. Khan FM, Gibbons JP. *The Physics of Radiation Therapy.* Wolters Kluwer.
 
 *This chapter offers original educational explanations. It is not affiliated with or endorsed by the ARRT and does not reproduce actual exam questions.*
