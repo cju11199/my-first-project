@@ -578,8 +578,6 @@ html:not(.auth-pending) #authGate{display:none}
           <div class="cb-dd-row on" id="cbCM_ptv"       onclick="CBCT.toggleStruct('ptv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
           <div class="cb-dd-row on" id="cbCM_gtv"       onclick="CBCT.toggleStruct('gtv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
           <div class="cb-dd-row on" id="cbCM_brain"     onclick="CBCT.toggleStruct('brain')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#aaddff;color:#aaddff"></span>Brain</div>
-          <div class="cb-dd-row on" id="cbCM_brainstem" onclick="CBCT.toggleStruct('brainstem')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#9a8cff;color:#9a8cff"></span>Brainstem</div>
-          <div class="cb-dd-row on" id="cbCM_cochlea"   onclick="CBCT.toggleStruct('cochlea')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#00e5b4;color:#00e5b4"></span>Cochlea</div>
           <div class="cb-dd-row on" id="cbCM_prostate"  onclick="CBCT.toggleStruct('prostate')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>Prostate</div>
           <div class="cb-dd-row on" id="cbCM_bladder"   onclick="CBCT.toggleStruct('bladder')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Bladder</div>
           <div class="cb-dd-row on" id="cbCM_rectum"    onclick="CBCT.toggleStruct('rectum')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Rectum</div>
@@ -657,8 +655,6 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="cl-row" id="cbLG_ptv"><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
         <div class="cl-row" id="cbLG_gtv" style="display:none"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
         <div class="cl-row" id="cbLG_brain" style="display:none"><span class="cl-sw" style="background:#aaddff;color:#aaddff"></span>Brain</div>
-        <div class="cl-row" id="cbLG_brainstem" style="display:none"><span class="cl-sw" style="background:#9a8cff;color:#9a8cff"></span>Brainstem</div>
-        <div class="cl-row" id="cbLG_cochlea" style="display:none"><span class="cl-sw" style="background:#00e5b4;color:#00e5b4"></span>Cochlea</div>
         <div class="cl-row" id="cbLG_prostate"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>Prostate</div>
         <div class="cl-row" id="cbLG_bladder"><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Bladder</div>
         <div class="cl-row" id="cbLG_rectum"><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Rectum</div>
@@ -3595,11 +3591,9 @@ const CBCT=(function(){
     {key:'ptv',     color:'#ff3b4e', lw:2.3},
   ];
   CB_STRUCTS.forEach(S=>S.visible=true);
-  const BRAIN_STRUCTS=[                               // vestibular schwannoma (IAC) SRS: brain/body + brainstem & cochlea OARs + GTV/PTV
+  const BRAIN_STRUCTS=[                               // vestibular schwannoma (IAC) SRS: brain/body + GTV/PTV
     {key:'body',     color:'#36e06a', lw:1.3},
     {key:'brain',    color:'#aaddff', lw:1.4},
-    {key:'brainstem',color:'#9a8cff', lw:1.7},       // OAR (dose-limiting; abuts the VS postero-medially)
-    {key:'cochlea',  color:'#00e5b4', lw:2.0},        // OAR (hearing preservation; IAC fundus, ~2.4mm dot)
     {key:'gtv',      color:'#e8a13a', lw:2.0},
     {key:'ptv',      color:'#ff3b4e', lw:2.3},
   ];
@@ -3942,14 +3936,14 @@ const CBCT=(function(){
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
     show('cbLG_gtv',brain||lung);
-    show('cbLG_brain',brain);show('cbLG_brainstem',brain);show('cbLG_cochlea',brain);
+    show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
     show('cbLG_rectum',pelvis);show('cbLG_sv',pelvis);show('cbLG_fidctv',prostate);
     show('cbLG_lung',breast||spine||lung);show('cbLG_heart',breast);show('cbLG_cavity',breast);show('cbLG_ctv',breast);show('cbLG_clipmargin',breast);show('cbLG_clips',breast);
     show('cbLG_vertebra',spine);show('cbLG_cord',spine);show('cbLG_esophagus',spine);show('cbLG_aorta',spine);
     show('cbLG_body',true);
     // per-structure dropdown items
-    show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);show('cbCM_brainstem',brain);show('cbCM_cochlea',brain);
+    show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
     show('cbCM_lung',breast||spine||lung);show('cbCM_heart',breast);show('cbCM_cavity',breast);show('cbCM_ctv',breast);show('cbCM_clipmargin',breast);show('cbCM_clips',breast);
