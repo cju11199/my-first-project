@@ -891,6 +891,7 @@ html:not(.auth-pending) #authGate{display:none}
       <button class="step-btn active" data-tab="overview" onclick="guideTab('overview')">Overview</button>
       <button class="step-btn" data-tab="t2d" onclick="guideTab('t2d')">2D &middot; 2D</button>
       <button class="step-btn" data-tab="cbct" onclick="guideTab('cbct')">CBCT</button>
+      <button class="step-btn" data-tab="dibh" onclick="guideTab('dibh')">DIBH</button>
       <button class="step-btn" data-tab="keys" onclick="guideTab('keys')">Keyboard</button>
     </div>
 
@@ -905,6 +906,7 @@ html:not(.auth-pending) #authGate{display:none}
           <li><span class="dot gold"></span><strong>Two workflows:</strong> 2D/2D uses an AP + Lateral pair; CBCT uses three planes.</li>
           <li><span class="dot grn"></span>Between the views, <strong>all six axes</strong> are covered &mdash; align every view.</li>
           <li><span class="dot grn"></span>Finish with <strong>Check Match</strong>; green numbers mean you're within tolerance.</li>
+          <li><span class="dot gold"></span>Clears, best times, <strong>XP &amp; levels</strong>, daily streaks and <strong>achievements</strong> are tracked in <strong>Your Progress</strong> (start screen) and saved to your account.</li>
         </ul>
       </section>
 
@@ -925,6 +927,8 @@ html:not(.auth-pending) #authGate{display:none}
           <li><span class="dot mov"></span>Each view has <strong>its own blend slider</strong> &mdash; fade cyan reference &harr; orange portal.</li>
           <li><span class="dot ref"></span>Tap <span class="kbd">Ctrl</span>+<span class="kbd">A</span> to flip the slider and <strong>flicker</strong> the two images so misalignment pops.</li>
           <li><span class="dot grn"></span><span class="kbd">C</span> Color Wash (aligned anatomy &rarr; white) &middot; <span class="kbd">S</span> Spyglass lens.</li>
+          <li><span class="dot gold"></span><strong>Prostate (kV fiducial)</strong> works differently &mdash; instead of overlaying a DRR you <strong>drag a 3&#8209;marker triad</strong> onto the gold seeds in both views: plain drag moves all three (translation), <span class="kbd">Ctrl</span>/<span class="kbd">&#8984;</span>+drag moves the nearest marker (adds rotation). Check Match reads out the recovered couch shift.</li>
+          <li><span class="dot grn"></span><strong>Breast&nbsp;L &middot; DIBH</strong> adds voice-coached breath-hold before the match &mdash; see the <strong>DIBH</strong> tab.</li>
         </ul>
         <div class="guide-hero sm"><svg viewBox="0 0 560 150" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono',monospace" role="img" aria-label="Blend slider fades reference to moving; Ctrl plus A flickers between them"><defs><linearGradient id="s4grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient><marker id="s4a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker><marker id="s4b" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker></defs><rect x="1" y="1" width="558" height="148" rx="12" fill="var(--panel)" stroke="var(--border)"/><text x="20" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">BLEND</text><text x="20" y="44" fill="var(--muted)" font-size="9">fade reference &#8596; moving</text><rect x="20" y="66" width="230" height="6" rx="3" fill="url(#s4grad)"/><text x="20" y="92" fill="var(--accent-hi)" font-size="8.5">REF</text><text x="232" y="92" fill="var(--accent2)" font-size="8.5">MOV</text><circle cx="135" cy="69" r="9" fill="#fff" stroke="rgba(8,11,16,.8)" stroke-width="2"/><line x1="300" y1="24" x2="300" y2="126" stroke="var(--border)" stroke-dasharray="3 6"/><text x="330" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">FLICKER</text><g transform="translate(330,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="43" cy="33" rx="22" ry="26" fill="none" stroke="var(--accent)" stroke-width="2"/></g><g transform="translate(440,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="49" cy="28" rx="22" ry="26" fill="none" stroke="var(--accent2)" stroke-width="2"/></g><path d="M420,60 a16,16 0 0 1 18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4a)"/><path d="M438,94 a16,16 0 0 1 -18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4b)"/><text x="428" y="132" text-anchor="middle" fill="var(--muted)" font-size="9">Ctrl+A swaps the two</text></svg></div>
       </section>
@@ -945,6 +949,26 @@ html:not(.auth-pending) #authGate{display:none}
           <li><span class="dot gold"></span>Each plane reveals 2 shifts + 1 rotation &mdash; <strong>Axial</strong> Lat+Vrt+Roll &middot; <strong>Coronal</strong> Lat+Lng+RTN &middot; <strong>Sagittal</strong> Vrt+Lng+Pitch.</li>
           <li><span class="dot ref"></span><strong>Scroll = browse slices</strong>; the one blend slider drives all three panes.</li>
           <li><span class="dot grn"></span><strong>Fusion Color:</strong> CT orange + CBCT blue &mdash; matched bone blends to a neutral grey; any offset shows split orange/blue edges.</li>
+        </ul>
+      </section>
+
+      <!-- DIBH -->
+      <section class="guide-panel" id="gp-dibh">
+        <p class="guide-lead">The <strong>Breast&nbsp;L &middot; DIBH</strong> case adds a step before matching: you <strong style="color:var(--accent-hi)">coach a deep-inspiration breath-hold</strong> by voice, and beam each field only while the patient holds inside the gating window.</p>
+        <div class="mini-flow">
+          <div class="mf-step"><span class="mf-n">1</span><div><strong>Hold to talk</strong><br><span class="mf-d">mic button or <span class="kbd">Space</span></span></div></div>
+          <div class="mf-arrow">&rarr;</div>
+          <div class="mf-step"><span class="mf-n">2</span><div><strong>Coach in-gate</strong><br><span class="mf-d">into the green band</span></div></div>
+          <div class="mf-arrow">&rarr;</div>
+          <div class="mf-step"><span class="mf-n">3</span><div><strong>Beam On</strong><br><span class="mf-d">capture each field</span></div></div>
+        </div>
+        <ul class="guide-list">
+          <li><span class="dot grn"></span><strong>Push-to-talk:</strong> hold the <strong>mic button</strong> or the <span class="kbd">Space</span> bar to speak a command, release to send. A hands-free toggle keeps the mic open continuously.</li>
+          <li><span class="dot gold"></span><strong>Coaching cues:</strong> &ldquo;breathe in&rdquo; (deep breath &amp; hold), &ldquo;hold&rdquo; (lock here), &ldquo;a little more / a little less&rdquo; (nudge into the gate), &ldquo;breathe normally&rdquo; (relax).</li>
+          <li><span class="dot ref"></span>The <strong>amplitude trace</strong> rides <strong>green in-gate</strong> / amber out. The patient's natural breath usually lands outside the window &mdash; your job is to coach them in.</li>
+          <li><span class="dot mov"></span><strong>Beam On</strong> (button or <span class="kbd">Enter</span>) only fires while in-gate <strong>and</strong> settled; it runs a short exposure the patient must hold through &mdash; a cough, drift, or relax interrupts it.</li>
+          <li><span class="dot grn"></span>Each of the two breast fields is captured at its own breath-hold; once both are in, the portal unlocks and you <strong>match as usual</strong>.</li>
+          <li><span class="dot red"></span>Needs a <strong>microphone</strong> (Chrome/Edge). No mic? On-screen coaching buttons appear as a fallback.</li>
         </ul>
       </section>
 
@@ -2892,7 +2916,7 @@ function guideTab(name){
   document.querySelectorAll('#guideModal .guide-tabs .step-btn').forEach(b=>{
     b.classList.toggle('active', b.dataset.tab===name);
   });
-  const map={overview:'gp-overview',t2d:'gp-t2d',cbct:'gp-cbct',keys:'gp-keys'};
+  const map={overview:'gp-overview',t2d:'gp-t2d',cbct:'gp-cbct',dibh:'gp-dibh',keys:'gp-keys'};
   document.querySelectorAll('#guideModal .guide-panel').forEach(p=>p.classList.remove('active'));
   const panel=document.getElementById(map[name]);
   if(panel)panel.classList.add('active');
