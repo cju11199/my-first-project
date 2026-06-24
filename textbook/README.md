@@ -5,27 +5,31 @@ areas. Built as the reading-material layer for the planned gated **Registry Revi
 (see `../REGISTRY_REVIEW_PLAN.md` and `../REGISTRY_REVIEW_SOURCES.md`).
 
 ## Files
-- `Registry_Review_RT_Exam_Study_Guide.pdf` — the rendered book (91 pp, ~26,000 words).
+- `Registry_Review_RT_Exam_Study_Guide.pdf` — the rendered book (~103 pp, ~28,000 words, 19 diagrams).
 - `front.md`, `chapters/ch1.md` … `chapters/ch8.md`, `back.md` — the editable source.
-- `figures/*.svg` — labeled diagrams (Chapter 3 physics + Chapter 7 dose-calculation illustrations).
-- `make_figures.py`, `make_figures_ch7.py` — generate the SVG diagrams.
+- `quickref.md` (Appendix A — formulas & key values), `glossary.md` (Appendix B — terms & abbreviations).
+- `figures/*.svg` — labeled diagrams (Chapters 3, 6, and 7).
+- `make_figures.py` (ch3), `make_figures_ch6.py` (ch6), `make_figures_ch7.py` (ch7) — generate the SVGs.
 - `style.css` — print stylesheet (cover, contents with page numbers, callout boxes, tables, figures).
-- `build.py` — assembles the Markdown and renders the PDF with WeasyPrint.
+- `build.py` — assembles the Markdown and renders the PDF with WeasyPrint (appends the appendices if present).
 
 ## Rebuild
 ```
 pip install markdown weasyprint pymupdf
 python3 make_figures.py        # Chapter 3 diagrams
+python3 make_figures_ch6.py    # Chapter 6 diagrams
 python3 make_figures_ch7.py    # Chapter 7 diagrams
 python3 build.py               # assemble + render the PDF
 ```
 
-Chapters 3 (Radiation Physics & Radiobiology) and 7 (Prescription & Dose Calculation) are
-expanded and illustrated, since physics and the dose-calc math are where students struggle most.
-Chapter 3 has ten diagrams (decay scheme, bremsstrahlung, photon interactions, dominance map,
-inverse-square, attenuation/HVL, depth dose, cell-survival, oxygen effect, deterministic vs
-stochastic). Chapter 7 has seven (SSD vs SAD geometry, equivalent square, MU-equation anatomy,
-wedge isodose tilt, field-junction gap, electron depth dose, dose-volume histogram).
+Chapters 3 (Radiation Physics & Radiobiology) and 7 (Prescription & Dose Calculation) are the most
+expanded/illustrated, since physics and the dose-calc math are where students struggle most.
+Chapter 3 has ten diagrams; Chapter 7 has seven; Chapter 6 (Treatment Volume Localization) has two
+(nested ICRU target volumes; image-match → 6DOF couch correction).
+
+**In-text citations:** key facts in each chapter carry a bracketed `[n]` that maps to a single,
+continuously numbered reference list at the end of the chapter (free clickable sources first, then
+"for deeper reading"). The build was checked so every `[n]` resolves to a real list entry.
 
 ## Notes
 - Accuracy guardrails from the plan are applied: US NRC dose limits (not ICRP), inverse-square as

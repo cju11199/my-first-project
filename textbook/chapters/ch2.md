@@ -21,7 +21,7 @@ Risk factors fall into a few broad groups:
 
 - **Lifestyle:** Tobacco is the single largest preventable cause of cancer, linked to lung, head and neck, bladder, and many other sites. Alcohol (especially combined with tobacco), obesity, poor diet, and physical inactivity also raise risk. Ultraviolet light from the sun drives skin cancers.
 - **Occupational and environmental:** Asbestos (mesothelioma and lung), radon gas, benzene, and certain industrial chemicals. Ionizing radiation exposure itself is a risk factor — which is exactly why we treat radiation with such respect.
-- **Infectious agents:** Some viruses cause cancer. The big three to memorize are **HPV** (human papillomavirus), the leading cause of cervical and many oropharyngeal — back of the throat — cancers; **HBV and HCV** (hepatitis B and C viruses), which drive liver cancer; plus *H. pylori* bacteria (stomach) and Epstein-Barr virus (certain lymphomas and nasopharyngeal cancer).
+- **Infectious agents:** Some viruses cause cancer. The big three to memorize are **HPV** (human papillomavirus), the leading cause of cervical and many oropharyngeal — back of the throat — cancers; **HBV and HCV** (hepatitis B and C viruses), which drive liver cancer; plus *H. pylori* bacteria (stomach) and Epstein-Barr virus (certain lymphomas and nasopharyngeal cancer) [1].
 
 > **Key Point:** HPV-positive oropharyngeal cancers generally respond better to treatment and carry a more favorable prognosis than HPV-negative ones. That single status can change the whole plan.
 
@@ -31,7 +31,7 @@ In the United States, the cancers you'll see most often are **breast, lung, pros
 
 ## Why TNM Staging Matters
 
-**Staging** describes how far a cancer has spread. The international standard is the **TNM system**, maintained in the AJCC Cancer Staging Manual [2]:
+**Staging** describes how far a cancer has spread. The international standard is the **TNM system**, maintained in the AJCC Cancer Staging Manual [5]:
 
 | Letter | Stands for | Asks |
 |--------|------------|------|
@@ -41,7 +41,7 @@ In the United States, the cancers you'll see most often are **breast, lung, pros
 
 These combine into an overall **stage I through IV**, where higher means more advanced. Think of TNM as a shared language: a "T2 N1 M0" tumor means the same thing in New York as it does in Tokyo. Staging drives the **intent** of treatment (cure versus comfort), the dose, and which fields are treated.
 
-> **Key Point:** Staging is determined *before* treatment and does not change even if the tumor shrinks. A restaged tumor gets a new prefix (like "yp" for post-therapy pathologic stage), not a rewritten original stage.
+> **Key Point:** Staging is determined *before* treatment and does not change even if the tumor shrinks. A restaged tumor gets a new prefix (like "yp" for post-therapy pathologic stage), not a rewritten original stage [5].
 
 ## Reviewing the Medical History
 
@@ -86,7 +86,7 @@ Different scans answer different questions:
 | **MRI** | Soft-tissue detail | Defining tumor borders in brain, prostate, and other soft-tissue sites |
 | **PET** | Metabolic activity | Staging and finding active disease, often fused with CT |
 
-**CT (computed tomography)** is essential because dose calculation depends on how dense each tissue is to the beam, and CT numbers translate directly into that information. **MRI (magnetic resonance imaging)** shows soft tissue beautifully but does not provide electron density, so it's usually *fused* onto the planning CT. **PET (positron emission tomography)** highlights metabolically active tissue, useful for staging and target definition.
+**CT (computed tomography)** is essential because dose calculation depends on how dense each tissue is to the beam, and CT numbers translate directly into that information. **MRI (magnetic resonance imaging)** shows soft tissue beautifully but does not provide electron density, so it's usually *fused* onto the planning CT. **PET (positron emission tomography)** highlights metabolically active tissue, useful for staging and target definition [3].
 
 **Simulation** is the planning session where the patient's position and reference marks are captured. **3D simulation** captures a single static CT; **4D simulation** adds the time dimension, recording how the tumor moves with breathing — crucial for lung and upper-abdominal targets.
 
@@ -103,7 +103,7 @@ You don't diagnose from labs, but you should recognize values that affect treatm
 
 ## The Radiation Prescription
 
-The **prescription** is the physician's signed order for treatment. A complete prescription must contain:
+The **prescription** is the physician's signed order for treatment. A complete prescription must contain [6]:
 
 - **Total dose** and **dose per fraction** (a *fraction* is one daily treatment), measured in **gray (Gy)**.
 - **Fractionation** — the number of treatments and the schedule.
@@ -112,7 +112,7 @@ The **prescription** is the physician's signed order for treatment. A complete p
 - **Organ-at-risk (OAR) constraints** — dose limits for nearby healthy structures.
 - **Physician authorization** — a dated signature. Without it, treatment cannot proceed.
 
-Dose and fractionation vary widely by site and protocol. A commonly used breast regimen runs in the neighborhood of 40–50 Gy over several weeks, while a single 8 Gy fraction is commonly used for painful bone metastases. Always follow the **prescribed** values and current clinical guidelines such as NCCN [3]; never treat from memory of "typical" numbers.
+Dose and fractionation vary widely by site and protocol. A commonly used breast regimen runs in the neighborhood of 40–50 Gy over several weeks, while a single 8 Gy fraction is commonly used for painful bone metastases. Always follow the **prescribed** values and current clinical guidelines; never treat from memory of "typical" numbers [1].
 
 > **Key Point:** No prescription, no treatment. An unsigned or incomplete prescription is a hard stop.
 
@@ -133,7 +133,7 @@ This record lets the next therapist, the physicist, and the physician see exactl
 
 Before treatment begins, the planned **monitor units** are checked by a second, independent method — either separate software or a hand calculation — to confirm the computer's plan is reasonable.
 
-The accepted yardstick comes from ICRU recommendations: the delivered dose should agree with the prescribed dose to within about **±5%**, with **3% or better preferred** [1][6]. If your independent check disagrees with the treatment-planning system by more than the institution's tolerance (often a few percent), you investigate before treating — you never simply override it.
+The accepted yardstick comes from ICRU recommendations: the delivered dose should agree with the prescribed dose to within about **±5%**, with **3% or better preferred** [3, 4]. If your independent check disagrees with the treatment-planning system by more than the institution's tolerance (often a few percent), you investigate before treating — you never simply override it.
 
 > **Key Point:** The independent MU check exists to catch a planning error *before* it reaches the patient. A disagreement is a question to answer, not a number to ignore.
 
@@ -147,7 +147,7 @@ The **physics chart check** is a formal review by a medical physicist — verify
 
 When something goes wrong — or *almost* goes wrong — it gets reported. An **incident** is an error that reached the patient; a **near-miss** is one caught before it did. Reporting both, without blame, lets departments fix the underlying process so the same error can't happen twice.
 
-A culture that punishes honest reporting drives errors into hiding. The ASRT Practice Standards [4] frame this as a professional duty: report promptly, document factually, and focus on system improvement.
+A culture that punishes honest reporting drives errors into hiding. The ASRT Practice Standards [2] frame this as a professional duty: report promptly, document factually, and focus on system improvement.
 
 > **Common mix-up:** A near-miss isn't a non-event to shrug off. It's a free warning — the most valuable kind of report, because no one was harmed yet.
 
@@ -155,7 +155,7 @@ A culture that punishes honest reporting drives errors into hiding. The ASRT Pra
 
 You see the patient more than anyone else on the team — often every weekday for weeks. That makes you the first to notice a worsening skin reaction, new pain, weight loss, confusion, or emotional distress. The patient will tell *you* things they never mention to the physician.
 
-**Communicating critical findings** is part of the job. A sudden new symptom, a skipped fraction, a setup that won't reproduce, or a lab value flagged critical all need to reach the right team member quickly and be documented. Closing that loop — speaking up and writing it down — is how the chain of safety holds.
+**Communicating critical findings** is part of the job. A sudden new symptom, a skipped fraction, a setup that won't reproduce, or a lab value flagged critical all need to reach the right team member quickly and be documented. Closing that loop — speaking up and writing it down — is how the chain of safety holds [2].
 
 > **Key Point:** You are not just running the machine. You are the team's daily eyes and ears, and your observations are part of the medical record.
 

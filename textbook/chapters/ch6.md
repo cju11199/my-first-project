@@ -17,7 +17,7 @@ Radiation only helps if it lands on the tumor and spares the healthy tissue arou
 
 **Simulation** is the planning appointment where we record the patient's anatomy and define the treatment position. Think of it as the architectural survey before a house is built. Nothing about the rest of the treatment course is repeatable unless this first scan is done carefully.
 
-In modern departments, simulation is done on a **CT simulator** — a CT (computed tomography) scanner with a flat couch top that matches the treatment couch, plus a set of **lasers** mounted on the room walls and ceiling. The single most important rule: **scan the patient in the treatment position.** If they will be treated lying on their back with arms over their head, that is exactly how they are scanned. The CT images become the 3D model the dosimetrist plans on, so the model must match reality.
+In modern departments, simulation is done on a **CT simulator** — a CT (computed tomography) scanner with a flat couch top that matches the treatment couch, plus a set of **lasers** mounted on the room walls and ceiling. The single most important rule: **scan the patient in the treatment position.** If they will be treated lying on their back with arms over their head, that is exactly how they are scanned. The CT images become the 3D model the dosimetrist plans on, so the model must match reality [1].
 
 ### Slice thickness and scan range
 
@@ -47,7 +47,7 @@ A standard CT scan is a **3D** image — a single frozen snapshot. That is fine 
 
 **4D-CT** solves this. It adds time as the fourth dimension. The scanner records the breathing pattern (with a belt or an external marker) while it images, then **sorts** the slices by **breathing phase** — full inhale, mid-breath, full exhale, and stages in between. The result is a movie of the anatomy across the breathing cycle.
 
-Why we care: 4D-CT shows the full range a tumor travels during breathing. That range is exactly what we need to build the **internal margin** (the ITV, below) and to design **motion management** strategies like breath-hold or gating.
+Why we care: 4D-CT shows the full range a tumor travels during breathing. That range is exactly what we need to build the **internal margin** (the ITV, below) and to design **motion management** strategies like breath-hold or gating [1, 2].
 
 > **Common mix-up:** 3D-CT is not "lower quality" than 4D-CT — it is simply a still image. 4D-CT is specifically for moving targets and produces much more data, so it is reserved for sites where breathing motion matters.
 
@@ -81,7 +81,7 @@ Each treatment day, the therapist lines the tattoos up to the lasers, then appli
 
 ## 5. ICRU Target Volumes (Reports 50, 62, and 83)
 
-The **ICRU** (International Commission on Radiation Units and Measurements) defined a standard set of nested volumes so that everyone — physician, dosimetrist, therapist — means the same thing by the same words [1][2][3]. Picture a set of Russian nesting dolls: each volume contains the one before it and adds one specific kind of uncertainty.
+The **ICRU** (International Commission on Radiation Units and Measurements) defined a standard set of nested volumes so that everyone — physician, dosimetrist, therapist — means the same thing by the same words [3]. Picture a set of Russian nesting dolls: each volume contains the one before it and adds one specific kind of uncertainty.
 
 | Volume | Stands for | What it adds | Plain-language meaning |
 |---|---|---|---|
@@ -91,6 +91,10 @@ The **ICRU** (International Commission on Radiation Units and Measurements) defi
 | **PTV** | Planning Target Volume | Margin for **setup uncertainty** | CTV/ITV plus a buffer for day-to-day positioning error. The volume we actually aim the dose at. |
 | **OAR** | Organ At Risk | — | A healthy structure we must protect (cord, lung, rectum). |
 | **PRV** | Planning organ at Risk Volume | A safety margin **around the OAR** | The OAR plus a margin, so motion/setup error doesn't accidentally overdose it. |
+
+![Nested ICRU target volumes](figures/fig6-target-volumes.svg)
+
+*Figure 6.1 — The ICRU volumes nest like Russian dolls: GTV (visible tumor, no margin) sits inside CTV (+ microscopic spread), inside ITV (+ internal motion), inside PTV (+ setup uncertainty). An organ at risk gets its own PRV safety margin.*
 
 A few accuracy rules worth memorizing:
 
@@ -121,7 +125,7 @@ Every form of IGRT does the same fundamental thing:
 - The **reference image** is from the planning CT — where the anatomy is *supposed* to be. (In our trainer's color scheme, the reference is shown in **orange**.)
 - The **moving image** is taken today at the machine — where the anatomy *actually is* right now. (Shown in **blue**.)
 
-The therapist's job is to **slide and rotate the today image until it lines up with the plan image.** When you nudge the images on screen, you are really telling the system how far off the patient is. The system then converts that into a **couch correction** — physically moving the treatment couch so the patient's anatomy sits exactly where the plan expects. Match on screen, then the couch moves the patient to agree with the plan.
+The therapist's job is to **slide and rotate the today image until it lines up with the plan image.** When you nudge the images on screen, you are really telling the system how far off the patient is. The system then converts that into a **couch correction** — physically moving the treatment couch so the patient's anatomy sits exactly where the plan expects. Match on screen, then the couch moves the patient to agree with the plan [2].
 
 Think of it like aligning two printed transparencies on an overhead projector: you shift and twist the top sheet until its lines fall exactly on the bottom sheet's lines. The amount you shifted is your correction.
 
@@ -147,6 +151,10 @@ A couch can correct position in up to **six degrees of freedom (6DOF)** — six 
 
 A couch that only does the three translations is a **3DOF** (or 4DOF, adding yaw) couch. A full **6DOF couch** can also correct the three rotations, which matters most for high-precision cases like cranial SRS and spine SBRT, where a tiny tilt throws the target off.
 
+![Image match and the 6-DOF couch correction](figures/fig6-igrt-6dof.svg)
+
+*Figure 6.2 — Matching today's image (blue) to the planning image (orange) tells the system how far off the patient is; the couch then corrects in up to six degrees of freedom — three translations (Lat, Long, Vert) and three rotations (pitch, roll, yaw).*
+
 > **Key Point:** A couch shift is just the real-world result of your on-screen match. You align the today image to the plan image; the couch then moves the patient by exactly that amount so the beam hits the planned spot.
 
 Now the specific modalities.
@@ -168,7 +176,7 @@ The weakness: planar kV images have **poor soft-tissue contrast.** You can see b
 
 ### 6.3 kV Cone-Beam CT (CBCT)
 
-**CBCT (cone-beam CT)** is the big upgrade. Instead of two flat images, the kV source and detector rotate around the patient to acquire a **full 3D volumetric image** right on the treatment machine [6]. This unlocks two major advantages:
+**CBCT (cone-beam CT)** is the big upgrade. Instead of two flat images, the kV source and detector rotate around the patient to acquire a **full 3D volumetric image** right on the treatment machine [2]. This unlocks two major advantages:
 
 - **Soft-tissue matching** — because it is a true 3D image, you can match on the actual soft-tissue target and nearby organs (prostate, bladder, rectum), not just bone.
 - **Full 6DOF correction** — you view the patient in three planes (**axial, coronal, sagittal**) and can correct all three translations and all three rotations.
@@ -190,7 +198,7 @@ When the target is invisible on imaging or moves relative to bone, we implant ma
 
 1. **Setup** — position the patient by matching the skin surface, often reducing reliance on tattoos.
 2. **Intrafraction monitoring** — watch the surface *during* the beam and pause if the patient drifts.
-3. **DIBH (deep-inspiration breath-hold)** — coach the patient to hold a deep breath. In left-breast treatment, a deep breath pushes the heart away from the chest wall, sparing it. SGRT shows whether the patient is holding within the correct **gating window**, and the beam only turns on while they are in that window.
+3. **DIBH (deep-inspiration breath-hold)** — coach the patient to hold a deep breath. In left-breast treatment, a deep breath pushes the heart away from the chest wall, sparing it. SGRT shows whether the patient is holding within the correct **gating window**, and the beam only turns on while they are in that window [2].
 
 ## 7. Adaptive Radiotherapy and Re-Simulation
 

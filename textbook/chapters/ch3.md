@@ -21,7 +21,7 @@ Everything starts with the atom: a tiny, dense **nucleus** (protons and neutrons
 
 ### Radioactive sources and decay
 
-Some atoms are unstable and shed energy over time — they are **radioactive**. The classic therapy example is **Cobalt-60**. Cobalt-60 first emits a beta particle, turning into an excited nickel atom, which then releases its extra energy as **two gamma rays** of 1.17 MeV and 1.33 MeV. (An *MeV*, mega-electron-volt, is just a unit of energy.) Because the two gammas come out together, we usually treat the average therapy energy as about **1.25 MeV**.
+Some atoms are unstable and shed energy over time — they are **radioactive**. The classic therapy example is **Cobalt-60**. Cobalt-60 first emits a beta particle, turning into an excited nickel atom, which then releases its extra energy as **two gamma rays** of 1.17 MeV and 1.33 MeV. (An *MeV*, mega-electron-volt, is just a unit of energy.) Because the two gammas come out together, we usually treat the average therapy energy as about **1.25 MeV** [1].
 
 ![Cobalt-60 decay scheme](figures/fig-co60-decay.svg)
 
@@ -29,7 +29,7 @@ Some atoms are unstable and shed energy over time — they are **radioactive**. 
 
 Two terms describe a radioactive source:
 
-- **Half-life** — the time for half of the atoms to decay. Cobalt-60's half-life is **5.27 years**, which is why cobalt units must eventually have their source replaced: after about five years, the source is only half as "bright."
+- **Half-life** — the time for half of the atoms to decay. Cobalt-60's half-life is **5.27 years**, which is why cobalt units must eventually have their source replaced: after about five years, the source is only half as "bright" [1].
 - **Activity** — how many atoms decay per second. The modern unit is the **becquerel (Bq)** = 1 decay per second. The older unit is the **curie (Ci)**, where 1 Ci = 3.7 × 10¹⁰ Bq.
 
 > **Common mix-up:** Half-life is about *time* (how fast a source weakens); activity is about *rate* (how many decays happen each second). They are related but not the same number.
@@ -38,7 +38,7 @@ Two terms describe a radioactive source:
 
 Most modern treatment uses a **linear accelerator (linac)**, which makes x-rays on demand rather than relying on a radioactive source. It speeds electrons up to high energy and slams them into a metal **target** (usually tungsten). Two things happen:
 
-- **Bremsstrahlung** ("braking radiation," Figure 3.2). An electron passes close to a nucleus, gets deflected and slowed, and the energy it loses flies off as an x-ray. This is the **main** source of the treatment beam. The higher the electron energy, the more — and more penetrating — the x-rays.
+- **Bremsstrahlung** ("braking radiation," Figure 3.2). An electron passes close to a nucleus, gets deflected and slowed, and the energy it loses flies off as an x-ray. This is the **main** source of the treatment beam. The higher the electron energy, the more — and more penetrating — the x-rays [1].
 - **Characteristic x-rays.** An incoming electron knocks out an inner-shell electron; when an outer electron drops in to fill the gap, it releases an x-ray whose energy is *characteristic* of that element. These make up a small part of the beam.
 
 ![Bremsstrahlung production](figures/fig-bremsstrahlung.svg)
@@ -61,7 +61,7 @@ Radiation spreads out from its source like light from a bare bulb. As it travels
 
 We write it as:
 
-> **Key Point:** **D₂ = D₁ × (d₁/d₂)²**, where d₁ and d₂ are distances from the source.
+> **Key Point:** **D₂ = D₁ × (d₁/d₂)²**, where d₁ and d₂ are distances from the source [1].
 
 **Worked example.** A point source delivers 100 cGy at 80 cm. What is the dose rate at 100 cm?
 
@@ -78,7 +78,7 @@ Notice the dose did not drop by 20% just because the distance grew by 20% — it
 
 Distance is one way a beam weakens; passing through material is the other. As photons travel through tissue or shielding, some are absorbed or scattered away. This follows an **exponential** pattern: each equal thickness removes the *same fraction* of what is left, not the same amount.
 
-The handiest measure of this is the **half-value layer (HVL)** — the thickness of a material that cuts the beam intensity in half.
+The handiest measure of this is the **half-value layer (HVL)** — the thickness of a material that cuts the beam intensity in half [1].
 
 ![Exponential attenuation and HVL](figures/fig-attenuation-hvl.svg)
 
@@ -107,13 +107,13 @@ When a photon does interact, it does so in one of three main ways. Knowing them 
 
 - **Photoelectric effect.** The photon hands **all** of its energy to a tightly bound inner-shell electron, which is ejected; no scattered photon survives. It dominates at **low energies** and is very sensitive to atomic number — roughly proportional to **Z³**. That strong Z dependence is exactly why **bone (high Z, calcium) shows up bright on kV images**: bone soaks up low-energy photons far more than soft tissue does. This is the physics behind the crisp skeletal detail you use when you bone-match a setup image.
 - **Compton scatter.** The photon strikes a loosely bound **outer** electron, gives up part of its energy, and **scatters** off in a new direction while the electron recoils. Compton is almost independent of atomic number and **dominates across the megavoltage therapy range**. Two consequences follow: MV treatment beams deposit dose similarly in bone and soft tissue (so MV images have poor bone contrast), and scattered photons are the reason treatment rooms need **secondary** shielding (Chapter 4).
-- **Pair production.** Only above a **threshold of 1.02 MeV**, a photon passing near a nucleus can convert into an **electron–positron pair** (matter created from energy). It becomes significant only at high energies and high Z, so it plays a minor role at common therapy energies.
+- **Pair production.** Only above a **threshold of 1.02 MeV**, a photon passing near a nucleus can convert into an **electron–positron pair** (matter created from energy). It becomes significant only at high energies and high Z, so it plays a minor role at common therapy energies [1].
 
 ![Which interaction dominates](figures/fig-interaction-dominance.svg)
 
 *Figure 3.6 — Photoelectric rules at low energy/high Z, pair production at very high energy/high Z, and Compton owns the broad middle band — which is exactly where megavoltage therapy lives.*
 
-> **Key Point:** In the **megavoltage** beams you treat with every day, **Compton scatter dominates**. That single fact explains poor bone contrast on MV images, the need for scatter shielding, and the uniform way MV dose is deposited.
+> **Key Point:** In the **megavoltage** beams you treat with every day, **Compton scatter dominates**. That single fact explains poor bone contrast on MV images, the need for scatter shielding, and the uniform way MV dose is deposited [1, 5].
 
 ### Build-up and skin-sparing
 
@@ -123,7 +123,7 @@ Here is a payoff of all that interaction physics. When an MV photon interacts, i
 
 *Figure 3.7 — A megavoltage beam enters with a low surface (skin) dose, builds up to its maximum at d_max, then falls off with depth. Higher energy pushes d_max deeper and spares the skin more.*
 
-The depth of maximum dose, **d_max**, gets deeper as energy rises (for example, roughly 1.5 cm for a 6 MV beam and around 3 cm for an 18 MV beam). This is why higher energies are chosen for deeper tumors — they put their peak dose where the target is, while keeping the skin dose comfortable.
+The depth of maximum dose, **d_max**, gets deeper as energy rises (for example, roughly 1.5 cm for a 6 MV beam and around 3 cm for an 18 MV beam). This is why higher energies are chosen for deeper tumors — they put their peak dose where the target is, while keeping the skin dose comfortable [1].
 
 ## Part 4 · Measuring radiation: the units
 
@@ -135,17 +135,17 @@ Three units cover almost everything on the exam.
 | **Equivalent dose** | **Sievert (Sv)** | Absorbed dose adjusted for how harmful the radiation type is | rem (1 Sv = 100 rem) |
 | **Activity** | **Becquerel (Bq)** | How many atoms decay per second | curie (1 Ci = 3.7 × 10¹⁰ Bq) |
 
-A couple of anchors worth memorizing: **1 Gy = 100 rad** and **1 Sv = 100 rem**. For the x-rays, gammas, and electrons used in radiation therapy, the "harm factor" (radiation weighting factor) is 1, so **1 Gy of our beam equals 1 Sv**. The gray and sievert only diverge for high-LET radiations like alpha particles and neutrons.
+A couple of anchors worth memorizing: **1 Gy = 100 rad** and **1 Sv = 100 rem**. For the x-rays, gammas, and electrons used in radiation therapy, the "harm factor" (radiation weighting factor) is 1, so **1 Gy of our beam equals 1 Sv**. The gray and sievert only diverge for high-LET radiations like alpha particles and neutrons [3].
 
 > **Common mix-up:** **Gray** measures energy *deposited in tissue* — it is what the prescription is written in. **Sievert** measures *biological risk* and is the unit of dose limits and badge readings (Chapter 4). Same size for our beams, different jobs.
 
-A quick word on calibration: physicists make sure "what the machine says" equals "what the patient gets" using the **AAPM TG-51** protocol, which calibrates photon beams at a reference depth of **10 cm in water** and specifies an electron beam's quality by **R₅₀** (the depth where dose falls to 50%). You do not perform this, but you should recognize the names.
+A quick word on calibration: physicists make sure "what the machine says" equals "what the patient gets" using the **AAPM TG-51** protocol, which calibrates photon beams at a reference depth of **10 cm in water** and specifies an electron beam's quality by **R₅₀** (the depth where dose falls to 50%). You do not perform this, but you should recognize the names [2].
 
 ## Part 5 · Radiobiology: what radiation does to cells
 
 ### Direct and indirect action
 
-Radiation kills cells mainly by damaging **DNA**. It can do this two ways: **directly**, by breaking the DNA strand itself, or **indirectly**, by ionizing nearby water to create reactive **free radicals** that then attack the DNA. For the low-LET radiation we use most, the **indirect** path through water and free radicals causes the majority of the damage — which is also why **oxygen matters** so much (coming up).
+Radiation kills cells mainly by damaging **DNA**. It can do this two ways: **directly**, by breaking the DNA strand itself, or **indirectly**, by ionizing nearby water to create reactive **free radicals** that then attack the DNA. For the low-LET radiation we use most, the **indirect** path through water and free radicals causes the majority of the damage — which is also why **oxygen matters** so much (coming up) [6].
 
 ### The cell survival curve and the linear-quadratic model
 
@@ -157,12 +157,12 @@ If you irradiate a population of cells with rising doses and plot the fraction t
 
 We describe the curve with the **linear-quadratic (LQ) model**:
 
-> **Key Point:** **S = e^(−αD − βD²)** — survival falls off with a single-hit term (**α**, linear in dose) and a two-hit term (**β**, dose-squared).
+> **Key Point:** **S = e^(−αD − βD²)** — survival falls off with a single-hit term (**α**, linear in dose) and a two-hit term (**β**, dose-squared) [6].
 
 The ratio **α/β** captures how a tissue responds to the *size* of each dose:
 
 - **High α/β (≈ 10 Gy)** — tumors and early-responding tissues (skin, mucosa, gut). These care more about *total* dose.
-- **Low α/β (≈ 3 Gy)** — late-responding tissues (spinal cord, lung, kidney). These are very sensitive to *large* doses per fraction.
+- **Low α/β (≈ 3 Gy)** — late-responding tissues (spinal cord, lung, kidney). These are very sensitive to *large* doses per fraction [6].
 
 This difference is the whole reason we usually give many **small** fractions: small daily doses spare the low-α/β late-responding normal tissues while still controlling the tumor.
 
@@ -181,7 +181,7 @@ Because so much damage is done indirectly through free radicals, **oxygen** dram
 
 *Figure 3.9 — Oxygenated cells (left curve) die at lower doses than hypoxic cells (right curve). The ratio of doses needed for the same effect is the Oxygen Enhancement Ratio, about 2.5–3 for low-LET radiation.*
 
-We quantify this with the **Oxygen Enhancement Ratio (OER) ≈ 2.5–3** for x-rays. Tumors often contain hypoxic, resistant pockets — and this is one more reason fractionation helps: between fractions, tumors **reoxygenate**, turning resistant cells into sensitive ones.
+We quantify this with the **Oxygen Enhancement Ratio (OER) ≈ 2.5–3** for x-rays. Tumors often contain hypoxic, resistant pockets — and this is one more reason fractionation helps: between fractions, tumors **reoxygenate**, turning resistant cells into sensitive ones [6].
 
 ### The Four R's of radiobiology
 
@@ -196,7 +196,7 @@ These four processes explain *why fractionation works*:
 
 ### Fractionation math: BED and EQD2
 
-To compare different fraction schemes fairly, we use **Biologically Effective Dose (BED)** and the **Equivalent Dose in 2-Gy fractions (EQD2)**:
+To compare different fraction schemes fairly, we use **Biologically Effective Dose (BED)** and the **Equivalent Dose in 2-Gy fractions (EQD2)** [6]:
 
 ```
 BED  = n · d · (1 + d / (α/β))
@@ -234,7 +234,7 @@ Radiation's harmful effects come in two flavors, and the exam loves to test the 
 *Figure 3.10 — Deterministic effects have a threshold: below it, nothing; above it, severity grows with dose. Stochastic effects have no threshold: the probability rises with dose, but severity does not.*
 
 - **Deterministic (tissue reactions)** — there is a **threshold dose**, and above it the **severity** climbs with dose. Examples: skin erythema, cataracts, sterility, fibrosis. These are predictable and dose-dependent.
-- **Stochastic (chance) effects** — **no threshold**; the **probability** of the effect rises with dose, but the severity does not depend on dose. Examples: radiation-induced cancer and heritable effects. This is the basis of the "no safe dose" precaution behind ALARA.
+- **Stochastic (chance) effects** — **no threshold**; the **probability** of the effect rises with dose, but the severity does not depend on dose. Examples: radiation-induced cancer and heritable effects. This is the basis of the "no safe dose" precaution behind ALARA [4].
 
 > **Common mix-up:** Deterministic = *severity* rises with dose, above a threshold. Stochastic = *probability* rises with dose, no threshold. A cataract is deterministic; a radiation-induced cancer is stochastic.
 
@@ -244,7 +244,7 @@ Every organ has a dose it can tolerate before complications become likely. A com
 
 - **Spinal cord:** about **45–50 Gy** (we keep cord dose well under this to avoid myelopathy).
 - **Lung:** mean dose roughly **≤ 20 Gy**, or keep the volume getting ≥ 20 Gy (V20) under about 35%, to limit pneumonitis.
-- **Eye lens:** a threshold around **0.5 Gy** for cataract formation.
+- **Eye lens:** a threshold around **0.5 Gy** for cataract formation [6].
 
 These numbers are why the prescription and plan obey **organ-at-risk constraints**, and why the dose-volume histogram (Chapter 6) is checked so carefully.
 

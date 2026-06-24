@@ -20,7 +20,7 @@ Before we tour the body, let's build a mental toolkit. Almost every cancer is de
 
 **Grade** describes how abnormal the cells look. Well-differentiated (low-grade) cells still resemble the normal tissue and tend to behave less aggressively. Poorly differentiated (high-grade) cells look chaotic and tend to grow and spread faster. Think of grade as the tumor's "personality" and stage as its "location report."
 
-**Stage** describes how far the cancer has spread. The dominant system is the **AJCC TNM** system (American Joint Committee on Cancer), now in its 8th edition [1]:
+**Stage** describes how far the cancer has spread. The dominant system is the **AJCC TNM** system (American Joint Committee on Cancer), now in its 8th edition [5]:
 
 | Letter | Question it answers | General idea |
 |---|---|---|
@@ -36,7 +36,7 @@ These T, N, and M values are combined into an overall **stage group** (I–IV). 
 - **Lymphatic spread** — cells travel through lymph channels to regional nodes. This is why we often treat *nodal regions* that look clinically normal but are at risk. Each site drains to predictable node groups.
 - **Hematogenous spread** — cells enter the bloodstream and seed distant organs. Sarcomas famously do this to the lung; many carcinomas seed bone, liver, lung, and brain.
 
-Finally, a rule that holds for the entire chapter: **doses vary by protocol.** Every regimen below is *a commonly used example* drawn from NCCN guidelines and standard clinical references [2][3][4]. Institutions differ, trials evolve, and the prescribing physician owns the final number. Learn the *pattern* (why SRS is one big fraction, why palliation is short), not the digits.
+Finally, a rule that holds for the entire chapter: **doses vary by protocol.** Every regimen below is *a commonly used example* drawn from NCCN guidelines and standard clinical references [2, 3, 4]. Institutions differ, trials evolve, and the prescribing physician owns the final number. Learn the *pattern* (why SRS is one big fraction, why palliation is short), not the digits.
 
 > **Key Point:** When a dose surprises you, ask "what is the intent?" Cure (definitive) regimens are higher and longer; palliative regimens are lower and shorter; ablative stereotactic regimens are very high dose in very few fractions to small, well-targeted volumes.
 
@@ -54,7 +54,7 @@ Finally, a rule that holds for the entire chapter: **doses vary by protocol.** E
 
 **Commonly used regimens.**
 
-- *Glioblastoma:* a commonly used regimen is **60 Gy in 30 fractions** with concurrent and adjuvant **temozolomide** (an oral chemotherapy) [2][5]. The clinical target volume (CTV) typically covers the contrast-enhancing tumor and resection cavity **plus the surrounding FLAIR (edema) region** with a margin, because microscopic disease hides in that edema.
+- *Glioblastoma:* a commonly used regimen is **60 Gy in 30 fractions** with concurrent and adjuvant **temozolomide** (an oral chemotherapy) [2, 3]. The clinical target volume (CTV) typically covers the contrast-enhancing tumor and resection cavity **plus the surrounding FLAIR (edema) region** with a margin, because microscopic disease hides in that edema.
 - *Vestibular schwannoma:* often treated with **stereotactic radiosurgery (SRS)** — a single highly focused dose, e.g., **~12–13 Gy in one fraction** — to halt growth and preserve hearing [3].
 - *Brain metastases:* **SRS** for a limited number of lesions, versus **whole-brain radiation therapy (WBRT)** for diffuse disease, e.g., **30 Gy in 10 fractions** [2].
 
@@ -68,13 +68,13 @@ Finally, a rule that holds for the entire chapter: **doses vary by protocol.** E
 
 **Common histology.** The vast majority are **squamous cell carcinoma** of the mucosal lining.
 
-**Staging notes.** **HPV status changed staging.** HPV (human papillomavirus)-positive oropharyngeal SCC has a much better prognosis and gets its *own* staging table in AJCC 8th edition, separate from HPV-negative disease [1]. **Nasopharyngeal carcinoma** is strongly associated with **Epstein–Barr virus (EBV)**.
+**Staging notes.** **HPV status changed staging.** HPV (human papillomavirus)-positive oropharyngeal SCC has a much better prognosis and gets its *own* staging table in AJCC 8th edition, separate from HPV-negative disease [5]. **Nasopharyngeal carcinoma** is strongly associated with **Epstein–Barr virus (EBV)**.
 
 **Routes of spread.** Predominantly local and **lymphatic** to the cervical node levels, in patterns that depend on the primary site. This is why elective nodal irradiation is so common here.
 
 **Commonly used regimens.**
 
-- *Definitive SCC (e.g., oropharynx):* a commonly used regimen is **~70 Gy in 35 fractions** with concurrent **cisplatin** chemotherapy [2][3].
+- *Definitive SCC (e.g., oropharynx):* a commonly used regimen is **~70 Gy in 35 fractions** with concurrent **cisplatin** chemotherapy [2, 3].
 - *Nasopharynx:* treated with **IMRT** (intensity-modulated radiation therapy) to wrap dose around the skull base and spare salivary glands, with chemotherapy.
 - *Early glottic larynx (a small vocal-cord cancer):* a commonly used regimen is **~63–66 Gy** with a focus on **voice preservation** — the larynx is treated, surgery is avoided, and speech is spared.
 
@@ -108,13 +108,13 @@ Finally, a rule that holds for the entire chapter: **doses vary by protocol.** E
 
 **Common histology.** **Invasive ductal carcinoma** (now often called invasive carcinoma of no special type) is most common; invasive lobular is next.
 
-**Staging notes.** AJCC 8th edition added **biomarkers** (ER, PR, HER2) and grade to anatomic TNM, creating a "prognostic stage" [1]. **Inflammatory breast cancer** is **T4d** — a distinct, aggressive presentation with skin involvement.
+**Staging notes.** AJCC 8th edition added **biomarkers** (ER, PR, HER2) and grade to anatomic TNM, creating a "prognostic stage" [5]. **Inflammatory breast cancer** is **T4d** — a distinct, aggressive presentation with skin involvement.
 
 **Routes of spread.** Local, then lymphatic (axilla first), then hematogenous to bone, lung, liver, brain.
 
 **Commonly used regimens.**
 
-- *Whole-breast after lumpectomy:* a commonly used regimen is **50 Gy in 25 fractions**, or **hypofractionated 40–42.5 Gy in 15 fractions**, frequently with a **boost** to the tumor bed [2][3].
+- *Whole-breast after lumpectomy:* a commonly used regimen is **50 Gy in 25 fractions**, or **hypofractionated 40–42.5 Gy in 15 fractions**, frequently with a **boost** to the tumor bed [2, 3].
 - *Inflammatory or node-positive disease:* **post-mastectomy** radiation to the chest wall **and nodal regions**.
 - *Left-sided disease:* the heart sits in the field, so **deep-inspiration breath-hold (DIBH)** is commonly used — the patient holds a deep breath, the lung inflates, and the heart drops away from the chest wall, lowering cardiac dose.
 
@@ -155,7 +155,7 @@ All of the above are commonly used patterns reflected in NCCN guidance [2]. For 
 
 **Commonly used regimens.**
 
-- *Prostate, definitive:* a commonly used regimen is **~78–80 Gy** conventionally fractionated, or **hypofractionation/SBRT** in fewer, larger fractions [2][3]. **Gold fiducial markers** are commonly implanted so daily image guidance can localize the moving prostate, and **ADT** is added for higher-risk disease. Rectum and bladder are the key OARs.
+- *Prostate, definitive:* a commonly used regimen is **~78–80 Gy** conventionally fractionated, or **hypofractionation/SBRT** in fewer, larger fractions [2, 3]. **Gold fiducial markers** are commonly implanted so daily image guidance can localize the moving prostate, and **ADT** is added for higher-risk disease. Rectum and bladder are the key OARs.
 - *Bladder:* **tri-modality bladder preservation** — maximal transurethral resection, then concurrent chemoradiation — as an organ-sparing alternative to cystectomy.
 - *Renal cell carcinoma:* historically **relatively radioresistant** to conventional fractionation; **SBRT** is used for oligometastases (a few isolated metastatic spots) and select primaries.
 
@@ -171,7 +171,7 @@ All of the above are commonly used patterns reflected in NCCN guidance [2]. For 
 
 **Commonly used regimens.**
 
-- *Cervix:* a commonly used approach is **~45 Gy to the pelvis** with concurrent **cisplatin**, followed by **brachytherapy**, with dose prescribed to a historic reference called **Point A**; the combined external-beam-plus-brachytherapy total reaches roughly **80–85 Gy EQD2** [2][3]. (EQD2 is the "equivalent dose in 2-Gy fractions" — a way to compare regimens on a common scale.)
+- *Cervix:* a commonly used approach is **~45 Gy to the pelvis** with concurrent **cisplatin**, followed by **brachytherapy**, with dose prescribed to a historic reference called **Point A**; the combined external-beam-plus-brachytherapy total reaches roughly **80–85 Gy EQD2** [2, 3]. (EQD2 is the "equivalent dose in 2-Gy fractions" — a way to compare regimens on a common scale.)
 - *Endometrium:* **vaginal-cuff brachytherapy** after hysterectomy, **± pelvic external-beam RT** depending on risk.
 - *Ovarian:* radiation is now **mostly palliative**; systemic chemotherapy and surgery dominate care.
 
@@ -203,7 +203,7 @@ All of the above are commonly used patterns reflected in NCCN guidance [2]. For 
 **Commonly used regimens.**
 
 - *Neoadjuvant (preoperative):* a commonly used regimen is **~50 Gy**, then surgery.
-- *Adjuvant (postoperative):* a commonly used range is **~60–66 Gy** [2][3].
+- *Adjuvant (postoperative):* a commonly used range is **~60–66 Gy** [2, 3].
 
 Preop uses a smaller field and lower dose (the tumor defines the target); postop uses a higher dose over a larger surgical bed. Both are valid, with different wound-healing and late-effect trade-offs.
 
@@ -213,7 +213,7 @@ Preop uses a smaller field and lower dose (the tumor defines the target); postop
 
 ## Pediatric tumors
 
-**Guiding principle.** A child's tissues are still developing, so radiation late effects (growth, cognition, secondary cancers) weigh heavily. Pediatric radiation is **risk-adapted and de-escalated** — used selectively, at the lowest effective dose, often guided by cooperative-group protocols [3][6].
+**Guiding principle.** A child's tissues are still developing, so radiation late effects (growth, cognition, secondary cancers) weigh heavily. Pediatric radiation is **risk-adapted and de-escalated** — used selectively, at the lowest effective dose, often guided by cooperative-group protocols [3, 4].
 
 **Common tumors.**
 
@@ -240,7 +240,7 @@ Preop uses a smaller field and lower dose (the tumor defines the target); postop
 
 **Concept.** Tumor cells reach bone hematogenously — partly via **Batson's vertebral venous plexus**, a valveless network of spinal veins that lets cells bypass the lungs and seed the spine and pelvis directly. This route helps explain why prostate, breast, and lung cancers so often land in the spine.
 
-**Commonly used regimens.** For pain palliation, several schedules are commonly used and considered roughly equivalent for pain relief [2][7]:
+**Commonly used regimens.** For pain palliation, several schedules are commonly used and considered roughly equivalent for pain relief [2, 3]:
 
 | Schedule | Use case |
 |---|---|
@@ -280,12 +280,12 @@ Preop uses a smaller field and lower dose (the tumor defines the target); postop
 | Skin (BCC/SCC) | Definitive (electrons) | ~50–70 Gy |
 | Bone metastases | Palliation | 30 Gy / 10, 20 Gy / 5, or 8 Gy / 1 |
 
-*All regimens above are commonly used examples per NCCN and standard references [2][3]; actual prescriptions vary by protocol and physician.*
+*All regimens above are commonly used examples per NCCN and standard references [2, 3]; actual prescriptions vary by protocol and physician.*
 
 ## Check yourself
 
 **1. A patient with HPV-positive oropharyngeal SCC and one with HPV-negative disease have identical-looking tumors and nodes. Why might their stage groups differ?**
-*Because AJCC 8th edition gives HPV-positive oropharyngeal cancer its own staging table, reflecting its better prognosis [1]. The same anatomic findings map to a different — usually earlier — stage group when HPV-positive.*
+*Because AJCC 8th edition gives HPV-positive oropharyngeal cancer its own staging table, reflecting its better prognosis [5]. The same anatomic findings map to a different — usually earlier — stage group when HPV-positive.*
 
 **2. Why is deep-inspiration breath-hold used so often for left-sided breast cancer but rarely for right-sided?**
 *The heart sits on the left. Holding a deep breath inflates the lung and pushes the heart away from the chest wall, lowering cardiac dose. The right breast has no such adjacent critical structure, so the technique offers little benefit there.*
@@ -300,7 +300,7 @@ Preop uses a smaller field and lower dose (the tumor defines the target); postop
 *Lymphoma is highly radiosensitive, so lower doses control it effectively, especially after chemotherapy. The dose reflects the biology of the tumor, not undertreatment.*
 
 **6. A frail patient with a single painful spine metastasis lives two hours away. What palliative schedule fits, and why?**
-*A single 8 Gy fraction is a strong choice — it provides pain relief comparable to longer schedules for many patients while requiring just one visit, which suits limited performance status and travel difficulty [7]. Spine involvement is common partly because tumor cells reach it via Batson's vertebral venous plexus.*
+*A single 8 Gy fraction is a strong choice — it provides pain relief comparable to longer schedules for many patients while requiring just one visit, which suits limited performance status and travel difficulty [2]. Spine involvement is common partly because tumor cells reach it via Batson's vertebral venous plexus.*
 
 ## Chapter references
 

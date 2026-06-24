@@ -75,7 +75,7 @@ A child cannot legally consent. A **surrogate decision-maker** — usually a par
 
 ### Geriatric patients
 
-Older adults may face **frailty** — reduced physiologic reserve that raises the risk of complications. Screening tools flag who needs extra support. Common ones include the **G8**, the **VES-13** (Vulnerable Elders Survey), and the **Edmonton Frail Scale**. Also assess **fall and mobility risk** before any transfer: gait, balance, vision, and medications all contribute.
+Older adults may face **frailty** — reduced physiologic reserve that raises the risk of complications. Screening tools flag who needs extra support. Common ones include the **G8**, the **VES-13** (Vulnerable Elders Survey), and the **Edmonton Frail Scale**. Also assess **fall and mobility risk** before any transfer: gait, balance, vision, and medications all contribute [7].
 
 | Population | Watch for | Helpful resource |
 |---|---|---|
@@ -154,7 +154,7 @@ You must recognize emergencies and act while help is summoned.
 - **Chest pain:** treat as cardiac until proven otherwise — stop, call for help, keep the patient still and calm, get the emergency team.
 - **Contrast reactions:** see below.
 
-Maintain current **BLS** (Basic Life Support — CPR and AED skills) certification; many departments also expect familiarity with **ACLS** (Advanced Cardiac Life Support) team roles [7]. Know where your crash cart, AED, oxygen, and emergency call button are *before* you need them.
+Maintain current **BLS** (Basic Life Support — CPR and AED skills) certification; many departments also expect familiarity with **ACLS** (Advanced Cardiac Life Support) team roles [5]. Know where your crash cart, AED, oxygen, and emergency call button are *before* you need them.
 
 ## Contrast media
 
@@ -170,7 +170,7 @@ Reactions range in severity:
 | Moderate | Widespread hives, vomiting, mild wheezing, tachycardia | Notify physician, treat symptoms, monitor closely |
 | Severe | Laryngeal edema, severe bronchospasm, anaphylaxis, cardiovascular collapse | Emergency: call for help, support airway/circulation, epinephrine per physician |
 
-**Pre-screening** before iodinated contrast checks: **renal function** (kidney function, often via eGFR/creatinine, because the kidneys clear the agent), prior **allergy** or contrast reaction, and **pregnancy** status. A documented prior severe reaction is a major red flag the physician must address before any further contrast.
+**Pre-screening** before iodinated contrast checks: **renal function** (kidney function, often via eGFR/creatinine, because the kidneys clear the agent), prior **allergy** or contrast reaction, and **pregnancy** status. A documented prior severe reaction is a major red flag the physician must address before any further contrast [7].
 
 > **Common mix-up:** *A shellfish allergy does not specifically predict iodinated-contrast reaction.* The old "iodine allergy" idea is outdated; what matters most is a prior reaction to contrast itself and a general atopic/allergic history.
 

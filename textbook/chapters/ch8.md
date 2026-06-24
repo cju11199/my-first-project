@@ -38,9 +38,9 @@ IMRT is delivered two ways:
 
 ### Stereotactic radiosurgery and SBRT
 
-**Stereotactic** means using precise coordinates to pinpoint a target. **Stereotactic radiosurgery (SRS)** treats targets in the brain; **stereotactic body radiation therapy (SBRT)**, also called SABR, treats targets in the body (lung, liver, spine).
+**Stereotactic** means using precise coordinates to pinpoint a target. **Stereotactic radiosurgery (SRS)** treats targets in the brain; **stereotactic body radiation therapy (SBRT)**, also called SABR, treats targets in the body (lung, liver, spine) [4].
 
-These techniques share a recipe: a **few fractions** (often 1–5 treatments) delivering a **high dose per fraction**, aimed with **rigid immobilization** and image guidance for roughly **1–2 mm precision** [1]. Because the dose per session is so large, there is little room for error — the margins are tight and the falloff outside the target must be steep. AAPM Task Group 101 lays out the technical and safety requirements for SBRT [1].
+These techniques share a recipe: a **few fractions** (often 1–5 treatments) delivering a **high dose per fraction**, aimed with **rigid immobilization** and image guidance for roughly **1–2 mm precision** [1]. Because the dose per session is so large, there is little room for error — the margins are tight and the falloff outside the target must be steep. AAPM Task Group 101 lays out the technical and safety requirements for SBRT [2].
 
 > **Key Point:** A *fraction* is a single treatment session. Conventional courses use many small fractions (about 1.8–2 Gy each, sometimes 30–40 of them). SBRT/SRS flips this: very few fractions, each one large. More dose per visit means immobilization and imaging must be near-perfect.
 
@@ -48,7 +48,7 @@ These techniques share a recipe: a **few fractions** (often 1–5 treatments) de
 
 **TBI** irradiates the whole body, most often as part of **conditioning** before a bone-marrow or stem-cell transplant. The goal is to wipe out diseased marrow and suppress the immune system so the donor cells can engraft. A **commonly used** scheme is about **12 Gy in roughly 6 fractions** (for example, 2 Gy twice daily over three days), though protocols vary widely.
 
-Because the lungs are sensitive to radiation, **lung shielding** (blocks that reduce dose to the lungs) is a standard part of many TBI techniques to lower the risk of radiation pneumonitis. The ILROG (International Lymphoma Radiation Oncology Group) guidelines describe contemporary TBI practice [6].
+Because the lungs are sensitive to radiation, **lung shielding** (blocks that reduce dose to the lungs) is a standard part of many TBI techniques to lower the risk of radiation pneumonitis [1]. The ILROG (International Lymphoma Radiation Oncology Group) guidelines describe contemporary TBI practice.
 
 ### Electron beams
 
@@ -71,7 +71,7 @@ A defining feature of electrons is that the dose is **normalized at d-max**, the
 
 When a proton beam enters tissue, it deposits relatively little dose along the way. Then, at a depth determined by its energy, it dumps most of its energy in a sharp spike — the Bragg peak — and stops. Almost no dose continues past that point. Picture a car that coasts gently down a street and then slams on the brakes at one exact house, with nothing happening beyond it.
 
-A single Bragg peak is very narrow, so to cover a whole tumor the team stacks many peaks of different energies side by side. The result is a **spread-out Bragg peak (SOBP)** — a plateau of uniform dose across the target depth, with **minimal exit dose** beyond it. This sparing of tissue *behind* the tumor is why protons are attractive for children and for tumors near critical structures.
+A single Bragg peak is very narrow, so to cover a whole tumor the team stacks many peaks of different energies side by side. The result is a **spread-out Bragg peak (SOBP)** — a plateau of uniform dose across the target depth, with **minimal exit dose** beyond it [1]. This sparing of tissue *behind* the tumor is why protons are attractive for children and for tumors near critical structures.
 
 > **Key Point:** The headline benefit of protons is not a higher tumor dose — it is the near-absence of exit dose past the target, thanks to the Bragg peak.
 
@@ -79,7 +79,7 @@ A single Bragg peak is very narrow, so to cover a whole tumor the team stacks ma
 
 **Brachytherapy** (from the Greek *brachy*, "short") places the radioactive source very close to — or inside — the tumor. Because dose falls off steeply with distance, brachytherapy delivers a high dose to the target while sparing nearby tissue.
 
-Sources are classed by how fast they deliver dose: **dose rate**.
+Sources are classed by how fast they deliver dose: **dose rate** [1].
 
 | Type | Dose rate | Isotope | Typical use |
 |---|---|---|---|
@@ -104,7 +104,7 @@ Gynecologic brachytherapy historically reports dose at two anatomic landmarks:
 - **Point A:** roughly 2 cm up from the cervical os and 2 cm lateral to the tandem — near where the uterine artery crosses the ureter. It approximates the dose to the **target/paracervical tissue**.
 - **Point B:** 3 cm lateral to Point A (5 cm from midline). It approximates dose at the **pelvic sidewall**, near the lymph nodes.
 
-**ICRU Report 38** standardized this older point-and-volume reporting for intracavitary GYN brachytherapy, and **ICRU Report 89** updated it for modern image-based (CT/MRI) planning that reports dose to target volumes and organs at risk rather than relying on points alone [4][5].
+**ICRU Report 38** standardized this older point-and-volume reporting for intracavitary GYN brachytherapy, and **ICRU Report 89** updated it for modern image-based (CT/MRI) planning that reports dose to target volumes and organs at risk rather than relying on points alone [5].
 
 ## Image guidance and verification at delivery
 
@@ -131,7 +131,7 @@ A linear accelerator builds its beam in stages:
 1. An **electron gun** injects electrons into an **accelerating waveguide**.
 2. Microwaves (from a magnetron or klystron) accelerate the electrons to nearly the speed of light down the waveguide.
 3. For **electron** treatments, that pencil of electrons is spread out (by scattering foils or scanning) and used directly.
-4. For **photon (x-ray)** treatments, the electrons slam into a high-density **target**, producing x-rays by *bremsstrahlung* ("braking radiation").
+4. For **photon (x-ray)** treatments, the electrons slam into a high-density **target**, producing x-rays by *bremsstrahlung* ("braking radiation") [1].
 5. A **flattening filter** (in conventional modes) evens out the beam; the **primary and secondary collimators** plus the **MLC** shape it; and **monitor chambers** measure the output in **monitor units (MU)**.
 
 ### Beam modifiers
@@ -185,7 +185,7 @@ Good supportive care keeps patients on schedule:
 
 ### Grading toxicity with CTCAE v5
 
-Clinicians grade side effects with the **Common Terminology Criteria for Adverse Events, version 5 (CTCAE v5)** [7]. It assigns each toxicity a severity grade so the whole team speaks the same language:
+Clinicians grade side effects with the **Common Terminology Criteria for Adverse Events, version 5 (CTCAE v5)** [3]. It assigns each toxicity a severity grade so the whole team speaks the same language:
 
 | Grade | General meaning |
 |---|---|

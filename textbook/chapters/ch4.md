@@ -23,7 +23,7 @@ Think of ALARA like driving under the speed limit. The limit is the maximum, not
 
 ALARA rests on three practical tools you can adjust at the bedside or in the control area: **time, distance, and shielding**.
 
-> **Key Point:** ALARA is not a dose *limit* — it is a *mindset*. Limits are legal ceilings; ALARA pushes you to stay far below them whenever practical.
+> **Key Point:** ALARA is not a dose *limit* — it is a *mindset*. Limits are legal ceilings; ALARA pushes you to stay far below them whenever practical [3].
 
 ### Tool 1 — Time
 
@@ -39,7 +39,7 @@ In formula form:
 
 **I₁ / I₂ = (d₂)² / (d₁)²**
 
-where I is intensity and d is distance. The practical takeaway: if you **double** your distance from a source, the intensity drops to **one-quarter** (because 2² = 4). Triple the distance, and intensity drops to one-ninth (3² = 9).
+where I is intensity and d is distance. The practical takeaway: if you **double** your distance from a source, the intensity drops to **one-quarter** (because 2² = 4). Triple the distance, and intensity drops to one-ninth (3² = 9) [4].
 
 Picture radiation spreading out from a source like paint sprayed from a nozzle. Up close, the paint is dense on a small patch. As the spray fans out, the same amount of paint covers a much larger area, so any one spot gets far less. Stepping back a single extra step buys you outsized protection.
 
@@ -49,7 +49,7 @@ Picture radiation spreading out from a source like paint sprayed from a nozzle. 
 
 Shielding places absorbing material between you and the source. **High-density, high-atomic-number materials** like **lead** stop photons most efficiently per unit thickness, while **concrete** is used in bulk for walls because it is cheap and structural.
 
-The amount of shielding is often described in **half-value layers (HVL)** — the thickness of material needed to cut the beam intensity in half. Stack enough half-value layers and the beam is reduced by a large, predictable factor.
+The amount of shielding is often described in **half-value layers (HVL)** — the thickness of material needed to cut the beam intensity in half. Stack enough half-value layers and the beam is reduced by a large, predictable factor [4].
 
 In therapy, shielding shows up as the lead in the linac head, the thick concrete-and-lead vault walls, and the lead-lined door — not as a lead apron. (Lead aprons help in low-energy diagnostic imaging but are useless against the high-energy beams of a linac, which would pass right through them.)
 
@@ -85,7 +85,7 @@ A few clarifications:
 
 ## Facility Shielding (NCRP Report 151)
 
-Treatment rooms are housed in heavily shielded vaults. The design rules come from **NCRP Report 151** [2]. Shielding barriers fall into two types based on what radiation they intercept.
+Treatment rooms are housed in heavily shielded vaults. The design rules come from **NCRP Report 151** [5]. Shielding barriers fall into two types based on what radiation they intercept.
 
 ### Primary vs. Secondary Barriers
 
@@ -137,7 +137,7 @@ Dosimeters are typically **read monthly** by an outside service that reports eac
 
 ## Linear Accelerator Components
 
-A medical **linear accelerator (linac)** speeds up electrons to high energy and either uses them directly or converts them into a photon (x-ray) beam. Knowing the path the beam takes through the head helps you understand both treatment and QA.
+A medical **linear accelerator (linac)** speeds up electrons to high energy and either uses them directly or converts them into a photon (x-ray) beam. Knowing the path the beam takes through the head helps you understand both treatment and QA [4].
 
 Following the beam from start to patient:
 
@@ -170,7 +170,7 @@ Key interlocks include:
 
 ## Linac Quality Assurance (AAPM TG-142)
 
-**Quality assurance (QA)** is the routine testing that confirms the machine performs within tolerance. The standard reference for linac QA is **AAPM Task Group 142 (TG-142)** [3]. Tests are grouped by how often they're done.
+**Quality assurance (QA)** is the routine testing that confirms the machine performs within tolerance. The standard reference for linac QA is **AAPM Task Group 142 (TG-142)** [2]. Tests are grouped by how often they're done.
 
 ### Daily QA (done every treatment day)
 
@@ -193,7 +193,7 @@ The most thorough review — absolute dose calibration, full mechanical and dosi
 
 ## Imaging-System QA (AAPM TG-179)
 
-Modern treatment relies on **image-guided radiation therapy (IGRT)** — using on-board imaging like **kV** (kilovoltage) planar images or **CBCT** (cone-beam CT) to verify the patient's position right before treatment. **AAPM TG-179** covers QA for these systems [4].
+Modern treatment relies on **image-guided radiation therapy (IGRT)** — using on-board imaging like **kV** (kilovoltage) planar images or **CBCT** (cone-beam CT) to verify the patient's position right before treatment. **AAPM TG-179** covers QA for these systems [2].
 
 The single most important check: the **imaging isocenter must agree with the treatment isocenter within about 1 mm**. If the picture you align to is even slightly offset from where the beam actually goes, you would shift the patient to the wrong place — a precise image in the wrong spot is worse than no image.
 
@@ -208,7 +208,7 @@ Image-quality metrics are also tracked, including:
 
 ## CT-Simulator QA (AAPM TG-66)
 
-The **CT simulator** is the CT scanner used to plan treatment — it captures the patient's anatomy in the treatment position and defines the coordinate system the whole plan is built on. **AAPM TG-66** specifies its QA [5].
+The **CT simulator** is the CT scanner used to plan treatment — it captures the patient's anatomy in the treatment position and defines the coordinate system the whole plan is built on. **AAPM TG-66** specifies its QA [2].
 
 Critical CT-sim checks:
 
