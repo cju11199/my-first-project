@@ -2084,7 +2084,8 @@ function toggleSolo(key){
 let hoverView='ap';
 let hoverDragView=null;
 // Single-axis "couch lock": hold 1=A-P(Vrt), 2=S-I(Lng), 3=L-R(Lat) to constrain a drag
-// to one couch axis (1 & 2 by vertical drag, 3 by horizontal). Works in both 2D/2D views.
+// to one couch axis (all by vertical drag; for 3 = L-R, up moves right & down moves left).
+// Works in both 2D/2D views.
 let axisLock=null, axisLockKey=null;
 let _axisBadge=null;
 function axisBadgeEl(){
@@ -2102,7 +2103,7 @@ function showAxisCue(a){
   const b=axisBadgeEl();
   b.textContent = a==='AP' ? 'A–P LOCK · drag ↕'
                : a==='SI' ? 'S–I LOCK · drag ↕'
-                          : 'L–R LOCK · drag ↔';
+                          : 'L–R LOCK · drag ↕ (up=R, down=L)';
   b.style.display='block';
 }
 function hideAxisCue(){ if(_axisBadge) _axisBadge.style.display='none'; }
@@ -2199,10 +2200,11 @@ function attachInteractions(key){
       const mmPerPx=_fov/(_span*v.zoom);
       const stepMM=0.1;
       if(axisLock){
-        // single couch axis: 1=A-P(Vrt,z) & 2=S-I(Lng,y) via vertical drag; 3=L-R(Lat,x) via horizontal.
+        // single couch axis: 1=A-P(Vrt,z), 2=S-I(Lng,y) & 3=L-R(Lat,x) all via vertical drag.
         // Same axis from EITHER view, so you can isolate any direction.
         if(axisLock==='LR'){
-          accX+=ddx*mmPerPx; let q=Math.trunc(accX/stepMM)*stepMM;
+          // vertical drag: up (ddy<0) -> +x (right), down (ddy>0) -> -x (left)
+          accX+=(-ddy)*mmPerPx; let q=Math.trunc(accX/stepMM)*stepMM;
           if(q!==0){ accX-=q; moveShift('x',q); }
         } else {
           accY+=ddy*mmPerPx; let q=Math.trunc(accY/stepMM)*stepMM;
@@ -2488,7 +2490,7 @@ document.addEventListener('keydown',e=>{
   const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA';
   if(isText) return; // don't hijack real text fields
   // 1 / 2 / 3 : hold to lock the next drag to a single couch axis
-  //   1 = A-P (Vrt, vertical drag) · 2 = S-I (Lng, vertical drag) · 3 = L-R (Lat, horizontal drag)
+  //   1 = A-P (Vrt, vertical drag) · 2 = S-I (Lng, vertical drag) · 3 = L-R (Lat, vertical drag: up=right, down=left)
   if(e.key==='1'||e.key==='2'||e.key==='3'){
     axisLock = e.key==='1' ? 'AP' : e.key==='2' ? 'SI' : 'LR';
     axisLockKey = e.key; showAxisCue(axisLock);
