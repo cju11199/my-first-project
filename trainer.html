@@ -1597,10 +1597,11 @@ const FID2D=(function(){
     // stale image (FID2D draws its own radiographs and ignores v.img / v.ready).
     ['ap','lat'].forEach(k=>{const v=views[k];v.ready=false;v.uzoom=1;v.fitZoom=1;v.zoom=1;v.panX=0;v.panY=0;updateZoomLabel(k);});
     fidPanel(true);randomize();started=true;requestAnimationFrame(()=>{resizeAll();});}
-  // Rotational accept tolerance (degrees), tied to the difficulty preference.
-  function fidRotTol(){const d=(RTProfile&&RTProfile.get&&RTProfile.get().prefs.difficulty)||'standard';
-    return d==='relaxed'?3.5:d==='strict'?2.0:3.0;}
-  const FID_TRANS_TOL=2.0;   // translation accept tolerance (mm) — markers must be seated too
+  // Accept tolerances for the fiducial case come from the per-case table (2d2d:prostate).
+  // Kept as functions so the lookup resolves lazily (CASE_TOL / rtTol are defined later in the file).
+  function fidTol(){return (typeof rtTol==='function')?rtTol('2d2d',currentCase):{t1:2,r1:3};}
+  function fidRotTol(){return fidTol().r1;}     // rotation accept (deg)
+  function fidTransTol(){return fidTol().t1;}   // translation accept (mm) — markers must be seated too
   function randomize(keepResult){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
     const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
     // Realistic per-axis rotation (2–3.5°). Across 3 axes the total angle compounds to ~3.5–6°;
@@ -1620,15 +1621,15 @@ const FID2D=(function(){
     const r=fit(M,Qtrue);                  // residual misregistration: placed markers -> true seeds
     const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]);   // residual rotation (deg)
     const transErr=Math.hypot(r.t[0],r.t[1],r.t[2]); // residual translation (mm)
-    const rotTol=fidRotTol();
-    const ok=rotErr<=rotTol && transErr<=FID_TRANS_TOL;
-    const close=rotErr<=rotTol*1.8 && transErr<=FID_TRANS_TOL*1.8;
-    const ms=matchTimer2d.elapsed(),tag=(ok&&ms!=null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // time only counts when within tolerance
+    const rotTol=fidRotTol(),transTol=fidTransTol();
+    const ok=rotErr<=rotTol && transErr<=transTol;
+    const close=rotErr<=rotTol*1.8 && transErr<=transTol*1.8;
+    const tag='';   // 2D fiducial case: match time is not tracked
     let msg,cls;
     if(ok){msg='✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag;cls='ok';}
     else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; Ctrl+drag to rotate'+tag;cls='label';}
     else{msg='✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag;cls='bad';}
-    if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:ok?ms:null});
+    if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:null});
     // Check Match resets the clock + loads a fresh offset for the next rep, then shows the verdict
     matchTimer2d.reset();
     randomize(true);
@@ -2750,11 +2751,13 @@ function resetShift(){
   render();
 }
 function applyNewOffset2d(){   // pick a fresh hidden 5DOF setup error (used by New Offset + auto-advance on Check Match)
+  // Floors are >= the loosest per-case accept tolerance (breast t1=5 mm) so every rep starts
+  // genuinely out of tolerance on all axes — never already-accepted before the user moves.
   const rnd=(mn,mx)=>Math.round((Math.random()*(mx-mn)+mn)*2)/2;
   const sgn=()=>Math.random()<0.5?-1:1;
-  hidden.x=rnd(3,18)*sgn();
-  hidden.y=rnd(3,15)*sgn();
-  hidden.z=rnd(3,16)*sgn();
+  hidden.x=rnd(6,18)*sgn();
+  hidden.y=rnd(6,15)*sgn();
+  hidden.z=rnd(6,16)*sgn();
   hidden.roll=rnd(0,4)*sgn();
   hidden.pitch=rnd(0,4)*sgn();
 }
@@ -2810,7 +2813,10 @@ const matchTimer2d=makeMatchTimer();
 function rtTimerClock(ms){return '⏱ '+(ms==null?'0:00.0':fmtMatchTime(ms));}
 function rtUpdateTimerDisplays(){
   const a=document.getElementById('matchTimerDisp');
-  if(a){const ms=matchTimer2d.elapsed();a.textContent=rtTimerClock(ms);a.classList.toggle('running',ms!=null);}
+  if(a){
+    if(typeof FID2D!=='undefined'&&FID2D.active()){a.textContent='⏱ —';a.classList.remove('running');}  // fiducial case: time not tracked
+    else{const ms=matchTimer2d.elapsed();a.textContent=rtTimerClock(ms);a.classList.toggle('running',ms!=null);}
+  }
   const c=document.getElementById('cbMatchTimerDisp');
   if(c&&typeof CBCT!=='undefined'&&CBCT.timerMs){const ms=CBCT.timerMs();c.textContent=rtTimerClock(ms);c.classList.toggle('running',ms!=null);}
 }
@@ -2828,7 +2834,7 @@ function checkMatch(){
   const setT=(id,mm,t1,t2)=>{const el=document.getElementById(id);const cm=mm/10;el.textContent=(cm>=0?'+':'')+cm.toFixed(2)+'cm';el.className='error-val '+cc(mm,t1,t2);};
   const setR=(id,deg,t1,t2)=>{const el=document.getElementById(id);el.textContent=(deg>=0?'+':'')+deg+'\u00b0';el.className='error-val '+cc(deg,t1,t2);};
   // signs match the live readouts (Varian IEC): Lat=-x, Lng=+y, Vrt=zSign*z
-  const TOL=rtTol();
+  const TOL=rtTol('2d2d',currentCase);
   setT('errX',-e.x,TOL.t1,TOL.t2); setT('errY',e.y,TOL.t1,TOL.t2); setT('errZ',zSign*e.z,TOL.t1,TOL.t2);
   setR('errRoll',e.roll,TOL.r1,TOL.r2); setR('errPitch',e.pitch,TOL.r1,TOL.r2);
   const transOk=Math.abs(e.x)<=TOL.t1&&Math.abs(e.y)<=TOL.t1&&Math.abs(e.z)<=TOL.t1;
@@ -3075,13 +3081,26 @@ const RTProfile=(function(){
   return {get,save,authReady};
 })();
 
-// Difficulty -> match tolerances (translation mm / rotation deg).
-const RT_DIFF={
-  relaxed:{key:'relaxed',label:'Relaxed',t1:2,t2:5,r1:1.0,r2:2.0,desc:'Forgiving — pass within 0.2 cm / 1.0°. Good for first attempts.'},
-  standard:{key:'standard',label:'Standard',t1:1,t2:3,r1:0.5,r2:1.5,desc:'Clinical default — pass within 0.1 cm / 0.5°.'},
-  strict:{key:'strict',label:'Strict (SRS)',t1:0.5,t2:1.5,r1:0.3,r2:0.8,desc:'Sub-millimetre — pass within 0.05 cm / 0.3°. Earns bonus XP.'},
+// Per-case match tolerances, keyed mode+':'+caseKey. t1/t2 = translation accept/close (mm);
+// r1/r2 = rotation accept/close (deg). Anchored to clinical IGRT/SRS/SBRT action levels:
+// intracranial SRS tightest (~1 mm / 1°), spine SBRT ~1 mm, lung SBRT / fiducial ~2 mm,
+// conventional IGRT ~3-5 mm (breast loosest). Replaces the old global difficulty preset.
+const CASE_TOL={
+  '2d2d:brain':     {t1:3, t2:7,   r1:2, r2:4},    // conventional cranial DRR
+  '2d2d:pelvis':    {t1:3, t2:7,   r1:2, r2:4},    // conventional pelvis
+  '2d2d:thorax':    {t1:3, t2:7,   r1:2, r2:4},    // conventional thorax
+  '2d2d:breast':    {t1:5, t2:12,  r1:3, r2:4},    // breast SCV + tangent (loosest)
+  '2d2d:breastDIBH':{t1:5, t2:12,  r1:3, r2:4},    // same match, breath-hold
+  '2d2d:prostate':  {t1:2, t2:3.6, r1:3, r2:5.4},  // kV fiducial triad (FID2D); t2/r2 = accept*1.8
+  'cbct:pelvis':    {t1:3, t2:7,   r1:2, r2:4},    // conventional pelvis
+  'cbct:brain':     {t1:1, t2:2,   r1:1, r2:2},    // acoustic neuroma IAC SRS — tightest
+  'cbct:breast':    {t1:4, t2:8,   r1:3, r2:4},    // conventional breast (loosest CBCT)
+  'cbct:spine':     {t1:1, t2:2.5, r1:1, r2:2},    // spine SBRT (cord-avoiding)
+  'cbct:lung':      {t1:2, t2:6,   r1:2, r2:4},    // lung SBRT (off-bone; translation graded)
+  'cbct:prostate':  {t1:2, t2:5,   r1:3, r2:4},    // gold fiducial seeds, rigid 6DOF
 };
-function rtTol(){return RT_DIFF[(RTProfile.get().prefs.difficulty)]||RT_DIFF.standard;}
+const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
+function rtTol(mode,caseKey){return CASE_TOL[mode+':'+caseKey]||RT_TOL_DEFAULT;}
 
 // XP / levels: level L needs 40*(L-1)^2 cumulative XP (gentle quadratic curve).
 function rtLevel(xp){return Math.floor(Math.sqrt((xp||0)/40))+1;}
@@ -3097,7 +3116,7 @@ const RT_ACH=[
   {id:'quick',   icon:'⚡', name:'Quick Draw',      desc:'Pass in under 30 seconds.',         test:(p,c)=>c.accepted&&c.timeMs!=null&&c.timeMs<30000},
   {id:'sharp',   icon:'◎', name:'Sharpshooter',    desc:'Pass within 0.5 mm.',               test:(p,c)=>c.accepted&&c.mag!=null&&c.mag<0.5},
   {id:'pinpoint',icon:'✦', name:'Pinpoint',        desc:'Pass within 0.2 mm.',               test:(p,c)=>c.accepted&&c.mag!=null&&c.mag<0.2},
-  {id:'strict',  icon:'▣', name:'Tight Tolerance', desc:'Pass on Strict (SRS) difficulty.',  test:(p,c)=>c.accepted&&c.diff==='strict'},
+  {id:'strict',  icon:'▣', name:'Tight Tolerance', desc:'Clear an SRS/SBRT case (≤1 mm tolerance).', test:(p,c)=>c.accepted&&c.tight!=null&&c.tight<=1},
   {id:'offbone', icon:'◐', name:'Off the Bone',    desc:'Clear the Lung SBRT PTV match.',    test:(p,c)=>c.accepted&&c.id==='cbct:lung'},
   {id:'cbct_all',icon:'☰', name:'Volumetric',      desc:'Clear every CBCT case.',            test:(p)=>rtClearedIds(p,'cbct').length>=rtAllCaseIds('cbct').length},
   {id:'twod_all',icon:'◉', name:'Orthogonal',      desc:'Clear every 2D/2D case.',           test:(p)=>rtClearedIds(p,'2d2d').length>=rtAllCaseIds('2d2d').length},
@@ -3114,7 +3133,7 @@ function rtDayDiff(a,b){const pa=a.split('-').map(Number),pb=b.split('-').map(Nu
 
 // Record one Check-Match result. o = {accepted, mag (mm), timeMs (or null)}.
 function rtRecord(mode,caseKey,o){
-  const id=mode+':'+caseKey, diffKey=rtTol().key, newly=[];
+  const id=mode+':'+caseKey, tol=rtTol(mode,caseKey), newly=[];
   RTProfile.save(p=>{
     const s=p.stats[id]||(p.stats[id]={a:0,c:0,bt:null,br:null,lt:0,fc:null});
     s.a++;s.lt=Date.now();
@@ -3129,7 +3148,7 @@ function rtRecord(mode,caseKey,o){
       xp+=20;
       if(o.timeMs!=null&&o.timeMs<30000)xp+=15;
       if(o.mag!=null&&o.mag<0.5)xp+=20;
-      if(diffKey==='strict')xp+=15; else if(diffKey==='relaxed')xp=Math.max(8,xp-10);
+      if(tol.t1<=1)xp+=15; else if(tol.t1<=2)xp+=8;   // tightness bonus: tighter accept tol (SRS/SBRT) = more XP
     }
     p.xp=(p.xp||0)+xp;
     const t=rtToday();
@@ -3138,7 +3157,7 @@ function rtRecord(mode,caseKey,o){
     p.streak.last=t;if((p.streak.count||0)>(p.streak.best||0))p.streak.best=p.streak.count;
     p.recent.unshift({id,ok:!!o.accepted,ms:(o.timeMs!=null?Math.round(o.timeMs):null),mag:(o.mag!=null?+o.mag.toFixed(2):null),t:Date.now()});
     if(p.recent.length>24)p.recent.length=24;
-    const ctx={id,mode,caseKey,accepted:!!o.accepted,mag:o.mag,timeMs:o.timeMs,diff:diffKey};
+    const ctx={id,mode,caseKey,accepted:!!o.accepted,mag:o.mag,timeMs:o.timeMs,tight:tol.t1};
     RT_ACH.forEach(a=>{if(!p.ach[a.id]){try{if(a.test(p,ctx)){p.ach[a.id]=Date.now();newly.push(a);}}catch(e){}}});
   });
   if(newly.length)rtToast(newly);
@@ -3216,16 +3235,13 @@ function rtViewCases(p){
   return tbl('cbct')+tbl('2d2d');
 }
 function rtViewSettings(p){
-  const cur=p.prefs.difficulty||'standard';
-  const diffs=Object.keys(RT_DIFF).map(k=>{const d=RT_DIFF[k];return '<label class="rt-diff'+(cur===k?' on':'')+'"><input type="radio" name="rtdiff" value="'+k+'"'+(cur===k?' checked':'')+' onchange="rtSetDiff(this.value)"><div><div class="rt-diff-h">'+d.label+'</div><div class="rt-diff-d">'+d.desc+'</div></div></label>';}).join('');
-  return '<div class="rt-sec-h">Difficulty &amp; tolerance</div><div class="rt-diffs">'+diffs+'</div>'
-    +'<div class="rt-sec-h">Display</div><label class="rt-toggle"><input type="checkbox"'+(p.prefs.hideCardStats?'':' checked')+' onchange="rtSetPref(\'hideCardStats\',!this.checked)"> Show progress on the case cards</label>'
+  // Difficulty is no longer user-selectable — match tolerances are per-case (see CASE_TOL).
+  return '<div class="rt-sec-h">Display</div><label class="rt-toggle"><input type="checkbox"'+(p.prefs.hideCardStats?'':' checked')+' onchange="rtSetPref(\'hideCardStats\',!this.checked)"> Show progress on the case cards</label>'
     +'<div class="rt-sec-h">Account</div><div class="rt-data-row"><button class="btn-ghost" onclick="location.href=\'/account\'">Manage account &amp; subscription →</button></div>'
     +'<div class="rt-sec-h">Data</div><div class="rt-data-row"><button class="btn-ghost" onclick="rtExport()">Export progress (JSON)</button><button class="btn-warn" onclick="rtReset()">Reset progress…</button></div>'
     +'<div class="rt-data-note">'+(RTProfile.authReady()?'✓ Synced to your account — follows you across devices.':'Stored on this device.')+'</div>'
     +'<div class="rt-sec-h">Legal</div><div class="rt-legal-row"><a href="/privacy" target="_blank" rel="noopener">Privacy policy</a><a href="/terms" target="_blank" rel="noopener">Terms of service</a><a href="mailto:support@rtimagematch.com">Support</a></div>';
 }
-function rtSetDiff(k){RTProfile.save(p=>{p.prefs.difficulty=k;});rtRenderModal('settings');}
 function rtSetPref(key,val){RTProfile.save(p=>{p.prefs[key]=val;});}
 function rtExport(){const p=RTProfile.get();const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='rt-progress.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 function rtReset(){if(!window.confirm('Reset all training progress, stats and achievements? This cannot be undone.'))return;RTProfile.save(p=>{p.stats={};p.ach={};p.totals={attempts:0,accepts:0};p.xp=0;p.streak={count:0,best:0,last:null};p.recent=[];});rtRenderModal(rtModalTab);rtRefreshProgress();}
@@ -4210,7 +4226,7 @@ const CBCT=(function(){
     // target only; rotations can't shift a small off-bone target on, so they're shown but not graded.
     const ptvOnly=!!targetDrift;
     const _ob=curOffBone();
-    const TOL=rtTol();
+    const TOL=rtTol('cbct',caseKey);
     sT('cbErrX',-g.x,TOL.t1,TOL.t2);sT('cbErrY',g.y,TOL.t1,TOL.t2);sT('cbErrZ',g.z,TOL.t1,TOL.t2);
     if(ptvOnly){sRn('cbErrPitch',g.pitch);sRn('cbErrRoll',g.roll);sRn('cbErrYaw',g.yaw);}
     else{sR('cbErrPitch',g.pitch,TOL.r1,TOL.r2);sR('cbErrRoll',g.roll,TOL.r1,TOL.r2);sR('cbErrYaw',g.yaw,TOL.r1,TOL.r2);}
