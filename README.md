@@ -50,4 +50,4 @@ redeploy automatically to the link above. See [DEPLOY.md](DEPLOY.md) for setup d
 
 ## License
 
-Copyright (c) 2026 Craig Utter. All rights reserved. Unauthorized copying, reuse, or distribution is prohibited. See [LICENSE](LICENSE).
+Copyright (c) 2026 rtimagematch.com. All rights reserved. Unauthorized copying, reuse, or distribution is prohibited. See [LICENSE](LICENSE).
