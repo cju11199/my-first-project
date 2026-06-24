@@ -447,33 +447,71 @@ main.shifts-collapsed .shift-tab{left:0}
 /* paywall: hide the trainer until access is verified */
 #authGate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#070a0f;color:#9fadbd;font:15px/1.5 system-ui,sans-serif}
 html:not(.auth-pending) #authGate{display:none}
-/* ── DIBH breath-hold coaching overlay (Breast L · DIBH case) ───────────────────────────── */
-.dibh-screen{position:fixed;inset:0;z-index:500;background:radial-gradient(1100px 560px at 70% -10%,#0d1a24 0%,var(--bg) 58%),var(--bg);display:flex;align-items:center;justify-content:center;padding:18px}
-.dibh-screen.hidden{display:none}
-.dibh-wrap{width:min(1000px,100%);max-height:100%;display:flex;flex-direction:column;gap:14px}
-.dibh-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.dibh-head h2{font-size:18px;letter-spacing:.02em;margin:0;color:var(--text)}
-.dibh-head .sub{font-size:12px;color:var(--muted)}
-.dibh-head .right{display:flex;align-items:center;gap:10px}
-.dibh-sel{background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:7px 10px;font:inherit;font-size:13px}
-.dibh-back{background:transparent;border:1px solid var(--border2);color:var(--label);border-radius:8px;padding:7px 13px;font:inherit;font-size:13px;cursor:pointer}
-.dibh-back:hover{border-color:var(--accent);color:var(--text)}
-.dibh-canvas-wrap{position:relative;background:#05080c;border:1px solid var(--border2);border-radius:12px;overflow:hidden}
-#dibhTrace{display:block;width:100%;height:300px}
-.dibh-readout{position:absolute;top:10px;left:12px;display:flex;gap:18px;font-family:var(--mono),monospace;font-size:12px;color:var(--label);background:rgba(8,11,16,.55);padding:7px 12px;border-radius:9px;border:1px solid var(--border2)}
+/* ── DIBH breath-hold coaching (Breast L · DIBH): docked at the BOTTOM of the 2D/2D match screen ── */
+.match-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;position:relative}
+.dibh-strip{display:flex;gap:12px;align-items:stretch;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:10px 12px;flex:0 0 auto}
+.dibh-strip.hidden{display:none}
+.dibh-trace-wrap{position:relative;flex:1 1 auto;min-width:0;background:#05080c;border:1px solid var(--border2);border-radius:10px;overflow:hidden}
+#dibhTrace{display:block;width:100%;height:150px}
+.dibh-readout{position:absolute;top:8px;left:10px;display:flex;gap:14px;font-family:var(--mono),monospace;font-size:11px;color:var(--label);background:rgba(8,11,16,.6);padding:6px 10px;border-radius:8px;border:1px solid var(--border2)}
 .dibh-readout b{color:var(--text);font-weight:600}
 .dibh-readout .gate-in{color:var(--green)}
 .dibh-readout .gate-out{color:var(--accent2)}
-.dibh-controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
-.dibh-btn{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);color:var(--text);border-radius:10px;padding:13px 20px;font:inherit;font-size:15px;font-weight:600;cursor:pointer;min-width:120px}
+.dibh-expose{position:absolute;left:10px;right:10px;bottom:8px;height:14px;display:none;align-items:center;gap:8px}
+.dibh-expose.show{display:flex}
+.dibh-expose-track{position:relative;flex:1;height:6px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
+.dibh-expose-bar{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--accent),#1ba9c4);border-radius:3px}
+.dibh-expose-lbl{font-family:var(--mono),monospace;font-size:10px;color:var(--accent);white-space:nowrap}
+.dibh-side{flex:0 0 330px;display:flex;flex-direction:column;gap:7px;justify-content:center}
+.dibh-field{font-family:var(--mono),monospace;font-size:12px;color:var(--text);letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+.dibh-field .pips{display:inline-flex;gap:5px}
+.dibh-field .pip{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.18);border:1px solid var(--border2)}
+.dibh-field .pip.on{background:var(--green);border-color:var(--green)}
+.dibh-field .pip.cur{background:var(--accent);border-color:var(--accent)}
+.dibh-controls{display:grid;grid-template-columns:1fr;gap:7px}
+.dibh-controls .dibh-btn.beam{padding:14px 12px;font-size:15px;letter-spacing:.02em}
+.dibh-coach-fallback{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-top:7px}
+.dibh-coach-fallback.hidden{display:none}
+/* start-screen: mic-required case (Breast DIBH) lock affordance */
+.start-card.locked{opacity:.55}
+.start-card.locked .sc-title{color:var(--muted)}
+.sc-title .mic-req{font-size:.85em;opacity:.9;margin-left:3px}
+.dibh-btn{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:10px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .dibh-btn:hover{border-color:var(--accent)}
 .dibh-btn.beam{background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a;border-color:transparent}
 .dibh-btn.abort{color:var(--accent2);border-color:rgba(255,122,69,.4)}
 .dibh-btn:active{transform:translateY(1px)}
-.dibh-msg{text-align:center;font-size:14px;color:var(--label);min-height:20px}
+.dibh-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.dibh-msg{font-size:12px;color:var(--label);min-height:16px;line-height:1.3}
 .dibh-msg.ok{color:var(--green)}
 .dibh-msg.bad{color:var(--accent2)}
-.dibh-score{text-align:center;font-family:var(--mono),monospace;font-size:13px;color:var(--muted)}
+.dibh-score{font-family:var(--mono),monospace;font-size:11px;color:var(--muted)}
+/* per-pane "awaiting acquisition" badge shown until that field's image is beamed */
+.acq-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;display:none;flex-direction:column;align-items:center;gap:5px;background:rgba(8,11,16,.74);border:1px solid var(--border2);border-radius:12px;padding:13px 20px;text-align:center;pointer-events:none}
+.viewer-area.awaiting .acq-badge{display:flex}
+.acq-badge .lbl{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.08em;color:var(--accent2);text-transform:uppercase}
+.acq-badge .sub{font-size:11px;color:var(--muted);max-width:200px}
+/* DIBH Phase-2 voice coaching (mic) — only shown when the Web Speech API is usable */
+.dibh-voice{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:1px}
+.dibh-voice.hidden{display:none}
+.dibh-mic{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:8px 13px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none}
+.dibh-mic:hover{border-color:var(--accent)}
+.dibh-mic .mic-ico{font-size:14px;line-height:1}
+.dibh-mic.live{background:linear-gradient(135deg,var(--green),#1f9d6b);color:#04140d;border-color:transparent}
+.dibh-mic:disabled{opacity:.45;cursor:not-allowed}
+.dibh-handsfree{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--label);cursor:pointer;user-select:none}
+.dibh-handsfree input{accent-color:var(--accent)}
+.dibh-mic-pill{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.06em;padding:3px 8px;border-radius:999px;border:1px solid var(--border2);color:var(--muted);text-transform:uppercase}
+.dibh-mic-pill.live{color:var(--green);border-color:rgba(61,220,151,.5)}
+.dibh-mic-pill.warn{color:var(--accent2);border-color:rgba(255,122,69,.5)}
+.dibh-mic-pill.live::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:5px;vertical-align:middle;animation:dibhPulse 1s ease-in-out infinite}
+@keyframes dibhPulse{0%,100%{opacity:1}50%{opacity:.2}}
+.dibh-heard{flex-basis:100%;font-family:var(--mono),monospace;font-size:11px;color:var(--label);min-height:14px}
+.dibh-heard b{color:var(--text)}
+.dibh-btn.voice-fire{animation:dibhFlash .5s ease-out}
+@keyframes dibhFlash{0%{box-shadow:0 0 0 2px var(--accent)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
+@media(prefers-reduced-motion:reduce){.dibh-mic-pill.live::before{animation:none}.dibh-btn.voice-fire{animation:none}}
+@media(max-width:880px){.dibh-strip{flex-direction:column}.dibh-side{flex-basis:auto}#dibhTrace{height:118px}}
 </style>
 </head>
 <body data-require-auth>
@@ -717,6 +755,7 @@ html:not(.auth-pending) #authGate{display:none}
   </div>
 </header>
 <main>
+  <div class="match-col">
   <div class="views">
     <div class="viewer-area" id="apArea" tabindex="0">
       <canvas id="apRef" class="refCanvas"></canvas>
@@ -729,6 +768,7 @@ html:not(.auth-pending) #authGate{display:none}
       </div>
       <div class="vt-zoom" id="apZoom">100%</div>
       <div class="view-tag" id="apViewTag">AP / PA</div>
+      <div class="acq-badge"><div class="lbl">Awaiting acquisition</div><div class="sub">Coach a breath-hold &amp; Beam On to capture this field</div></div>
       <div class="dir-label dir-top">S</div>
       <div class="dir-label dir-bottom">I</div>
       <div class="dir-label dir-left">R</div>
@@ -748,6 +788,7 @@ html:not(.auth-pending) #authGate{display:none}
       </div>
       <div class="vt-zoom" id="latZoom">100%</div>
       <div class="view-tag" id="latViewTag">LATERAL</div>
+      <div class="acq-badge"><div class="lbl">Awaiting acquisition</div><div class="sub">Coach a breath-hold &amp; Beam On to capture this field</div></div>
       <div class="dir-label dir-top">S</div>
       <div class="dir-label dir-bottom">I</div>
       <div class="dir-label dir-left" id="latDirLeft">P</div>
@@ -757,6 +798,55 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="view-contrast" id="contrastLat"><select class="vc-preset" onchange="applyContrastPreset(this.value)"><option value="default">Default</option><option value="bone">Bone</option><option value="soft">Soft Tissue</option><option value="lung">Lung</option></select><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValLat">100%</span></div>
     </div>
   </div>
+  <!-- DIBH breath-hold coaching strip: breathing trace + coaching buttons, docked at the bottom
+       of the match screen. Hidden except in the Breast L · DIBH case (DIBH.enter/exit toggle it). -->
+  <div class="dibh-strip hidden" id="dibhStrip">
+    <div class="dibh-trace-wrap">
+      <canvas id="dibhTrace"></canvas>
+      <div class="dibh-readout">
+        <span>Amplitude <b id="dibhAmp">0.00</b> cm</span>
+        <span>Gate <b id="dibhGate">1.9&ndash;2.6</b> cm</span>
+        <span id="dibhInGate" class="gate-out">OUT OF GATE</span>
+        <span>Hold <b id="dibhHold">0.0</b> s</span>
+      </div>
+      <div class="dibh-expose" id="dibhExpose">
+        <span class="dibh-expose-lbl" id="dibhExposeLbl">EXPOSING&hellip;</span>
+        <div class="dibh-expose-track"><div class="dibh-expose-bar" id="dibhExposeBar"></div></div>
+      </div>
+    </div>
+    <div class="dibh-side">
+      <div class="dibh-field" id="dibhField">Field 1 of 2 &middot; SCV / AP
+        <span class="pips"><span class="pip cur" id="dibhPip0"></span><span class="pip" id="dibhPip1"></span></span>
+      </div>
+      <div class="dibh-controls">
+        <button class="dibh-btn beam" id="dibhBtnBeam" onclick="DIBH.cmd('beam')">Beam On</button>
+      </div>
+      <!-- Coaching commands (in / relax / abort) are issued BY VOICE. These buttons stay in the DOM
+           but hidden; they're revealed only as a fallback if the microphone fails mid-session. -->
+      <div class="dibh-coach-fallback hidden" id="dibhCoachFallback">
+        <button class="dibh-btn" id="dibhBtnIn" onclick="DIBH.cmd('in')">Breathe In</button>
+        <button class="dibh-btn" id="dibhBtnHold" onclick="DIBH.cmd('hold')">Hold</button>
+        <button class="dibh-btn" id="dibhBtnUp" onclick="DIBH.cmd('up')">In a Little</button>
+        <button class="dibh-btn" id="dibhBtnDown" onclick="DIBH.cmd('down')">Out a Little</button>
+        <button class="dibh-btn" id="dibhBtnRelax" onclick="DIBH.cmd('relax')">Breathe Normally</button>
+        <button class="dibh-btn abort" id="dibhBtnAbort" onclick="DIBH.cmd('abort')">Abort</button>
+      </div>
+      <!-- Voice coaching mic. This case is gated on mic availability, so this is always shown here. -->
+      <div class="dibh-voice hidden" id="dibhVoice">
+        <button class="dibh-mic" id="dibhMicBtn" type="button" aria-pressed="false"
+          aria-label="Push to talk — hold to speak a coaching command"
+          title="Coach by voice: “take a deep breath in”, “hold”, “breathe in a little”, “breathe out a little”, “breathe normally”, “abort”. (Hold the mic or the V key for push-to-talk.) Press the Beam On button to deliver.">
+          <span class="mic-ico" aria-hidden="true">&#127908;</span><span id="dibhMicLbl">Hold to talk</span>
+        </button>
+        <label class="dibh-handsfree" title="Listen continuously instead of holding to talk"><input type="checkbox" id="dibhHandsfree">Hands-free</label>
+        <span class="dibh-mic-pill" id="dibhMicPill" aria-live="polite">Voice off</span>
+        <span class="dibh-heard" id="dibhHeard" aria-live="polite"></span>
+      </div>
+      <div class="dibh-msg" id="dibhMsg">Coach a breath-hold, then Beam On while in-gate.</div>
+      <div class="dibh-score" id="dibhScore"></div>
+    </div>
+  </div>
+  </div><!-- /.match-col -->
   <div class="controls-strip">
     <div class="ctrl-group">
       <div class="ctrl-group-title">Translation &amp; Rotation</div>
@@ -786,40 +876,6 @@ html:not(.auth-pending) #authGate{display:none}
   <div class="shift-tab" onclick="toggleShifts()" title="Show / hide the shift controls (both views go full-width when hidden)"><span class="chev" id="shiftChev">&#10094;</span>SHIFTS</div>
 </main>
 <div class="result-banner" id="resultBanner"></div>
-<!-- DIBH breath-hold coaching overlay: coach the patient into the gating window, then "Beam On"
-     while in-gate hands off to the standard breast SCV+tangent DRR match. -->
-<div class="dibh-screen hidden" id="dibhScreen" aria-hidden="true">
-  <div class="dibh-wrap">
-    <div class="dibh-head">
-      <div>
-        <h2>Breast L · DIBH — breath-hold coaching</h2>
-        <div class="sub">Coach the patient into the gating window and hold steady, then deliver. Beam on only while in-gate.</div>
-      </div>
-      <div class="right">
-        <select class="dibh-sel" id="dibhScenario" title="Patient scenario" onchange="DIBH.setScenario(this.value)"></select>
-        <button class="dibh-back" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
-      </div>
-    </div>
-    <div class="dibh-canvas-wrap">
-      <canvas id="dibhTrace"></canvas>
-      <div class="dibh-readout">
-        <span>Amplitude <b id="dibhAmp">0.00</b> cm</span>
-        <span>Gate <b id="dibhGate">1.9–2.6</b> cm</span>
-        <span id="dibhInGate" class="gate-out">OUT OF GATE</span>
-        <span>Hold <b id="dibhHold">0.0</b> s</span>
-      </div>
-    </div>
-    <div class="dibh-controls">
-      <button class="dibh-btn" onclick="DIBH.cmd('in')">Breathe In</button>
-      <button class="dibh-btn" onclick="DIBH.cmd('hold')">Hold</button>
-      <button class="dibh-btn" onclick="DIBH.cmd('relax')">Breathe Normally</button>
-      <button class="dibh-btn beam" onclick="DIBH.cmd('beam')">Beam On</button>
-      <button class="dibh-btn abort" onclick="DIBH.cmd('abort')">Abort</button>
-    </div>
-    <div class="dibh-msg" id="dibhMsg">Select a scenario and coach the breath-hold.</div>
-    <div class="dibh-score" id="dibhScore"></div>
-  </div>
-</div>
 <div class="modal-bg guide-bg" id="guideModal" aria-hidden="true">
   <div class="guide" role="dialog" aria-modal="true" aria-label="How to use RT Image Match">
     <div class="guide-head">
@@ -1371,6 +1427,7 @@ function renderView(v, key){
     ctx.fillStyle=grad(0,H,0,H-ey); ctx.fillRect(0,H-ey,W,ey);
   }
   function drawPor(ctx){
+    if(window.DIBH && DIBH.hidesPortal && DIBH.hidesPortal(key)) return;     // DIBH: field not yet beamed/acquired
     if(v.useCrop && !(v.porImg.complete && v.porImg.naturalWidth)) return;  // portal not loaded yet
     ctx.save();
     ctx.filter = imgFilter();   // contrast/brightness on the image only (not the black bg)
@@ -1692,113 +1749,208 @@ window.FID2D=FID2D;
 
 /* ============================================================================
    DIBH — deep-inspiration breath-hold coaching (Breast L · DIBH case).
-   Phase 1: a button-driven coach. A canvas respiratory trace (RPM-style
-   amplitude in cm) animates in real time; the patient model responds to
-   Breathe In / Hold / Breathe Normally per a selectable scenario. A shaded
-   gating band shows the target window; the live line is GREEN in-gate / AMBER
-   out. "Beam On" is only a valid delivery while the patient is in-gate AND
-   holding steady — otherwise it's scored as an out-of-gate beam. A valid
-   delivery hands off to the standard breast SCV+tangent DRR match.
-   (Phase 2 — voice control via Web Speech — layers on top of cmd() later.)
+   A button-driven coach docked at the BOTTOM of the 2D/2D match screen (not a
+   separate overlay): a canvas respiratory trace (RPM-style amplitude in cm)
+   animates in real time beside the image panes. The patient model is FULLY
+   RANDOM each acquisition (no preset scenarios) — random inhale depth, drift,
+   noise and an unpredictable cough risk. A shaded gating band shows the target
+   window; the live line is GREEN in-gate / AMBER out.
+
+   The two breast fields are acquired SEPARATELY, each at its own breath-hold:
+   "Beam On" starts a timed exposure that only succeeds if the patient stays
+   in-gate AND steady for the whole beam-on — drift out or a cough fails it.
+   Field 1 (SCV/AP) is captured first (its portal then appears), then a fresh
+   breath-hold captures Field 2 (medial tangent/Lateral). Matching is blocked
+   until both fields are acquired; then the student matches both views as usual.
+
+   Realism + challenge: real coaching language, a manual beam-timing decision,
+   a hold that must be maintained through the exposure, random coughs/drift, and
+   doing it twice. (Phase 2 — voice control via Web Speech — maps onto cmd().)
    ============================================================================ */
 const DIBH=(function(){
   // Gating model (cm). Free breathing oscillates 0..TIDAL; a DIBH coaches the patient up to
-  // a hold around HOLD, inside the [GATE_LO,GATE_HI] window.
-  const TIDAL=1.0, HOLD=2.25, GATE_LO=1.9, GATE_HI=2.6, PERIOD=3.8, STABLE_MS=900;
-  const SCEN={
-    compliant:{label:'Compliant',        inhaleOff:0.00, drift:0.00,  noise:0.02, cough:false},
-    over:     {label:'Over-inhaler',     inhaleOff:0.70, drift:-0.05, noise:0.03, cough:false},
-    shallow:  {label:'Shallow breather', inhaleOff:-0.75,drift:0.00,  noise:0.04, cough:false},
-    drifter:  {label:'Drifter',          inhaleOff:0.05, drift:-0.22, noise:0.03, cough:false},
-    cough:    {label:'Cough / break',    inhaleOff:0.00, drift:0.00,  noise:0.03, cough:true},
-  };
-  let scen='compliant';
-  // live state
-  let amp=0, vel=0, target=0, phase='free';   // phase: free | inhaling | holding
-  let raf=0, lastTs=0, simNow=0;               // simNow: seconds since enter (drives waveforms/timers)
+  // a hold around HOLD, inside the [GATE_LO,GATE_HI] window. EXPOSE_DUR = seconds the patient
+  // must stay in-gate during a "Beam On" for the field image to be acquired.
+  const TIDAL=1.0, HOLD=2.25, GATE_LO=1.9, GATE_HI=2.6, PERIOD=3.8, STABLE_MS=700, EXPOSE_DUR=1.3;
+  const NUDGE=0.2, HOLD_MIN=0.4, HOLD_MAX=3.6, SPRING_K=16;   // "a little" step (cm); hold clamps; spring stiffness (snappy/reactive)
+  // The two breast fields, captured separately (field 0 = AP view, field 1 = lateral view).
+  const FIELDS=[{key:'ap',label:'Field 1 of 2 · SCV / AP'},{key:'lat',label:'Field 2 of 2 · Medial tangent / Lateral'}];
+
+  // ---- randomized patient (no presets): fresh behaviour each acquisition ----
+  let pInhaleTarget=2.25, pDrift=0, pNoise=0.03, pCough=false;
+  function randomizePatient(){
+    const R=(mn,mx)=>mn+Math.random()*(mx-mn);
+    // The patient's natural full-inhale level is usually OUTSIDE the gate, so the first breath
+    // rarely lands in-window — the student must coach with "a little more / a little out" nudges.
+    const roll=Math.random();
+    if(roll<0.50)      pInhaleTarget = R(GATE_HI+0.12, GATE_HI+0.75);   // over-inhaler: holds above the gate (~50%)
+    else if(roll<0.82) pInhaleTarget = R(GATE_LO-0.60, GATE_LO-0.10);   // shallow: holds below the gate (~32%)
+    else               pInhaleTarget = R(GATE_LO+0.06, GATE_HI-0.06);   // lands in-gate first try (~18%)
+    pDrift = R(-0.12,0.03);            // slow sag during the hold
+    pNoise = R(0.015,0.04);            // measurement jitter on the surrogate
+    pCough = Math.random()<0.40;       // ~40% of holds carry an unpredictable cough
+    coughUntil=0; coughNext=0;
+  }
+
+  // ---- live state ----
+  let amp=0, vel=0, target=0, holdTarget=2.25, phase='free';   // phase: free | inhaling | holding; holdTarget = commanded breath-hold level
+  let raf=0, lastTs=0, simNow=0;                  // simNow: seconds since enter (drives waveforms/timers)
   let holdSince=null, stableSince=null, inhaleSince=null, coughUntil=0, coughNext=0;
-  let penalty=0, abortBonus=0, delivered=false, active=false;
-  const buf=[];                                // recent {t, amp, inGate} for the scrolling trace
+  let active=false;                              // animation loop running
+  let acq=false, done=false;                     // acq: acquisition phase in progress; done: both fields captured
+  let fieldIdx=0; let captured=[false,false];    // which of the two fields are acquired
+  let exposing=false, exposeT=0;                 // a beam-on exposure is in progress / its elapsed seconds
+  let penalty=0, abortBonus=0, lastScore=null; const perField=[];
+  const buf=[];                                  // recent {t, amp, inGate} for the scrolling trace
   let ctx=null, cw=0, ch=0;
 
   function el(id){return document.getElementById(id);}
   function inGate(a){return a>=GATE_LO&&a<=GATE_HI;}
   function stable(){return phase==='holding'&&inGate(amp)&&Math.abs(vel)<0.18&&stableSince!=null&&(simNow-stableSince)*1000>=STABLE_MS;}
   function coughActive(){return simNow<coughUntil;}
-
-  function setScenario(v){scen=SCEN[v]?v:'compliant';reset();}
-  function reset(){
-    amp=0;vel=0;target=0;phase='free';holdSince=null;stableSince=null;inhaleSince=null;
-    coughUntil=0;coughNext=0;penalty=0;abortBonus=0;delivered=false;buf.length=0;
-    setMsg('Coach the patient: Breathe In → Hold → Beam On while in-gate.','');
-    el('dibhScore').textContent='';
-  }
   function setMsg(t,c){const m=el('dibhMsg');if(m){m.textContent=t;m.className='dibh-msg'+(c?(' '+c):'');}}
 
-  /* ---- patient response model (advanced each animation frame) ---- */
+  /* ---- patient response model (advanced each tick) ---- */
   function step(dt){
-    const S=SCEN[scen];
     if(phase==='free'){
       target=0.5*TIDAL*(1+Math.sin(2*Math.PI*simNow/PERIOD));   // tidal oscillation 0..TIDAL
     }else if(phase==='inhaling'){
-      target=Math.max(0,HOLD+S.inhaleOff);
-      if(Math.abs(amp-target)<0.12){phase='holding';holdSince=simNow;
-        // schedule a cough a couple seconds into a cough-scenario hold
-        if(S.cough)coughNext=simNow+1.4+Math.random()*1.6;}
+      target=pInhaleTarget;                                     // rising toward the natural full-inhale level
+      if(amp>=pInhaleTarget-0.08){                              // reached it -> settle into a breath-hold there
+        phase='holding'; holdTarget=pInhaleTarget; if(holdSince==null)holdSince=simNow;
+        if(pCough)coughNext=simNow+1.2+Math.random()*2.3;       // schedule a possible cough into the hold
+      }
     }else if(phase==='holding'){
-      target+=S.drift*dt;                                       // slow drift during the hold
-      if(S.cough&&coughNext&&simNow>=coughNext&&!coughActive()){ // trigger a cough impulse
-        vel+=(Math.random()<0.5?-1:1)*3.2;coughUntil=simNow+0.9;coughNext=simNow+3+Math.random()*3;
-        setMsg('⚠ Patient coughed — abort, don’t beam.','bad');
+      holdTarget += pDrift*dt;                                  // slow sag during the hold
+      target=holdTarget;
+      if(pCough&&coughNext&&simNow>=coughNext&&!coughActive()){ // trigger a cough impulse
+        vel+=(Math.random()<0.5?-1:1)*3.0;coughUntil=simNow+0.9;coughNext=simNow+3+Math.random()*3;
+        if(!done)setMsg('⚠ Patient coughed — abort, don’t beam.','bad');
       }
     }
-    // critically-damped spring toward target + small measurement noise
-    const k=9, c=2*Math.sqrt(k);
+    // stiff critically-damped spring -> the patient reacts quickly to each command, + small noise
+    const k=SPRING_K, c=2*Math.sqrt(k);
     vel+=(k*(target-amp)-c*vel)*dt;
     amp+=vel*dt;
-    amp+=(Math.random()-0.5)*S.noise;
+    amp+=(Math.random()-0.5)*pNoise;
     if(amp<0)amp=0;
     // stability tracking
     if(phase==='holding'&&inGate(amp)&&Math.abs(vel)<0.2&&!coughActive()){if(stableSince==null)stableSince=simNow;}
     else stableSince=null;
   }
 
+  // advance the simulation one step AND process any in-progress exposure (DOM-free so headless can drive it)
+  function tick(dt){
+    step(dt);
+    if(exposing){
+      if(coughActive()) failExposure('the patient coughed');
+      else if(!inGate(amp)) failExposure('the hold left the gate');
+      else { exposeT+=dt; if(exposeT>=EXPOSE_DUR) completeExposure(); }
+    }
+  }
+
   /* ---- coach commands (buttons today; voice maps to these in Phase 2) ---- */
   function cmd(c){
-    if(!active)return;
-    if(c==='in'){phase='inhaling';inhaleSince=(inhaleSince==null?simNow:inhaleSince);setMsg('Big breath in…','');}
-    else if(c==='hold'){if(phase!=='inhaling'&&phase!=='holding'){phase='inhaling';} setMsg('Hold it there — steady…','');}
-    else if(c==='relax'){phase='free';holdSince=null;stableSince=null;setMsg('Breathe normally.','');}
-    else if(c==='abort'){onAbort();}
-    else if(c==='beam'){onBeam();}
+    if(!acq||done)return;
+    if(c==='in'){ phase='inhaling'; inhaleSince=(inhaleSince==null?simNow:inhaleSince); setMsg('Take a deep breath in…',''); }
+    else if(c==='hold'){ holdTarget=Math.max(HOLD_MIN,Math.min(HOLD_MAX,amp)); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('Hold it there — steady…',''); }
+    else if(c==='up'){ if(phase!=='holding')holdTarget=amp; holdTarget=Math.min(HOLD_MAX,holdTarget+NUDGE); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('A little more in…',''); }
+    else if(c==='down'){ if(phase!=='holding')holdTarget=amp; holdTarget=Math.max(HOLD_MIN,holdTarget-NUDGE); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('Let a little out…',''); }
+    else if(c==='relax'){ if(exposing)failExposure('the coach relaxed the patient'); phase='free'; holdSince=null; stableSince=null; setMsg('Breathe normally.',''); }
+    else if(c==='abort'){ onAbort(); }
+    else if(c==='beam'){ onBeam(); }
+    updateButtons();
   }
   function onAbort(){
-    const wrong = coughActive()||!inGate(amp)||phase!=='holding';   // an abort was warranted
-    if(wrong){abortBonus=Math.min(15,abortBonus+8);setMsg('✓ Good call — aborted out-of-gate. Re-coach the breath-hold.','ok');}
+    if(exposing){ exposing=false; setMsg('Exposure aborted — re-coach the breath-hold.',''); phase='free'; holdSince=null; stableSince=null; updateExposeBar(); return; }
+    const warranted = coughActive()||!inGate(amp)||phase!=='holding';
+    if(warranted){abortBonus=Math.min(15,abortBonus+8);setMsg('✓ Good call — aborted an unsafe hold. Re-coach the breath-hold.','ok');}
     else{penalty+=5;setMsg('Aborted a good hold — only abort when out-of-gate or coughing.','');}
     phase='free';holdSince=null;stableSince=null;
   }
   function onBeam(){
-    if(delivered)return;
-    if(coughActive()){penalty+=40;setMsg('✗ Beamed during a cough — that’s a geometric miss. Abort next time.','bad');return;}
-    if(!inGate(amp)){penalty+=25;setMsg('✗ Beam on OUT OF GATE ('+amp.toFixed(2)+' cm) — wait for the window.','bad');return;}
-    if(!stable()){penalty+=15;setMsg('✗ Not a stable hold yet — let it settle in the window first.','bad');return;}
-    deliver();
+    if(!acq||done||exposing)return;
+    if(captured[fieldIdx])return;
+    if(coughActive()){penalty+=30;setMsg('✗ Don’t beam during a cough — abort and re-coach.','bad');return;}
+    if(!inGate(amp)){penalty+=20;setMsg('✗ Out of gate ('+amp.toFixed(2)+' cm) — coach back into the window first.','bad');return;}
+    if(!stable()){penalty+=12;setMsg('✗ Not settled yet — let the hold steady in the window, then beam.','bad');return;}
+    // start the timed exposure: the patient must STAY in-gate for the whole beam-on
+    exposing=true; exposeT=0;
+    setMsg('Beam on — keep the patient steady in the gate…','');
+    updateButtons(); updateExposeBar();
   }
-  function deliver(){
-    delivered=true;
-    const tHold=(inhaleSince==null?0:Math.max(0,simNow-inhaleSince));
-    const timePen=Math.max(0,(tHold-6))*1.5;                 // gentle penalty for slow time-to-hold
+  function failExposure(reason){
+    exposing=false; exposeT=0;
+    penalty+=22;
+    setMsg('✗ Beam interrupted — '+reason+'. Re-coach and beam this field again.','bad');
+    updateExposeBar(); updateButtons();
+  }
+  function completeExposure(){
+    exposing=false; exposeT=0;
+    captured[fieldIdx]=true;
+    const center=(GATE_LO+GATE_HI)/2;
+    penalty += Math.abs(amp-center)*8;                  // reward a well-centred hold
+    perField.push({field:FIELDS[fieldIdx].key, amp:+amp.toFixed(2), t:+simNow.toFixed(1)});
+    setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm.','ok');
+    try{ if(typeof render==='function') render(); }catch(e){}   // reveal this view's portal
+    updateExposeBar(); updateBadges();
+    advanceField();
+  }
+  function advanceField(){
+    if(fieldIdx<FIELDS.length-1){
+      fieldIdx++;
+      phase='free'; holdSince=null; stableSince=null; inhaleSince=null;
+      randomizePatient();                                // fresh, unpredictable breathing for the next field
+      updateFieldLabel(); updateBadges(); updateButtons();
+      setMsg('Field '+(fieldIdx+1)+' of '+FIELDS.length+': coach a fresh breath-hold, then Beam On.','');
+    } else {
+      finishAcq();
+    }
+  }
+  function finishAcq(){
+    acq=false; done=true;
+    const timePen=Math.max(0,(simNow-16))*0.8;           // gentle penalty for a slow overall acquisition
     const score=Math.max(0,Math.min(100,Math.round(100-penalty-timePen+abortBonus)));
-    setMsg('✓ Beam delivered in-gate — loading the verification match…','ok');
-    el('dibhScore').textContent='Coaching score '+score+'/100  ·  hold reached in '+tHold.toFixed(1)+' s';
-    stop();
-    setTimeout(()=>{                                          // hand off to the standard breast match
-      exit(true);
-      applyCase('breastDIBH');
-      const sm=document.getElementById('statusMsg');
-      if(sm)sm.textContent='DIBH coaching '+score+'/100 — now match the SCV + tangent fields';
-    },900);
+    lastScore=score;
+    phase='free'; holdSince=null; stableSince=null;
+    if(window.DIBHVoice && DIBHVoice.suspend) DIBHVoice.suspend();   // coaching done -> stop listening
+    updateFieldLabel(); updateBadges(); updateButtons();
+    setMsg('✓ Both fields acquired — now match both views to the plan DRRs.','ok');
+    const sc=el('dibhScore'); if(sc)sc.textContent='DIBH coaching score '+score+'/100';
+    const sm=el('statusMsg'); if(sm)sm.textContent='DIBH coaching '+score+'/100 — match the SCV + tangent fields';
+    try{ if(typeof render==='function') render(); }catch(e){}   // both portals now visible
+  }
+
+  /* ---- portal/match gating consumed by drawPor / drag / checkMatch ---- */
+  function acquiring(){return acq;}
+  function hidesPortal(key){ if(!acq)return false; return key==='ap'?!captured[0]:key==='lat'?!captured[1]:false; }
+
+  /* ---- per-pane "awaiting acquisition" badges + field indicator + buttons ---- */
+  function updateBadges(){
+    const ap=el('apArea'), lat=el('latArea');
+    if(ap)ap.classList.toggle('awaiting', acq && !captured[0]);
+    if(lat)lat.classList.toggle('awaiting', acq && !captured[1]);
+  }
+  function updateFieldLabel(){
+    const f=el('dibhField'); if(!f)return;
+    const lbl = done ? 'Both fields acquired' : FIELDS[fieldIdx].label;
+    const pip=(i)=>'<span class="pip'+(captured[i]?' on':((i===fieldIdx&&!done)?' cur':''))+'"></span>';
+    f.innerHTML = lbl + ' <span class="pips">'+pip(0)+pip(1)+'</span>';
+  }
+  function updateButtons(){
+    const dis=(id,d)=>{const b=el(id);if(b)b.disabled=!!d;};
+    ['dibhBtnIn','dibhBtnHold','dibhBtnUp','dibhBtnDown','dibhBtnRelax','dibhBtnBeam'].forEach(id=>dis(id,exposing||done));
+    dis('dibhBtnAbort', done);
+  }
+  function updateReadouts(){
+    const a=el('dibhAmp'); if(a)a.textContent=amp.toFixed(2);
+    const ig=el('dibhInGate'); if(ig){const og=inGate(amp);ig.textContent=og?'IN GATE':'OUT OF GATE';ig.className=og?'gate-in':'gate-out';}
+    const h=el('dibhHold'); if(h)h.textContent=(phase==='holding'&&holdSince!=null?(simNow-holdSince):0).toFixed(1);
+  }
+  function updateExposeBar(){
+    const wrap=el('dibhExpose'), bar=el('dibhExposeBar');
+    if(wrap)wrap.classList.toggle('show',exposing);
+    if(bar)bar.style.width=(exposing?Math.min(100,exposeT/EXPOSE_DUR*100):0).toFixed(0)+'%';
   }
 
   /* ---- rendering: scrolling respiratory trace + gating band ---- */
@@ -1815,6 +1967,8 @@ const DIBH=(function(){
     ctx.strokeStyle='rgba(61,220,151,0.5)';ctx.lineWidth=1;ctx.setLineDash([5,5]);
     ctx.beginPath();ctx.moveTo(0,yOf(GATE_HI));ctx.lineTo(cw,yOf(GATE_HI));ctx.moveTo(0,yOf(GATE_LO));ctx.lineTo(cw,yOf(GATE_LO));ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle='rgba(61,220,151,0.7)';ctx.font='11px monospace';ctx.fillText('GATE',8,yOf(GATE_HI)-5);
+    // an active exposure paints a faint blue wash so the in-progress beam-on reads clearly
+    if(exposing){ctx.fillStyle='rgba(45,212,238,0.07)';ctx.fillRect(0,0,cw,ch);}
     // trace (time -> x, oldest left). buf holds {t,amp,inGate}
     const tNow=simNow;
     ctx.lineWidth=2;
@@ -1835,47 +1989,276 @@ const DIBH=(function(){
     if(!lastTs)lastTs=ts;
     let dt=(ts-lastTs)/1000;lastTs=ts;if(dt>0.1)dt=0.1;        // clamp big gaps (tab switch)
     simNow+=dt;
-    step(dt);
+    tick(dt);
     buf.push({t:simNow,amp,inGate:inGate(amp)});
     while(buf.length>0&&buf[0].t<simNow-WIN-1)buf.shift();
-    // readouts
-    el('dibhAmp').textContent=amp.toFixed(2);
-    const ig=el('dibhInGate');const og=inGate(amp);
-    ig.textContent=og?'IN GATE':'OUT OF GATE';ig.className=og?'gate-in':'gate-out';
-    el('dibhHold').textContent=(phase==='holding'&&holdSince!=null?(simNow-holdSince):0).toFixed(1);
-    draw();
+    updateReadouts(); updateExposeBar(); draw();
     raf=requestAnimationFrame(frame);
   }
 
-  function fillScenarioSelect(){const s=el('dibhScenario');if(!s||s.options.length)return;
-    s.innerHTML=Object.keys(SCEN).map(k=>'<option value="'+k+'">'+SCEN[k].label+'</option>').join('');s.value=scen;}
   function start(){active=true;lastTs=0;cancelAnimationFrame(raf);raf=requestAnimationFrame(frame);}
   function stop(){active=false;cancelAnimationFrame(raf);raf=0;}
 
   function enter(){
-    el('dibhScreen').classList.remove('hidden');el('dibhScreen').setAttribute('aria-hidden','false');
-    fillScenarioSelect();
-    el('dibhGate').textContent=GATE_LO.toFixed(1)+'–'+GATE_HI.toFixed(1);
-    simNow=0;reset();resize();start();
+    // reset acquisition + patient state
+    acq=true; done=false; fieldIdx=0; captured=[false,false]; perField.length=0;
+    penalty=0; abortBonus=0; lastScore=null; exposing=false; exposeT=0;
+    amp=0; vel=0; target=0; phase='free'; holdSince=null; stableSince=null; inhaleSince=null;
+    coughUntil=0; coughNext=0; simNow=0; buf.length=0;
+    randomizePatient();
+    const strip=el('dibhStrip'); if(strip)strip.classList.remove('hidden');
+    document.body.classList.add('dibh-mode');
+    const g=el('dibhGate'); if(g)g.textContent=GATE_LO.toFixed(1)+'–'+GATE_HI.toFixed(1);
+    if(typeof applyCase==='function') applyCase('breastDIBH');   // load DRRs + hidden offset (portals stay hidden until beamed)
+    updateFieldLabel(); updateBadges(); updateButtons();
+    setMsg('Field 1 of 2 — coach BY VOICE into the gate: “take a deep breath in”, then “a little more / a little out” to fine-tune, “hold” to lock it. Press Beam On when steady in the gate.','');
+    const sc=el('dibhScore'); if(sc)sc.textContent='';
+    const sm=el('statusMsg'); if(sm)sm.textContent='Breast DIBH — voice-coach and acquire both fields below, then match.';
+    if(window.DIBHVoice && DIBHVoice.begin) DIBHVoice.begin();   // auto-arm hands-free listening (mic already granted at launch)
+    requestAnimationFrame(()=>{resize();});   // strip is now visible -> measure the canvas
+    start();
   }
-  function exit(keepScreen){
-    stop();
-    if(!keepScreen){const s=el('dibhScreen');if(s){s.classList.add('hidden');s.setAttribute('aria-hidden','true');}}
-    else{const s=el('dibhScreen');if(s){s.classList.add('hidden');s.setAttribute('aria-hidden','true');}}
+  function exit(){
+    stop(); acq=false; done=false; exposing=false;
+    if(window.DIBHVoice && DIBHVoice.teardown) DIBHVoice.teardown();   // abort any live mic session
+    const strip=el('dibhStrip'); if(strip)strip.classList.add('hidden');
+    document.body.classList.remove('dibh-mode');
+    ['apArea','latArea'].forEach(id=>{const a=el(id);if(a)a.classList.remove('awaiting');});
   }
-  function isOpen(){return active;}
   window.addEventListener('resize',()=>{if(active)resize();});
 
   // _dbg: headless hooks (drive the model deterministically + inspect state).
   const _dbg={
-    set:(o)=>{o=o||{};if(o.scen)scen=SCEN[o.scen]?o.scen:scen;if(o.amp!=null)amp=o.amp;if(o.phase)phase=o.phase;if(o.vel!=null)vel=o.vel;if(o.holdSince!=null)holdSince=o.holdSince;if(o.stableSince!=null)stableSince=o.stableSince;if(o.coughUntil!=null)coughUntil=o.coughUntil;if(o.active!=null)active=o.active;},
-    state:()=>({amp,vel,phase,inGate:inGate(amp),stable:stable(),delivered,penalty,abortBonus,simNow,coughActive:coughActive()}),
-    advance:(secs,d=0.016)=>{for(let t=0;t<secs;t+=d){simNow+=d;step(d);}},
-    inGate,GATE_LO,GATE_HI,HOLD,
+    set:(o)=>{o=o||{};if(o.amp!=null)amp=o.amp;if(o.target!=null)target=o.target;if(o.holdTarget!=null)holdTarget=o.holdTarget;if(o.pInhaleTarget!=null)pInhaleTarget=o.pInhaleTarget;if(o.phase)phase=o.phase;if(o.vel!=null)vel=o.vel;if(o.holdSince!=null)holdSince=o.holdSince;if(o.stableSince!=null)stableSince=o.stableSince;if(o.coughUntil!=null)coughUntil=o.coughUntil;if(o.active!=null)active=o.active;if(o.acq!=null)acq=o.acq;if(o.done!=null)done=o.done;if(o.fieldIdx!=null)fieldIdx=o.fieldIdx;if(o.captured)captured=o.captured.slice();if(o.pDrift!=null)pDrift=o.pDrift;if(o.pNoise!=null)pNoise=o.pNoise;if(o.pCough!=null)pCough=o.pCough;},
+    state:()=>({amp,vel,phase,holdTarget:+holdTarget.toFixed(2),pInhaleTarget:+pInhaleTarget.toFixed(2),inGate:inGate(amp),stable:stable(),exposing,exposeT:+exposeT.toFixed(3),fieldIdx,captured:captured.slice(),acq,done,penalty:+penalty.toFixed(2),abortBonus,simNow:+simNow.toFixed(2),coughActive:coughActive(),score:lastScore}),
+    advance:(secs,d=0.016)=>{for(let t=0;t<secs;t+=d){simNow+=d;tick(d);}},
+    cmd, beam:onBeam, abort:onAbort, randomizePatient,
+    inGate,GATE_LO,GATE_HI,HOLD,NUDGE,EXPOSE_DUR,fields:FIELDS,
   };
-  return {enter,exit,cmd,setScenario,reset,resize,isOpen,_dbg};
+  return {enter,exit,cmd,resize,acquiring,hidesPortal,_dbg};
 })();
 window.DIBH=DIBH;
+
+/* ============================================================================
+   DIBHVoice — Phase 2 microphone coaching (Web Speech API).
+   A thin, OPTIONAL voice adapter: recognized coaching phrases call the existing
+   DIBH.cmd('in'|'relax'|'beam'|'abort') — the SAME entry point the on-screen
+   buttons use, so voice is purely additive and the button core stays canonical.
+   Default = push-to-talk (hold the mic button / V key, like keying a room
+   intercom); an opt-in "Hands-free" checkbox switches to continuous listening.
+   Degrades silently (mic UI never shown) on Firefox / old Safari / iOS-standalone
+   PWA / WebView / insecure context / no mic, per the graceful-degradation
+   contract. Built against MDN + the Web Speech spec; needs real Chrome/Edge to
+   exercise (can't be tested headless). No CSP / Permissions-Policy change needed
+   (speech recognition is a JS API; mic Permissions-Policy defaults to self).
+   ============================================================================ */
+const DIBHVoice=(function(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const isPWA = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  const voicePossible = !!SR && !!window.isSecureContext && !isPWA;  // Firefox/old-Safari/PWA/file:// fall through to buttons
+
+  function el(id){return document.getElementById(id);}
+
+  // Command vocabulary: spoken phrases + common ASR mishearings -> DIBH.cmd id.
+  // VOICE handles coaching only (abort / down / up / hold / in / relax); 'beam' is intentionally NOT
+  // a voice command — delivery is a deliberate button press, so a stray/misheard word can't beam.
+  // ORDER MATTERS (matchCommand returns the first match): abort first (safety); the specific "a little"
+  // nudges (down/up) before the generic in/relax so "breathe out a little" beats "breathe out", etc.
+  const COMMANDS=[
+    {id:'abort', btn:'dibhBtnAbort', kw:['abort','stop','cancel'],
+                 hear:['a board','aboard','a bort','the board','a port']},
+    {id:'down',  btn:'dibhBtnDown',  kw:['breathe out a little','breath out a little','out a little','out a bit','a little out','a bit out','little less','a little less','a bit less','breathe out a bit','let a little out','let a bit out','let some out','less air','out a touch'],
+                 hear:['breath out a little','out little','let it out a little']},
+    {id:'up',    btn:'dibhBtnUp',    kw:['breathe in a little','breath in a little','in a little','in a bit','a little more','a bit more','little more','breathe in a bit','breathe in a touch','more air','deeper','a little in','sip in'],
+                 hear:['breath in a little','in little','breathe in a little more']},
+    {id:'hold',  btn:'dibhBtnHold',  kw:['hold it','hold your breath','hold steady','hold there','hold that','hold still','keep holding','hold'],
+                 hear:['holds','old it']},
+    {id:'in',    btn:'dibhBtnIn',    kw:['take a deep breath','deep breath in','deep breath','big breath in','big breath','breathe in','breath in','take a breath','breathe in deeply','full breath','all the way in'],
+                 hear:['breathin','breeze in','deep breathe']},
+    {id:'relax', btn:'dibhBtnRelax', kw:['breathe normally','breath normally','breathe normal','normal breathing','breathe naturally','breathe out','breath out','let it out','breathe away','relax','release','let go'],
+                 hear:['breath normally','breathe normal']},
+  ];
+  const CMD_LABEL={in:'Breathe In',hold:'Hold',up:'Breathe In a Little',down:'Breathe Out a Little',relax:'Breathe Normally',beam:'Beam On',abort:'Abort'};
+  const norm=s=>String(s||'').toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
+  function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;const d=[];for(let i=0;i<=m;i++)d[i]=[i];
+    for(let j=0;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;
+      d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+c);}return d[m][n];}
+  function matchCommand(transcript){
+    const t=norm(transcript); if(!t)return null;
+    for(const c of COMMANDS){ if(c.kw.some(p=>t.includes(p))||c.hear.some(p=>t.includes(p)))return c.id; }
+    const toks=t.split(' ');                                  // short-utterance edit-distance fallback (one-edit slips)
+    if(toks.length<=3){
+      const KEYS=[['abort',['abort','stop']],['hold',['hold']],['relax',['relax']],['in',['inhale']]];
+      for(const k of KEYS){ if(k[1].some(key=>toks.some(w=>lev(w,key)<=1)))return k[0]; }
+    }
+    return null;
+  }
+
+  let rec=null, recognizing=false, manualStop=false, ignoreOnend=false, lastStart=0, continuousMode=false;
+  let netFails=0, lastError=null, pttHeld=false;                 // consecutive network errors / last error code / mouse-held PTT
+  let firedThisUtterance=false; const lastFire={}; const COOLDOWN=1500; let idleTimer=0; let dead=false;
+
+  function pill(text,cls){const p=el('dibhMicPill');if(p){p.textContent=text;p.className='dibh-mic-pill'+(cls?(' '+cls):'');}}
+  function micLive(on){const b=el('dibhMicBtn');if(b){b.classList.toggle('live',on);b.setAttribute('aria-pressed',on?'true':'false');}}
+  function showHeard(raw,id){const h=el('dibhHeard');if(!h)return;
+    h.innerHTML = id ? ('Heard: <b>“'+raw+'”</b> → '+CMD_LABEL[id]) : (raw?('Heard: “'+raw+'”'):'');}
+  function flash(id){const c=COMMANDS.find(x=>x.id===id);if(!c)return;const b=el(c.btn);
+    if(b){b.classList.remove('voice-fire');void b.offsetWidth;b.classList.add('voice-fire');}}
+
+  function fire(id,raw){
+    const now=(window.performance&&performance.now)?performance.now():Date.now();
+    if(firedThisUtterance)return;                              // one action per spoken utterance
+    if(lastFire[id]&&now-lastFire[id]<COOLDOWN)return;         // per-command cooldown
+    firedThisUtterance=true; lastFire[id]=now;
+    showHeard(raw,id); flash(id);
+    if(window.DIBH&&DIBH.cmd)DIBH.cmd(id);                     // same entry point as the buttons
+  }
+
+  function build(){
+    rec=new SR();
+    rec.continuous=continuousMode; rec.interimResults=true; rec.maxAlternatives=3; rec.lang='en-US';
+    rec.onstart=()=>{recognizing=true;micLive(true);pill('Listening…','live');};
+    rec.onresult=(e)=>{
+      netFails=0; lastError=null;                               // a real result -> healthy session
+      const r=e.results[e.resultIndex]; if(!r)return;
+      let raw=''; const cand={};
+      for(let i=0;i<r.length;i++){                              // collect one candidate per alternative...
+        const alt=r[i]; if(!alt)continue; if(!raw)raw=alt.transcript;
+        const id=matchCommand(alt.transcript);
+        if(id && !cand[id]) cand[id]=norm(alt.transcript);
+      }
+      const pick=['abort','down','up','hold','in','relax'].find(o=>cand[o]);   // ...then resolve by safety/specificity priority (abort always wins)
+      if(pick) fire(pick, cand[pick]);
+      else if(raw && !firedThisUtterance) showHeard(norm(raw), null);
+      if(r.isFinal) firedThisUtterance=false;                  // close utterance -> re-arm
+      clearTimeout(idleTimer); idleTimer=setTimeout(()=>{firedThisUtterance=false;},1200);
+    };
+    rec.onerror=(e)=>{
+      lastError=(e&&e.error)||null;
+      switch(lastError){
+        case 'no-speech': break;                               // benign silence timeout
+        case 'network': pill('Voice offline','warn'); break;   // transient -> onend tallies toward degrade
+        case 'aborted': if(manualStop)ignoreOnend=true; break; // we stopped it
+        case 'not-allowed': case 'service-not-allowed': case 'audio-capture': case 'language-not-supported':
+          ignoreOnend=true; degrade(lastError); break;         // terminal -> buttons restored
+        default: break;
+      }
+    };
+    rec.onend=()=>{                                            // restart decision lives here (fires after onerror)
+      recognizing=false; micLive(false);
+      if(dead)return;
+      if(!continuousMode){ pill('Voice off',''); return; }     // push-to-talk: one utterance per press
+      if(manualStop||ignoreOnend){ pill('Voice off',''); return; }
+      if(!dibhAcquiring()){ pill('Voice off',''); return; }    // stop listening once coaching is over
+      if(lastError==='network'){ if(++netFails>=4){ ignoreOnend=true; degrade('network'); return; } }  // sustained outage -> buttons
+      else { netFails=0; }                                     // benign (silence) -> keep listening indefinitely
+      lastError=null;
+      startRec();                                              // benign Chrome silence stop -> respawn
+    };
+  }
+  function startRec(){
+    if(dead||!rec||recognizing)return;                         // guard: don't double-start
+    manualStop=false; ignoreOnend=false;
+    const wait=Math.max(0,1000-(Date.now()-lastStart));        // throttle tight respawns
+    setTimeout(()=>{ if(dead||recognizing||manualStop)return;
+      try{lastStart=Date.now();rec.start();}catch(err){ if(err&&err.name!=='InvalidStateError')throw err; } }, wait);
+  }
+  function stopRec(){ manualStop=true; ignoreOnend=true; if(rec){try{rec.stop();}catch(e){}} micLive(false); if(!dead)pill('Voice off',''); }
+  function abortRec(){ manualStop=true; ignoreOnend=true; if(rec){try{rec.abort();}catch(e){}} micLive(false); }
+
+  function degrade(reason){
+    dead=true; ignoreOnend=true;
+    if(rec){try{rec.abort();}catch(e){}}
+    const b=el('dibhMicBtn'); if(b)b.disabled=true;
+    const hf=el('dibhHandsfree'); if(hf){hf.checked=false;hf.disabled=true;}
+    const fb=el('dibhCoachFallback'); if(fb)fb.classList.remove('hidden');   // mic lost -> restore coaching buttons so the student isn't stuck
+    pill(reason==='not-allowed'?'Mic blocked — buttons restored'
+        :reason==='audio-capture'?'No microphone — buttons restored'
+        :reason==='network'?'Voice offline — buttons restored'
+        :'Voice unavailable — buttons restored','warn');
+  }
+  // Verify a real microphone is actually available + permitted (the case is gated on this).
+  // Resolves true only if getUserMedia grants audio; the stream is released immediately.
+  function requestAccess(){
+    if(!voicePossible) return Promise.resolve(false);
+    try{
+      if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+        return navigator.mediaDevices.getUserMedia({audio:true})
+          .then(function(stream){ stream.getTracks().forEach(function(t){t.stop();}); return true; })
+          .catch(function(){ return false; });
+      }
+    }catch(e){}
+    return Promise.resolve(true);   // no getUserMedia API but SR exists -> proceed, runtime errors degrade
+  }
+  // Auto-arm hands-free listening on entering the (mic-gated) case. Permission is already granted
+  // (requestAccess ran), so this revives from any prior denial and starts continuous recognition.
+  function begin(){
+    if(!voicePossible) return;
+    dead=false; manualStop=false; ignoreOnend=false; netFails=0; lastError=null;
+    const b=el('dibhMicBtn'); if(b)b.disabled=false;
+    const hf=el('dibhHandsfree'); if(hf){hf.disabled=false;hf.checked=true;}
+    const fb=el('dibhCoachFallback'); if(fb)fb.classList.add('hidden');
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Listening (hands-free)';
+    continuousMode=true; if(rec)rec.continuous=true;
+    startRec();
+  }
+  // Coaching done (both fields acquired): stop listening but keep the UI present.
+  function suspend(){
+    if(!voicePossible) return;
+    manualStop=true; ignoreOnend=true; continuousMode=false;
+    const hf=el('dibhHandsfree'); if(hf)hf.checked=false;
+    if(rec){ rec.continuous=false; try{rec.stop();}catch(e){} }
+    micLive(false); if(!dead)pill('Voice off','');
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
+  }
+
+  // push-to-talk (mouse / touch / V key) + hands-free toggle
+  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); pttHeld=true; startRec(); }
+  function pttUp(){ if(dead||continuousMode)return; pttHeld=false; stopRec(); }
+  function dibhAcquiring(){ return !!(window.DIBH && DIBH.acquiring && DIBH.acquiring()); }
+  function onHandsfree(){ const hf=el('dibhHandsfree'); if(!hf||dead)return;
+    continuousMode=hf.checked; if(rec)rec.continuous=continuousMode;
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent=continuousMode?'Listening (hands-free)':'Hold to talk';
+    if(continuousMode)startRec(); else stopRec();
+  }
+  function onKeyDown(e){ if(dead||continuousMode||e.repeat)return;
+    if(!(e.key==='v'||e.key==='V')||e.ctrlKey||e.metaKey||e.altKey)return;
+    const tag=(e.target&&e.target.tagName)||''; if(tag==='INPUT'||tag==='TEXTAREA')return;
+    if(!dibhAcquiring())return;                                // V = push-to-talk only while coaching a DIBH acquisition
+    startRec();
+  }
+  function onKeyUp(e){ if(dead||continuousMode)return; if(e.key==='v'||e.key==='V')stopRec(); }
+
+  function init(){
+    if(!voicePossible)return;                                  // unsupported/insecure/PWA -> mic UI stays hidden, buttons only
+    const wrap=el('dibhVoice'); if(!wrap)return;
+    build();
+    wrap.classList.remove('hidden');
+    pill('Voice off','');
+    const b=el('dibhMicBtn');
+    if(b){
+      b.addEventListener('mousedown',pttDown);
+      b.addEventListener('mouseleave',()=>{ if(pttHeld)pttUp(); });
+      b.addEventListener('touchstart',pttDown,{passive:false});
+      b.addEventListener('touchend',pttUp);
+    }
+    window.addEventListener('mouseup',()=>{ if(pttHeld)pttUp(); });   // only end a hold the mic button started
+    const hf=el('dibhHandsfree'); if(hf)hf.addEventListener('change',onHandsfree);
+    window.addEventListener('keydown',onKeyDown); window.addEventListener('keyup',onKeyUp);
+  }
+  function teardown(){                                          // called from DIBH.exit()/backToMenu -> abort cleanly
+    if(!voicePossible)return;
+    abortRec();
+    clearTimeout(idleTimer); firedThisUtterance=false; pttHeld=false; netFails=0; lastError=null;   // clear per-utterance state for a clean re-entry
+    const hf=el('dibhHandsfree'); if(hf)hf.checked=false; continuousMode=false; if(rec)rec.continuous=false;
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
+    if(!dead)pill('Voice off','');
+  }
+
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
+  return { init, teardown, requestAccess, begin, suspend, _possible:voicePossible, _match:matchCommand };
+})();
+window.DIBHVoice=DIBHVoice;
 
 function render(){ if(FID2D.active()){FID2D.render();return;} renderView(views.ap,'ap'); renderView(views.lat,'lat'); }
 
@@ -2157,6 +2540,7 @@ function attachInteractions(key){
     if(e.button===1 || (e.shiftKey && v.zoom>1)){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
+      if(window.DIBH && DIBH.acquiring && DIBH.acquiring()) return;   // DIBH: no matching until both fields are acquired
       if(axisLock){                         // couch-axis lock -> always single-axis move
         pushUndo(); mode='move'; accX=0; accY=0; area.style.cursor='move';
       } else if(dist > ringRadius(v)){
@@ -2416,6 +2800,10 @@ function rtUpdateTimerDisplays(){
 setInterval(rtUpdateTimerDisplays,100);
 function checkMatch(){
   if(FID2D.active()){ FID2D.check(); return; }
+  if(window.DIBH && DIBH.acquiring && DIBH.acquiring()){            // DIBH: must acquire both fields before matching
+    document.getElementById('statusMsg').textContent='Acquire both fields (coach a breath-hold → Beam On) before matching.';
+    return;
+  }
   const e={};
   ['x','y','z','roll','pitch'].forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
   const cc=(v,t1,t2)=>{const a=Math.abs(v);return a<=t1?'error-good':a<=t2?'error-ok':'error-bad';};
@@ -2564,7 +2952,7 @@ const CASE_LISTS={
     {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
-    {v:'breastDIBH', t:'Breast L · DIBH', d:'Breath-hold gating + match'},
+    {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
   ]},
   'cbct':{label:'CBCT', icon:'☰', cases:[
@@ -2588,8 +2976,11 @@ function pickMode(mode){
   list.cases.forEach(function(c){
     const el=document.createElement('div');
     const cid=mode+':'+c.v;
-    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'');
-    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+c.t+'</div><div class="sc-desc">'+c.d+'</div>'+rtCardStat(cid);
+    const micCase=(mode==='2d2d' && c.v==='breastDIBH');               // voice-coached, mic-gated
+    const locked=micCase && !(window.DIBHVoice && DIBHVoice._possible);
+    const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
+    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'')+(locked?' locked':'');
+    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+title+'</div><div class="sc-desc">'+c.d+'</div>'+rtCardStat(cid);
     el.onclick=function(){ launchCase(mode,c.v); };
     cp.appendChild(el);
   });
@@ -2602,9 +2993,23 @@ function backToModes(){
   document.getElementById('startSub').textContent='Select an imaging workflow';
 }
 function launchCase(mode, key){
-  // Breast DIBH: show the breath-hold coaching overlay first; a valid in-gate "Beam On" then
-  // loads the breast DRR match (DIBH.deliver -> applyCase('breastDIBH')).
-  if(mode==='2d2d' && key==='breastDIBH'){ chooseMode('2d2d'); DIBH.enter(); return; }
+  // Breast DIBH is VOICE-COACHED and gated on microphone availability: coaching commands
+  // (in/relax/abort) are spoken; only Beam On is a button. Block entry unless the Web Speech API
+  // is usable AND a real mic grants access, then open the match screen (DIBH.enter auto-arms voice).
+  if(mode==='2d2d' && key==='breastDIBH'){
+    const note=document.getElementById('startNote');
+    if(!(window.DIBHVoice && DIBHVoice._possible)){
+      if(note){ note.textContent='Breast L · DIBH is voice-coached — it needs a microphone and a supported browser (Chrome or Edge).'; note.classList.add('warn'); }
+      return;
+    }
+    if(note){ note.textContent='Requesting microphone access for voice coaching…'; note.classList.remove('warn'); }
+    DIBHVoice.requestAccess().then(function(ok){
+      if(!ok){ if(note){ note.textContent='Microphone access is required for Breast L · DIBH. Allow the mic and try again.'; note.classList.add('warn'); } return; }
+      if(note){ note.textContent=' '; note.classList.remove('warn'); }
+      chooseMode('2d2d'); DIBH.enter();
+    });
+    return;
+  }
   chooseMode(mode);
   if(mode==='cbct') CBCT.applyCase(key); else applyCase(key);
 }
