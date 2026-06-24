@@ -54,7 +54,7 @@ footer a{margin-right:18px;color:var(--label)}
     <tr><th>Category</th><th>Examples</th><th>Source</th></tr>
     <tr><td>Account information</td><td>Name, email address, password (hashed)</td><td>You, via our authentication provider</td></tr>
     <tr><td>Billing information</td><td>Subscription status, billing email, last 4 digits / card brand. <strong>We do not store full card numbers.</strong></td><td>Our payment processor (Stripe)</td></tr>
-    <tr><td>Usage data</td><td>Pages visited, features used, device/browser type, approximate region, timestamps</td><td>Automatically, via analytics &amp; logs</td></tr>
+    <tr><td>Usage data</td><td>Pages visited, features used, device/browser type, approximate region, timestamps</td><td>Automatically, via server logs (and analytics, if enabled)</td></tr>
     <tr><td>Training progress &amp; preferences</td><td>Cases attempted and cleared, best times and residual-error scores, experience/level, achievements, and display preferences. <strong>No real patient data is involved &mdash; all cases are fictional.</strong></td><td>Generated as you use the trainer; saved to your account</td></tr>
     <tr><td>Microphone audio (voice coaching)</td><td>Live audio captured <strong>only</strong> during the optional breath-hold (DIBH) voice-coaching case, used in real time to recognize short spoken commands. <strong>Not recorded, not stored.</strong></td><td>You, only if you grant microphone permission</td></tr>
     <tr><td>Cookies</td><td>Session/authentication and (optionally) analytics cookies</td><td>Your browser</td></tr>
@@ -78,7 +78,7 @@ footer a{margin-right:18px;color:var(--label)}
     <li><strong>Stripe</strong> — payment processing and subscription management.</li>
     <li><strong>Vercel</strong> — website hosting and delivery.</li>
     <li><strong>Cloudflare</strong> — content storage, network/DNS, and email routing for support messages.</li>
-    <li><strong>A privacy-focused analytics provider</strong> — aggregate usage analytics.</li>
+    <li><strong>A privacy-focused analytics provider</strong> — aggregate usage analytics, if enabled.</li>
   </ul>
   <p>Each processes data under its own privacy policy and our agreements with them.</p>
 
