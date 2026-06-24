@@ -3580,8 +3580,8 @@ const CBCT=(function(){
      Structures live in a bitfield label volume (PELVIS3D_LABELS, one bit each) on the SAME
      grid as the CT. Each plane reslices the labels in REFERENCE space (so the CBCT slides
      under them, like a real plan) and marching-squares traces each structure from its
-     trilinear occupancy. Body + bladder are segmented from the CT; femoral heads, prostate,
-     PTV and rectum are fitted to the measured anatomy (generate_pelvis_contours.py). */
+     trilinear occupancy. Pelvis structures: body, bladder, prostate, PTV, rectum and seminal
+     vesicles (bladder/prostate/PTV from TotalSegmentator; rectum & SV hand-drawn to the anatomy). */
   const CB_STRUCTS=[                                  // draw order: base -> target on top (pelvis)
     {key:'body',    color:'#36e06a', lw:1.3},
     {key:'bladder', color:'#ffd23f', lw:1.7},
@@ -3637,10 +3637,12 @@ const CBCT=(function(){
   ];
   PROSTATE_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
-  let LBL=null, CB_ISO_IDX=[93,66,31];                // pelvis: prostate centroid -> isocentre
-  let BRAIN_LBL=null, BRAIN_ISO_IDX=[103,74,88];      // brain:  GTV centre -> isocentre
-  let BREAST_LBL=null, BREAST_ISO_IDX=[162,45,126];   // breast: lumpectomy-cavity (boost) centre -> isocentre
-  let SPINE_LBL=null, SPINE_ISO_IDX=[100,95,66];      // spine:  target vertebra centroid -> isocentre
+  // *_ISO_IDX below are just pre-load fallbacks; each _decode*Labels() overwrites them from the label
+  // file's isoIdx (the source of truth), so keep these in sync with the data to avoid confusion.
+  let LBL=null, CB_ISO_IDX=[99,76,32];                // pelvis: prostate centroid -> isocentre
+  let BRAIN_LBL=null, BRAIN_ISO_IDX=[95,104,36];      // brain:  VS GTV centroid (left IAC/CPA) -> isocentre
+  let BREAST_LBL=null, BREAST_ISO_IDX=[162,16,126];   // breast: lumpectomy-cavity (boost) centre -> isocentre
+  let SPINE_LBL=null, SPINE_ISO_IDX=[101,110,64];     // spine:  target vertebra centroid -> isocentre
   let LUNG_LBL=null, LUNG_ISO_IDX=[60,106,58];        // lung:   RLL nodule centroid -> isocentre
   let PROSTATE_LBL=null, PROSTATE_ISO_IDX=[99,76,32];  // prostate: gland centroid -> isocentre
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
