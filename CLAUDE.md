@@ -178,7 +178,9 @@ Two workflows, picked on the start screen:
     (`SpeechRecognition && isSecureContext && !standalone-PWA`) AND `requestAccess()` (a `getUserMedia({audio:true})`
     probe) grants a real mic; otherwise the start-card is `.locked` with a 🎤 and a note explains the requirement.
     On entry `DIBH.enter()` calls `DIBHVoice.begin()` to **auto-arm hands-free** continuous listening (mic already
-    granted); `finishAcq()` calls `suspend()` to stop once both fields are acquired. A push-to-talk fallback remains
+    granted); `finishAcq()` calls `suspend()` to stop once both fields are acquired. The mic is released on every
+    exit path: `DIBH.exit()`→`teardown()` (Menu), `pagehide` (close/navigate away), and tab `visibilitychange`
+    (hidden → abort, shown → auto-resume while still acquiring) — so it never stays hot outside the case. A push-to-talk fallback remains
     (hold the mic button or **V** key, gated to an active acquisition). **Lifecycle:** `recognizing` driven from
     `onstart`/`onend`; Chrome stops on silence so `onend` respawns, but only while `dibhAcquiring()` and not after a
     terminal error; a sustained `network` outage tallies `netFails` and `degrade()`s after 4. **Phrase matching** is

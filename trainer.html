@@ -2095,7 +2095,7 @@ const DIBHVoice=(function(){
   }
 
   let rec=null, recognizing=false, manualStop=false, ignoreOnend=false, lastStart=0, continuousMode=false;
-  let netFails=0, lastError=null, pttHeld=false;                 // consecutive network errors / last error code / mouse-held PTT
+  let netFails=0, lastError=null, pttHeld=false, pausedByHide=false;   // network tally / last error / mouse-held PTT / paused because tab hidden
   let firedThisUtterance=false; const lastFire={}; const COOLDOWN=1500; let idleTimer=0; let dead=false;
 
   function pill(text,cls){const p=el('dibhMicPill');if(p){p.textContent=text;p.className='dibh-mic-pill'+(cls?(' '+cls):'');}}
@@ -2194,7 +2194,7 @@ const DIBHVoice=(function(){
   // (requestAccess ran), so this revives from any prior denial and starts continuous recognition.
   function begin(){
     if(!voicePossible) return;
-    dead=false; manualStop=false; ignoreOnend=false; netFails=0; lastError=null;
+    dead=false; manualStop=false; ignoreOnend=false; netFails=0; lastError=null; lastStart=0;   // lastStart=0 -> re-entry starts the mic promptly (no restart-throttle delay)
     const b=el('dibhMicBtn'); if(b)b.disabled=false;
     const hf=el('dibhHandsfree'); if(hf){hf.disabled=false;hf.checked=true;}
     const fb=el('dibhCoachFallback'); if(fb)fb.classList.add('hidden');
@@ -2229,6 +2229,21 @@ const DIBHVoice=(function(){
   }
   function onKeyUp(e){ if(dead||continuousMode)return; if(e.key==='v'||e.key==='V')stopRec(); }
 
+  // Release the mic when the page is left / the tab is hidden — so the mic never stays hot outside
+  // the case even if the user doesn't click Menu. Hands-free auto-resumes when the tab is shown again
+  // (only while still acquiring); push-to-talk just stops.
+  function onPageHide(){ if(rec){try{rec.abort();}catch(e){}} micLive(false); }
+  function onVisibility(){
+    if(!voicePossible||dead)return;
+    if(document.hidden){
+      pausedByHide=continuousMode;                            // resume later only if it was hands-free
+      manualStop=true; ignoreOnend=true; pttHeld=false;
+      if(rec){try{rec.abort();}catch(e){}}
+      micLive(false); if(!dead)pill(continuousMode?'Voice paused':'Voice off', continuousMode?'warn':'');
+    }else if(pausedByHide && continuousMode && dibhAcquiring()){
+      pausedByHide=false; manualStop=false; ignoreOnend=false; startRec();
+    }else{ pausedByHide=false; }
+  }
   function init(){
     if(!voicePossible)return;                                  // unsupported/insecure/PWA -> mic UI stays hidden, buttons only
     const wrap=el('dibhVoice'); if(!wrap)return;
@@ -2245,6 +2260,8 @@ const DIBHVoice=(function(){
     window.addEventListener('mouseup',()=>{ if(pttHeld)pttUp(); });   // only end a hold the mic button started
     const hf=el('dibhHandsfree'); if(hf)hf.addEventListener('change',onHandsfree);
     window.addEventListener('keydown',onKeyDown); window.addEventListener('keyup',onKeyUp);
+    window.addEventListener('pagehide',onPageHide);            // close / navigate away -> release mic
+    document.addEventListener('visibilitychange',onVisibility);// tab hidden -> stop; shown -> resume (if still acquiring)
   }
   function teardown(){                                          // called from DIBH.exit()/backToMenu -> abort cleanly
     if(!voicePossible)return;
