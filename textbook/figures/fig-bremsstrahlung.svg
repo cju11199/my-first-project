@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 280" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="560" height="280" fill="white"/>
+<text x="280" y="28" text-anchor="middle" font-size="17" font-weight="bold" fill="#0e3a4f">Bremsstrahlung ("braking radiation")</text>
+<!-- nucleus -->
+<circle cx="300" cy="150" r="22" fill="#0e3a4f"/>
+<text x="300" y="155" text-anchor="middle" font-size="13" fill="white">+</text>
+<text x="300" y="200" text-anchor="middle" font-size="12" fill="#7a8794">nucleus (high Z, e.g. tungsten)</text>
+<!-- incoming electron -->
+<line x1="60" y1="150" x2="262" y2="150" stroke="#1f7fa0" stroke-width="2.5"/>
+<polygon points="262,150 248,143 248,157" fill="#1f7fa0"/>
+<text x="70" y="140" font-size="13" fill="#1f7fa0">fast electron (e⁻)</text>
+<!-- deflected electron -->
+<path d="M322,140 Q400,110 470,80" stroke="#1f7fa0" stroke-width="2.5" fill="none"/>
+<polygon points="470,80 456,82 462,93" fill="#1f7fa0"/>
+<text x="430" y="70" font-size="12" fill="#1f7fa0">slowed, bent e⁻</text>
+<!-- emitted photon (wavy) -->
+<path d="M312,168 q10,12 20,0 q10,-12 20,0 q10,12 20,0 q10,-12 20,0 q10,12 20,0" stroke="#d98a1f" stroke-width="2.5" fill="none"/>
+<polygon points="432,168 418,161 418,175" fill="#d98a1f"/>
+<text x="345" y="205" font-size="13" fill="#d98a1f">X-ray photon</text>
+<text x="60" y="250" font-size="12" fill="#7a8794">The electron is deflected by the nucleus, loses energy, and that lost energy leaves as an x-ray.</text>
+</svg>

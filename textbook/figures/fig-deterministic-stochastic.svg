@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 290" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="640" height="290" fill="white"/>
+<text x="320" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">Deterministic vs. Stochastic Effects</text>
+<!-- left: deterministic -->
+<line x1="60" y1="240" x2="290" y2="240" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="60" y1="240" x2="60" y2="60" stroke="#1b2733" stroke-width="1.5"/>
+<path d="M60,240 L150,240 C190,240 200,120 240,90 C255,80 270,76 285,74" stroke="#1f7fa0" stroke-width="3" fill="none"/>
+<line x1="150" y1="240" x2="150" y2="60" stroke="#d98a1f" stroke-dasharray="4 3"/>
+<text x="155" y="80" font-size="12" fill="#d98a1f">threshold</text>
+<text x="175" y="270" text-anchor="middle" font-size="13" fill="#0e3a4f">Deterministic</text>
+<text x="175" y="287" text-anchor="middle" font-size="10" fill="#7a8794">severity rises after a threshold</text>
+<text x="20" y="150" font-size="11" fill="#1b2733" transform="rotate(-90 20 150)">severity →</text>
+<!-- right: stochastic -->
+<line x1="370" y1="240" x2="600" y2="240" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="370" y1="240" x2="370" y2="60" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="370" y1="240" x2="585" y2="80" stroke="#c0392b" stroke-width="3"/>
+<text x="485" y="270" text-anchor="middle" font-size="13" fill="#0e3a4f">Stochastic</text>
+<text x="485" y="287" text-anchor="middle" font-size="10" fill="#7a8794">probability rises, no threshold</text>
+<text x="330" y="150" font-size="11" fill="#1b2733" transform="rotate(-90 330 150)">probability →</text>
+<text x="378" y="248" font-size="10" fill="#7a8794">0</text>
+</svg>

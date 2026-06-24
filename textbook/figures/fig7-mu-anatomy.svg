@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 320" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="660" height="320" fill="white"/>
+<text x="330" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">Anatomy of the SAD Monitor-Unit Equation</text>
+<text x="330" y="92" text-anchor="middle" font-size="20" fill="#1b2733">MU = Dose ÷ ( D₀ × TMR × S_c × S_p × WF × TF )</text>
+<line x1="150" y1="105" x2="150" y2="150" stroke="#1f7fa0" stroke-width="1.3"/>
+<text x="150" y="170" text-anchor="middle" font-size="11" fill="#1f7fa0">D₀: machine</text>
+<text x="150" y="184" text-anchor="middle" font-size="11" fill="#1f7fa0">output (cGy/MU)</text>
+<line x1="245" y1="105" x2="245" y2="205" stroke="#d98a1f" stroke-width="1.3"/>
+<text x="245" y="225" text-anchor="middle" font-size="11" fill="#d98a1f">TMR: depth +</text>
+<text x="245" y="239" text-anchor="middle" font-size="11" fill="#d98a1f">field-size factor</text>
+<line x1="330" y1="105" x2="330" y2="150" stroke="#0e3a4f" stroke-width="1.3"/>
+<text x="330" y="170" text-anchor="middle" font-size="11" fill="#0e3a4f">S_c: collimator</text>
+<text x="330" y="184" text-anchor="middle" font-size="11" fill="#0e3a4f">(head) scatter</text>
+<line x1="395" y1="105" x2="395" y2="205" stroke="#2e8b57" stroke-width="1.3"/>
+<text x="395" y="225" text-anchor="middle" font-size="11" fill="#2e8b57">S_p: phantom</text>
+<text x="395" y="239" text-anchor="middle" font-size="11" fill="#2e8b57">(patient) scatter</text>
+<line x1="470" y1="105" x2="470" y2="150" stroke="#c0392b" stroke-width="1.3"/>
+<text x="470" y="170" text-anchor="middle" font-size="11" fill="#c0392b">WF: wedge</text>
+<text x="470" y="184" text-anchor="middle" font-size="11" fill="#c0392b">factor</text>
+<line x1="525" y1="105" x2="525" y2="205" stroke="#7a8794" stroke-width="1.3"/>
+<text x="525" y="225" text-anchor="middle" font-size="11" fill="#7a8794">TF: tray /</text>
+<text x="525" y="239" text-anchor="middle" font-size="11" fill="#7a8794">block factor</text>
+<text x="330" y="285" text-anchor="middle" font-size="12" fill="#7a8794">Every factor in the denominator that makes less dose per MU → more MUs are needed.</text>
+</svg>

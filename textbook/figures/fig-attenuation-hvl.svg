@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 580 320" font-family="DejaVu Sans, Arial, sans-serif"><rect x="0" y="0" width="580" height="320" fill="white"/>
+<text x="290" y="26" text-anchor="middle" font-size="16" font-weight="bold" fill="#0e3a4f">Exponential Attenuation &amp; Half-Value Layer</text>
+<line x1="70" y1="270" x2="540" y2="270" stroke="#1b2733" stroke-width="1.5"/>
+<line x1="70" y1="270" x2="70" y2="55" stroke="#1b2733" stroke-width="1.5"/>
+<text x="305" y="305" text-anchor="middle" font-size="13" fill="#1b2733">Thickness of shielding  →</text>
+<text x="40" y="165" text-anchor="middle" font-size="13" fill="#1b2733" transform="rotate(-90 40 165)">Beam intensity →</text>
+<path d="M70,70 C150,150 210,205 290,228 C360,247 440,258 540,263" stroke="#1f7fa0" stroke-width="3" fill="none"/>
+<!-- HVL markers -->
+<line x1="70" y1="70" x2="540" y2="70" stroke="#dde6ec" stroke-dasharray="3 3"/>
+<line x1="187" y1="149" x2="187" y2="270" stroke="#d98a1f" stroke-dasharray="4 3"/>
+<line x1="304" y1="189" x2="304" y2="270" stroke="#d98a1f" stroke-dasharray="4 3"/>
+<line x1="421" y1="229" x2="421" y2="270" stroke="#d98a1f" stroke-dasharray="4 3"/>
+<text x="46" y="74" font-size="11" fill="#7a8794">100%</text>
+<text x="150" y="144" font-size="11" fill="#d98a1f">50% (1 HVL)</text>
+<text x="300" y="184" font-size="11" fill="#d98a1f">25% (2)</text>
+<text x="405" y="223" font-size="11" fill="#d98a1f">12.5% (3)</text>
+</svg>
