@@ -982,6 +982,7 @@ html:not(.auth-pending) #authGate{display:none}
             <div class="key-line"><span>Hold <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span>+drag</span> Lock A&#8209;P / S&#8209;I / L&#8209;R</div>
             <div class="key-line"><span><span class="kbd">Q</span><span class="kbd">E</span></span> Roll</div>
             <div class="key-line"><span><span class="kbd">A</span><span class="kbd">D</span></span> Pitch</div>
+            <div class="key-line"><span><span class="kbd kfinerot">Ctrl</span>+<span class="kbd">&larr;</span><span class="kbd">&rarr;</span></span> Fine rotate 0.1&deg;</div>
             <div class="key-line"><span><span class="kbd">+</span><span class="kbd">&minus;</span> / wheel</span> Zoom</div>
             <div class="key-line"><span><span class="kbd">[</span><span class="kbd">]</span></span> Blend</div>
             <div class="key-line"><span><span class="kbd kmod">Ctrl</span>+<span class="kbd">A</span></span> Flip / flicker</div>
@@ -2941,6 +2942,8 @@ function macifyLabels(){
     if(t==='Ctrl') el.textContent='⌘';
     else if(t==='Alt') el.textContent='⌥';
   });
+  // Fine-rotate modifier: macOS reserves Ctrl+←/→ for spaces, so show ⌥ (Option) on Mac.
+  document.querySelectorAll('.kbd.kfinerot').forEach(function(el){ el.textContent='⌥'; });
   document.querySelectorAll('[data-macmod]').forEach(function(el){
     if(el.children.length===0)
       el.textContent=el.textContent.replace(/Ctrl/g,'⌘').replace(/\bAlt\b/g,'⌥');
@@ -2985,9 +2988,11 @@ document.addEventListener('keydown',e=>{
     flipBlend(activeView);
     return;
   }
-  // Ctrl + Left/Right : rotate the active view in 0.1 deg steps
-  //   AP/PA selected  -> roll ;  Lateral selected -> pitch
-  if((e.ctrlKey||e.metaKey) && (e.key==='ArrowLeft'||e.key==='ArrowRight')){
+  // Fine rotate (0.1°): Ctrl/⌘+Left/Right, or ⌥(Option)+Left/Right on Mac.
+  //   macOS reserves Ctrl+←/→ for Mission Control spaces (the OS eats it before the
+  //   page, ejecting you from the trainer), so Mac users rotate with ⌥ or ⌘ + ←/→.
+  //   AP/PA selected -> roll ; Lateral selected -> pitch.
+  if((e.ctrlKey||e.metaKey||(IS_MAC&&e.altKey)) && (e.key==='ArrowLeft'||e.key==='ArrowRight')){
     e.preventDefault();
     const dir=(e.key==='ArrowRight')?1:-1;
     moveShift(activeView==='ap'?'roll':'pitch', dir*0.1);
@@ -4478,8 +4483,9 @@ const CBCT=(function(){
       Object.keys(PLANES).forEach(name=>{const st=ST[name];st.blend=100-st.blend;const sl=gid(PLANES[name].sl);if(sl)sl.value=st.blend;drawPlane(name);});
       return;
     }
-    // Ctrl+Left/Right: rotate active plane's axis 0.1°/press (mirrors 2D-2D Ctrl+arrow)
-    if((e.ctrlKey||e.metaKey)&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){
+    // Fine rotate 0.1°/press: Ctrl/⌘+arrow, or ⌥(Option)+arrow on Mac (macOS reserves
+    // Ctrl+←/→ for spaces, so Option/⌘ are the Mac-safe modifiers). Mirrors 2D-2D fine-rotate.
+    if((e.ctrlKey||e.metaKey||(IS_MAC&&e.altKey))&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){
       e.preventDefault();
       const _rd=PLANES[active].rot==='pitch'?-1:1;adj(PLANES[active].rot,_rd*(e.key==='ArrowRight'?1:-1)*0.1);
       return;
