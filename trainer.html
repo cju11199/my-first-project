@@ -497,6 +497,7 @@ html:not(.auth-pending) #authGate{display:none}
 .dibh-mic{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);color:var(--text);border-radius:9px;padding:8px 13px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none}
 .dibh-mic:hover{border-color:var(--accent)}
 .dibh-mic .mic-ico{font-size:14px;line-height:1}
+.dibh-btn .kbd,.dibh-mic .kbd{font-family:var(--mono),monospace;font-size:9px;font-weight:600;opacity:.85;border:1px solid currentColor;border-radius:4px;padding:1px 4px;margin-left:6px;vertical-align:middle;white-space:nowrap}
 .dibh-mic.live{background:linear-gradient(135deg,var(--green),#1f9d6b);color:#04140d;border-color:transparent}
 .dibh-mic:disabled{opacity:.45;cursor:not-allowed}
 .dibh-handsfree{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--label);cursor:pointer;user-select:none}
@@ -819,7 +820,7 @@ html:not(.auth-pending) #authGate{display:none}
         <span class="pips"><span class="pip cur" id="dibhPip0"></span><span class="pip" id="dibhPip1"></span></span>
       </div>
       <div class="dibh-controls">
-        <button class="dibh-btn beam" id="dibhBtnBeam" onclick="DIBH.cmd('beam')">Beam On</button>
+        <button class="dibh-btn beam" id="dibhBtnBeam" onclick="DIBH.cmd('beam')" title="Deliver the current field — or press Enter">Beam On <span class="kbd">&crarr; Enter</span></button>
       </div>
       <!-- Coaching commands (in / relax / abort) are issued BY VOICE. These buttons stay in the DOM
            but hidden; they're revealed only as a fallback if the microphone fails mid-session. -->
@@ -835,8 +836,8 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="dibh-voice hidden" id="dibhVoice">
         <button class="dibh-mic" id="dibhMicBtn" type="button" aria-pressed="false"
           aria-label="Push to talk — hold to speak a coaching command"
-          title="Coach by voice: “take a deep breath in”, “hold”, “breathe in a little”, “breathe out a little”, “breathe normally”, “abort”. (Hold the mic or the V key for push-to-talk.) Press the Beam On button to deliver.">
-          <span class="mic-ico" aria-hidden="true">&#127908;</span><span id="dibhMicLbl">Hold to talk</span>
+          title="Push-to-talk: hold this mic button or the SPACE bar and speak — “take a deep breath in”, “hold”, “breathe in a little”, “breathe out a little”, “breathe normally”, “abort”. Press ENTER (or the Beam On button) to deliver.">
+          <span class="mic-ico" aria-hidden="true">&#127908;</span><span id="dibhMicLbl">Hold to talk</span><span class="kbd">Space</span>
         </button>
         <label class="dibh-handsfree" title="Listen continuously instead of holding to talk"><input type="checkbox" id="dibhHandsfree">Hands-free</label>
         <span class="dibh-mic-pill" id="dibhMicPill" aria-live="polite">Voice off</span>
@@ -2011,7 +2012,7 @@ const DIBH=(function(){
     const g=el('dibhGate'); if(g)g.textContent=GATE_LO.toFixed(1)+'–'+GATE_HI.toFixed(1);
     if(typeof applyCase==='function') applyCase('breastDIBH');   // load DRRs + hidden offset (portals stay hidden until beamed)
     updateFieldLabel(); updateBadges(); updateButtons();
-    setMsg('Field 1 of 2 — coach BY VOICE into the gate: “take a deep breath in”, then “a little more / a little out” to fine-tune, “hold” to lock it. Press Beam On when steady in the gate.','');
+    setMsg('Field 1 of 2 — hold SPACE (or the mic) and coach into the gate: “take a deep breath in”, then “a little more / a little out” to fine-tune, “hold” to lock it. Press ENTER to beam when steady in the gate.','');
     const sc=el('dibhScore'); if(sc)sc.textContent='';
     const sm=el('statusMsg'); if(sm)sm.textContent='Breast DIBH — voice-coach and acquire both fields below, then match.';
     if(window.DIBHVoice && DIBHVoice.begin) DIBHVoice.begin();   // auto-arm hands-free listening (mic already granted at launch)
@@ -2095,7 +2096,7 @@ const DIBHVoice=(function(){
   }
 
   let rec=null, recognizing=false, manualStop=false, ignoreOnend=false, lastStart=0, continuousMode=false;
-  let netFails=0, lastError=null, pttHeld=false, pausedByHide=false;   // network tally / last error / mouse-held PTT / paused because tab hidden
+  let netFails=0, lastError=null, pttHeld=false, spaceHeld=false, pausedByHide=false;   // network tally / last error / mouse-held PTT / Space-held PTT / paused (tab hidden)
   let firedThisUtterance=false; const lastFire={}; const COOLDOWN=1500; let idleTimer=0; let dead=false;
 
   function pill(text,cls){const p=el('dibhMicPill');if(p){p.textContent=text;p.className='dibh-mic-pill'+(cls?(' '+cls):'');}}
@@ -2191,16 +2192,17 @@ const DIBHVoice=(function(){
     return Promise.resolve(true);   // no getUserMedia API but SR exists -> proceed, runtime errors degrade
   }
   // Auto-arm hands-free listening on entering the (mic-gated) case. Permission is already granted
-  // (requestAccess ran), so this revives from any prior denial and starts continuous recognition.
+  // (requestAccess ran), so this revives from any prior denial and arms PUSH-TO-TALK (the mic stays
+  // idle until the student holds Space or the mic button; Hands-free is an opt-in checkbox).
   function begin(){
     if(!voicePossible) return;
-    dead=false; manualStop=false; ignoreOnend=false; netFails=0; lastError=null; lastStart=0;   // lastStart=0 -> re-entry starts the mic promptly (no restart-throttle delay)
+    dead=false; manualStop=false; ignoreOnend=false; netFails=0; lastError=null; lastStart=0; spaceHeld=false; pttHeld=false;
     const b=el('dibhMicBtn'); if(b)b.disabled=false;
-    const hf=el('dibhHandsfree'); if(hf){hf.disabled=false;hf.checked=true;}
+    const hf=el('dibhHandsfree'); if(hf){hf.disabled=false;hf.checked=false;}
     const fb=el('dibhCoachFallback'); if(fb)fb.classList.add('hidden');
-    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Listening (hands-free)';
-    continuousMode=true; if(rec)rec.continuous=true;
-    startRec();
+    const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
+    continuousMode=false; if(rec)rec.continuous=false;
+    pill('Hold Space to talk','');
   }
   // Coaching done (both fields acquired): stop listening but keep the UI present.
   function suspend(){
@@ -2213,7 +2215,7 @@ const DIBHVoice=(function(){
   }
 
   // push-to-talk (mouse / touch / V key) + hands-free toggle
-  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); pttHeld=true; startRec(); }
+  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); pttHeld=true; lastStart=0; startRec(); }   // lastStart=0 -> user-held PTT starts immediately (throttle is only for auto-restart)
   function pttUp(){ if(dead||continuousMode)return; pttHeld=false; stopRec(); }
   function dibhAcquiring(){ return !!(window.DIBH && DIBH.acquiring && DIBH.acquiring()); }
   function onHandsfree(){ const hf=el('dibhHandsfree'); if(!hf||dead)return;
@@ -2221,13 +2223,27 @@ const DIBHVoice=(function(){
     const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent=continuousMode?'Listening (hands-free)':'Hold to talk';
     if(continuousMode)startRec(); else stopRec();
   }
-  function onKeyDown(e){ if(dead||continuousMode||e.repeat)return;
-    if(!(e.key==='v'||e.key==='V')||e.ctrlKey||e.metaKey||e.altKey)return;
-    const tag=(e.target&&e.target.tagName)||''; if(tag==='INPUT'||tag==='TEXTAREA')return;
-    if(!dibhAcquiring())return;                                // V = push-to-talk only while coaching a DIBH acquisition
-    startRec();
+  // Keyboard shortcuts, active only while coaching a DIBH acquisition:
+  //   SPACE (hold) = push-to-talk    ·    ENTER = Beam On
+  function isTyping(e){ const t=(e.target&&e.target.tagName)||''; return t==='INPUT'||t==='TEXTAREA'||t==='SELECT'; }
+  function onKeyDown(e){
+    if(!dibhAcquiring()||e.ctrlKey||e.metaKey||e.altKey||isTyping(e))return;
+    if(e.key==='Enter'){                                       // Enter -> Beam On (deliver the current field)
+      e.preventDefault();
+      if(!e.repeat && window.DIBH && DIBH.cmd) DIBH.cmd('beam');
+      return;
+    }
+    if(e.code==='Space'||e.key===' '){                         // Space (hold) -> push-to-talk
+      e.preventDefault();                                      // stop page scroll + focused-button activation
+      if(dead||continuousMode||e.repeat)return;
+      spaceHeld=true; lastStart=0; startRec();                 // immediate start for user-held PTT
+    }
   }
-  function onKeyUp(e){ if(dead||continuousMode)return; if(e.key==='v'||e.key==='V')stopRec(); }
+  function onKeyUp(e){
+    if(e.code==='Space'||e.key===' '){
+      if(spaceHeld){ e.preventDefault(); spaceHeld=false; stopRec(); }   // only act on a Space PTT we started
+    }
+  }
 
   // Release the mic when the page is left / the tab is hidden — so the mic never stays hot outside
   // the case even if the user doesn't click Menu. Hands-free auto-resumes when the tab is shown again

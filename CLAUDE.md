@@ -177,13 +177,17 @@ Two workflows, picked on the start screen:
     press, so a stray/misheard word can't beam. **Access gate:** `launchCase('2d2d','breastDIBH')` blocks unless `DIBHVoice._possible`
     (`SpeechRecognition && isSecureContext && !standalone-PWA`) AND `requestAccess()` (a `getUserMedia({audio:true})`
     probe) grants a real mic; otherwise the start-card is `.locked` with a 🎤 and a note explains the requirement.
-    On entry `DIBH.enter()` calls `DIBHVoice.begin()` to **auto-arm hands-free** continuous listening (mic already
-    granted); `finishAcq()` calls `suspend()` to stop once both fields are acquired. The mic is released on every
-    exit path: `DIBH.exit()`→`teardown()` (Menu), `pagehide` (close/navigate away), and tab `visibilitychange`
-    (hidden → abort, shown → auto-resume while still acquiring) — so it never stays hot outside the case. A push-to-talk fallback remains
-    (hold the mic button or **V** key, gated to an active acquisition). **Lifecycle:** `recognizing` driven from
-    `onstart`/`onend`; Chrome stops on silence so `onend` respawns, but only while `dibhAcquiring()` and not after a
-    terminal error; a sustained `network` outage tallies `netFails` and `degrade()`s after 4. **Phrase matching** is
+    On entry `DIBH.enter()` calls `DIBHVoice.begin()` to **arm push-to-talk** (the mic stays idle until held). The
+    student coaches by **holding the mic button or the SPACE bar** to talk, and presses **ENTER** (or the Beam On
+    button) to deliver — both keys handled in `onKeyDown`/`onKeyUp`, gated to `dibhAcquiring()`, with Space
+    `preventDefault`ed (no scroll / focused-button activation) and a `spaceHeld` guard. **Hands-free** continuous
+    listening is an opt-in checkbox (`onHandsfree`); `finishAcq()` calls `suspend()` to stop once both fields are
+    acquired. The mic is released on every exit path: `DIBH.exit()`→`teardown()` (Menu), `pagehide`
+    (close/navigate away), and tab `visibilitychange` (hidden → abort, shown → auto-resume only if it was hands-free)
+    — so it never stays hot outside the case. User-initiated PTT starts reset `lastStart` so they fire immediately
+    (the restart throttle only guards the hands-free auto-restart). **Lifecycle:** `recognizing` driven from
+    `onstart`/`onend`; in hands-free Chrome stops on silence so `onend` respawns, but only while `dibhAcquiring()` and
+    not after a terminal error; a sustained `network` outage tallies `netFails` and `degrade()`s after 4. **Phrase matching** is
     normalized substring + synonym/mishearing tables; `onresult` collects a candidate per recognition alternative and
     resolves by **safety/specificity priority `abort`→`down`→`up`→`hold`→`in`→`relax`** (abort always wins across
     alternatives; the specific "a little" nudges beat the generic in/relax so "breathe out a little" isn't read as
