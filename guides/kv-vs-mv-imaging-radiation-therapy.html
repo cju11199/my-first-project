@@ -1,0 +1,234 @@
+<!-- Copyright (c) 2026 Craig Utter. All rights reserved. See LICENSE. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A clear guide to kV vs MV imaging in radiation therapy: how kilovoltage and megavoltage setup imaging differ, planar images vs CBCT, dose and image quality, the on-board imager and EPID, and when each is used for IGRT.">
+<title>kV vs MV Imaging in Radiation Therapy — RT Image Matching Guide</title>
+<link rel="canonical" href="https://rtimagematch.com/guides/kv-vs-mv-imaging-radiation-therapy">
+<meta name="theme-color" content="#070a0f">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="RT Image Matching Trainer">
+<meta property="og:title" content="kV vs MV Imaging in Radiation Therapy">
+<meta property="og:description" content="How kilovoltage and megavoltage setup imaging differ — planar images vs CBCT, dose and contrast, the on-board imager and EPID, and when each is used for IGRT.">
+<meta property="og:url" content="https://rtimagematch.com/guides/kv-vs-mv-imaging-radiation-therapy">
+<meta property="og:image" content="https://rtimagematch.com/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="kV vs MV Imaging in Radiation Therapy">
+<meta name="twitter:description" content="Kilovoltage vs megavoltage setup imaging — planar vs CBCT, dose and contrast, on-board imager and EPID, and when each is used.">
+<meta name="twitter:image" content="https://rtimagematch.com/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "TechArticle",
+      "headline": "kV vs MV Imaging in Radiation Therapy",
+      "description": "A guide to kilovoltage and megavoltage imaging in radiation therapy: planar images vs CBCT, dose and image quality, the on-board imager and EPID, and when each modality is used for IGRT.",
+      "image": "https://rtimagematch.com/og-image.png",
+      "datePublished": "2026-06-24",
+      "dateModified": "2026-06-24",
+      "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
+      "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
+      "mainEntityOfPage": "https://rtimagematch.com/guides/kv-vs-mv-imaging-radiation-therapy"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://rtimagematch.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Guides", "item": "https://rtimagematch.com/guides" },
+        { "@type": "ListItem", "position": 3, "name": "kV vs MV imaging", "item": "https://rtimagematch.com/guides/kv-vs-mv-imaging-radiation-therapy" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What is the difference between kV and MV imaging?", "acceptedAnswer": { "@type": "Answer", "text": "kV (kilovoltage) imaging uses a low-energy diagnostic-style X-ray tube on the treatment machine, giving high-contrast images at low dose. MV (megavoltage) imaging uses the treatment beam itself (millions of volts) detected by an electronic portal imaging device. MV images are lower contrast and higher dose but verify the actual treatment beam and are unaffected by high-density implants. Most IGRT today uses kV imaging." } },
+        { "@type": "Question", "name": "What is an EPID?", "acceptedAnswer": { "@type": "Answer", "text": "An EPID (electronic portal imaging device) is the flat-panel detector mounted opposite the treatment head that captures megavoltage portal images using the treatment beam. It replaced film for verifying beam aperture and patient position, and can also be used for in-vivo dosimetry and machine QA." } },
+        { "@type": "Question", "name": "Is kV or MV imaging better?", "acceptedAnswer": { "@type": "Answer", "text": "Neither is universally better — they are suited to different jobs. kV imaging gives better soft-tissue and bone contrast at lower dose and is the default for most daily setup verification and cone-beam CT. MV imaging is valuable when imaging through high-density metal implants that would streak a kV image, and when verifying the treatment beam aperture itself." } }
+    ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:760px;margin:0 auto;padding:0 22px}
+.bar{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
+.bar .wrap{max-width:940px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-weight:700;display:flex;align-items:center;gap:9px;color:var(--text)}
+.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+nav a{color:var(--label);font-size:14px;margin-left:20px}
+nav a:hover{color:var(--text);text-decoration:none}
+nav a.cta{color:var(--accent)}
+.crumb{font-size:13px;color:var(--muted);margin:26px 0 0}
+.crumb a{color:var(--label)}
+article{padding:10px 0 20px}
+h1{font-size:clamp(28px,4.4vw,40px);letter-spacing:-.6px;line-height:1.12;margin:10px 0}
+.meta{color:var(--muted);font-size:13.5px;margin-bottom:6px}
+.lede{color:var(--label);font-size:19px;line-height:1.55;margin:14px 0 8px}
+h2{font-size:24px;letter-spacing:-.3px;margin:38px 0 12px;line-height:1.2}
+h3{font-size:18px;margin:26px 0 8px;color:var(--text)}
+p{color:var(--label);font-size:16px;margin-bottom:14px}
+ul,ol{color:var(--label);font-size:16px;padding-left:22px;margin-bottom:14px}
+li{margin-bottom:8px}
+strong{color:var(--text)}
+.toc{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:18px 22px;margin:26px 0}
+.toc h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.toc a{display:block;padding:4px 0;font-size:15px}
+.dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
+.dof div{display:grid;grid-template-columns:130px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
+.dof div:first-child{border-top:none}
+.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof span{color:var(--label);padding:11px 14px}
+.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout p{color:#ffd9c7;margin:0;font-size:14px}
+.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip p{color:#bff3da;margin:0;font-size:14.5px}
+.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
+.cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn:hover{text-decoration:none}
+.faq h3{margin:18px 0 6px}
+.next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
+.next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
+.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
+footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
+footer .wrap{max-width:940px}
+footer a{margin-right:18px;color:var(--label)}
+</style>
+</head>
+<body>
+<div class="bar"><div class="wrap">
+  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
+</div></div>
+
+<main class="wrap">
+  <p class="crumb"><a href="/">Home</a> &rsaquo; <a href="/guides">Guides</a> &rsaquo; kV vs MV imaging</p>
+  <article>
+    <h1>kV vs MV imaging in radiation therapy</h1>
+    <p class="meta">A guide for radiation therapy students · ~7 min read</p>
+    <p class="lede">Every image-guided treatment starts with an X-ray, but not all treatment-machine X-rays are the same. <strong>Kilovoltage (kV)</strong> and <strong>megavoltage (MV)</strong> imaging use beams that differ by a factor of a thousand in energy, and that single difference shapes their image quality, dose, and the jobs they're best at. This guide explains how kV and MV imaging differ, what hardware produces each, and when a therapist reaches for one over the other.</p>
+
+    <div class="toc">
+      <h4>On this page</h4>
+      <a href="#energy">Two beams, a thousandfold apart</a>
+      <a href="#kv">kV imaging and the on-board imager</a>
+      <a href="#mv">MV imaging and the EPID</a>
+      <a href="#compare">kV vs MV at a glance</a>
+      <a href="#planar-cbct">Planar images vs cone-beam CT</a>
+      <a href="#when">When each is used</a>
+      <a href="#matching">How this connects to image matching</a>
+      <a href="#pitfalls">Common pitfalls</a>
+      <a href="#practice">How to practice</a>
+      <a href="#faq">FAQ</a>
+    </div>
+
+    <h2 id="energy">Two beams, a thousandfold apart</h2>
+    <p>The energy of an X-ray beam decides how it interacts with the body, and that drives image contrast. <strong>Kilovoltage</strong> beams (tens to ~150 kV, like a diagnostic X-ray tube) are low enough in energy that dense tissue such as bone absorbs them far more than soft tissue does — so kV images show <em>high contrast</em> between bone, soft tissue, and air. <strong>Megavoltage</strong> beams (the multi-million-volt treatment beam, typically 6 MV and up) are so energetic that bone and soft tissue absorb them almost equally, which flattens contrast and makes MV images look washed-out by comparison.</p>
+    <p>That contrast difference is the single fact that explains most of what follows.</p>
+
+    <h2 id="kv">kV imaging and the on-board imager</h2>
+    <p>Modern linacs carry a separate <strong>kV imaging system</strong> — an X-ray tube and a flat-panel detector on retractable arms, mounted at right angles to the treatment beam (Varian calls this the On-Board Imager; Elekta integrates a similar kV panel). Because it's an independent diagnostic-quality source, it can take:</p>
+    <ul>
+      <li><strong>kV planar (2D) radiographs</strong> — a quick orthogonal pair (for example AP + lateral) for bony or fiducial setup verification at very low dose.</li>
+      <li><strong>kV cone-beam CT</strong> — rotating the source and panel around the patient to reconstruct a 3D volume for soft-tissue matching.</li>
+      <li><strong>Fluoroscopy / live tracking</strong> — real-time imaging for motion management and gating.</li>
+    </ul>
+    <p>kV imaging is the default for most daily IGRT because it gives the best image quality for the lowest imaging dose.</p>
+
+    <h2 id="mv">MV imaging and the EPID</h2>
+    <p><strong>Megavoltage imaging</strong> uses the treatment beam itself. Opposite the treatment head sits an <strong>EPID</strong> (electronic portal imaging device) — a flat-panel detector that captures the beam after it passes through the patient. The resulting <strong>portal image</strong> is what the treatment beam "sees".</p>
+    <p>MV has real strengths despite its lower contrast:</p>
+    <ul>
+      <li><strong>It verifies the actual treatment beam</strong> — the field shape and aperture, exactly as delivered.</li>
+      <li><strong>It cuts through metal.</strong> High-density implants (hip prostheses, dense fillers) cause severe streak artifacts on kV but are far less disruptive at megavoltage energies.</li>
+      <li><strong>It needs no extra hardware energy source</strong> — it reuses the treatment beam, and the EPID also supports in-vivo dosimetry and machine QA.</li>
+    </ul>
+
+    <h2 id="compare">kV vs MV at a glance</h2>
+    <div class="dof">
+      <div><b>Energy</b><span>kV: ~tens–150 kV · MV: 6 MV and up (the treatment beam).</span></div>
+      <div><b>Contrast</b><span>kV: high (bone/soft tissue/air distinct) · MV: low (flat, washed-out).</span></div>
+      <div><b>Imaging dose</b><span>kV: lower · MV: higher for the same image.</span></div>
+      <div><b>Hardware</b><span>kV: on-board imager (separate tube + panel) · MV: EPID using the treatment beam.</span></div>
+      <div><b>Metal artifact</b><span>kV: heavy streaking · MV: largely sees through implants.</span></div>
+      <div><b>Typical use</b><span>kV: daily setup, CBCT, fiducials · MV: beam/aperture check, imaging through metal.</span></div>
+    </div>
+
+    <h2 id="planar-cbct">Planar images vs cone-beam CT</h2>
+    <p>It helps to keep two distinctions separate: <strong>energy</strong> (kV vs MV) and <strong>dimensionality</strong> (2D planar vs 3D volumetric).</p>
+    <ul>
+      <li><strong>Planar (2D)</strong> imaging takes flat projection radiographs. An orthogonal <em>pair</em> — usually AP/PA plus lateral — is enough to localise in all three translation directions. This is the basis of <strong>2D/2D matching</strong>, where each portal image is registered to a <a href="/guides/2d-2d-portal-vs-drr-matching">digitally reconstructed radiograph (DRR)</a> from the plan.</li>
+      <li><strong>Cone-beam CT (3D)</strong> reconstructs a volume so you can match on soft tissue and assess all six degrees of freedom. See <a href="/guides/cbct-6dof-registration">CBCT 6DOF registration</a> for how that works.</li>
+    </ul>
+    <p>Both kV and MV can do planar imaging; kV is the standard source for cone-beam CT on most linacs (MV-CBCT exists but is less common).</p>
+
+    <div class="tip"><p><strong>Don't conflate the two axes:</strong> "kV vs MV" is about beam <em>energy</em> and image contrast; "2D/2D vs CBCT" is about <em>dimensionality</em>. A daily check might be kV-planar (2D/2D) one site and kV-CBCT (3D) another — same source, different dimensionality.</p></div>
+
+    <h2 id="when">When each is used</h2>
+    <ul>
+      <li><strong>Routine daily setup</strong> — usually kV: low dose, good contrast, fast planar pairs or CBCT depending on the site.</li>
+      <li><strong>Fiducial-based localisation</strong> (e.g. prostate gold seeds) — kV planar pairs show the seeds crisply at low dose.</li>
+      <li><strong>Patients with metal implants</strong> — MV portal imaging can verify position where kV would streak out.</li>
+      <li><strong>Beam aperture / field verification</strong> — MV, because it images the treatment beam itself.</li>
+      <li><strong>Soft-tissue targets</strong> — kV-CBCT for volumetric soft-tissue matching.</li>
+    </ul>
+
+    <h2 id="matching">How this connects to image matching</h2>
+    <p>Whatever the source, the therapist's job is the same: register the daily setup image to the planning reference and read off the couch correction. With <strong>kV or MV planar pairs</strong> that's a 2D/2D match to DRRs — a 5DOF correction on bony landmarks or fiducials. With <strong>kV-CBCT</strong> it's a 3D registration with full 6DOF assessment. The imaging modality changes the picture's contrast and what artifacts you'll fight, but the matching skill — lining up anatomy and judging when it's "good enough" against tolerance — carries across all of them.</p>
+
+    <h2 id="pitfalls">Common pitfalls</h2>
+    <ul>
+      <li><strong>Expecting CT-like contrast from MV.</strong> Portal images are inherently flat — match on the strong bony edges, not subtle soft-tissue detail.</li>
+      <li><strong>Forgetting kV metal artifact.</strong> Streaks from implants can mimic or hide anatomy; this is a classic reason to switch to MV.</li>
+      <li><strong>Treating imaging dose as free.</strong> Every setup image adds dose; protocols balance imaging frequency and modality against benefit.</li>
+      <li><strong>Confusing the source with the dimensionality.</strong> kV isn't synonymous with 2D, and CBCT isn't a separate "energy" — keep the two axes straight.</li>
+    </ul>
+
+    <h2 id="practice">How to practice</h2>
+    <p>The fastest way to get comfortable with setup imaging is to do the matching itself, repeatedly, with feedback. The <a href="/trainer">RT Image Matching Trainer</a> lets you practice <strong>2D/2D portal-to-DRR matching</strong> (including a Varian-style kV fiducial case on the prostate) and <strong>CBCT 6DOF registration</strong> on real 3D volumes — with fusion, window/level, contrast tools and a live residual-error readout graded against tolerance. Working both planar and volumetric cases builds the judgement that transfers regardless of which imaging source your clinic uses.</p>
+
+    <div class="cta-box">
+      <p>Practice 2D/2D and CBCT matching<span>Planar portal-to-DRR and volumetric fusion, with live error grading.</span></p>
+      <a class="btn" href="/trainer">Open the trainer</a>
+    </div>
+
+    <h2 id="faq" class="faq">Frequently asked questions</h2>
+    <div class="faq">
+      <h3>What is the difference between kV and MV imaging?</h3>
+      <p>kV (kilovoltage) imaging uses a low-energy diagnostic-style X-ray tube on the treatment machine, giving high-contrast images at low dose. MV (megavoltage) imaging uses the treatment beam itself, detected by an electronic portal imaging device. MV images are lower contrast and higher dose but verify the actual treatment beam and see through high-density implants. Most IGRT today uses kV imaging.</p>
+      <h3>What is an EPID?</h3>
+      <p>An EPID (electronic portal imaging device) is the flat-panel detector mounted opposite the treatment head that captures megavoltage portal images using the treatment beam. It replaced film for verifying beam aperture and patient position, and can also be used for in-vivo dosimetry and machine QA.</p>
+      <h3>Is kV or MV imaging better?</h3>
+      <p>Neither is universally better — they suit different jobs. kV gives better contrast at lower dose and is the default for most daily setup verification and cone-beam CT. MV is valuable when imaging through high-density metal implants that would streak a kV image, and when verifying the treatment beam aperture itself.</p>
+    </div>
+
+    <div class="next">
+      <a href="/guides/2d-2d-portal-vs-drr-matching"><span class="k">Next guide</span><span class="t">2D/2D portal vs DRR matching &rarr;</span></a>
+      <a href="/guides/cbct-6dof-registration"><span class="k">Related</span><span class="t">CBCT 6DOF registration &rarr;</span></a>
+      <a href="/guides/prostate-fiducial-marker-matching"><span class="k">Related</span><span class="t">Prostate fiducial marker matching &rarr;</span></a>
+    </div>
+
+    <div class="callout"><p><strong>Educational use only.</strong> This guide is for learning. It is general background, not clinical protocol — always follow your department's procedures. The trainer is not a medical device and all of its imaging and values are fictional.</p></div>
+  </article>
+</main>
+
+<footer><div class="wrap">
+  <a href="/">Home</a><a href="/guides">Guides</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a><a href="/trainer">Launch trainer</a>
+</div></footer>
+</body>
+</html>
