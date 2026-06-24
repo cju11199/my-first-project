@@ -144,7 +144,13 @@ Two workflows, picked on the start screen:
     `.views` + the strip), *not* a separate overlay — the RPM-style amplitude trace (cm) animates beside the
     image panes. A shaded gating band `[GATE_LO,GATE_HI]` shows the window; the live line is **green in-gate /
     amber out**. The patient model is **fully random each acquisition** (no preset scenarios): `randomizePatient()`
-    rolls `pInhaleOff` (hold position in-gate), `pDrift` (hold sag), `pNoise`, and a ~45% `pCough` risk.
+    rolls `pInhaleTarget` (the natural full-inhale level — **usually OUTSIDE the gate**, ~50% over / ~32% under /
+    ~18% in, so the first breath rarely lands in-window and the student must coach with the "a little" nudges),
+    `pDrift` (hold sag), `pNoise`, and a ~40% `pCough` risk. The breath is driven by a **stiff spring (`SPRING_K`)**
+    so the patient reacts quickly to each command. **Coaching commands** (`cmd(...)`, voice or fallback buttons):
+    `'in'` (deep breath in → rises to `pInhaleTarget`, auto-settles into a hold), `'hold'` (lock at the current
+    amplitude — catches a rising breath mid-inhale), `'up'`/`'down'` (nudge the hold ±`NUDGE`=0.2 cm to fine-tune
+    into the gate), `'relax'` (back to free breathing), `'abort'`, and `'beam'` (button only).
     The **two breast fields are acquired separately**, each at its own breath-hold: **Beam On** (only valid
     while **in-gate AND settled**, `stable()`) starts a **timed exposure** (`EXPOSE_DUR≈1.3 s`) that the patient
     must **stay in-gate through** — drift out / cough / relax interrupts it (`failExposure`, penalty). A clean
@@ -164,9 +170,11 @@ Two workflows, picked on the start screen:
     (Chrome/Edge) verification — the model logic is headless-tested but visuals can't be.
   - **Voice coaching — Phase 2, BUILT (`DIBHVoice` module):** the Breast DIBH case is **VOICE-COACHED and gated on
     microphone availability** — coaching is done by speaking; `Beam On` is the only button. A thin **Web Speech API**
-    adapter maps spoken phrases to `DIBH.cmd('in'|'relax'|'abort')` (the SAME entry point the buttons use). **`beam`
-    is intentionally NOT a voice command** — delivery is a deliberate button press, so a stray/misheard word can't
-    beam. **Access gate:** `launchCase('2d2d','breastDIBH')` blocks unless `DIBHVoice._possible`
+    adapter maps spoken phrases to `DIBH.cmd('in'|'hold'|'up'|'down'|'relax'|'abort')` (the SAME entry point the
+    buttons use). The `COMMANDS` table carries many therapist phrasings — e.g. "take a deep breath in" → in, "hold" →
+    hold, "breathe in a little"/"a little more"/"deeper" → up, "breathe out a little"/"a little less" → down, "breathe
+    normally"/"breathe out" → relax. **`beam` is intentionally NOT a voice command** — delivery is a deliberate button
+    press, so a stray/misheard word can't beam. **Access gate:** `launchCase('2d2d','breastDIBH')` blocks unless `DIBHVoice._possible`
     (`SpeechRecognition && isSecureContext && !standalone-PWA`) AND `requestAccess()` (a `getUserMedia({audio:true})`
     probe) grants a real mic; otherwise the start-card is `.locked` with a 🎤 and a note explains the requirement.
     On entry `DIBH.enter()` calls `DIBHVoice.begin()` to **auto-arm hands-free** continuous listening (mic already
@@ -175,7 +183,9 @@ Two workflows, picked on the start screen:
     `onstart`/`onend`; Chrome stops on silence so `onend` respawns, but only while `dibhAcquiring()` and not after a
     terminal error; a sustained `network` outage tallies `netFails` and `degrade()`s after 4. **Phrase matching** is
     normalized substring + synonym/mishearing tables; `onresult` collects a candidate per recognition alternative and
-    resolves by **safety priority `abort`→`in`→`relax`** (abort always wins across alternatives); one action per
+    resolves by **safety/specificity priority `abort`→`down`→`up`→`hold`→`in`→`relax`** (abort always wins across
+    alternatives; the specific "a little" nudges beat the generic in/relax so "breathe out a little" isn't read as
+    "breathe out"); one action per
     utterance (per-utterance lock + `COOLDOWN`≥`idleTimer` + `isFinal` re-arm). **Degradation / safety net:** if the
     mic fails mid-session, `degrade()` reveals the hidden `#dibhCoachFallback` buttons (in/relax/abort) so the student
     is never stuck; terminal codes (`not-allowed`/`audio-capture`/`service-not-allowed`/`language-not-supported`/sustained

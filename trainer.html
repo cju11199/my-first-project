@@ -824,7 +824,10 @@ html:not(.auth-pending) #authGate{display:none}
       <!-- Coaching commands (in / relax / abort) are issued BY VOICE. These buttons stay in the DOM
            but hidden; they're revealed only as a fallback if the microphone fails mid-session. -->
       <div class="dibh-coach-fallback hidden" id="dibhCoachFallback">
-        <button class="dibh-btn" id="dibhBtnIn" onclick="DIBH.cmd('in')">Breathe In &amp; Hold</button>
+        <button class="dibh-btn" id="dibhBtnIn" onclick="DIBH.cmd('in')">Breathe In</button>
+        <button class="dibh-btn" id="dibhBtnHold" onclick="DIBH.cmd('hold')">Hold</button>
+        <button class="dibh-btn" id="dibhBtnUp" onclick="DIBH.cmd('up')">In a Little</button>
+        <button class="dibh-btn" id="dibhBtnDown" onclick="DIBH.cmd('down')">Out a Little</button>
         <button class="dibh-btn" id="dibhBtnRelax" onclick="DIBH.cmd('relax')">Breathe Normally</button>
         <button class="dibh-btn abort" id="dibhBtnAbort" onclick="DIBH.cmd('abort')">Abort</button>
       </div>
@@ -832,7 +835,7 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="dibh-voice hidden" id="dibhVoice">
         <button class="dibh-mic" id="dibhMicBtn" type="button" aria-pressed="false"
           aria-label="Push to talk — hold to speak a coaching command"
-          title="Coach by voice: hold to talk (or hold the V key) and say “breathe in and hold”, “breathe normally”, or “abort”. Press the Beam On button to deliver.">
+          title="Coach by voice: “take a deep breath in”, “hold”, “breathe in a little”, “breathe out a little”, “breathe normally”, “abort”. (Hold the mic or the V key for push-to-talk.) Press the Beam On button to deliver.">
           <span class="mic-ico" aria-hidden="true">&#127908;</span><span id="dibhMicLbl">Hold to talk</span>
         </button>
         <label class="dibh-handsfree" title="Listen continuously instead of holding to talk"><input type="checkbox" id="dibhHandsfree">Hands-free</label>
@@ -1769,22 +1772,28 @@ const DIBH=(function(){
   // a hold around HOLD, inside the [GATE_LO,GATE_HI] window. EXPOSE_DUR = seconds the patient
   // must stay in-gate during a "Beam On" for the field image to be acquired.
   const TIDAL=1.0, HOLD=2.25, GATE_LO=1.9, GATE_HI=2.6, PERIOD=3.8, STABLE_MS=700, EXPOSE_DUR=1.3;
+  const NUDGE=0.2, HOLD_MIN=0.4, HOLD_MAX=3.6, SPRING_K=16;   // "a little" step (cm); hold clamps; spring stiffness (snappy/reactive)
   // The two breast fields, captured separately (field 0 = AP view, field 1 = lateral view).
   const FIELDS=[{key:'ap',label:'Field 1 of 2 · SCV / AP'},{key:'lat',label:'Field 2 of 2 · Medial tangent / Lateral'}];
 
   // ---- randomized patient (no presets): fresh behaviour each acquisition ----
-  let pInhaleOff=0, pDrift=0, pNoise=0.03, pCough=false;
+  let pInhaleTarget=2.25, pDrift=0, pNoise=0.03, pCough=false;
   function randomizePatient(){
     const R=(mn,mx)=>mn+Math.random()*(mx-mn);
-    pInhaleOff = R(-0.18,0.18);   // where the hold lands within the gate (kept reachable, off-centre)
-    pDrift     = R(-0.18,0.05);   // slow sag/creep during the hold (mostly downward) -> beam promptly
-    pNoise     = R(0.02,0.045);   // measurement jitter on the surrogate
-    pCough     = Math.random()<0.45;  // ~45% of holds carry an unpredictable cough
+    // The patient's natural full-inhale level is usually OUTSIDE the gate, so the first breath
+    // rarely lands in-window — the student must coach with "a little more / a little out" nudges.
+    const roll=Math.random();
+    if(roll<0.50)      pInhaleTarget = R(GATE_HI+0.12, GATE_HI+0.75);   // over-inhaler: holds above the gate (~50%)
+    else if(roll<0.82) pInhaleTarget = R(GATE_LO-0.60, GATE_LO-0.10);   // shallow: holds below the gate (~32%)
+    else               pInhaleTarget = R(GATE_LO+0.06, GATE_HI-0.06);   // lands in-gate first try (~18%)
+    pDrift = R(-0.12,0.03);            // slow sag during the hold
+    pNoise = R(0.015,0.04);            // measurement jitter on the surrogate
+    pCough = Math.random()<0.40;       // ~40% of holds carry an unpredictable cough
     coughUntil=0; coughNext=0;
   }
 
   // ---- live state ----
-  let amp=0, vel=0, target=0, phase='free';      // phase: free | inhaling | holding
+  let amp=0, vel=0, target=0, holdTarget=2.25, phase='free';   // phase: free | inhaling | holding; holdTarget = commanded breath-hold level
   let raf=0, lastTs=0, simNow=0;                  // simNow: seconds since enter (drives waveforms/timers)
   let holdSince=null, stableSince=null, inhaleSince=null, coughUntil=0, coughNext=0;
   let active=false;                              // animation loop running
@@ -1806,18 +1815,21 @@ const DIBH=(function(){
     if(phase==='free'){
       target=0.5*TIDAL*(1+Math.sin(2*Math.PI*simNow/PERIOD));   // tidal oscillation 0..TIDAL
     }else if(phase==='inhaling'){
-      target=Math.max(0,HOLD+pInhaleOff);
-      if(Math.abs(amp-target)<0.12){phase='holding';holdSince=simNow;
-        if(pCough)coughNext=simNow+1.2+Math.random()*2.3;}     // schedule a possible cough into the hold
+      target=pInhaleTarget;                                     // rising toward the natural full-inhale level
+      if(amp>=pInhaleTarget-0.08){                              // reached it -> settle into a breath-hold there
+        phase='holding'; holdTarget=pInhaleTarget; if(holdSince==null)holdSince=simNow;
+        if(pCough)coughNext=simNow+1.2+Math.random()*2.3;       // schedule a possible cough into the hold
+      }
     }else if(phase==='holding'){
-      target+=pDrift*dt;                                        // slow drift during the hold
+      holdTarget += pDrift*dt;                                  // slow sag during the hold
+      target=holdTarget;
       if(pCough&&coughNext&&simNow>=coughNext&&!coughActive()){ // trigger a cough impulse
         vel+=(Math.random()<0.5?-1:1)*3.0;coughUntil=simNow+0.9;coughNext=simNow+3+Math.random()*3;
         if(!done)setMsg('⚠ Patient coughed — abort, don’t beam.','bad');
       }
     }
-    // critically-damped spring toward target + small measurement noise
-    const k=9, c=2*Math.sqrt(k);
+    // stiff critically-damped spring -> the patient reacts quickly to each command, + small noise
+    const k=SPRING_K, c=2*Math.sqrt(k);
     vel+=(k*(target-amp)-c*vel)*dt;
     amp+=vel*dt;
     amp+=(Math.random()-0.5)*pNoise;
@@ -1840,7 +1852,10 @@ const DIBH=(function(){
   /* ---- coach commands (buttons today; voice maps to these in Phase 2) ---- */
   function cmd(c){
     if(!acq||done)return;
-    if(c==='in'||c==='hold'){ if(phase!=='holding')phase='inhaling'; inhaleSince=(inhaleSince==null?simNow:inhaleSince); setMsg('Big breath in… and hold it steady.',''); }
+    if(c==='in'){ phase='inhaling'; inhaleSince=(inhaleSince==null?simNow:inhaleSince); setMsg('Take a deep breath in…',''); }
+    else if(c==='hold'){ holdTarget=Math.max(HOLD_MIN,Math.min(HOLD_MAX,amp)); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('Hold it there — steady…',''); }
+    else if(c==='up'){ if(phase!=='holding')holdTarget=amp; holdTarget=Math.min(HOLD_MAX,holdTarget+NUDGE); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('A little more in…',''); }
+    else if(c==='down'){ if(phase!=='holding')holdTarget=amp; holdTarget=Math.max(HOLD_MIN,holdTarget-NUDGE); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('Let a little out…',''); }
     else if(c==='relax'){ if(exposing)failExposure('the coach relaxed the patient'); phase='free'; holdSince=null; stableSince=null; setMsg('Breathe normally.',''); }
     else if(c==='abort'){ onAbort(); }
     else if(c==='beam'){ onBeam(); }
@@ -1924,8 +1939,8 @@ const DIBH=(function(){
   }
   function updateButtons(){
     const dis=(id,d)=>{const b=el(id);if(b)b.disabled=!!d;};
-    dis('dibhBtnIn', exposing||done); dis('dibhBtnRelax', exposing||done);
-    dis('dibhBtnBeam', exposing||done); dis('dibhBtnAbort', done);
+    ['dibhBtnIn','dibhBtnHold','dibhBtnUp','dibhBtnDown','dibhBtnRelax','dibhBtnBeam'].forEach(id=>dis(id,exposing||done));
+    dis('dibhBtnAbort', done);
   }
   function updateReadouts(){
     const a=el('dibhAmp'); if(a)a.textContent=amp.toFixed(2);
@@ -1996,7 +2011,7 @@ const DIBH=(function(){
     const g=el('dibhGate'); if(g)g.textContent=GATE_LO.toFixed(1)+'–'+GATE_HI.toFixed(1);
     if(typeof applyCase==='function') applyCase('breastDIBH');   // load DRRs + hidden offset (portals stay hidden until beamed)
     updateFieldLabel(); updateBadges(); updateButtons();
-    setMsg('Field 1 of 2 — coach BY VOICE: say “breathe in and hold”, then press Beam On while steady in the gate. (“breathe normally” / “abort” as needed.)','');
+    setMsg('Field 1 of 2 — coach BY VOICE into the gate: “take a deep breath in”, then “a little more / a little out” to fine-tune, “hold” to lock it. Press Beam On when steady in the gate.','');
     const sc=el('dibhScore'); if(sc)sc.textContent='';
     const sm=el('statusMsg'); if(sm)sm.textContent='Breast DIBH — voice-coach and acquire both fields below, then match.';
     if(window.DIBHVoice && DIBHVoice.begin) DIBHVoice.begin();   // auto-arm hands-free listening (mic already granted at launch)
@@ -2014,11 +2029,11 @@ const DIBH=(function(){
 
   // _dbg: headless hooks (drive the model deterministically + inspect state).
   const _dbg={
-    set:(o)=>{o=o||{};if(o.amp!=null)amp=o.amp;if(o.target!=null)target=o.target;if(o.phase)phase=o.phase;if(o.vel!=null)vel=o.vel;if(o.holdSince!=null)holdSince=o.holdSince;if(o.stableSince!=null)stableSince=o.stableSince;if(o.coughUntil!=null)coughUntil=o.coughUntil;if(o.active!=null)active=o.active;if(o.acq!=null)acq=o.acq;if(o.done!=null)done=o.done;if(o.fieldIdx!=null)fieldIdx=o.fieldIdx;if(o.captured)captured=o.captured.slice();if(o.pInhaleOff!=null)pInhaleOff=o.pInhaleOff;if(o.pDrift!=null)pDrift=o.pDrift;if(o.pNoise!=null)pNoise=o.pNoise;if(o.pCough!=null)pCough=o.pCough;},
-    state:()=>({amp,vel,phase,inGate:inGate(amp),stable:stable(),exposing,exposeT:+exposeT.toFixed(3),fieldIdx,captured:captured.slice(),acq,done,penalty:+penalty.toFixed(2),abortBonus,simNow:+simNow.toFixed(2),coughActive:coughActive(),score:lastScore}),
+    set:(o)=>{o=o||{};if(o.amp!=null)amp=o.amp;if(o.target!=null)target=o.target;if(o.holdTarget!=null)holdTarget=o.holdTarget;if(o.pInhaleTarget!=null)pInhaleTarget=o.pInhaleTarget;if(o.phase)phase=o.phase;if(o.vel!=null)vel=o.vel;if(o.holdSince!=null)holdSince=o.holdSince;if(o.stableSince!=null)stableSince=o.stableSince;if(o.coughUntil!=null)coughUntil=o.coughUntil;if(o.active!=null)active=o.active;if(o.acq!=null)acq=o.acq;if(o.done!=null)done=o.done;if(o.fieldIdx!=null)fieldIdx=o.fieldIdx;if(o.captured)captured=o.captured.slice();if(o.pDrift!=null)pDrift=o.pDrift;if(o.pNoise!=null)pNoise=o.pNoise;if(o.pCough!=null)pCough=o.pCough;},
+    state:()=>({amp,vel,phase,holdTarget:+holdTarget.toFixed(2),pInhaleTarget:+pInhaleTarget.toFixed(2),inGate:inGate(amp),stable:stable(),exposing,exposeT:+exposeT.toFixed(3),fieldIdx,captured:captured.slice(),acq,done,penalty:+penalty.toFixed(2),abortBonus,simNow:+simNow.toFixed(2),coughActive:coughActive(),score:lastScore}),
     advance:(secs,d=0.016)=>{for(let t=0;t<secs;t+=d){simNow+=d;tick(d);}},
     cmd, beam:onBeam, abort:onAbort, randomizePatient,
-    inGate,GATE_LO,GATE_HI,HOLD,EXPOSE_DUR,fields:FIELDS,
+    inGate,GATE_LO,GATE_HI,HOLD,NUDGE,EXPOSE_DUR,fields:FIELDS,
   };
   return {enter,exit,cmd,resize,acquiring,hidesPortal,_dbg};
 })();
@@ -2045,15 +2060,25 @@ const DIBHVoice=(function(){
   function el(id){return document.getElementById(id);}
 
   // Command vocabulary: spoken phrases + common ASR mishearings -> DIBH.cmd id.
-  // VOICE handles coaching only (abort / in / relax); 'beam' is intentionally NOT a voice
-  // command — delivery is a deliberate button press, so a stray/misheard word can't beam.
-  // Priority order matters: abort first (safety). ('hold' aliases 'in' in DIBH.cmd.)
+  // VOICE handles coaching only (abort / down / up / hold / in / relax); 'beam' is intentionally NOT
+  // a voice command — delivery is a deliberate button press, so a stray/misheard word can't beam.
+  // ORDER MATTERS (matchCommand returns the first match): abort first (safety); the specific "a little"
+  // nudges (down/up) before the generic in/relax so "breathe out a little" beats "breathe out", etc.
   const COMMANDS=[
-    {id:'abort', btn:'dibhBtnAbort', kw:['abort','stop','hold off','cancel'],                  hear:['a board','aboard','a bort','the board','a port']},
-    {id:'in',    btn:'dibhBtnIn',    kw:['breathe in','breath in','big breath','take a breath','breath and hold','in and hold','hold it','hold steady','hold your breath','hold','inhale'], hear:['breathin','breeze in']},
-    {id:'relax', btn:'dibhBtnRelax', kw:['breathe normally','breath normally','breathe normal','normal breathing','breathe out','breath out','relax','release','let go','breathe naturally'], hear:['breath normally']},
+    {id:'abort', btn:'dibhBtnAbort', kw:['abort','stop','cancel'],
+                 hear:['a board','aboard','a bort','the board','a port']},
+    {id:'down',  btn:'dibhBtnDown',  kw:['breathe out a little','breath out a little','out a little','out a bit','a little out','a bit out','little less','a little less','a bit less','breathe out a bit','let a little out','let a bit out','let some out','less air','out a touch'],
+                 hear:['breath out a little','out little','let it out a little']},
+    {id:'up',    btn:'dibhBtnUp',    kw:['breathe in a little','breath in a little','in a little','in a bit','a little more','a bit more','little more','breathe in a bit','breathe in a touch','more air','deeper','a little in','sip in'],
+                 hear:['breath in a little','in little','breathe in a little more']},
+    {id:'hold',  btn:'dibhBtnHold',  kw:['hold it','hold your breath','hold steady','hold there','hold that','hold still','keep holding','hold'],
+                 hear:['holds','old it']},
+    {id:'in',    btn:'dibhBtnIn',    kw:['take a deep breath','deep breath in','deep breath','big breath in','big breath','breathe in','breath in','take a breath','breathe in deeply','full breath','all the way in'],
+                 hear:['breathin','breeze in','deep breathe']},
+    {id:'relax', btn:'dibhBtnRelax', kw:['breathe normally','breath normally','breathe normal','normal breathing','breathe naturally','breathe out','breath out','let it out','breathe away','relax','release','let go'],
+                 hear:['breath normally','breathe normal']},
   ];
-  const CMD_LABEL={in:'Breathe In & Hold',relax:'Breathe Normally',beam:'Beam On',abort:'Abort'};
+  const CMD_LABEL={in:'Breathe In',hold:'Hold',up:'Breathe In a Little',down:'Breathe Out a Little',relax:'Breathe Normally',beam:'Beam On',abort:'Abort'};
   const norm=s=>String(s||'').toLowerCase().replace(/[^\w\s]/g,' ').replace(/\s+/g,' ').trim();
   function lev(a,b){const m=a.length,n=b.length;if(!m)return n;if(!n)return m;const d=[];for(let i=0;i<=m;i++)d[i]=[i];
     for(let j=0;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++){const c=a[i-1]===b[j-1]?0:1;
@@ -2063,7 +2088,7 @@ const DIBHVoice=(function(){
     for(const c of COMMANDS){ if(c.kw.some(p=>t.includes(p))||c.hear.some(p=>t.includes(p)))return c.id; }
     const toks=t.split(' ');                                  // short-utterance edit-distance fallback (one-edit slips)
     if(toks.length<=3){
-      const KEYS=[['abort',['abort','stop']],['in',['hold','inhale']],['relax',['relax']]];
+      const KEYS=[['abort',['abort','stop']],['hold',['hold']],['relax',['relax']],['in',['inhale']]];
       for(const k of KEYS){ if(k[1].some(key=>toks.some(w=>lev(w,key)<=1)))return k[0]; }
     }
     return null;
@@ -2102,7 +2127,7 @@ const DIBHVoice=(function(){
         const id=matchCommand(alt.transcript);
         if(id && !cand[id]) cand[id]=norm(alt.transcript);
       }
-      const pick=['abort','in','relax'].find(o=>cand[o]);      // ...then resolve by safety priority (abort always wins)
+      const pick=['abort','down','up','hold','in','relax'].find(o=>cand[o]);   // ...then resolve by safety/specificity priority (abort always wins)
       if(pick) fire(pick, cand[pick]);
       else if(raw && !firedThisUtterance) showHeard(norm(raw), null);
       if(r.isFinal) firedThisUtterance=false;                  // close utterance -> re-arm
