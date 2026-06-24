@@ -50,7 +50,7 @@ For each: look up `rtimagematch.com`; if it shows uncategorized or wrong, reques
 > Medicine). Domain: https://rtimagematch.com/
 >
 > Thank you,
-> Craig Utter — support@rtimagematch.com
+> rtimagematch.com — support@rtimagematch.com
 
 ## Notes
 
