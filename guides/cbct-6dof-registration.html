@@ -7,7 +7,7 @@
 <meta name="description" content="A clear guide to CBCT 6DOF registration in radiation therapy: cone-beam CT image matching, the six degrees of freedom, the IGRT workflow, window/level and fusion, tolerances, and common pitfalls.">
 <title>CBCT 6DOF Registration Explained — RT Image Matching Guide</title>
 <link rel="canonical" href="https://rtimagematch.com/guides/cbct-6dof-registration">
-<meta name="theme-color" content="#070a0f">
+<meta name="theme-color" content="#070809">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/favicon.svg">
 <meta property="og:type" content="article">
@@ -57,7 +57,7 @@
 }
 </script>
 <style>
-:root{--bg:#070a0f;--panel:#0e131b;--panel2:#141a24;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#2dd4ee;--accent2:#ff7a45;--gold:#e6c25a;--green:#3ddc97;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
+:root{--bg:#070809;--panel:#0e1114;--panel2:#14181d;--text:#eaf1f8;--label:#9fadbd;--muted:#6b7888;--accent:#b9c8d6;--accent2:#8ef0c2;--gold:#cdd8e2;--green:#8ef0c2;--border:rgba(148,170,194,.14);--hairline:rgba(255,255,255,.05);--radius:14px}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);line-height:1.66;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 a{color:var(--accent);text-decoration:none}
@@ -88,31 +88,48 @@ strong{color:var(--text)}
 .dof{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin:18px 0}
 .dof div{display:grid;grid-template-columns:130px 1fr;gap:0;border-top:1px solid var(--hairline);font-size:15px}
 .dof div:first-child{border-top:none}
-.dof b{color:var(--text);background:rgba(45,212,238,.05);padding:11px 14px}
+.dof b{color:var(--text);background:rgba(185,200,214,.05);padding:11px 14px}
 .dof span{color:var(--label);padding:11px 14px}
-.callout{background:rgba(255,122,69,.08);border:1px solid rgba(255,122,69,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
+.callout{background:rgba(142,240,194,.08);border:1px solid rgba(142,240,194,.3);border-radius:10px;padding:14px 16px;margin:24px 0}
 .callout p{color:#ffd9c7;margin:0;font-size:14px}
-.tip{background:rgba(61,220,151,.07);border:1px solid rgba(61,220,151,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
+.tip{background:rgba(142,240,194,.07);border:1px solid rgba(142,240,194,.28);border-radius:10px;padding:14px 16px;margin:24px 0}
 .tip p{color:#bff3da;margin:0;font-size:14.5px}
-.cta-box{margin:34px 0;background:rgba(45,212,238,.06);border:1px solid rgba(45,212,238,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.cta-box{margin:34px 0;background:rgba(185,200,214,.06);border:1px solid rgba(185,200,214,.25);border-radius:var(--radius);padding:22px 24px;display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
 .cta-box p{color:var(--text);font-size:16px;font-weight:600;margin:0}
 .cta-box span{color:var(--label);font-weight:400;font-size:14px;display:block;margin-top:3px}
-.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
+.btn{display:inline-block;border-radius:10px;padding:12px 20px;font-weight:600;font-size:15px;background:linear-gradient(135deg,var(--accent),#6c7d8f);color:#05222a}
 .btn:hover{text-decoration:none}
 .faq h3{margin:18px 0 6px}
 .next{display:flex;flex-wrap:wrap;gap:14px;margin:30px 0 0}
 .next a{flex:1;min-width:230px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;color:var(--text)}
-.next a:hover{border-color:rgba(45,212,238,.4);text-decoration:none}
+.next a:hover{border-color:rgba(185,200,214,.4);text-decoration:none}
 .next .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .next .t{display:block;margin-top:4px;color:var(--accent);font-weight:600}
 footer{border-top:1px solid var(--hairline);margin-top:40px;padding:26px 0;color:var(--muted);font-size:13px}
 footer .wrap{max-width:940px}
 footer a{margin-right:18px;color:var(--label)}
+
+/* ── cinematic LINAC-vault atmosphere (sitewide) ── */
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('/assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('/assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:800;font-display:swap;src:url('/assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('/assets/fonts/4f27206c4b.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:700;font-display:swap;src:url('/assets/fonts/4f27206c4b.woff2') format('woff2')}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;background:radial-gradient(900px 540px at 80% -6%,rgba(185,200,214,.07),transparent 58%),radial-gradient(760px 520px at 12% 6%,rgba(142,240,194,.05),transparent 60%),linear-gradient(180deg,#080b0e 0%,#070809 50%,#050608 100%) fixed,#050608}
+.bar{background:linear-gradient(180deg,rgba(7,11,17,.82),rgba(5,8,13,.55))!important}
+.logo .logo-mark{width:20px;height:20px;flex:none;filter:drop-shadow(0 0 6px rgba(185,200,214,.5))}
+.fx{position:fixed;inset:0;pointer-events:none;z-index:60}
+.fx-vignette{background:radial-gradient(130% 110% at 50% 14%,transparent 56%,rgba(2,4,7,.5) 100%)}
+.fx-scan{opacity:.32;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 3px)}
+.fx-grain{opacity:.045;mix-blend-mode:overlay;background-size:200px 200px;animation:fxGrain 1s steps(4) infinite;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+@keyframes fxGrain{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-2%)}75%{transform:translate(-2%,-1%)}100%{transform:translate(1%,2%)}}
+@media(prefers-reduced-motion:reduce){.fx-grain{animation:none!important}}
 </style>
 </head>
 <body>
+<div class="fx fx-vignette" aria-hidden="true"></div><div class="fx fx-scan" aria-hidden="true"></div><div class="fx fx-grain" aria-hidden="true"></div>
 <div class="bar"><div class="wrap">
-  <a href="/" class="logo"><span class="dot"></span> RT Image Matching Trainer</a>
+  <a href="/" class="logo"><svg class="logo-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><circle cx="20" cy="20" r="18" stroke="#b9c8d6" stroke-width="2" opacity=".55"/><circle cx="20" cy="20" r="11" stroke="#8ef0c2" stroke-width="2" opacity=".85"/><path d="M20 5v30M5 20h30" stroke="#eaf1f8" stroke-width="1.2" opacity=".5"/><circle cx="20" cy="20" r="2.8" fill="#8ef0c2"/></svg> RT Image Matching Trainer</a>
   <nav><a href="/guides">Guides</a><a href="/#pricing">Pricing</a><a class="cta" href="/trainer">Launch&nbsp;&rarr;</a></nav>
 </div></div>
 
