@@ -119,19 +119,31 @@ a{color:inherit;text-decoration:none}
 @keyframes drift1{to{transform:translate3d(7vw,5vh,0) scale(1.16)}}
 @keyframes drift2{to{transform:translate3d(-6vw,8vh,0) scale(.92)}}
 @keyframes drift3{to{transform:translate3d(-5vw,-6vh,0) scale(1.18)}}
-.scangrid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
+.scangrid{position:fixed;left:0;right:0;top:-16vh;height:132vh;z-index:0;pointer-events:none;opacity:.35;will-change:transform;
   background-image:linear-gradient(rgba(148,170,194,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,170,194,.05) 1px,transparent 1px);
-  background-size:48px 48px;-webkit-mask:radial-gradient(95% 80% at 50% 28%,#000 32%,transparent 86%);mask:radial-gradient(95% 80% at 50% 28%,#000 32%,transparent 86%)}
+  background-size:48px 48px;-webkit-mask:radial-gradient(95% 72% at 50% 30%,#000 32%,transparent 86%);mask:radial-gradient(95% 72% at 50% 30%,#000 32%,transparent 86%)}
 .scanbeam{position:fixed;left:0;right:0;top:0;height:180px;z-index:0;pointer-events:none;
   background:linear-gradient(180deg,transparent,rgba(45,212,238,.05) 45%,rgba(95,231,246,.09) 50%,transparent);animation:scan 13s linear infinite}
 @keyframes scan{0%{transform:translateY(-200px)}100%{transform:translateY(105vh)}}
-.haze{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* large registration reticle in the backdrop — slowly rotates with scroll */
+.scroll-reticle{position:fixed;left:50%;top:46%;width:min(74vw,820px);height:min(74vw,820px);z-index:0;pointer-events:none;opacity:.15;transform:translate(-50%,-50%);will-change:transform}
+.haze{position:fixed;left:0;right:0;top:-16vh;height:132vh;z-index:0;pointer-events:none;will-change:transform}
 .haze i{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(180,210,235,.5);box-shadow:0 0 6px rgba(95,231,246,.5);animation:twinkle 6s ease-in-out infinite}
 .haze i.b{background:rgba(255,170,120,.5);box-shadow:0 0 6px rgba(255,150,100,.5)}
 @keyframes twinkle{0%,100%{opacity:.1;transform:translateY(0)}50%{opacity:.8;transform:translateY(-6px)}}
 /* scroll-progress bar + hero parallax target */
 .scroll-prog{position:fixed;top:0;left:0;right:0;height:3px;z-index:40;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--accent-hi),var(--accent2));box-shadow:0 0 12px rgba(45,212,238,.55);pointer-events:none}
 .hero .wrap{will-change:transform,opacity}
+/* count-up stats band */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:6px}
+@media(max-width:680px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{position:relative;text-align:center;padding:24px 16px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(160deg,rgba(29,39,52,.5),rgba(14,19,27,.7));overflow:hidden}
+.stat::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);opacity:.6}
+.stat-num{font-family:var(--mono);font-weight:700;font-size:clamp(30px,4vw,46px);line-height:1;letter-spacing:-1px;background:linear-gradient(120deg,var(--accent-hi),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-num .suf{-webkit-text-fill-color:var(--accent);color:var(--accent)}
+.stat-lbl{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-top:11px}
+/* pointer-tilt cards */
+.card{transform-style:preserve-3d}
 
 /* ===== buttons / chips ===== */
 .btn{display:inline-flex;align-items:center;gap:9px;border-radius:11px;padding:13px 22px;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;transition:transform .18s var(--ease),box-shadow .25s var(--ease),background .25s,border-color .25s}
@@ -163,8 +175,13 @@ nav a.cta{color:var(--accent);font-weight:600}
 @media(max-width:720px){nav a:not(.cta){display:none}}
 
 /* ===== reveal-on-scroll ===== */
-.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
-.reveal.in{opacity:1;transform:none}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease),filter .7s var(--ease)}
+.card.reveal{transform:translateY(22px) scale(.965)}
+.cols-3 .card.reveal:nth-child(3n+1){transform:translateY(20px) translateX(-30px) scale(.97)}
+.cols-3 .card.reveal:nth-child(3n){transform:translateY(20px) translateX(30px) scale(.97)}
+.price.reveal{transform:translateY(26px) scale(.97)}
+.shots figure.reveal{transform:translateY(22px) scale(.96)}
+.reveal.in,.card.reveal.in,.cols-3 .card.reveal.in,.price.reveal.in,.shots figure.reveal.in{opacity:1;transform:none;filter:none}
 .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
 .reveal.d4{transition-delay:.32s}.reveal.d5{transition-delay:.4s}.reveal.d6{transition-delay:.48s}
 
@@ -299,6 +316,13 @@ footer .links a{margin-right:18px}
 <div class="scangrid" aria-hidden="true"></div>
 <div class="scanbeam" aria-hidden="true"></div>
 <div class="haze" id="haze" aria-hidden="true"></div>
+<svg class="scroll-reticle" id="scrollReticle" viewBox="0 0 200 200" fill="none" aria-hidden="true">
+  <circle cx="100" cy="100" r="88" stroke="#2dd4ee" stroke-width=".5" opacity=".7"/>
+  <circle cx="100" cy="100" r="62" stroke="#ff7a45" stroke-width=".5" stroke-dasharray="4 6" opacity=".6"/>
+  <circle cx="100" cy="100" r="34" stroke="#2dd4ee" stroke-width=".5" opacity=".5"/>
+  <line x1="100" y1="2" x2="100" y2="198" stroke="#2dd4ee" stroke-width=".5" opacity=".4"/>
+  <line x1="2" y1="100" x2="198" y2="100" stroke="#2dd4ee" stroke-width=".5" opacity=".4"/>
+</svg>
 <div class="scroll-prog" id="scrollProg" aria-hidden="true"></div>
 
 <header><div class="wrap">
@@ -352,6 +376,15 @@ footer .links a{margin-right:18px}
       <a class="btn btn-ghost" href="#pricing">See pricing</a>
     </div>
     <div class="note disclaimer reveal d5">Training simulator — <b>educational use only. Not approved for clinical decision-making.</b> All patient offsets and values shown are fictional.</div>
+  </div></section>
+
+  <section class="block"><div class="wrap">
+    <div class="stats" id="stats">
+      <div class="stat reveal d1"><div class="stat-num" data-to="2"><span class="n">0</span></div><div class="stat-lbl">Imaging workflows</div></div>
+      <div class="stat reveal d2"><div class="stat-num" data-to="10"><span class="n">0</span><span class="suf">+</span></div><div class="stat-lbl">Case scenarios</div></div>
+      <div class="stat reveal d3"><div class="stat-num" data-to="6"><span class="n">0</span></div><div class="stat-lbl">Degrees of freedom</div></div>
+      <div class="stat reveal d4"><div class="stat-num" data-to="3"><span class="n">0</span></div><div class="stat-lbl">Day free trial</div></div>
+    </div>
   </div></section>
 
   <section class="block" id="see"><div class="wrap">
@@ -527,28 +560,52 @@ footer .links a{margin-right:18px}
     els.forEach(function(e){ if(!e.classList.contains('in')) io.observe(e); });
   }
 
-  /* scroll-progress bar + hero parallax-dissolve (rAF-throttled, passive) */
+  /* scroll-progress + backdrop parallax + hero dissolve (rAF-throttled, passive) */
   var prog=document.getElementById('scrollProg');
-  var hero=document.querySelector('.hero');
-  var heroWrap=document.querySelector('.hero .wrap');
+  var hero=document.querySelector('.hero'), heroWrap=document.querySelector('.hero .wrap');
+  var grid=document.querySelector('.scangrid'), hazeEl=document.getElementById('haze'),
+      ret=document.getElementById('scrollReticle'), motif=document.querySelector('.hero-motif');
+  function cap(v,m){return v<m?v:m;}
   var ticking=false;
   function frame(){
     ticking=false;
     var y=window.pageYOffset||document.documentElement.scrollTop||0;
-    if(prog){
-      var max=(document.documentElement.scrollHeight - window.innerHeight)||1;
-      prog.style.transform='scaleX('+Math.min(1,Math.max(0,y/max))+')';
-    }
-    if(!reduce && hero && heroWrap){
-      var hh=hero.offsetHeight||600;
+    if(prog){ var max=(document.documentElement.scrollHeight-window.innerHeight)||1; prog.style.transform='scaleX('+Math.min(1,Math.max(0,y/max))+')'; }
+    if(reduce) return;
+    if(hero&&heroWrap){ var hh=hero.offsetHeight||600;
       if(y<hh){ heroWrap.style.transform='translate3d(0,'+(y*0.28).toFixed(1)+'px,0)'; heroWrap.style.opacity=(1-(y/hh)*0.92).toFixed(3); }
-      else { heroWrap.style.opacity='0'; }
-    }
+      else heroWrap.style.opacity='0'; }
+    if(grid) grid.style.transform='translate3d(0,'+cap(y*0.08,120).toFixed(1)+'px,0)';
+    if(hazeEl) hazeEl.style.transform='translate3d(0,'+cap(y*0.14,150).toFixed(1)+'px,0)';
+    if(ret) ret.style.transform='translate(-50%,-50%) rotate('+(y*0.045).toFixed(2)+'deg) scale('+(1+cap(y,1600)/1600*0.18).toFixed(3)+')';
+    if(motif) motif.style.transform='translate(-50%,0) rotate('+(y*0.03).toFixed(2)+'deg)';
   }
   function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(frame); } }
   window.addEventListener('scroll',onScroll,{passive:true});
   window.addEventListener('resize',onScroll,{passive:true});
   frame();
+
+  /* count-up the stats band when it scrolls into view */
+  function runCount(){
+    [].slice.call(document.querySelectorAll('.stat-num')).forEach(function(el){
+      var to=+el.getAttribute('data-to')||0, nEl=el.querySelector('.n')||el, t0=null, dur=1300;
+      function step(ts){ if(t0===null)t0=ts; var p=Math.min(1,(ts-t0)/dur); nEl.textContent=Math.round(to*(1-Math.pow(1-p,3))); if(p<1)requestAnimationFrame(step); }
+      requestAnimationFrame(step);
+    });
+  }
+  var stats=document.getElementById('stats');
+  if(stats){
+    if(reduce||!('IntersectionObserver' in window)){ [].slice.call(stats.querySelectorAll('.stat-num')).forEach(function(el){ (el.querySelector('.n')||el).textContent=el.getAttribute('data-to'); }); }
+    else { var cio=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ runCount(); cio.disconnect(); } }); },{threshold:.4}); cio.observe(stats); }
+  }
+
+  /* subtle pointer-tilt on cards (fine-pointer desktop only) */
+  if(!reduce && window.matchMedia && matchMedia('(pointer:fine)').matches){
+    [].slice.call(document.querySelectorAll('.card')).forEach(function(c){
+      c.addEventListener('pointermove',function(e){ var r=c.getBoundingClientRect(); var px=(e.clientX-r.left)/r.width-0.5, py=(e.clientY-r.top)/r.height-0.5; c.style.transform='perspective(820px) rotateX('+(-py*5).toFixed(2)+'deg) rotateY('+(px*5).toFixed(2)+'deg) translateY(-6px)'; });
+      c.addEventListener('pointerleave',function(){ c.style.transform=''; });
+    });
+  }
 })();
 </script>
 <script src="/clerk-auth.js"></script>
