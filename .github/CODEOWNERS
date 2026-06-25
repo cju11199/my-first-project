@@ -1,0 +1,11 @@
+# Code owners — used with branch protection on `main` to require owner review.
+#
+# Security-sensitive files. The comp allowlist in clerk-auth.js grants free,
+# paywall-bypassing access, so any change to it must be reviewed before merge.
+/clerk-auth.js       @cju11199
+
+# Edge hotlink guard, response headers / CSP, and the build that emits the
+# actually-served bytes — all security-load-bearing.
+/middleware.js       @cju11199
+/vercel.json         @cju11199
+/build-trainer.mjs   @cju11199

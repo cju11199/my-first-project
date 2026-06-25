@@ -313,13 +313,17 @@ main.shifts-collapsed .shift-tab{left:0}
 
 /* disclaimer + status note */
 .start-disclaimer{margin:0;text-align:center;font-family:var(--mono);font-size:10.5px;line-height:1.6;color:var(--muted);max-width:480px;letter-spacing:.03em;opacity:.85;animation:sbRise .8s var(--ease) .5s both}
+.start-legal{position:relative;z-index:2;margin:9px 0 0;text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;opacity:.82;animation:sbRise .8s var(--ease) .55s both}
+.start-legal a{color:var(--muted);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:1px;transition:color .15s,border-color .15s}
+.start-legal a:hover{color:var(--text);border-bottom-color:rgba(205,216,226,.4)}
+.start-legal .sep{color:var(--muted);opacity:.5;margin:0 4px}
 .start-note{font-family:var(--mono);font-size:11px;color:var(--muted);min-height:1.2em;text-align:center}
 .start-note.warn{color:var(--accent2-hi)}
 @keyframes sbRise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 
 @media(max-width:980px){.start-card{width:248px;min-height:200px}.sb-vault{opacity:.4}}
 @media(max-width:680px){.start-screen{justify-content:flex-start;gap:24px}.start-cards{gap:14px}.start-card{width:100%;max-width:340px;min-height:auto}.case-card{width:calc(50% - 8px);max-width:none}.back-card{width:100%}.sb-vault{opacity:.3}.rt-sum-bar{width:70px}}
-@media(prefers-reduced-motion:reduce){.reticle .pulse,.sb-vault .vrot,.sb-vault .vpulse,.sb-grain,.sc-badge.ready::before{animation:none!important}.start-card,.start-brand,.rt-summary,.start-disclaimer{animation:none!important;opacity:1!important;transform:none!important}.start-card::before{display:none}}
+@media(prefers-reduced-motion:reduce){.reticle .pulse,.sb-vault .vrot,.sb-vault .vpulse,.sb-grain,.sc-badge.ready::before{animation:none!important}.start-card,.start-brand,.rt-summary,.start-disclaimer,.start-legal{animation:none!important;opacity:1!important;transform:none!important}.start-card::before{display:none}}
 
 /* ===== CBCT volumetric-registration workflow ===== */
 .cbct-screen{position:fixed;inset:0;z-index:150;display:flex;flex-direction:column;overflow:hidden;
@@ -672,6 +676,7 @@ html:not(.auth-pending) #authGate{display:none}
   <div class="start-cards case-cards hidden" id="casePicker"></div>
   <div class="rt-summary" id="rtSummary"></div>
   <p class="start-disclaimer">Training simulator &mdash; educational use only. Not for clinical decision-making.<br>All patient offsets and values shown are fictional.</p>
+  <nav class="start-legal"><a href="/terms">Terms</a><span class="sep">&middot;</span><a href="/privacy">Privacy</a><span class="sep">&middot;</span><a href="/account">Account &amp; billing</a></nav>
   <div class="start-note" id="startNote">&nbsp;</div>
 </div>
 <script>
@@ -3282,6 +3287,11 @@ function chooseMode(mode){
    (set up in clerk-auth.js); falls back to localStorage when auth isn't present
    (e.g. headless tests) so the trainer still records progress locally.
    ------------------------------------------------------------------------- */
+// SECURITY: RTProfile is cosmetic UX state only (XP / streak / achievements /
+// best times). When signed in it persists to Clerk unsafeMetadata.rt, which is
+// CLIENT-WRITABLE — never trust it for access, billing, or any entitlement
+// decision. Anything trust-bearing must be set server-side (publicMetadata via
+// an authenticated /api), never here.
 const RTProfile=(function(){
   const LS='rtProfile';
   function blank(){return {schema:1,stats:{},prefs:{},ach:{},totals:{attempts:0,accepts:0},xp:0,streak:{count:0,best:0,last:null},recent:[],createdAt:Date.now()};}
