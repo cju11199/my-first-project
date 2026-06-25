@@ -433,7 +433,7 @@ main.shifts-collapsed .shift-tab{left:0}
 .guide-hero svg{display:block;width:100%;height:auto;border-radius:var(--radius);border:1px solid var(--border);background:#0b0f15}
 .guide-hero.sm{max-width:420px}
 .guide-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin:4px 0 4px}
-.guide-list li{font-size:13px;color:var(--label);line-height:1.55;display:flex;gap:10px;align-items:baseline}
+.guide-list li{font-size:14px;color:var(--label);line-height:1.65;display:flex;gap:11px;align-items:baseline}
 .guide-list strong{color:var(--text)}
 .dot{flex:none;width:9px;height:9px;border-radius:50%;margin-top:5px}
 .dot.ref{background:var(--accent)}
@@ -447,11 +447,24 @@ main.shifts-collapsed .shift-tab{left:0}
 .mf-step strong{font-size:12px;color:var(--text);font-family:var(--mono)}
 .mf-d{font-size:10px;color:var(--muted);font-family:var(--mono)}
 .mf-arrow{display:flex;align-items:center;color:var(--muted);font-size:14px}
-.key-cols{display:flex;gap:26px;flex-wrap:wrap}
-.key-col{flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px}
-.key-col-h{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--hairline)}
-.key-line{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--label)}
-.key-line .kbd{margin-right:3px}
+/* keyboard reference: clean Action | Keys layout (bigger, scannable; modifiers auto-match the platform) */
+.guide .kbd{font-size:11px;min-width:13px;text-align:center;line-height:1;padding:4px 7px}
+.key-legend{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin:0 0 8px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.key-legend>span{display:inline-flex;align-items:center;gap:4px}
+.kmode{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em;color:var(--gold);border:1px solid rgba(205,216,226,.32);border-radius:5px;padding:1px 5px;vertical-align:middle;margin-left:5px}
+.kref{display:flex;flex-direction:column}
+.kref-head,.kref-row{display:grid;grid-template-columns:1fr minmax(150px,max-content);gap:18px;align-items:center}
+.kref-head{padding:0 9px 8px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.kref-group{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent-hi);margin:18px 0 4px;padding-bottom:7px;border-bottom:1px solid var(--border)}
+.kref-group:first-of-type{margin-top:2px}
+.kref-row{padding:9px;border-bottom:1px solid var(--hairline)}
+.kref-row:last-child{border-bottom:none}
+.kref-act{font-size:13.5px;color:var(--label);line-height:1.4}
+.kref-act b{color:var(--text);font-weight:600}
+.kref-sub{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.kref-keys{display:flex;gap:4px;align-items:center;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--label)}
+.kref-plus,.kref-or{color:var(--muted);font-size:11px;font-family:var(--mono);padding:0 1px}
+@media(max-width:560px){.kref-head{display:none}.kref-row{grid-template-columns:1fr;gap:6px;padding:11px 9px}.kref-keys{justify-content:flex-start}}
 .guide-foot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 26px 18px;border-top:1px solid var(--hairline)}
 .guide-foot-note{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.04em}
 @media(max-width:620px){.mf-arrow{display:none}.mf-step{min-width:100%}.guide-body{padding:16px 16px 6px}.guide-head{padding:18px}}
@@ -1098,33 +1111,40 @@ html:not(.auth-pending) #authGate{display:none}
 
       <!-- KEYBOARD -->
       <section class="guide-panel" id="gp-keys">
-        <div class="key-cols">
-          <div class="key-col">
-            <div class="key-col-h">Shared / 2D&middot;2D</div>
-            <div class="key-line"><span><span class="kbd">&larr;</span><span class="kbd">&rarr;</span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span></span> Lat / Lng</div>
-            <div class="key-line"><span><span class="kbd">PgUp</span><span class="kbd">PgDn</span></span> Vert</div>
-            <div class="key-line"><span>Hold <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span>+drag</span> Lock A&#8209;P / S&#8209;I / L&#8209;R</div>
-            <div class="key-line"><span><span class="kbd">Q</span><span class="kbd">E</span></span> Roll</div>
-            <div class="key-line"><span><span class="kbd">A</span><span class="kbd">D</span></span> Pitch</div>
-            <div class="key-line"><span><span class="kbd kopt">Ctrl</span>+<span class="kbd">&larr;</span><span class="kbd">&rarr;</span></span> Fine rotate 0.1&deg;</div>
-            <div class="key-line"><span><span class="kbd">+</span><span class="kbd">&minus;</span> / wheel</span> Zoom</div>
-            <div class="key-line"><span><span class="kbd">[</span><span class="kbd">]</span></span> Blend</div>
-            <div class="key-line"><span><span class="kbd kopt">Ctrl</span>+<span class="kbd">A</span></span> Flip / flicker</div>
-            <div class="key-line"><span><span class="kbd">C</span><span class="kbd">S</span><span class="kbd">G</span><span class="kbd">F</span></span> Wash / Spy / Grid / Full</div>
-            <div class="key-line"><span><span class="kbd kmod">Ctrl</span>+<span class="kbd">Z</span> &middot; <span class="kbd">R</span> &middot; <span class="kbd">N</span></span> Undo / Reset / New</div>
-          </div>
-          <div class="key-col">
-            <div class="key-col-h">CBCT changes</div>
-            <div class="key-line"><span>Click pane</span> Select</div>
-            <div class="key-line"><span><span class="kbd">&larr;</span><span class="kbd">&rarr;</span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span></span> Translate</div>
-            <div class="key-line"><span><span class="kbd">Q</span><span class="kbd">E</span></span> Rotate</div>
-            <div class="key-line"><span><span class="kbd">Shift</span>+drag</span> Rotate</div>
-            <div class="key-line"><span><span class="kbd">V</span> &middot; <span class="kbd">Ctrl</span>+<span class="kbd">R</span></span> Cycle main pane</div>
-            <div class="key-line"><span>Wheel</span> Browse slices</div>
-            <div class="key-line"><span><span class="kbd">[</span><span class="kbd">]</span></span> CT &harr; CBCT blend</div>
-          </div>
+        <p class="guide-lead">Every shortcut works in both workflows. Modifier keys match your device automatically &mdash; <strong>&#8984; / &#8997; on Mac</strong>, Ctrl / Alt on Windows &amp; Linux.</p>
+        <div class="key-legend">
+          <span><span class="kmode">2D</span><span class="kmode">CBCT</span>&nbsp;mode-only key</span>
         </div>
-        <p class="guide-note">Same keys in both workflows &mdash; only the mouse wheel changes meaning (2D zooms, CBCT scrolls slices).</p>
+
+        <div class="kref">
+          <div class="kref-head"><span>Action</span><span>Keys</span></div>
+
+          <div class="kref-group">Move</div>
+          <div class="kref-row"><div class="kref-act"><b>Translate</b> the selected view</div><div class="kref-keys"><span class="kbd">&larr;</span><span class="kbd">&rarr;</span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Vertical</b> shift &mdash; Vrt</div><div class="kref-keys"><span class="kbd">PgUp</span><span class="kbd">PgDn</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Lock one couch axis</b>, then drag <span class="kmode">2D</span><span class="kref-sub">A&#8209;P &middot; S&#8209;I &middot; L&#8209;R</span></div><div class="kref-keys">Hold&nbsp;<span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Fine</b> translate &mdash; 0.1&nbsp;mm <span class="kmode">CBCT</span></div><div class="kref-keys"><span class="kbd">Shift</span><span class="kref-plus">+</span><span class="kbd">&larr;</span><span class="kbd">&rarr;</span><span class="kbd">&uarr;</span><span class="kbd">&darr;</span></div></div>
+
+          <div class="kref-group">Rotate</div>
+          <div class="kref-row"><div class="kref-act"><b>Roll</b> <span class="kmode">2D</span> &middot; rotate the selected plane <span class="kmode">CBCT</span></div><div class="kref-keys"><span class="kbd">Q</span><span class="kbd">E</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Pitch</b> <span class="kmode">2D</span></div><div class="kref-keys"><span class="kbd">A</span><span class="kbd">D</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Fine rotate</b> &mdash; 0.1&deg;</div><div class="kref-keys"><span class="kbd kopt">Ctrl</span><span class="kref-plus">+</span><span class="kbd">&larr;</span><span class="kbd">&rarr;</span></div></div>
+
+          <div class="kref-group">Compare &amp; view</div>
+          <div class="kref-row"><div class="kref-act"><b>Blend</b> reference &harr; moving</div><div class="kref-keys"><span class="kbd">[</span><span class="kbd">]</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Flip / flicker</b> the blend</div><div class="kref-keys"><span class="kbd kopt">Ctrl</span><span class="kref-plus">+</span><span class="kbd">A</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Zoom</b> in / out <span class="kmode">2D</span></div><div class="kref-keys"><span class="kbd">+</span><span class="kbd">&minus;</span><span class="kref-or">/</span><span class="kbd">Scroll</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Browse slices</b> <span class="kmode">CBCT</span></div><div class="kref-keys"><span class="kbd">Scroll</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Color wash</b> <span class="kmode">2D</span> &middot; <b>spyglass</b> &middot; <b>crosshair</b> <span class="kmode">2D</span></div><div class="kref-keys"><span class="kbd">C</span><span class="kbd">S</span><span class="kbd">G</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Fullscreen</b> the selected pane</div><div class="kref-keys"><span class="kbd">F</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Cycle</b> the main pane <span class="kmode">CBCT</span><span class="kref-sub">use V on Mac &mdash; &#8984;R reloads the page</span></div><div class="kref-keys"><span class="kbd">V</span><span class="kref-or">or</span><span class="kbd">Ctrl</span><span class="kref-plus">+</span><span class="kbd">R</span></div></div>
+
+          <div class="kref-group">Match &amp; edit</div>
+          <div class="kref-row"><div class="kref-act"><b>Check match</b></div><div class="kref-keys"><span class="kbd">Enter</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Undo</b> the last move</div><div class="kref-keys"><span class="kbd kmod">Ctrl</span><span class="kref-plus">+</span><span class="kbd">Z</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Reset</b> to start &middot; <b>new</b> offset</div><div class="kref-keys"><span class="kbd">R</span><span class="kref-or">&middot;</span><span class="kbd">N</span></div></div>
+          <div class="kref-row"><div class="kref-act"><b>Clear</b> tool / close</div><div class="kref-keys"><span class="kbd">Esc</span></div></div>
+        </div>
       </section>
     </div>
 
