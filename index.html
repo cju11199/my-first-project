@@ -110,27 +110,16 @@ body{
 a{color:inherit;text-decoration:none}
 .wrap{max-width:1080px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
 
-/* ===== ambient cinematic backdrop (fixed, behind everything) ===== */
-.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-.aur-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;mix-blend-mode:screen;will-change:transform}
-.aur-1{width:60vw;height:60vw;left:-14vw;top:-24vw;background:radial-gradient(circle at 40% 40%,rgba(45,212,238,.5),rgba(45,212,238,0) 66%);animation:drift1 26s var(--ease) infinite alternate}
-.aur-2{width:52vw;height:52vw;right:-16vw;top:-6vw;background:radial-gradient(circle at 60% 40%,rgba(255,122,69,.42),rgba(255,122,69,0) 64%);animation:drift2 32s var(--ease) infinite alternate}
-.aur-3{width:50vw;height:50vw;left:34vw;top:42vh;background:radial-gradient(circle at 50% 50%,rgba(61,220,151,.22),rgba(61,220,151,0) 66%);animation:drift3 38s var(--ease) infinite alternate}
-@keyframes drift1{to{transform:translate3d(7vw,5vh,0) scale(1.16)}}
-@keyframes drift2{to{transform:translate3d(-6vw,8vh,0) scale(.92)}}
-@keyframes drift3{to{transform:translate3d(-5vw,-6vh,0) scale(1.18)}}
-.scangrid{position:fixed;left:0;right:0;top:-16vh;height:132vh;z-index:0;pointer-events:none;opacity:.35;will-change:transform;
-  background-image:linear-gradient(rgba(148,170,194,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,170,194,.05) 1px,transparent 1px);
-  background-size:48px 48px;-webkit-mask:radial-gradient(95% 72% at 50% 30%,#000 32%,transparent 86%);mask:radial-gradient(95% 72% at 50% 30%,#000 32%,transparent 86%)}
-.scanbeam{position:fixed;left:0;right:0;top:0;height:180px;z-index:0;pointer-events:none;
-  background:linear-gradient(180deg,transparent,rgba(45,212,238,.05) 45%,rgba(95,231,246,.09) 50%,transparent);animation:scan 13s linear infinite}
-@keyframes scan{0%{transform:translateY(-200px)}100%{transform:translateY(105vh)}}
-/* large registration reticle in the backdrop — slowly rotates with scroll */
-.scroll-reticle{position:fixed;left:50%;top:46%;width:min(74vw,820px);height:min(74vw,820px);z-index:0;pointer-events:none;opacity:.15;transform:translate(-50%,-50%);will-change:transform}
-.haze{position:fixed;left:0;right:0;top:-16vh;height:132vh;z-index:0;pointer-events:none;will-change:transform}
-.haze i{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(180,210,235,.5);box-shadow:0 0 6px rgba(95,231,246,.5);animation:twinkle 6s ease-in-out infinite}
-.haze i.b{background:rgba(255,170,120,.5);box-shadow:0 0 6px rgba(255,150,100,.5)}
-@keyframes twinkle{0%,100%{opacity:.1;transform:translateY(0)}50%{opacity:.8;transform:translateY(-6px)}}
+/* ===== imaging-room backdrop (calm + clinical — no radar grid/beam) ===== */
+.imgbg{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(1100px 780px at 78% 22%, rgba(45,212,238,.06), transparent 60%),
+    radial-gradient(950px 720px at 16% 92%, rgba(255,122,69,.05), transparent 60%),
+    radial-gradient(760px 560px at 50% 64%, rgba(61,220,151,.03), transparent 72%)}
+.imgbg::before{content:"";position:absolute;inset:0;opacity:.55;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px);
+  -webkit-mask:radial-gradient(120% 95% at 66% 34%,#000 26%,transparent 84%);mask:radial-gradient(120% 95% at 66% 34%,#000 26%,transparent 84%)}
+.imgbg::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 240px 72px rgba(0,0,0,.5)}
 /* scroll-progress bar + hero parallax target */
 .scroll-prog{position:fixed;top:0;left:0;right:0;height:3px;z-index:40;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--accent-hi),var(--accent2));box-shadow:0 0 12px rgba(45,212,238,.55);pointer-events:none}
 .hero .wrap{will-change:transform,opacity}
@@ -162,9 +151,7 @@ a{color:inherit;text-decoration:none}
 header{position:sticky;top:0;z-index:30;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);background:linear-gradient(180deg,rgba(11,15,21,.82),rgba(7,10,15,.6));border-bottom:1px solid var(--hairline)}
 header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
 .logo{font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:10px;font-size:15px}
-.logo-mark{width:22px;height:22px;flex:none;filter:drop-shadow(0 0 6px rgba(45,212,238,.45))}
-.logo-mark .lr-ct{transform-origin:50% 50%;animation:spin 16s linear infinite}
-.logo-mark .lr-cb{transform-origin:50% 50%;animation:spin 22s linear infinite reverse}
+.logo-mark{width:24px;height:24px;flex:none;filter:drop-shadow(0 0 6px rgba(45,212,238,.4))}
 nav{display:flex;align-items:center}
 nav a{color:var(--label);font-size:14px;margin-left:22px;transition:color .18s}
 nav a:hover{color:var(--text)}
@@ -185,27 +172,59 @@ nav a.cta{color:var(--accent);font-weight:600}
 .reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
 .reveal.d4{transition-delay:.32s}.reveal.d5{transition-delay:.4s}.reveal.d6{transition-delay:.48s}
 
-/* ===== hero ===== */
-.hero{padding:88px 0 60px;text-align:center;position:relative}
-.hero-emblem{width:104px;height:104px;margin:0 auto 26px;display:block;filter:drop-shadow(0 0 22px rgba(45,212,238,.3))}
-.hero-emblem .he-ct{transform-origin:50% 50%;animation:spin 20s linear infinite}
-.hero-emblem .he-cb{transform-origin:50% 50%;animation:spin 28s linear infinite reverse}
-.hero-emblem .he-x{animation:nudge 5.5s var(--ease) infinite}
-.hero-emblem .he-core{transform-origin:50% 50%;animation:pulse 3.2s ease-in-out infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes nudge{0%,100%{transform:translate(0,0)}40%{transform:translate(2px,-2px)}70%{transform:translate(-1.5px,1.5px)}}
-.hero h1{font-size:clamp(33px,5.4vw,60px);line-height:1.05;letter-spacing:-1px;font-weight:800;margin-top:10px}
-.hero h1 .grad{background:linear-gradient(110deg,var(--accent-hi),var(--accent) 38%,var(--accent2) 88%);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p.sub{max-width:660px;margin:22px auto 0;color:var(--label);font-size:clamp(16px,2vw,19px)}
-.hero .actions{margin-top:32px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+/* ===== hero — imaging room (copy + setup-verification scene) ===== */
+.hero{padding:64px 0 58px;position:relative}
+.hero .wrap.hero-grid{display:grid;grid-template-columns:1.04fr .96fr;gap:clamp(28px,5vw,60px);align-items:center}
+.hero .copy{max-width:560px}
+.hero h1{font-size:clamp(33px,5vw,56px);line-height:1.04;letter-spacing:-1px;font-weight:800;margin:18px 0 0}
+.hero h1 .grad{background:linear-gradient(110deg,var(--accent-hi),var(--accent) 40%,var(--accent2) 92%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.sub{max-width:500px;margin:20px 0 0;color:var(--label);font-size:clamp(16px,1.7vw,18px)}
+.hero .actions{margin-top:30px;display:flex;gap:14px;flex-wrap:wrap}
 .hero .note{margin-top:24px}
-.hero-motif{position:absolute;left:50%;top:200px;transform:translateX(-50%);width:min(760px,94vw);height:380px;z-index:-1;pointer-events:none;opacity:.4}
-.motif-ct{animation:conv-ct 8s var(--ease) infinite}
-.motif-cb{animation:conv-cb 8s var(--ease) infinite}
-.motif-spark{transform-origin:center;animation:spark 8s var(--ease) infinite}
-@keyframes conv-ct{0%,16%{transform:translate(-34px,-16px)}54%,70%{transform:translate(0,0)}100%{transform:translate(-34px,-16px)}}
-@keyframes conv-cb{0%,16%{transform:translate(34px,16px)}54%,70%{transform:translate(0,0)}100%{transform:translate(34px,16px)}}
-@keyframes spark{0%,49%{opacity:0}57%{opacity:1}70%{opacity:.55}80%,100%{opacity:0}}
+/* imaging viewport scene */
+.scene-wrap{display:flex;justify-content:center;align-items:center}
+.scene{position:relative;width:min(540px,100%);aspect-ratio:1/1;border:1px solid var(--border2);border-radius:18px;overflow:hidden;
+  background:radial-gradient(120% 120% at 50% 40%,#0c1119 0%,#080b11 70%,#06080c 100%);box-shadow:0 40px 90px -34px rgba(0,0,0,.85),inset 0 0 60px rgba(0,0,0,.55)}
+.scene svg.scene-svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.scene .corner{position:absolute;width:18px;height:18px;border:1.5px solid var(--border2);opacity:.7}
+.scene .corner.tl{top:11px;left:11px;border-right:0;border-bottom:0}.scene .corner.tr{top:11px;right:11px;border-left:0;border-bottom:0}
+.scene .corner.bl{bottom:11px;left:11px;border-right:0;border-top:0}.scene .corner.br{bottom:11px;right:11px;border-left:0;border-top:0}
+.viewer-tab{position:absolute;top:13px;left:50%;transform:translateX(-50%);z-index:6;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--label);text-transform:uppercase;background:rgba(8,11,17,.7);border:1px solid var(--border);padding:4px 11px;border-radius:6px}
+.readout{position:absolute;left:14px;bottom:14px;z-index:7;background:rgba(9,13,19,.82);border:1px solid var(--border2);border-radius:10px;padding:11px 13px 10px;font-family:var(--mono);min-width:150px;backdrop-filter:blur(6px);box-shadow:0 10px 28px -12px rgba(0,0,0,.7)}
+.readout .rh{font-size:9.5px;letter-spacing:.16em;color:var(--muted);text-transform:uppercase;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.readout .rh .live{color:var(--accent2);display:flex;align-items:center;gap:5px}
+.readout .rh .live i{width:5px;height:5px;border-radius:50%;background:var(--accent2);box-shadow:0 0 7px var(--accent2);font-style:normal;animation:rpulse 1.4s infinite}
+@keyframes rpulse{0%,100%{opacity:1}50%{opacity:.3}}
+.readout .row{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;line-height:1.85}
+.readout .row .k{color:var(--label);letter-spacing:.04em}
+.readout .row .v{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
+.readout .status{margin-top:8px;padding-top:8px;border-top:1px solid var(--hairline);font-size:10px;letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:6px;position:relative;color:var(--accent2);animation:statusLock 7s var(--ease) infinite}
+.readout .status .ic{width:8px;height:8px;border-radius:50%;border:1.5px solid currentColor;animation:statusIcLock 7s var(--ease) infinite}
+.legend{position:absolute;right:14px;bottom:14px;z-index:7;display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.legend .lg{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--label);background:rgba(9,13,19,.7);border:1px solid var(--border);padding:4px 9px;border-radius:6px}
+.legend .lg .sw{width:13px;height:2.5px;border-radius:2px}.sw.cy{background:var(--accent)}.sw.or{background:var(--accent2)}.sw.rd{background:#ff5a6e}
+/* scene svg elements */
+.drr-fill{fill:rgba(150,172,196,.05)}.drr-anat{stroke:rgba(180,200,220,.16);stroke-width:1.1;fill:none}.drr-soft{stroke:rgba(150,172,196,.09);stroke-width:.9;fill:none}
+.contour-body{stroke:var(--accent);stroke-width:1.6;fill:none;opacity:.85;filter:drop-shadow(0 0 4px rgba(45,212,238,.4))}
+.contour-cord{stroke:var(--accent-hi);stroke-width:1.4;fill:none;opacity:.7;stroke-dasharray:1 4;stroke-linecap:round}
+.contour-ptv{stroke:#ff5a6e;stroke-width:1.8;fill:rgba(255,90,110,.05);opacity:.92;filter:drop-shadow(0 0 5px rgba(255,90,110,.45))}
+.ref-grp{stroke:var(--accent);stroke-width:1.7;fill:none;filter:drop-shadow(0 0 5px rgba(45,212,238,.45));opacity:.95}
+.por-grp{stroke:var(--accent2);stroke-width:1.7;fill:none;filter:drop-shadow(0 0 6px rgba(255,122,69,.5));transform-origin:50% 50%;transform-box:fill-box;animation:converge 7s var(--ease) infinite}
+.iso-line{stroke:rgba(234,241,248,.5);stroke-width:.8}
+.iso-laser{stroke:var(--green);stroke-width:.7;opacity:0;stroke-dasharray:2 5;animation:laserOn 7s var(--ease) infinite}
+.gantry-arc{stroke:rgba(45,212,238,.18);stroke-width:1.2;fill:none;stroke-dasharray:3 6}
+.gantry-head{fill:rgba(45,212,238,.14);stroke:rgba(45,212,238,.4);stroke-width:1}.beam-fan{fill:url(#beamg);opacity:.5}
+.lock-ring{stroke:var(--green);stroke-width:2.4;fill:none;opacity:0;filter:drop-shadow(0 0 10px var(--green));transform-origin:center;animation:lockflash 7s var(--ease) infinite}
+@keyframes converge{0%,12%{transform:translate(20px,-14px) rotate(3.4deg)}55%{transform:translate(6px,-5px) rotate(1.1deg)}80%{transform:translate(.6px,-.6px) rotate(.12deg)}88%,100%{transform:translate(0,0) rotate(0)}}
+@keyframes lockflash{0%,84%{opacity:0}86%{opacity:.9}100%{opacity:0}}
+@keyframes laserOn{0%,80%{opacity:0}88%,98%{opacity:.55}100%{opacity:0}}
+@keyframes statusLock{0%,80%{color:var(--accent2)}86%,100%{color:var(--green)}}
+@keyframes statusIcLock{0%,80%{background:transparent;box-shadow:none}86%,100%{background:var(--green);box-shadow:0 0 8px var(--green)}}
+.num-roll{position:relative;display:inline-block}.num-roll .nA,.num-roll .nB{display:inline-block}.num-roll .nB{position:absolute;right:0;top:0}
+.nA{animation:naFade 7s var(--ease) infinite}.nB{animation:nbFade 7s var(--ease) infinite}
+@keyframes naFade{0%,70%{opacity:1}84%,100%{opacity:0}}@keyframes nbFade{0%,70%{opacity:0}84%,100%{opacity:1}}
+.status .txtA{animation:naFade 7s var(--ease) infinite}.status .txtB{position:absolute;left:18px;animation:nbFade 7s var(--ease) infinite}
+@media(max-width:920px){.hero .wrap.hero-grid{grid-template-columns:1fr;gap:34px}.scene-wrap{order:-1}.scene{width:min(440px,86vw)}}
 
 /* disclaimer band */
 .disclaimer{margin:8px auto 0;max-width:760px;text-align:center;color:var(--muted);font-size:12.5px;font-family:var(--mono);border:1px dashed var(--border2);border-radius:12px;padding:11px 18px;background:rgba(11,15,21,.4)}
@@ -291,17 +310,19 @@ footer .links a{margin-right:18px}
 .foot-disc{width:100%;color:var(--muted);font-size:12px;border-top:1px solid var(--hairline);padding-top:16px;margin-top:6px;line-height:1.6}
 
 @media(max-width:600px){
-  .hero{padding:62px 0 50px}
-  .hero h1{font-size:26px;line-height:1.14;letter-spacing:-.3px}
+  .hero{padding:48px 0 46px}
+  .hero h1{font-size:28px;line-height:1.12;letter-spacing:-.4px}
   .hero p.sub{font-size:15.5px}
-  .hero-emblem{width:84px;height:84px;margin-bottom:18px}
-  .hero-motif{top:160px;height:280px;opacity:.3}
   .hero .actions .btn{flex:1 1 auto;justify-content:center}
   h2{font-size:23px}
 }
 @media(prefers-reduced-motion:reduce){
-  .aur-blob,.scanbeam,.haze i,.logo-mark .lr-ct,.logo-mark .lr-cb,.hero-emblem .he-ct,.hero-emblem .he-cb,.hero-emblem .he-x,.hero-emblem .he-core,
-  .motif-ct,.motif-cb,.motif-spark,.chip .chip-dot,.viewport,.price.featured::after{animation:none!important}
+  .chip .chip-dot,.viewport,.price.featured::after,.por-grp,.iso-laser,.lock-ring,
+  .nA,.nB,.status,.status .ic,.status .txtA,.status .txtB,.readout .rh .live i{animation:none!important}
+  .por-grp{transform:translate(0,0) rotate(0)!important}
+  .lock-ring{opacity:.85!important}.iso-laser{opacity:.4!important}
+  .nA,.status .txtA{opacity:0!important}.nB,.status .txtB{opacity:1!important}
+  .readout .status{color:var(--green)!important}.readout .status .ic{background:var(--green)!important;box-shadow:0 0 8px var(--green)!important}
   .reveal{opacity:1!important;transform:none!important;transition:none!important}
   .card::before,.scroll-prog{display:none}
 }
@@ -309,31 +330,20 @@ footer .links a{margin-right:18px}
 </head>
 <body>
 
-<!-- ambient cinematic backdrop -->
-<div class="aurora" aria-hidden="true">
-  <div class="aur-blob aur-1"></div><div class="aur-blob aur-2"></div><div class="aur-blob aur-3"></div>
-</div>
-<div class="scangrid" aria-hidden="true"></div>
-<div class="scanbeam" aria-hidden="true"></div>
-<div class="haze" id="haze" aria-hidden="true"></div>
-<svg class="scroll-reticle" id="scrollReticle" viewBox="0 0 200 200" fill="none" aria-hidden="true">
-  <circle cx="100" cy="100" r="88" stroke="#2dd4ee" stroke-width=".5" opacity=".7"/>
-  <circle cx="100" cy="100" r="62" stroke="#ff7a45" stroke-width=".5" stroke-dasharray="4 6" opacity=".6"/>
-  <circle cx="100" cy="100" r="34" stroke="#2dd4ee" stroke-width=".5" opacity=".5"/>
-  <line x1="100" y1="2" x2="100" y2="198" stroke="#2dd4ee" stroke-width=".5" opacity=".4"/>
-  <line x1="2" y1="100" x2="198" y2="100" stroke="#2dd4ee" stroke-width=".5" opacity=".4"/>
-</svg>
+<!-- calm imaging-room backdrop -->
+<div class="imgbg" aria-hidden="true"></div>
 <div class="scroll-prog" id="scrollProg" aria-hidden="true"></div>
 
 <header><div class="wrap">
   <a class="logo" href="/" style="color:inherit">
-    <svg class="logo-mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-      <circle class="lr-ct" cx="50" cy="50" r="42" stroke="#2dd4ee" stroke-width="6" stroke-dasharray="40 22"/>
-      <circle class="lr-cb" cx="50" cy="50" r="28" stroke="#ff7a45" stroke-width="6" stroke-dasharray="24 16"/>
-      <circle cx="50" cy="50" r="7" fill="#5fe7f6"/>
+    <svg class="logo-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+      <circle cx="20" cy="20" r="18" stroke="#2dd4ee" stroke-width="1.6" opacity=".5"/>
+      <circle cx="20" cy="20" r="11" stroke="#ff7a45" stroke-width="1.6" opacity=".85"/>
+      <path d="M20 4v32M4 20h32" stroke="#eaf1f8" stroke-width="1" opacity=".5"/>
+      <circle cx="20" cy="20" r="2.6" fill="#3ddc97"/>
     </svg>
     RT Image Matching Trainer
-  </div>
+  </a>
   <nav>
     <a href="#features">Features</a>
     <a href="#cases">Cases</a>
@@ -345,37 +355,87 @@ footer .links a{margin-right:18px}
 </div></header>
 
 <main>
-  <section class="hero"><div class="wrap">
-    <!-- converging registration crosshair motif behind the hero -->
-    <svg class="hero-motif" viewBox="0 0 760 380" fill="none" aria-hidden="true">
-      <g class="motif-ct" stroke="#2dd4ee" stroke-width="1.2">
-        <circle cx="380" cy="190" r="124" opacity=".5"/><circle cx="380" cy="190" r="80" opacity=".32"/>
-        <line x1="150" y1="190" x2="610" y2="190" opacity=".45"/><line x1="380" y1="30" x2="380" y2="350" opacity=".45"/>
-      </g>
-      <g class="motif-cb" stroke="#ff7a45" stroke-width="1.2">
-        <rect x="272" y="82" width="216" height="216" opacity=".38"/>
-        <line x1="210" y1="190" x2="550" y2="190" opacity=".34"/><line x1="380" y1="55" x2="380" y2="325" opacity=".34"/>
-      </g>
-      <circle class="motif-spark" cx="380" cy="190" r="6" fill="#5fe7f6"/>
-    </svg>
-
-    <svg class="hero-emblem reveal" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-      <circle class="he-ct" cx="50" cy="50" r="42" stroke="#2dd4ee" stroke-width="3" stroke-dasharray="40 22" opacity=".9"/>
-      <circle class="he-cb" cx="50" cy="50" r="30" stroke="#ff7a45" stroke-width="3" stroke-dasharray="26 16" opacity=".85"/>
-      <g class="he-x" stroke="#eaf1f8" stroke-width="2.4" stroke-linecap="round">
-        <line x1="50" y1="18" x2="50" y2="38"/><line x1="50" y1="62" x2="50" y2="82"/>
-        <line x1="18" y1="50" x2="38" y2="50"/><line x1="62" y1="50" x2="82" y2="50"/>
-      </g>
-      <circle class="he-core" cx="50" cy="50" r="7" fill="#5fe7f6"/>
-    </svg>
-    <span class="chip reveal d1"><span class="chip-dot"></span>Educational training simulator</span>
-    <h1 class="reveal d2">Master <span class="grad">RT image matching</span><br>before you're at the console.</h1>
-    <p class="sub reveal d3">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — exactly like a real treatment setup. Browser-based, no install.</p>
-    <div class="actions reveal d4">
-      <a class="btn btn-primary" href="/trainer" data-cta="trial">Launch the trainer <span class="arr">&rarr;</span></a>
-      <a class="btn btn-ghost" href="#pricing">See pricing</a>
+  <section class="hero"><div class="wrap hero-grid">
+    <div class="copy">
+      <span class="chip reveal d1"><span class="chip-dot"></span>Educational training simulator</span>
+      <h1 class="reveal d2">Master <span class="grad">RT image matching</span><br>before you're at the console.</h1>
+      <p class="sub reveal d3">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — exactly like a real treatment setup. Browser-based, no install.</p>
+      <div class="actions reveal d4">
+        <a class="btn btn-primary" href="/trainer" data-cta="trial">Launch the trainer <span class="arr">&rarr;</span></a>
+        <a class="btn btn-ghost" href="#pricing">See pricing</a>
+      </div>
+      <div class="note disclaimer reveal d5">Training simulator — <b>educational use only. Not approved for clinical decision-making.</b> All patient offsets and values shown are fictional.</div>
     </div>
-    <div class="note disclaimer reveal d5">Training simulator — <b>educational use only. Not approved for clinical decision-making.</b> All patient offsets and values shown are fictional.</div>
+
+    <!-- setup-verification scene: portal (orange) registers onto reference DRR (cyan) at isocenter -->
+    <div class="scene-wrap reveal d3">
+      <div class="scene">
+        <span class="viewer-tab">DRR · Lateral — Setup Verify</span>
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+        <svg class="scene-svg" viewBox="0 0 540 540" preserveAspectRatio="xMidYMid meet" aria-label="Portal image registering onto the reference DRR at isocenter">
+          <defs>
+            <linearGradient id="beamg" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#2dd4ee" stop-opacity=".5"/><stop offset="1" stop-color="#2dd4ee" stop-opacity="0"/>
+            </linearGradient>
+            <radialGradient id="targetGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0" stop-color="#ff5a6e" stop-opacity=".22"/><stop offset="100%" stop-color="#ff5a6e" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <!-- faint gantry arc + beam fan (linac context) -->
+          <path class="gantry-arc" d="M120 70 A 150 150 0 0 1 420 70"/>
+          <rect class="gantry-head" x="252" y="42" width="36" height="26" rx="4"/>
+          <path class="beam-fan" d="M258 68 L210 250 L330 250 L282 68 Z"/>
+          <!-- faint grayscale DRR anatomy: lateral skull + C-spine -->
+          <g transform="translate(270 280)">
+            <path class="drr-fill" d="M-95 -120 C -150 -120 -170 -60 -160 -10 C -152 30 -120 55 -95 70 C -78 80 -55 86 -30 88 L -18 110 L 6 92 C 40 88 78 70 100 38 C 130 -5 128 -70 92 -108 C 60 -140 -40 -140 -95 -120 Z"/>
+            <path class="drr-anat" d="M-95 -120 C -150 -120 -170 -60 -160 -10 C -152 30 -120 55 -95 70 C -78 80 -55 86 -30 88 L -18 110 L 6 92 C 40 88 78 70 100 38 C 130 -5 128 -70 92 -108 C 60 -140 -40 -140 -95 -120 Z"/>
+            <path class="drr-soft" d="M-86 -108 C -135 -106 -152 -54 -143 -10 C -136 26 -108 48 -86 60 C -60 70 28 66 70 30 C 108 -8 108 -64 78 -98 C 50 -126 -38 -126 -86 -108 Z"/>
+            <ellipse class="drr-soft" cx="-118" cy="-22" rx="16" ry="11"/>
+            <path class="drr-soft" d="M-40 20 C -10 30 30 26 60 8"/>
+            <path class="drr-anat" d="M-30 88 L -34 130 M-18 90 L -22 132 M-6 88 L -10 130" opacity=".7"/>
+            <rect class="drr-soft" x="-40" y="96" width="34" height="13" rx="3"/><rect class="drr-soft" x="-44" y="114" width="34" height="13" rx="3"/>
+          </g>
+          <!-- structure contours -->
+          <g transform="translate(270 280)">
+            <path class="contour-body" d="M-99 -126 C -157 -126 -178 -62 -167 -9 C -158 33 -124 60 -98 75 C -80 86 -56 92 -30 94 L -17 117 L 8 98 C 44 93 84 74 106 40 C 138 -6 136 -74 98 -114 C 64 -148 -42 -148 -99 -126 Z"/>
+            <path class="contour-cord" d="M-26 60 C -22 88 -24 116 -28 138"/>
+            <circle cx="0" cy="0" r="44" fill="url(#targetGlow)"/>
+            <path class="contour-ptv" d="M-30 -28 C -8 -42 24 -36 36 -12 C 46 10 36 36 10 42 C -16 48 -40 34 -42 8 C -43 -10 -42 -20 -30 -28 Z"/>
+          </g>
+          <!-- isocenter crosshair + room lasers -->
+          <g transform="translate(270 280)">
+            <line class="iso-laser" x1="-260" y1="0" x2="260" y2="0"/><line class="iso-laser" x1="0" y1="-260" x2="0" y2="260"/>
+            <line class="iso-line" x1="-30" y1="0" x2="-9" y2="0"/><line class="iso-line" x1="9" y1="0" x2="30" y2="0"/>
+            <line class="iso-line" x1="0" y1="-30" x2="0" y2="-9"/><line class="iso-line" x1="0" y1="9" x2="0" y2="30"/>
+            <circle cx="0" cy="0" r="6" fill="none" stroke="rgba(234,241,248,.6)" stroke-width=".9"/><circle cx="0" cy="0" r="1.6" fill="#eaf1f8"/>
+          </g>
+          <!-- reference DRR outline (cyan, fixed) -->
+          <g class="ref-grp" transform="translate(270 280)">
+            <path d="M-96 -118 C -150 -118 -168 -58 -158 -8 C -150 32 -118 56 -94 70 L -28 90 L -16 112 L 6 92 C 40 88 78 70 98 38 C 128 -4 126 -68 90 -106 C 58 -138 -42 -138 -96 -118 Z"/>
+            <circle cx="-94" cy="-30" r="3"/><circle cx="64" cy="-50" r="3"/><circle cx="-10" cy="88" r="3"/>
+          </g>
+          <!-- moving portal outline (orange, drifts → locks) -->
+          <g class="por-grp" transform="translate(270 280)">
+            <path d="M-96 -118 C -150 -118 -168 -58 -158 -8 C -150 32 -118 56 -94 70 L -28 90 L -16 112 L 6 92 C 40 88 78 70 98 38 C 128 -4 126 -68 90 -106 C 58 -138 -42 -138 -96 -118 Z"/>
+            <circle cx="-94" cy="-30" r="3"/><circle cx="64" cy="-50" r="3"/><circle cx="-10" cy="88" r="3"/>
+          </g>
+          <circle class="lock-ring" cx="270" cy="280" r="58"/>
+        </svg>
+        <div class="readout">
+          <div class="rh"><span>Couch Correction</span><span class="live"><i></i>6DOF</span></div>
+          <div class="row"><span class="k">Lat</span><span class="v num-roll"><span class="nA">+0.38</span><span class="nB">+0.00</span></span></div>
+          <div class="row"><span class="k">Lng</span><span class="v num-roll"><span class="nA">&minus;0.21</span><span class="nB">+0.00</span></span></div>
+          <div class="row"><span class="k">Vrt</span><span class="v num-roll"><span class="nA">+0.15</span><span class="nB">+0.00</span></span></div>
+          <div class="row"><span class="k">Rtn</span><span class="v num-roll"><span class="nA">3.4&deg;</span><span class="nB">0.1&deg;</span></span></div>
+          <div class="status"><span class="ic"></span><span class="txtA">Aligning&hellip;</span><span class="txtB">Match within tol</span></div>
+        </div>
+        <div class="legend">
+          <span class="lg"><span class="sw cy"></span>Reference · DRR</span>
+          <span class="lg"><span class="sw or"></span>Portal · moving</span>
+          <span class="lg"><span class="sw rd"></span>PTV</span>
+        </div>
+      </div>
+    </div>
   </div></section>
 
   <section class="block"><div class="wrap">
@@ -539,15 +599,6 @@ footer .links a{margin-right:18px}
 (function(){
   var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches);
 
-  /* ambient particle haze (skipped under reduced-motion) */
-  var h=document.getElementById('haze');
-  if(h && !reduce){
-    for(var i=0;i<46;i++){var s=document.createElement('i');if(i%4===0)s.className='b';
-      s.style.left=(Math.random()*100).toFixed(2)+'%';s.style.top=(Math.random()*100).toFixed(2)+'%';
-      s.style.animationDelay=(-Math.random()*6).toFixed(2)+'s';s.style.animationDuration=(4+Math.random()*4).toFixed(2)+'s';
-      s.style.opacity=(0.1+Math.random()*0.45).toFixed(2);h.appendChild(s);}
-  }
-
   /* reveal-on-scroll — reveal in-view items immediately (no above-the-fold flash), observe the rest */
   var els=[].slice.call(document.querySelectorAll('.reveal'));
   if(!('IntersectionObserver' in window) || reduce){
@@ -563,9 +614,6 @@ footer .links a{margin-right:18px}
   /* scroll-progress + backdrop parallax + hero dissolve (rAF-throttled, passive) */
   var prog=document.getElementById('scrollProg');
   var hero=document.querySelector('.hero'), heroWrap=document.querySelector('.hero .wrap');
-  var grid=document.querySelector('.scangrid'), hazeEl=document.getElementById('haze'),
-      ret=document.getElementById('scrollReticle'), motif=document.querySelector('.hero-motif');
-  function cap(v,m){return v<m?v:m;}
   var ticking=false;
   function frame(){
     ticking=false;
@@ -573,12 +621,8 @@ footer .links a{margin-right:18px}
     if(prog){ var max=(document.documentElement.scrollHeight-window.innerHeight)||1; prog.style.transform='scaleX('+Math.min(1,Math.max(0,y/max))+')'; }
     if(reduce) return;
     if(hero&&heroWrap){ var hh=hero.offsetHeight||600;
-      if(y<hh){ heroWrap.style.transform='translate3d(0,'+(y*0.28).toFixed(1)+'px,0)'; heroWrap.style.opacity=(1-(y/hh)*0.92).toFixed(3); }
+      if(y<hh){ heroWrap.style.transform='translate3d(0,'+(y*0.2).toFixed(1)+'px,0)'; heroWrap.style.opacity=(1-(y/hh)*0.82).toFixed(3); }
       else heroWrap.style.opacity='0'; }
-    if(grid) grid.style.transform='translate3d(0,'+cap(y*0.08,120).toFixed(1)+'px,0)';
-    if(hazeEl) hazeEl.style.transform='translate3d(0,'+cap(y*0.14,150).toFixed(1)+'px,0)';
-    if(ret) ret.style.transform='translate(-50%,-50%) rotate('+(y*0.045).toFixed(2)+'deg) scale('+(1+cap(y,1600)/1600*0.18).toFixed(3)+')';
-    if(motif) motif.style.transform='translate(-50%,0) rotate('+(y*0.03).toFixed(2)+'deg)';
   }
   function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(frame); } }
   window.addEventListener('scroll',onScroll,{passive:true});
