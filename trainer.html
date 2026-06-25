@@ -196,20 +196,22 @@ main.shifts-collapsed .shift-tab{left:0}
 
 /* ===== start / mode-select screen — "Cinematic Aurora" redesign ===== */
 .start-screen{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;padding:40px 24px;overflow:auto;
-  background:radial-gradient(120% 90% at 50% -10%,#0c1118 0%,var(--bg) 55%,#04060a 100%)}
+  background:radial-gradient(120% 90% at 50% -10%,#0e1114 0%,var(--bg) 55%,#050608 100%)}
 .start-screen.hidden{display:none}
+/* Platinum/Ice theme override — start screen only; MATCH colors keep the global cyan/orange tokens */
+.start-screen{--accent:#b9c8d6;--accent-hi:#eaf1f8;--accent-dim:rgba(185,200,214,.13);--accent2:#8ef0c2;--accent2-hi:#b6f5d8;--accent2-dim:rgba(142,240,194,.15);--green:#8ef0c2;--gold:#cdd8e2}
 
 /* imaging-room backdrop — calm + clinical (nested inside #startScreen) */
 .sb-amb{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
   background:
-    radial-gradient(1000px 720px at 78% 14%, rgba(45,212,238,.06), transparent 60%),
-    radial-gradient(880px 660px at 16% 96%, rgba(255,122,69,.05), transparent 60%),
-    radial-gradient(680px 520px at 50% 62%, rgba(61,220,151,.03), transparent 72%)}
+    radial-gradient(1000px 720px at 78% 14%, rgba(185,200,214,.06), transparent 60%),
+    radial-gradient(880px 660px at 16% 96%, rgba(142,240,194,.05), transparent 60%),
+    radial-gradient(680px 520px at 50% 62%, rgba(142,240,194,.03), transparent 72%)}
 .sb-amb::before{content:"";position:absolute;inset:0;opacity:.5;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px);-webkit-mask:radial-gradient(110% 90% at 50% 40%,#000 26%,transparent 84%);mask:radial-gradient(110% 90% at 50% 40%,#000 26%,transparent 84%)}
 .sb-amb::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 200px 60px rgba(0,0,0,.5)}
 .sb-vault{position:absolute;left:50%;top:45%;width:min(780px,90vw);transform:translate(-50%,-50%);opacity:.6}
-.sb-vault .vr{fill:none;stroke:rgba(127,217,236,.16);stroke-width:1.4}
-.sb-vault .vr2{fill:none;stroke:rgba(127,217,236,.07);stroke-width:1}
+.sb-vault .vr{fill:none;stroke:rgba(205,216,226,.16);stroke-width:1.4}
+.sb-vault .vr2{fill:none;stroke:rgba(205,216,226,.07);stroke-width:1}
 .sb-vault .vrot{transform-origin:300px 200px;animation:sbGantry 60s linear infinite}
 .sb-vault .vpulse{transform-origin:center;animation:sbIsoP 3.6s ease-in-out infinite}
 @keyframes sbGantry{to{transform:rotate(360deg)}}
@@ -222,15 +224,15 @@ main.shifts-collapsed .shift-tab{left:0}
 .start-screen>.start-brand,.start-screen>.start-cards,.start-screen>.rt-summary,.start-screen>.start-disclaimer,.start-screen>.start-note{position:relative;z-index:2}
 
 .start-account{position:absolute;top:18px;right:22px;font-family:var(--mono);font-size:11px;color:var(--label);text-decoration:none;padding:7px 13px;border-radius:var(--radius-pill);border:1px solid var(--border2);background:linear-gradient(180deg,rgba(20,26,36,.7),rgba(14,19,27,.7));backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);transition:all .18s var(--ease);z-index:20}
-.start-account:hover{color:var(--text);border-color:rgba(45,212,238,.5);box-shadow:0 0 0 3px var(--accent-dim)}
+.start-account:hover{color:var(--text);border-color:rgba(185,200,214,.5);box-shadow:0 0 0 3px var(--accent-dim)}
 
 /* hero */
 .start-brand{position:relative;text-align:center;animation:sbRise .7s var(--ease) both}
 .brand-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--accent);opacity:.85;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:10px}
-.brand-eyebrow::before,.brand-eyebrow::after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,rgba(45,212,238,.6))}
+.brand-eyebrow::before,.brand-eyebrow::after{content:"";width:34px;height:1px;background:linear-gradient(90deg,transparent,rgba(185,200,214,.6))}
 .brand-eyebrow::after{transform:scaleX(-1)}
-.start-logo{position:relative;display:inline-flex;align-items:center;gap:.42em;font-weight:800;font-size:clamp(40px,7.4vw,90px);line-height:.92;letter-spacing:-.02em;background:linear-gradient(180deg,#fbfdff 0%,#cfe3ef 52%,#9fc0d2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 40px rgba(45,212,238,.18))}
-.start-logo .reticle{position:relative;width:.92em;height:.92em;flex:0 0 auto;top:.02em;filter:drop-shadow(0 0 10px rgba(45,212,238,.4))}
+.start-logo{position:relative;display:inline-flex;align-items:center;gap:.42em;font-weight:800;font-size:clamp(40px,7.4vw,90px);line-height:.92;letter-spacing:-.02em;background:linear-gradient(180deg,#fbfdff 0%,#cfe3ef 52%,#9fc0d2 100%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 40px rgba(185,200,214,.18))}
+.start-logo .reticle{position:relative;width:.92em;height:.92em;flex:0 0 auto;top:.02em;filter:drop-shadow(0 0 10px rgba(185,200,214,.4))}
 .reticle .pulse{transform-origin:50% 50%;animation:sbPulse 3.2s ease-in-out infinite}
 @keyframes sbPulse{0%,100%{opacity:.3;transform:scale(.85)}50%{opacity:.95;transform:scale(1.12)}}
 .start-sub{margin-top:18px;font-family:var(--mono);font-size:13px;letter-spacing:.06em;color:var(--label);min-height:1.2em;transition:color .3s;text-transform:uppercase}
@@ -255,22 +257,22 @@ main.shifts-collapsed .shift-tab{left:0}
 .start-card::before{content:"";position:absolute;inset:-1px;z-index:-1;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.10) 45%,transparent 60%);transform:translateX(-130%);transition:transform .8s var(--ease)}
 .start-card:hover::before{transform:translateX(130%)}
 .start-card::after{content:"";position:absolute;inset:0;border-radius:18px;pointer-events:none;transition:box-shadow .35s var(--ease),opacity .35s;opacity:0}
-.start-card:hover{transform:translateY(-9px);border-color:rgba(45,212,238,.4);box-shadow:0 36px 70px -30px rgba(0,0,0,.95),0 0 40px -8px rgba(45,212,238,.28),inset 0 1px 0 rgba(255,255,255,.1)}
-.start-card:hover::after{opacity:1;box-shadow:0 0 0 1px rgba(45,212,238,.55),0 0 24px rgba(45,212,238,.18) inset}
+.start-card:hover{transform:translateY(-9px);border-color:rgba(185,200,214,.4);box-shadow:0 36px 70px -30px rgba(0,0,0,.95),0 0 40px -8px rgba(185,200,214,.28),inset 0 1px 0 rgba(255,255,255,.1)}
+.start-card:hover::after{opacity:1;box-shadow:0 0 0 1px rgba(185,200,214,.55),0 0 24px rgba(185,200,214,.18) inset}
 .start-card:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
-#modeCbct:hover{border-color:rgba(255,122,69,.42);box-shadow:0 36px 70px -30px rgba(0,0,0,.95),0 0 40px -8px rgba(255,122,69,.3),inset 0 1px 0 rgba(255,255,255,.1)}
-#modeCbct:hover::after{box-shadow:0 0 0 1px rgba(255,122,69,.55),0 0 24px rgba(255,122,69,.18) inset}
+#modeCbct:hover{border-color:rgba(142,240,194,.42);box-shadow:0 36px 70px -30px rgba(0,0,0,.95),0 0 40px -8px rgba(142,240,194,.3),inset 0 1px 0 rgba(255,255,255,.1)}
+#modeCbct:hover::after{box-shadow:0 0 0 1px rgba(142,240,194,.55),0 0 24px rgba(142,240,194,.18) inset}
 .sc-icon{width:52px;height:52px;display:flex;align-items:center;justify-content:center;margin-bottom:18px;border-radius:13px;font-size:26px;line-height:1;color:var(--accent);
-  background:radial-gradient(120% 120% at 30% 20%,rgba(45,212,238,.16),rgba(45,212,238,.03));border:1px solid rgba(45,212,238,.2);box-shadow:inset 0 0 18px rgba(45,212,238,.08)}
+  background:radial-gradient(120% 120% at 30% 20%,rgba(185,200,214,.16),rgba(185,200,214,.03));border:1px solid rgba(185,200,214,.2);box-shadow:inset 0 0 18px rgba(185,200,214,.08)}
 .sc-icon svg{width:30px;height:30px;display:block}
-#modeCbct .sc-icon{color:var(--accent2);background:radial-gradient(120% 120% at 30% 20%,rgba(255,122,69,.16),rgba(255,122,69,.03));border-color:rgba(255,122,69,.22);box-shadow:inset 0 0 18px rgba(255,122,69,.08)}
-#modeGuide .sc-icon{color:var(--gold);background:radial-gradient(120% 120% at 30% 20%,rgba(230,194,90,.15),rgba(230,194,90,.03));border-color:rgba(230,194,90,.22);box-shadow:inset 0 0 18px rgba(230,194,90,.08)}
+#modeCbct .sc-icon{color:var(--accent2);background:radial-gradient(120% 120% at 30% 20%,rgba(142,240,194,.16),rgba(142,240,194,.03));border-color:rgba(142,240,194,.22);box-shadow:inset 0 0 18px rgba(142,240,194,.08)}
+#modeGuide .sc-icon{color:var(--gold);background:radial-gradient(120% 120% at 30% 20%,rgba(205,216,226,.15),rgba(205,216,226,.03));border-color:rgba(205,216,226,.22);box-shadow:inset 0 0 18px rgba(205,216,226,.08)}
 .sc-title{font-weight:700;font-size:21px;letter-spacing:-.01em;margin-bottom:9px;color:var(--text)}
 .sc-desc{font-size:13px;line-height:1.55;color:var(--muted);flex:1}
 .sc-badge{position:absolute;top:16px;right:16px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:var(--radius-pill);border:1px solid var(--border2);color:var(--label);background:rgba(14,19,27,.6)}
-.sc-badge.ready{color:var(--green);border-color:rgba(61,220,151,.35);background:rgba(61,220,151,.1)}
+.sc-badge.ready{color:var(--green);border-color:rgba(142,240,194,.35);background:rgba(142,240,194,.1)}
 .sc-badge.ready::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);margin-right:6px;vertical-align:middle;box-shadow:0 0 8px var(--green);animation:sbPulse 2.2s ease-in-out infinite}
-.sc-badge.guide-badge{color:var(--gold);border-color:rgba(230,194,90,.32);background:rgba(230,194,90,.08)}
+.sc-badge.guide-badge{color:var(--gold);border-color:rgba(205,216,226,.32);background:rgba(205,216,226,.08)}
 
 /* compact per-case cards (built dynamically by pickMode) */
 .case-card{min-height:150px;width:184px;padding:20px 18px}
@@ -282,22 +284,22 @@ main.shifts-collapsed .shift-tab{left:0}
 .sc-stat-done{color:var(--green)}
 .sc-stat-try{color:var(--accent2-hi)}
 .sc-stat-new{color:var(--muted)}
-.case-card.cleared{border-color:rgba(61,220,151,.3)}
-.cleared .sc-icon{color:var(--green);border-color:rgba(61,220,151,.3);background:radial-gradient(120% 120% at 30% 20%,rgba(61,220,151,.16),rgba(61,220,151,.03))}
+.case-card.cleared{border-color:rgba(142,240,194,.3)}
+.cleared .sc-icon{color:var(--green);border-color:rgba(142,240,194,.3);background:radial-gradient(120% 120% at 30% 20%,rgba(142,240,194,.16),rgba(142,240,194,.03))}
 .case-card.locked{cursor:not-allowed;opacity:.62}
 .case-card.locked:hover{transform:none;border-color:var(--border);box-shadow:0 22px 50px -28px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06)}
 .sc-title .mic-req{font-size:.8em;margin-left:6px;color:var(--gold);opacity:.95}
 .back-card{width:140px;min-height:150px;align-items:center;justify-content:center;text-align:center;background:linear-gradient(160deg,rgba(20,26,36,.5),rgba(14,19,27,.6));border-style:dashed}
 .back-card .sc-icon{margin-bottom:10px}
-.back-card:hover{border-color:rgba(45,212,238,.4)}
+.back-card:hover{border-color:rgba(185,200,214,.4)}
 
 /* progress pill */
 .rt-summary{min-height:34px;display:flex;justify-content:center;align-items:center;animation:sbRise .8s var(--ease) .4s both}
 .rt-sum-btn{display:flex;align-items:center;gap:16px;padding:9px 18px;cursor:pointer;border-radius:var(--radius-pill);border:1px solid var(--border2);background:linear-gradient(180deg,rgba(20,26,36,.7),rgba(14,19,27,.75));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-family:var(--mono);font-size:12px;color:var(--label);transition:all .2s var(--ease);box-shadow:none}
-.rt-sum-btn:hover{border-color:rgba(45,212,238,.45);color:var(--text);box-shadow:0 0 0 3px var(--accent-dim)}
+.rt-sum-btn:hover{border-color:rgba(185,200,214,.45);color:var(--text);box-shadow:0 0 0 3px var(--accent-dim)}
 .rt-sum-lvl{font-weight:700;color:var(--accent-hi);white-space:nowrap;letter-spacing:.05em}
 .rt-sum-bar{width:110px;height:6px;border-radius:var(--radius-pill);background:rgba(148,170,194,.14);overflow:hidden}
-.rt-sum-bar i{display:block;height:100%;border-radius:var(--radius-pill);background:linear-gradient(90deg,var(--accent),var(--accent-hi));box-shadow:0 0 10px rgba(45,212,238,.5)}
+.rt-sum-bar i{display:block;height:100%;border-radius:var(--radius-pill);background:linear-gradient(90deg,var(--accent),var(--accent-hi));box-shadow:0 0 10px rgba(185,200,214,.5)}
 .rt-sum-meta{color:var(--label);white-space:nowrap}
 .rt-sum-streak{color:var(--gold);white-space:nowrap}
 .rt-sum-go{color:var(--accent);font-weight:600;white-space:nowrap}
@@ -577,16 +579,16 @@ html:not(.auth-pending) #authGate{display:none}
   <div class="sb-amb" aria-hidden="true">
     <svg class="sb-vault" viewBox="0 0 600 480" fill="none" aria-hidden="true">
       <defs>
-        <radialGradient id="sbBeam" cx="50%" cy="0%" r="100%"><stop offset="0" stop-color="#bfeeff" stop-opacity=".5"/><stop offset="55%" stop-color="#5fe7f6" stop-opacity=".12"/><stop offset="100%" stop-color="#2dd4ee" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbIso" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="60%" stop-color="#5fe7f6" stop-opacity=".25"/><stop offset="100%" stop-color="#2dd4ee" stop-opacity="0"/></radialGradient>
+        <radialGradient id="sbBeam" cx="50%" cy="0%" r="100%"><stop offset="0" stop-color="#dfe8f0" stop-opacity=".5"/><stop offset="55%" stop-color="#eaf1f8" stop-opacity=".12"/><stop offset="100%" stop-color="#b9c8d6" stop-opacity="0"/></radialGradient>
+        <radialGradient id="sbIso" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="60%" stop-color="#eaf1f8" stop-opacity=".25"/><stop offset="100%" stop-color="#b9c8d6" stop-opacity="0"/></radialGradient>
       </defs>
       <g class="vrot"><g transform="translate(300 200)">
         <circle class="vr" r="150"/><circle class="vr2" r="124"/>
-        <g fill="#3a4d60"><circle cx="0" cy="-150" r="2.4"/><circle cx="106" cy="-106" r="2.4"/><circle cx="150" cy="0" r="2.4"/><circle cx="-106" cy="-106" r="2.4"/><circle cx="-150" cy="0" r="2.4"/></g>
+        <g fill="#3a4450"><circle cx="0" cy="-150" r="2.4"/><circle cx="106" cy="-106" r="2.4"/><circle cx="150" cy="0" r="2.4"/><circle cx="-106" cy="-106" r="2.4"/><circle cx="-150" cy="0" r="2.4"/></g>
       </g></g>
       <path d="M285 86 L315 86 L356 320 L244 320 Z" fill="url(#sbBeam)"/>
       <g class="vpulse" transform="translate(300 320)"><circle r="34" fill="url(#sbIso)"/><circle r="8" fill="#fff" opacity=".8"/></g>
-      <line x1="120" y1="332" x2="480" y2="332" stroke="rgba(127,217,236,.2)" stroke-width="2"/>
+      <line x1="120" y1="332" x2="480" y2="332" stroke="rgba(205,216,226,.2)" stroke-width="2"/>
     </svg>
     <div class="sb-grain"></div>
   </div>
@@ -595,13 +597,13 @@ html:not(.auth-pending) #authGate{display:none}
     <div class="brand-eyebrow">Radiation-Therapy Setup Trainer</div>
     <div class="start-logo">
       <svg class="reticle" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-        <circle cx="50" cy="50" r="42" stroke="#2dd4ee" stroke-width="3" opacity=".55"/>
-        <circle cx="50" cy="50" r="27" stroke="#ff7a45" stroke-width="3" opacity=".85"/>
+        <circle cx="50" cy="50" r="42" stroke="#b9c8d6" stroke-width="3" opacity=".55"/>
+        <circle cx="50" cy="50" r="27" stroke="#8ef0c2" stroke-width="3" opacity=".85"/>
         <g stroke="#eaf1f8" stroke-width="2.4" stroke-linecap="round" opacity=".6">
           <line x1="50" y1="14" x2="50" y2="34"/><line x1="50" y1="66" x2="50" y2="86"/>
           <line x1="14" y1="50" x2="34" y2="50"/><line x1="66" y1="50" x2="86" y2="50"/>
         </g>
-        <circle class="pulse" cx="50" cy="50" r="6.5" fill="#3ddc97"/>
+        <circle class="pulse" cx="50" cy="50" r="6.5" fill="#8ef0c2"/>
       </svg>
       RT Image Match
     </div>
