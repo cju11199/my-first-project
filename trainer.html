@@ -1343,14 +1343,6 @@ let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocente
 // with pitch, LAT with roll; 0deg reuses the base image. Non-tilt cases clear v.tilt.
 // cheap content tag for cache-busting external frame PNGs (changes when a DRR is regenerated)
 function assetTag(s){ if(!s) return '0'; let h=0; const step=Math.max(1,s.length>>12); for(let i=0;i<s.length;i+=step){ h=(h*131+s.charCodeAt(i))|0; } return (h>>>0).toString(36); }
-// ── /api/asset auth-loader (Phase 2) ───────────────────────────────────────
-// Case data is served only to authorized sessions by /api/asset (private Vercel Blob).
-// A <script>/<img> subresource can't send an Authorization header, so we append a
-// freshly-minted Clerk session token as ?t= (kept fresh on a 30 s timer). rtAssetUrl()
-// builds the gated URL; every data/DRR load below goes through it.
-let rtToken = null;
-async function rtRefreshToken(){ try{ if(window.Clerk && window.Clerk.session){ rtToken = await window.Clerk.session.getToken(); } }catch(e){} return rtToken; }
-function rtAssetUrl(key){ return '/api/asset?f='+encodeURIComponent(key)+(rtToken?('&t='+encodeURIComponent(rtToken)):''); }
 function loadTiltStacks(c){
   ['ap','lat'].forEach(k=>{
     const v=views[k];
@@ -1361,7 +1353,7 @@ function loadTiltStacks(c){
     // base DRR. When the DRRs are regenerated the embedded reference (and this token)
     // change together, so a reloaded page never pairs a fresh reference (0%) with a
     // stale cached tilt frame (100%) -> no contrast mismatch across the blend slider.
-    const ver = '&v='+assetTag(k==='ap'?c.ap:c.lat);
+    const ver = '?v='+assetTag(k==='ap'?c.ap:c.lat);
     const frames=[{a:0,img:v.img}];      // 0deg = base DRR (v.img, reloaded below)
     const stack={frames, ready:false};
     let pending=0;
@@ -1369,7 +1361,7 @@ function loadTiltStacks(c){
       const im=new Image(); pending++;
       const done=()=>{ if(--pending===0){ stack.ready=true; render(); } };
       im.onload=done; im.onerror=done;
-      im.src=rtAssetUrl(prefix+tg+'.png')+ver;
+      im.src=prefix+tg+'.png'+ver;
       frames.push({a,img:im});
     });
     frames.sort((p,q)=>p.a-q.a);
@@ -1428,7 +1420,7 @@ function ensure2DData(cb){
     _flush2DQueue();
   };
   files.forEach(function(src){
-    const s=document.createElement('script'); s.src=rtAssetUrl(src); s.async=false;
+    const s=document.createElement('script'); s.src=src; s.async=false;
     s.onload=done; s.onerror=done;   // resolve on error too -> terminal 'error' state, no infinite retry
     document.head.appendChild(s);
   });
@@ -3746,7 +3738,7 @@ const CBCT=(function(){
     const V=vc.get();
     if(!V){                                            // lazy-load this case's volume data file
       if(loadVolumeMPR._t)return; loadVolumeMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl(vc.file);
+      const s=document.createElement('script'); s.src=vc.file;
       s.onload=()=>{loadVolumeMPR._t=0;loadVolumeMPR();}; s.onerror=()=>{loadVolumeMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3978,7 +3970,7 @@ const CBCT=(function(){
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
     if(typeof PELVIS3D_LABELS==='undefined'){
       if(loadLabelMPR._t)return; loadLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('pelvis3d_labels_data.js');
+      const s=document.createElement('script'); s.src='pelvis3d_labels_data.js';
       s.onload=()=>{loadLabelMPR._t=0;loadLabelMPR();}; s.onerror=()=>{loadLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -3988,7 +3980,7 @@ const CBCT=(function(){
   function _loadBrainLabelMPR(){
     if(typeof BRAIN3D_LABELS==='undefined'){
       if(_loadBrainLabelMPR._t)return; _loadBrainLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('brain3d_labels_data.js');
+      const s=document.createElement('script'); s.src='brain3d_labels_data.js';
       s.onload=()=>{_loadBrainLabelMPR._t=0;_loadBrainLabelMPR();}; s.onerror=()=>{_loadBrainLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -4024,7 +4016,7 @@ const CBCT=(function(){
   function _loadBreastLabelMPR(){
     if(typeof BREAST3D_LABELS==='undefined'){
       if(_loadBreastLabelMPR._t)return; _loadBreastLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('breast3d_labels_data.js');
+      const s=document.createElement('script'); s.src='breast3d_labels_data.js';
       s.onload=()=>{_loadBreastLabelMPR._t=0;_loadBreastLabelMPR();}; s.onerror=()=>{_loadBreastLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -4047,7 +4039,7 @@ const CBCT=(function(){
   function _loadSpineLabelMPR(){
     if(typeof SPINE3D_LABELS==='undefined'){
       if(_loadSpineLabelMPR._t)return; _loadSpineLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('spine3d_labels_data.js');
+      const s=document.createElement('script'); s.src='spine3d_labels_data.js';
       s.onload=()=>{_loadSpineLabelMPR._t=0;_loadSpineLabelMPR();}; s.onerror=()=>{_loadSpineLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -4070,7 +4062,7 @@ const CBCT=(function(){
   function _loadLungLabelMPR(){
     if(typeof LUNG3D_LABELS==='undefined'){
       if(_loadLungLabelMPR._t)return; _loadLungLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('lung3d_labels_data.js');
+      const s=document.createElement('script'); s.src='lung3d_labels_data.js';
       s.onload=()=>{_loadLungLabelMPR._t=0;_loadLungLabelMPR();}; s.onerror=()=>{_loadLungLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -4093,7 +4085,7 @@ const CBCT=(function(){
   function _loadProstateLabelMPR(){
     if(typeof PROSTATE3D_LABELS==='undefined'){
       if(_loadProstateLabelMPR._t)return; _loadProstateLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('prostate3d_labels_data.js');
+      const s=document.createElement('script'); s.src='prostate3d_labels_data.js';
       s.onload=()=>{_loadProstateLabelMPR._t=0;_loadProstateLabelMPR();}; s.onerror=()=>{_loadProstateLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
@@ -4957,7 +4949,7 @@ const CBCT3D=(function(){
     const cfg=curCfg();
     if(cfg.get())return cb();
     if(!cfg.file){gid('cb3dLoading').textContent='no 3D volume for this case';return;}
-    const s=document.createElement('script'); s.src=rtAssetUrl(cfg.file);
+    const s=document.createElement('script'); s.src=cfg.file;
     s.onload=cb; s.onerror=()=>{gid('cb3dLoading').textContent='volume data failed to load';};
     document.head.appendChild(s);
   }
@@ -4996,12 +4988,8 @@ setStep(1);
 // hasActiveSub()===true. No RTAuth at all (headless / ungated) -> load directly.
 window.addEventListener('load', function(){
   if (window.RTAuth && window.RTAuth.ready && window.RTAuth.ready.then) {
-    window.RTAuth.ready.then(async function(){
+    window.RTAuth.ready.then(function(){
       if (typeof RTAuth.hasActiveSub==='function' && RTAuth.hasActiveSub()===true) {
-        // Mint a Clerk session token for /api/asset (retry while session hydration lags),
-        // keep it fresh on a timer, then load the gated data.
-        for (let i=0; i<25 && !(await rtRefreshToken()); i++){ await new Promise(function(r){ setTimeout(r,150); }); }
-        setInterval(rtRefreshToken, 30000);
         ensure2DData(function(){ applyCase(currentCase); });
       }
       // signed-out / no active subscription -> the auth gate redirects; load no case data
