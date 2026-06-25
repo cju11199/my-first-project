@@ -67,12 +67,11 @@
   var SUBSCRIBE_URL = '/subscribe';
 
   // Comped accounts: full access WITHOUT a paid subscription (owner, testers).
-  // PREFERRED: add your Clerk user id (opaque + unspoofable; Clerk Dashboard ->
-  // Users -> your user -> copy User ID). COMP_EMAILS still works, but the email
-  // must now be VERIFIED on the account (see isComped) — an unverified address no
-  // longer grants access. Move the owner to COMP_USER_IDS when convenient.
-  var COMP_USER_IDS = []; // e.g. 'user_2abcDEF456...'
-  var COMP_EMAILS = ['cju1999@pm.me']; // owner — full access, no subscription (must be a VERIFIED email)
+  // PREFERRED: Clerk user id (opaque + unspoofable; Clerk Dashboard -> Users ->
+  // your user -> copy User ID). COMP_EMAILS also works but requires the email to
+  // be VERIFIED on the account (see isComped) — an unverified address never grants access.
+  var COMP_USER_IDS = ['user_3FRbBFuCte2DQkTDzoeZe2VSfXB']; // owner — full access, no subscription
+  var COMP_EMAILS = []; // (owner moved to COMP_USER_IDS above; add testers here if needed — verified emails only)
   // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
   // of these domains (or a subdomain) gets in free — no subscription. Institution
   // domains only; a public domain (gmail.com) would free everyone.
