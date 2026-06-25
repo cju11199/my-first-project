@@ -17,6 +17,11 @@
 <meta name="theme-color" content="#070809">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RT Trainer">
 
 <!-- Open Graph / Twitter -->
 <meta property="og:type" content="website">
@@ -452,12 +457,13 @@ footer .links a{margin-right:18px}
     <div class="copy">
       <div class="kicker">Radiation Therapy · Setup Simulator</div>
       <h1>Step into the vault.<br>Master <span class="beamword">RT&nbsp;image&nbsp;matching</span>.</h1>
-      <p class="sub">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — converge to isocenter and read off the couch shift, exactly like a real treatment setup. Browser-based, no install.</p>
+      <p class="sub">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — converge to isocenter and read off the couch shift, exactly like a real treatment setup. Browser-based — or install it as an app.</p>
       <div class="ctas">
         <a class="btn btn-primary" href="/trainer" data-cta="trial">
           <svg class="arc" width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M8.5 1.5 A7 7 0 0 1 15.5 8.5" stroke="#04141a" stroke-width="2" stroke-linecap="round"/><circle cx="8.5" cy="8.5" r="2" fill="#04141a"/></svg>
           Launch the trainer
         </a>
+        <button class="btn btn-ghost" type="button" data-install-app hidden>&#8595;&nbsp;Install app</button>
         <a class="btn btn-ghost" href="#pricing">See pricing</a>
       </div>
       <div class="disclaimer">

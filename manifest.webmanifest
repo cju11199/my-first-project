@@ -1,0 +1,16 @@
+{
+  "name": "RT Image Matching Trainer",
+  "short_name": "RT Trainer",
+  "description": "Practice aligning treatment-setup imaging (portal/CBCT) to reference data, like a real radiotherapy setup. Educational simulator.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#070a0f",
+  "theme_color": "#070a0f",
+  "categories": ["education", "medical"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

@@ -7,7 +7,14 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#070a0f">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/favicon.svg">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RT Trainer">
 <title>RT Image Matching Trainer</title>
 <style>
 @font-face{font-family:'Inter';font-style:normal;font-weight:400;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2');}
@@ -2199,8 +2206,13 @@ window.DIBH=DIBH;
    ============================================================================ */
 const DIBHVoice=(function(){
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const isPWA = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-  const voicePossible = !!SR && !!window.isSecureContext && !isPWA;  // Firefox/old-Safari/PWA/file:// fall through to buttons
+  // Exclude only iOS home-screen webapps (navigator.standalone is iOS-Safari-only),
+  // where speech recognition isn't reliably available. Desktop Chrome/Edge installed
+  // PWAs keep voice — webkitSpeechRecognition works there; !!SR already filters out
+  // browsers/WebViews without recognition, and degrade() falls back to on-screen
+  // buttons if the mic fails mid-session.
+  const isIOSStandalone = window.navigator.standalone === true;
+  const voicePossible = !!SR && !!window.isSecureContext && !isIOSStandalone;  // Firefox/old-Safari/iOS-PWA/file:// -> buttons
 
   function el(id){return document.getElementById(id);}
 
