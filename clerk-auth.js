@@ -15,6 +15,15 @@
  * The publishable key is public by design and safe to ship in client code.
  */
 (function () {
+  // Register the PWA service worker (install shell + offline fallback). It never
+  // caches gated pages, case data, /api, or cross-origin requests — see sw.js —
+  // so the auth gate and Phase-2 paywall are unaffected. Safe no-op if unsupported.
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').catch(function () {});
+    });
+  }
+
   // Production (rtimagematch.com) uses the live Clerk instance; Vercel previews
   // and localhost stay on the development instance so they remain testable.
   var HOST = (location.hostname || '').toLowerCase();
