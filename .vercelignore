@@ -17,3 +17,29 @@
 trainer.min.html
 clerk-auth.min.js
 node_modules
+
+# Phase 2 — THE FINAL SWITCH: the protected case data is served from a PRIVATE Vercel Blob
+# store via /api/asset (subscription-gated), so it must NOT ship to the public CDN. Once
+# this is on `main` these assets leave the CDN and the trainer loads them ONLY through
+# /api/asset. Do NOT merge to production until the Blob store is populated
+# (scripts/upload-to-blob.mjs or the "Upload data to Blob" Action) AND CLERK_SECRET_KEY +
+# BLOB_READ_WRITE_TOKEN are set in Vercel — otherwise the live trainer breaks for everyone.
+image_data.js
+breast_drr_data.js
+prostate2d_data.js
+brain3d_data.js
+pelvis3d_data.js
+breast3d_data.js
+spine3d_data.js
+lung3d_data.js
+prostate3d_data.js
+brain3d_labels_data.js
+pelvis3d_labels_data.js
+breast3d_labels_data.js
+spine3d_labels_data.js
+lung3d_labels_data.js
+prostate3d_labels_data.js
+drr/
+
+# Upload helper (run via the GitHub Action / locally, never served)
+scripts/
