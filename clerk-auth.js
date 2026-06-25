@@ -24,6 +24,34 @@
     });
   }
 
+  // PWA install: capture the browser's install prompt (Chromium) and wire any
+  // [data-install-app] control. The control stays hidden where install isn't
+  // offered (iOS Safari / Firefox / already installed), so it's never a dead button.
+  var deferredInstall = null;
+  function toggleInstall(show) {
+    var els = document.querySelectorAll('[data-install-app]');
+    for (var i = 0; i < els.length; i++) els[i].hidden = !show;
+  }
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    deferredInstall = e;
+    toggleInstall(true);
+  });
+  window.addEventListener('appinstalled', function () {
+    deferredInstall = null;
+    toggleInstall(false);
+  });
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest && e.target.closest('[data-install-app]');
+    if (!btn || !deferredInstall) return;
+    e.preventDefault();
+    deferredInstall.prompt();
+    deferredInstall.userChoice.then(function () {
+      deferredInstall = null;
+      toggleInstall(false);
+    });
+  });
+
   // Production (rtimagematch.com) uses the live Clerk instance; Vercel previews
   // and localhost stay on the development instance so they remain testable.
   var HOST = (location.hostname || '').toLowerCase();
