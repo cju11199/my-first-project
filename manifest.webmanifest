@@ -3,7 +3,7 @@
   "short_name": "RT Trainer",
   "description": "Practice aligning treatment-setup imaging (portal/CBCT) to reference data, like a real radiotherapy setup. Educational simulator.",
   "id": "/",
-  "start_url": "/trainer?src=pwa",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
