@@ -70,7 +70,7 @@
   // Add your Clerk user id (preferred — opaque; Clerk Dashboard -> Users -> your
   // user -> copy User ID) and/or the email you sign in with (lowercase).
   var COMP_USER_IDS = []; // e.g. 'user_2abcDEF456...'
-  var COMP_EMAILS = ['cju1999@pm.me', 'cju11199@pm.me']; // owner — full access, no subscription
+  var COMP_EMAILS = ['cju1999@pm.me']; // owner — full access, no subscription
   // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
   // of these domains (or a subdomain) gets in free — no subscription. Institution
   // domains only; a public domain (gmail.com) would free everyone.
