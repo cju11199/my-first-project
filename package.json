@@ -4,6 +4,9 @@
   "scripts": {
     "build": "node build-trainer.mjs"
   },
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@vercel/edge": "^1.1.0"
   },
