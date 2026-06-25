@@ -83,111 +83,233 @@
 }
 </script>
 <style>
+@font-face{font-family:'Inter';font-weight:400;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:700;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'Inter';font-weight:800;font-display:swap;src:url('assets/fonts/f11d729bb0.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-display:swap;src:url('assets/fonts/4f27206c4b.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:600;font-display:swap;src:url('assets/fonts/4f27206c4b.woff2') format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:700;font-display:swap;src:url('assets/fonts/4f27206c4b.woff2') format('woff2')}
 :root{
   --bg:#070a0f; --bg2:#0b0f15; --panel:#0e131b; --panel2:#141a24; --elev:#1d2734;
   --text:#eaf1f8; --label:#9fadbd; --muted:#6b7888;
-  --accent:#2dd4ee; --accent2:#ff7a45; --gold:#e6c25a; --green:#3ddc97;
-  --border:rgba(148,170,194,.14); --hairline:rgba(255,255,255,.05); --radius:14px;
+  --accent:#2dd4ee; --accent-hi:#5fe7f6; --accent-dim:rgba(45,212,238,.13);
+  --accent2:#ff7a45; --accent2-hi:#ff9568; --accent2-dim:rgba(255,122,69,.15);
+  --gold:#e6c25a; --green:#3ddc97;
+  --border:rgba(148,170,194,.14); --border2:rgba(148,170,194,.22); --hairline:rgba(255,255,255,.05);
+  --radius:14px; --ease:cubic-bezier(.4,.1,.2,1);
+  --mono:'JetBrains Mono',ui-monospace,monospace; --sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,system-ui,sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{
-  background:radial-gradient(1200px 600px at 70% -10%, #102030 0%, var(--bg) 55%) no-repeat, var(--bg);
-  color:var(--text); line-height:1.55;
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,system-ui,sans-serif;
-  -webkit-font-smoothing:antialiased;
+  background:linear-gradient(180deg,#0b1018 0%,var(--bg) 45%,#04060a 100%) fixed, var(--bg);
+  color:var(--text); line-height:1.55; font-family:var(--sans);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility; overflow-x:hidden;
 }
 a{color:inherit;text-decoration:none}
-.wrap{max-width:1080px;margin:0 auto;padding:0 22px}
-.btn{display:inline-block;border-radius:10px;padding:13px 22px;font-weight:600;font-size:15px;cursor:pointer;border:1px solid transparent;transition:transform .12s ease,background .2s}
-.btn:hover{transform:translateY(-1px)}
-.btn-primary{background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#05222a}
-.btn-ghost{background:transparent;border-color:var(--border);color:var(--text)}
-.chip{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--gold);background:rgba(230,194,90,.08);border:1px solid rgba(230,194,90,.25);border-radius:999px;padding:6px 13px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
 
-/* header */
-header{position:sticky;top:0;z-index:10;backdrop-filter:blur(10px);background:rgba(7,10,15,.7);border-bottom:1px solid var(--hairline)}
-header .wrap{display:flex;align-items:center;justify-content:space-between;height:62px}
-.logo{font-weight:700;letter-spacing:.3px;display:flex;align-items:center;gap:9px}
-.logo .dot{width:11px;height:11px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2))}
-nav a{color:var(--label);font-size:14px;margin-left:22px}
+/* ===== ambient cinematic backdrop (fixed, behind everything) ===== */
+.aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+.aur-blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.5;mix-blend-mode:screen;will-change:transform}
+.aur-1{width:60vw;height:60vw;left:-14vw;top:-24vw;background:radial-gradient(circle at 40% 40%,rgba(45,212,238,.5),rgba(45,212,238,0) 66%);animation:drift1 26s var(--ease) infinite alternate}
+.aur-2{width:52vw;height:52vw;right:-16vw;top:-6vw;background:radial-gradient(circle at 60% 40%,rgba(255,122,69,.42),rgba(255,122,69,0) 64%);animation:drift2 32s var(--ease) infinite alternate}
+.aur-3{width:50vw;height:50vw;left:34vw;top:42vh;background:radial-gradient(circle at 50% 50%,rgba(61,220,151,.22),rgba(61,220,151,0) 66%);animation:drift3 38s var(--ease) infinite alternate}
+@keyframes drift1{to{transform:translate3d(7vw,5vh,0) scale(1.16)}}
+@keyframes drift2{to{transform:translate3d(-6vw,8vh,0) scale(.92)}}
+@keyframes drift3{to{transform:translate3d(-5vw,-6vh,0) scale(1.18)}}
+.scangrid{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.35;
+  background-image:linear-gradient(rgba(148,170,194,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(148,170,194,.05) 1px,transparent 1px);
+  background-size:48px 48px;-webkit-mask:radial-gradient(95% 80% at 50% 28%,#000 32%,transparent 86%);mask:radial-gradient(95% 80% at 50% 28%,#000 32%,transparent 86%)}
+.scanbeam{position:fixed;left:0;right:0;top:0;height:180px;z-index:0;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(45,212,238,.05) 45%,rgba(95,231,246,.09) 50%,transparent);animation:scan 13s linear infinite}
+@keyframes scan{0%{transform:translateY(-200px)}100%{transform:translateY(105vh)}}
+.haze{position:fixed;inset:0;z-index:0;pointer-events:none}
+.haze i{position:absolute;width:2px;height:2px;border-radius:50%;background:rgba(180,210,235,.5);box-shadow:0 0 6px rgba(95,231,246,.5);animation:twinkle 6s ease-in-out infinite}
+.haze i.b{background:rgba(255,170,120,.5);box-shadow:0 0 6px rgba(255,150,100,.5)}
+@keyframes twinkle{0%,100%{opacity:.1;transform:translateY(0)}50%{opacity:.8;transform:translateY(-6px)}}
+/* scroll-progress bar + hero parallax target */
+.scroll-prog{position:fixed;top:0;left:0;right:0;height:3px;z-index:40;transform:scaleX(0);transform-origin:0 50%;background:linear-gradient(90deg,var(--accent),var(--accent-hi),var(--accent2));box-shadow:0 0 12px rgba(45,212,238,.55);pointer-events:none}
+.hero .wrap{will-change:transform,opacity}
+
+/* ===== buttons / chips ===== */
+.btn{display:inline-flex;align-items:center;gap:9px;border-radius:11px;padding:13px 22px;font-family:var(--sans);font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;transition:transform .18s var(--ease),box-shadow .25s var(--ease),background .25s,border-color .25s}
+.btn:hover{transform:translateY(-2px)}
+.btn .arr{transition:transform .25s var(--ease)}
+.btn:hover .arr{transform:translateX(4px)}
+.btn-primary{background:linear-gradient(135deg,var(--accent-hi),var(--accent));color:#042029;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 10px 30px -10px rgba(45,212,238,.6)}
+.btn-primary:hover{box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 16px 40px -10px rgba(45,212,238,.75)}
+.btn-ghost{background:rgba(20,26,36,.5);border-color:var(--border2);color:var(--text);backdrop-filter:blur(8px)}
+.btn-ghost:hover{border-color:rgba(45,212,238,.5);box-shadow:0 0 0 3px var(--accent-dim)}
+.chip{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:rgba(230,194,90,.08);border:1px solid rgba(230,194,90,.28);border-radius:999px;padding:7px 15px}
+.chip .chip-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.12)}}
+
+/* ===== header ===== */
+header{position:sticky;top:0;z-index:30;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);background:linear-gradient(180deg,rgba(11,15,21,.82),rgba(7,10,15,.6));border-bottom:1px solid var(--hairline)}
+header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{font-weight:700;letter-spacing:.2px;display:flex;align-items:center;gap:10px;font-size:15px}
+.logo-mark{width:22px;height:22px;flex:none;filter:drop-shadow(0 0 6px rgba(45,212,238,.45))}
+.logo-mark .lr-ct{transform-origin:50% 50%;animation:spin 16s linear infinite}
+.logo-mark .lr-cb{transform-origin:50% 50%;animation:spin 22s linear infinite reverse}
+nav{display:flex;align-items:center}
+nav a{color:var(--label);font-size:14px;margin-left:22px;transition:color .18s}
 nav a:hover{color:var(--text)}
-nav a.cta{color:var(--accent)}
+nav a.cta{color:var(--accent);font-weight:600}
 #clerk-auth{display:inline-flex;align-items:center;gap:16px;margin-left:22px;min-height:32px}
-.link-btn{background:transparent;border:1px solid var(--border);color:var(--text);padding:7px 15px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer}
-.link-btn:hover{border-color:var(--accent)}
-@media(max-width:680px){nav a:not(.cta){display:none}}
+.link-btn{background:rgba(20,26,36,.6);border:1px solid var(--border2);color:var(--text);padding:7px 15px;border-radius:9px;font:inherit;font-size:14px;cursor:pointer;transition:border-color .18s,box-shadow .18s}
+.link-btn:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim)}
+@media(max-width:720px){nav a:not(.cta){display:none}}
 
-/* hero */
-.hero{padding:74px 0 56px;text-align:center}
-.hero h1{font-size:clamp(30px,5vw,52px);line-height:1.08;letter-spacing:-.5px;font-weight:760}
-.hero h1 .grad{background:linear-gradient(120deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p.sub{max-width:640px;margin:20px auto 0;color:var(--label);font-size:clamp(16px,2vw,19px)}
-.hero .actions{margin-top:30px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
-.hero .note{margin-top:20px}
+/* ===== reveal-on-scroll ===== */
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.reveal.in{opacity:1;transform:none}
+.reveal.d1{transition-delay:.08s}.reveal.d2{transition-delay:.16s}.reveal.d3{transition-delay:.24s}
+.reveal.d4{transition-delay:.32s}.reveal.d5{transition-delay:.4s}.reveal.d6{transition-delay:.48s}
+
+/* ===== hero ===== */
+.hero{padding:88px 0 60px;text-align:center;position:relative}
+.hero-emblem{width:104px;height:104px;margin:0 auto 26px;display:block;filter:drop-shadow(0 0 22px rgba(45,212,238,.3))}
+.hero-emblem .he-ct{transform-origin:50% 50%;animation:spin 20s linear infinite}
+.hero-emblem .he-cb{transform-origin:50% 50%;animation:spin 28s linear infinite reverse}
+.hero-emblem .he-x{animation:nudge 5.5s var(--ease) infinite}
+.hero-emblem .he-core{transform-origin:50% 50%;animation:pulse 3.2s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes nudge{0%,100%{transform:translate(0,0)}40%{transform:translate(2px,-2px)}70%{transform:translate(-1.5px,1.5px)}}
+.hero h1{font-size:clamp(33px,5.4vw,60px);line-height:1.05;letter-spacing:-1px;font-weight:800;margin-top:10px}
+.hero h1 .grad{background:linear-gradient(110deg,var(--accent-hi),var(--accent) 38%,var(--accent2) 88%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p.sub{max-width:660px;margin:22px auto 0;color:var(--label);font-size:clamp(16px,2vw,19px)}
+.hero .actions{margin-top:32px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+.hero .note{margin-top:24px}
+.hero-motif{position:absolute;left:50%;top:200px;transform:translateX(-50%);width:min(760px,94vw);height:380px;z-index:-1;pointer-events:none;opacity:.4}
+.motif-ct{animation:conv-ct 8s var(--ease) infinite}
+.motif-cb{animation:conv-cb 8s var(--ease) infinite}
+.motif-spark{transform-origin:center;animation:spark 8s var(--ease) infinite}
+@keyframes conv-ct{0%,16%{transform:translate(-34px,-16px)}54%,70%{transform:translate(0,0)}100%{transform:translate(-34px,-16px)}}
+@keyframes conv-cb{0%,16%{transform:translate(34px,16px)}54%,70%{transform:translate(0,0)}100%{transform:translate(34px,16px)}}
+@keyframes spark{0%,49%{opacity:0}57%{opacity:1}70%{opacity:.55}80%,100%{opacity:0}}
 
 /* disclaimer band */
-.disclaimer{margin:8px auto 0;max-width:760px;text-align:center;color:var(--muted);font-size:12.5px;border:1px dashed var(--border);border-radius:10px;padding:10px 16px}
+.disclaimer{margin:8px auto 0;max-width:760px;text-align:center;color:var(--muted);font-size:12.5px;font-family:var(--mono);border:1px dashed var(--border2);border-radius:12px;padding:11px 18px;background:rgba(11,15,21,.4)}
 
-/* sections */
-section.block{padding:54px 0;border-top:1px solid var(--hairline)}
-.eyebrow{color:var(--accent);font-size:12.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}
-h2{font-size:clamp(23px,3vw,32px);margin:8px 0 6px;letter-spacing:-.3px}
-.lead{color:var(--label);max-width:680px}
+/* ===== sections ===== */
+section.block{padding:64px 0;border-top:1px solid var(--hairline)}
+.eyebrow{font-family:var(--mono);color:var(--accent);font-size:11.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;display:inline-flex;align-items:center;gap:10px}
+.eyebrow::before{content:"";width:22px;height:1px;background:linear-gradient(90deg,transparent,var(--accent))}
+h2{font-size:clamp(24px,3vw,34px);margin:12px 0 8px;letter-spacing:-.4px;font-weight:800}
+.lead{color:var(--label);max-width:680px;font-size:15.5px}
 
-.grid{display:grid;gap:16px;margin-top:30px}
+.grid{display:grid;gap:18px;margin-top:34px}
 .cols-3{grid-template-columns:repeat(3,1fr)}
 .cols-2{grid-template-columns:repeat(2,1fr)}
 @media(max-width:820px){.cols-3{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.cols-3,.cols-2{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:var(--radius);padding:22px}
-.card h3{font-size:16.5px;margin-bottom:7px;display:flex;align-items:center;gap:9px}
+.card{position:relative;background:linear-gradient(160deg,rgba(29,39,52,.55),rgba(14,19,27,.7));border:1px solid var(--border);border-radius:var(--radius);padding:24px;overflow:hidden;isolation:isolate;transition:transform .3s var(--ease),border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.card::before{content:"";position:absolute;inset:-1px;z-index:-1;background:linear-gradient(115deg,transparent 32%,rgba(255,255,255,.07) 46%,transparent 60%);transform:translateX(-130%);transition:transform .8s var(--ease)}
+.card:hover{transform:translateY(-5px);border-color:var(--border2);box-shadow:0 24px 50px -28px rgba(0,0,0,.9),0 0 0 1px var(--accent-dim)}
+.card:hover::before{transform:translateX(130%)}
+.card h3{font-size:16.5px;margin-bottom:9px;display:flex;align-items:center;gap:11px;font-weight:700}
 .card p{color:var(--label);font-size:14px}
-.ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-size:15px;background:rgba(45,212,238,.12);color:var(--accent);flex:none}
-.ico.o{background:rgba(255,122,69,.12);color:var(--accent2)}
-.ico.g{background:rgba(61,220,151,.12);color:var(--green)}
+.ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px;background:radial-gradient(120% 120% at 30% 20%,var(--accent-dim),rgba(45,212,238,.03));border:1px solid rgba(45,212,238,.2);color:var(--accent);flex:none}
+.ico.o{background:radial-gradient(120% 120% at 30% 20%,var(--accent2-dim),rgba(255,122,69,.03));border-color:rgba(255,122,69,.2);color:var(--accent2)}
+.ico.g{background:radial-gradient(120% 120% at 30% 20%,rgba(61,220,151,.14),rgba(61,220,151,.03));border-color:rgba(61,220,151,.2);color:var(--green)}
 
-ul.cases{list-style:none;display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
-ul.cases li{background:var(--panel);border:1px solid var(--border);border-radius:999px;padding:9px 16px;font-size:13.5px;color:var(--label)}
+/* ===== see-it-in-action ===== */
+.viewport{position:relative;margin:34px auto 0;max-width:820px;border-radius:18px;overflow:hidden;border:1px solid var(--border2);background:#05080c;box-shadow:0 40px 90px -40px rgba(0,0,0,.9),0 0 0 1px var(--hairline) inset;animation:float 9s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.vp-bar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:linear-gradient(180deg,rgba(20,26,36,.9),rgba(11,15,21,.85));border-bottom:1px solid var(--hairline)}
+.vp-dot{width:10px;height:10px;border-radius:50%;background:#2a3340}
+.vp-dot:nth-child(1){background:#ff5f57}.vp-dot:nth-child(2){background:#febc2e}.vp-dot:nth-child(3){background:#28c840}
+.vp-tag{margin-left:auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--accent-hi);text-transform:uppercase}
+.viewport img{width:100%;height:auto;display:block}
+.viewport figcaption{font-size:13px;color:var(--label);padding:12px 16px;text-align:center;background:rgba(7,10,15,.6)}
+.shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;margin:30px auto 0;max-width:880px}
+.shots figure{margin:0;position:relative;border-radius:13px;overflow:hidden;border:1px solid var(--border);background:linear-gradient(160deg,rgba(29,39,52,.45),rgba(14,19,27,.65));transition:transform .3s var(--ease),border-color .3s var(--ease),box-shadow .3s var(--ease)}
+.shots figure:hover{transform:translateY(-5px);border-color:var(--border2);box-shadow:0 24px 50px -26px rgba(0,0,0,.85)}
+.shots img{width:100%;height:auto;display:block}
+.shots figcaption{font-size:13px;color:var(--label);padding:11px 14px;text-align:center}
+
+/* ===== cases ===== */
+ul.cases{list-style:none;display:flex;flex-wrap:wrap;gap:11px;margin-top:30px}
+ul.cases li{font-family:var(--mono);background:rgba(20,26,36,.5);border:1px solid var(--border);border-radius:999px;padding:10px 17px;font-size:13px;color:var(--label);transition:border-color .2s,color .2s,transform .2s var(--ease),box-shadow .2s}
+ul.cases li:hover{border-color:rgba(45,212,238,.5);color:var(--text);transform:translateY(-2px);box-shadow:0 0 0 3px var(--accent-dim)}
 ul.cases li b{color:var(--text);font-weight:600}
 
-/* pricing */
-.price-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:22px;margin-top:30px}
-.price{position:relative;max-width:340px;width:100%;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--hairline);border-radius:18px;padding:30px;text-align:center}
-.price.featured{border-color:rgba(45,212,238,.45);box-shadow:0 0 0 1px rgba(45,212,238,.18)}
-.price .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--green);color:#04130c;font-size:11.5px;font-weight:700;letter-spacing:.3px;padding:4px 12px;border-radius:999px}
-.price .plan{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px}
-.price .amt{font-size:44px;font-weight:780;letter-spacing:-1px;margin-top:6px}
+/* ===== pricing ===== */
+.price-wrap{display:flex;flex-wrap:wrap;justify-content:center;gap:24px;margin-top:34px}
+.price{position:relative;max-width:350px;width:100%;background:linear-gradient(170deg,rgba(29,39,52,.55),rgba(14,19,27,.78));border:1px solid var(--border);border-radius:20px;padding:32px;text-align:center;backdrop-filter:blur(10px);transition:transform .3s var(--ease),box-shadow .3s var(--ease)}
+.price:hover{transform:translateY(-5px)}
+.price.featured{border-color:rgba(45,212,238,.5)}
+.price.featured::after{content:"";position:absolute;inset:-1px;border-radius:20px;pointer-events:none;box-shadow:0 0 0 1px rgba(45,212,238,.5),0 0 40px -6px rgba(45,212,238,.35);animation:ringpulse 3.4s ease-in-out infinite}
+@keyframes ringpulse{0%,100%{opacity:.55}50%{opacity:1}}
+.price .badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--green),#1fae7a);color:#04130c;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.04em;padding:5px 13px;border-radius:999px;white-space:nowrap;box-shadow:0 8px 20px -8px rgba(61,220,151,.6)}
+.price .plan{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.16em}
+.price .amt{font-size:46px;font-weight:800;letter-spacing:-1.5px;margin-top:8px}
 .price .amt span{font-size:16px;color:var(--muted);font-weight:500}
-.price .tag{color:var(--green);font-size:13px;font-weight:600;margin-top:4px}
-.price ul{list-style:none;margin:20px 0;text-align:left;display:grid;gap:9px}
-.price li{color:var(--label);font-size:14px;display:flex;gap:9px}
-.price li:before{content:"✓";color:var(--green);font-weight:700}
-.price .btn{width:100%;margin-top:6px}
-.price .fine{color:var(--muted);font-size:12px;margin-top:12px}
+.price .tag{color:var(--green);font-size:13px;font-weight:600;margin-top:4px;font-family:var(--mono)}
+.price ul{list-style:none;margin:22px 0;text-align:left;display:grid;gap:11px}
+.price li{color:var(--label);font-size:14px;display:flex;gap:10px;align-items:flex-start}
+.price li:before{content:"✓";color:var(--green);font-weight:700;flex:none}
+.price .btn{width:100%;justify-content:center;margin-top:6px}
+.price .fine{color:var(--muted);font-size:12px;margin-top:13px;font-family:var(--mono)}
 
-/* footer */
-footer{border-top:1px solid var(--hairline);padding:34px 0;color:var(--muted);font-size:13px}
+/* ===== FAQ ===== */
+.faq{max-width:780px;margin:30px auto 0;text-align:left}
+.faq details{border:1px solid var(--border);border-radius:13px;background:linear-gradient(160deg,rgba(29,39,52,.45),rgba(14,19,27,.65));margin-bottom:12px;overflow:hidden;transition:border-color .2s}
+.faq details[open]{border-color:var(--border2)}
+.faq summary{list-style:none;cursor:pointer;padding:17px 21px;font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:14px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:'+';color:var(--accent);font-size:22px;font-weight:300;line-height:1;transition:transform .2s}
+.faq details[open] summary::after{content:'\2212'}
+.faq details > p{color:var(--label);font-size:15px;line-height:1.65;padding:0 21px 17px;margin:0}
+.faq details > p a{color:var(--accent);font-weight:600}
+.faq .more-faq{display:block;text-align:center;margin-top:18px;color:var(--accent);font-size:14px;font-weight:600}
+
+/* ===== footer ===== */
+footer{position:relative;z-index:1;border-top:1px solid var(--hairline);padding:38px 0;color:var(--muted);font-size:13px;background:rgba(7,10,15,.5)}
 footer .wrap{display:flex;flex-wrap:wrap;gap:14px 26px;align-items:center;justify-content:space-between}
 footer a{color:var(--label)}footer a:hover{color:var(--text)}
 footer .links a{margin-right:18px}
-.foot-disc{width:100%;color:var(--muted);font-size:12px;border-top:1px solid var(--hairline);padding-top:16px;margin-top:6px}
+.foot-disc{width:100%;color:var(--muted);font-size:12px;border-top:1px solid var(--hairline);padding-top:16px;margin-top:6px;line-height:1.6}
 
-/* FAQ */
-.faq{max-width:760px;margin:26px auto 0;text-align:left}
-.faq details{border:1px solid var(--border);border-radius:12px;background:linear-gradient(180deg,var(--panel2),var(--panel));margin-bottom:12px;overflow:hidden}
-.faq summary{list-style:none;cursor:pointer;padding:16px 20px;font-size:16px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:14px}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:'+';color:var(--accent);font-size:20px;font-weight:400;line-height:1}
-.faq details[open] summary::after{content:'\2212'}
-.faq details > p{color:var(--label);font-size:15px;line-height:1.6;padding:0 20px 16px;margin:0}
-.faq .more-faq{display:block;text-align:center;margin-top:18px;color:var(--accent);font-size:14px;font-weight:600}
+@media(max-width:600px){
+  .hero{padding:62px 0 50px}
+  .hero h1{font-size:26px;line-height:1.14;letter-spacing:-.3px}
+  .hero p.sub{font-size:15.5px}
+  .hero-emblem{width:84px;height:84px;margin-bottom:18px}
+  .hero-motif{top:160px;height:280px;opacity:.3}
+  .hero .actions .btn{flex:1 1 auto;justify-content:center}
+  h2{font-size:23px}
+}
+@media(prefers-reduced-motion:reduce){
+  .aur-blob,.scanbeam,.haze i,.logo-mark .lr-ct,.logo-mark .lr-cb,.hero-emblem .he-ct,.hero-emblem .he-cb,.hero-emblem .he-x,.hero-emblem .he-core,
+  .motif-ct,.motif-cb,.motif-spark,.chip .chip-dot,.viewport,.price.featured::after{animation:none!important}
+  .reveal{opacity:1!important;transform:none!important;transition:none!important}
+  .card::before,.scroll-prog{display:none}
+}
 </style>
 </head>
 <body>
 
+<!-- ambient cinematic backdrop -->
+<div class="aurora" aria-hidden="true">
+  <div class="aur-blob aur-1"></div><div class="aur-blob aur-2"></div><div class="aur-blob aur-3"></div>
+</div>
+<div class="scangrid" aria-hidden="true"></div>
+<div class="scanbeam" aria-hidden="true"></div>
+<div class="haze" id="haze" aria-hidden="true"></div>
+<div class="scroll-prog" id="scrollProg" aria-hidden="true"></div>
+
 <header><div class="wrap">
-  <div class="logo"><span class="dot"></span> RT Image Matching Trainer</div>
+  <a class="logo" href="/" style="color:inherit">
+    <svg class="logo-mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle class="lr-ct" cx="50" cy="50" r="42" stroke="#2dd4ee" stroke-width="6" stroke-dasharray="40 22"/>
+      <circle class="lr-cb" cx="50" cy="50" r="28" stroke="#ff7a45" stroke-width="6" stroke-dasharray="24 16"/>
+      <circle cx="50" cy="50" r="7" fill="#5fe7f6"/>
+    </svg>
+    RT Image Matching Trainer
+  </div>
   <nav>
     <a href="#features">Features</a>
     <a href="#cases">Cases</a>
@@ -200,58 +322,81 @@ footer .links a{margin-right:18px}
 
 <main>
   <section class="hero"><div class="wrap">
-    <span class="chip">● Educational training simulator</span>
-    <h1>Master <span class="grad">RT image matching</span><br>before you're at the console.</h1>
-    <p class="sub">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — exactly like a real treatment setup. Browser-based, no install.</p>
-    <div class="actions">
-      <a class="btn btn-primary" href="/trainer" data-cta="trial">Launch the trainer</a>
+    <!-- converging registration crosshair motif behind the hero -->
+    <svg class="hero-motif" viewBox="0 0 760 380" fill="none" aria-hidden="true">
+      <g class="motif-ct" stroke="#2dd4ee" stroke-width="1.2">
+        <circle cx="380" cy="190" r="124" opacity=".5"/><circle cx="380" cy="190" r="80" opacity=".32"/>
+        <line x1="150" y1="190" x2="610" y2="190" opacity=".45"/><line x1="380" y1="30" x2="380" y2="350" opacity=".45"/>
+      </g>
+      <g class="motif-cb" stroke="#ff7a45" stroke-width="1.2">
+        <rect x="272" y="82" width="216" height="216" opacity=".38"/>
+        <line x1="210" y1="190" x2="550" y2="190" opacity=".34"/><line x1="380" y1="55" x2="380" y2="325" opacity=".34"/>
+      </g>
+      <circle class="motif-spark" cx="380" cy="190" r="6" fill="#5fe7f6"/>
+    </svg>
+
+    <svg class="hero-emblem reveal" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <circle class="he-ct" cx="50" cy="50" r="42" stroke="#2dd4ee" stroke-width="3" stroke-dasharray="40 22" opacity=".9"/>
+      <circle class="he-cb" cx="50" cy="50" r="30" stroke="#ff7a45" stroke-width="3" stroke-dasharray="26 16" opacity=".85"/>
+      <g class="he-x" stroke="#eaf1f8" stroke-width="2.4" stroke-linecap="round">
+        <line x1="50" y1="18" x2="50" y2="38"/><line x1="50" y1="62" x2="50" y2="82"/>
+        <line x1="18" y1="50" x2="38" y2="50"/><line x1="62" y1="50" x2="82" y2="50"/>
+      </g>
+      <circle class="he-core" cx="50" cy="50" r="7" fill="#5fe7f6"/>
+    </svg>
+    <span class="chip reveal d1"><span class="chip-dot"></span>Educational training simulator</span>
+    <h1 class="reveal d2">Master <span class="grad">RT image matching</span><br>before you're at the console.</h1>
+    <p class="sub reveal d3">Practice aligning treatment-setup imaging to reference data — 2D/2D portal-to-DRR and CBCT 6DOF volumetric fusion — exactly like a real treatment setup. Browser-based, no install.</p>
+    <div class="actions reveal d4">
+      <a class="btn btn-primary" href="/trainer" data-cta="trial">Launch the trainer <span class="arr">&rarr;</span></a>
       <a class="btn btn-ghost" href="#pricing">See pricing</a>
     </div>
-    <div class="note disclaimer">Training simulator — <b>educational use only. Not approved for clinical decision-making.</b> All patient offsets and values shown are fictional.</div>
+    <div class="note disclaimer reveal d5">Training simulator — <b>educational use only. Not approved for clinical decision-making.</b> All patient offsets and values shown are fictional.</div>
   </div></section>
 
   <section class="block" id="see"><div class="wrap">
-    <div class="eyebrow">See it in action</div>
-    <h2>The actual trainer &mdash; not a mockup</h2>
-    <p class="lead">Real CT volumes, clinical-style tools and live error grading. Here's what you'll be working in.</p>
-    <figure style="margin:26px auto 0;max-width:780px">
-      <img src="/assets/shots/trainer-cbct.gif" width="540" height="369" loading="lazy" alt="A CBCT 6DOF match converging — the orange CBCT slides into alignment with the teal planning CT across all three planes" style="width:100%;height:auto;display:block;border-radius:14px;border:1px solid var(--border,rgba(148,170,194,.14));box-shadow:0 18px 44px -18px rgba(0,0,0,.7)">
-      <figcaption style="font-size:13px;color:var(--label,#9fadbd);margin-top:10px;text-align:center">A CBCT 6DOF match, converging in real time &mdash; teal CT vs orange CBCT</figcaption>
+    <div class="eyebrow reveal">See it in action</div>
+    <h2 class="reveal d1">The actual trainer &mdash; not a mockup</h2>
+    <p class="lead reveal d2">Real CT volumes, clinical-style tools and live error grading. Here's what you'll be working in.</p>
+    <figure class="viewport reveal d2">
+      <div class="vp-bar"><span class="vp-dot"></span><span class="vp-dot"></span><span class="vp-dot"></span><span class="vp-tag">CBCT &middot; 6DOF Fusion</span></div>
+      <img src="/assets/shots/trainer-cbct.gif" width="540" height="369" loading="lazy" alt="A CBCT 6DOF match converging — the orange CBCT slides into alignment with the teal planning CT across all three planes">
+      <figcaption>A CBCT 6DOF match, converging in real time &mdash; teal CT vs orange CBCT</figcaption>
     </figure>
-    <div class="shots" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:18px;margin:22px auto 0;max-width:780px">
-      <figure style="margin:0">
-        <img src="/assets/shots/trainer-2d2d.webp" width="1600" height="975" loading="lazy" alt="2D/2D portal-to-DRR matching — AP and lateral skull DRRs with the alignment ring" style="width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--border,rgba(148,170,194,.14));box-shadow:0 12px 32px -14px rgba(0,0,0,.65)">
-        <figcaption style="font-size:13px;color:var(--label,#9fadbd);margin-top:9px;text-align:center">2D/2D portal-to-DRR matching</figcaption>
+    <div class="shots">
+      <figure class="reveal d1">
+        <img src="/assets/shots/trainer-2d2d.webp" width="1600" height="975" loading="lazy" alt="2D/2D portal-to-DRR matching — AP and lateral skull DRRs with the alignment ring">
+        <figcaption>2D/2D portal-to-DRR matching</figcaption>
       </figure>
-      <figure style="margin:0">
-        <img src="/assets/shots/trainer-dibh.webp" width="1600" height="975" loading="lazy" alt="Breast L · DIBH deep-inspiration breath-hold coaching — live RPM amplitude trace inside the gating window, with AP and lateral breast fields" style="width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--border,rgba(148,170,194,.14));box-shadow:0 12px 32px -14px rgba(0,0,0,.65)">
-        <figcaption style="font-size:13px;color:var(--label,#9fadbd);margin-top:9px;text-align:center">Breast DIBH breath-hold coaching</figcaption>
+      <figure class="reveal d2">
+        <img src="/assets/shots/trainer-dibh.webp" width="1600" height="975" loading="lazy" alt="Breast L · DIBH deep-inspiration breath-hold coaching — live RPM amplitude trace inside the gating window, with AP and lateral breast fields">
+        <figcaption>Breast DIBH breath-hold coaching</figcaption>
       </figure>
-      <figure style="margin:0">
-        <img src="/assets/shots/trainer-progress.webp" width="1600" height="975" loading="lazy" alt="Your Progress dashboard — levels, daily streak and achievements" style="width:100%;height:auto;display:block;border-radius:12px;border:1px solid var(--border,rgba(148,170,194,.14));box-shadow:0 12px 32px -14px rgba(0,0,0,.65)">
-        <figcaption style="font-size:13px;color:var(--label,#9fadbd);margin-top:9px;text-align:center">Track progress, streaks &amp; achievements</figcaption>
+      <figure class="reveal d3">
+        <img src="/assets/shots/trainer-progress.webp" width="1600" height="975" loading="lazy" alt="Your Progress dashboard — levels, daily streak and achievements">
+        <figcaption>Track progress, streaks &amp; achievements</figcaption>
       </figure>
     </div>
   </div></section>
 
   <section class="block" id="features"><div class="wrap">
-    <div class="eyebrow">What you practice</div>
-    <h2>Real registration skills, safely simulated</h2>
-    <p class="lead">Every tool mirrors what you'll use on a linac — so the muscle memory transfers.</p>
+    <div class="eyebrow reveal">What you practice</div>
+    <h2 class="reveal d1">Real registration skills, safely simulated</h2>
+    <p class="lead reveal d2">Every tool mirrors what you'll use on a linac — so the muscle memory transfers.</p>
     <div class="grid cols-3">
-      <div class="card"><h3><span class="ico">▦</span>2D / 2D matching</h3><p>Orthogonal AP + Lateral portal-to-DRR alignment with 5DOF correction (Lat / Lng / Vrt / Roll / Pitch).</p></div>
-      <div class="card"><h3><span class="ico o">◖</span>CBCT 6DOF fusion</h3><p>Three-plane volumetric registration with full 6DOF couch correction and teal/orange fusion overlay.</p></div>
-      <div class="card"><h3><span class="ico g">⊹</span>Real 3D CT (MPR)</h3><p>True multiplanar reslice through real CT volumes — axial, coronal, sagittal — with structure contours.</p></div>
-      <div class="card"><h3><span class="ico">◉</span>Pro tools</h3><p>Color Wash, Spyglass lens, contrast windowing, blend sliders, isocenter reticle, and fusion color.</p></div>
-      <div class="card"><h3><span class="ico g">±</span>Live error grading</h3><p>Real-time residual-error readout graded against tolerance, so you know when the match is good enough.</p></div>
-      <div class="card"><h3><span class="ico o">⌨</span>Console-like control</h3><p>Drag to translate/rotate, scroll to browse slices, undo, generate fresh setup errors, keyboard shortcuts.</p></div>
+      <div class="card reveal d1"><h3><span class="ico">▦</span>2D / 2D matching</h3><p>Orthogonal AP + Lateral portal-to-DRR alignment with 5DOF correction (Lat / Lng / Vrt / Roll / Pitch).</p></div>
+      <div class="card reveal d2"><h3><span class="ico o">◖</span>CBCT 6DOF fusion</h3><p>Three-plane volumetric registration with full 6DOF couch correction and teal/orange fusion overlay.</p></div>
+      <div class="card reveal d3"><h3><span class="ico g">⊹</span>Real 3D CT (MPR)</h3><p>True multiplanar reslice through real CT volumes — axial, coronal, sagittal — with structure contours.</p></div>
+      <div class="card reveal d1"><h3><span class="ico">◉</span>Pro tools</h3><p>Color Wash, Spyglass lens, contrast windowing, blend sliders, isocenter reticle, and fusion color.</p></div>
+      <div class="card reveal d2"><h3><span class="ico g">±</span>Live error grading</h3><p>Real-time residual-error readout graded against tolerance, so you know when the match is good enough.</p></div>
+      <div class="card reveal d3"><h3><span class="ico o">⌨</span>Console-like control</h3><p>Drag to translate/rotate, scroll to browse slices, undo, generate fresh setup errors, keyboard shortcuts.</p></div>
     </div>
   </div></section>
 
   <section class="block" id="cases"><div class="wrap">
-    <div class="eyebrow">Case library</div>
-    <h2>A growing set of anatomical sites</h2>
-    <ul class="cases">
+    <div class="eyebrow reveal">Case library</div>
+    <h2 class="reveal d1">A growing set of anatomical sites</h2>
+    <ul class="cases reveal d2">
       <li><b>Brain</b> · CT DRR</li>
       <li><b>Pelvis</b> · CT DRR + CBCT</li>
       <li><b>Thorax</b> · CT DRR</li>
@@ -266,21 +411,21 @@ footer .links a{margin-right:18px}
   </div></section>
 
   <section class="block"><div class="wrap">
-    <div class="eyebrow">Who it's for</div>
-    <h2>Built for radiation therapy education</h2>
+    <div class="eyebrow reveal">Who it's for</div>
+    <h2 class="reveal d1">Built for radiation therapy education</h2>
     <div class="grid cols-3">
-      <div class="card"><h3>Students</h3><p>Build confidence with image guidance before clinical rotations — practice as many setups as you want.</p></div>
-      <div class="card"><h3>Programs &amp; faculty</h3><p>A consistent, repeatable way to teach and assess matching skills. Share one link with a whole cohort.</p></div>
-      <div class="card"><h3>Clinical educators</h3><p>Demonstrate 6DOF corrections and fusion concepts without needing access to a treatment console.</p></div>
+      <div class="card reveal d1"><h3>Students</h3><p>Build confidence with image guidance before clinical rotations — practice as many setups as you want.</p></div>
+      <div class="card reveal d2"><h3>Programs &amp; faculty</h3><p>A consistent, repeatable way to teach and assess matching skills. Share one link with a whole cohort.</p></div>
+      <div class="card reveal d3"><h3>Clinical educators</h3><p>Demonstrate 6DOF corrections and fusion concepts without needing access to a treatment console.</p></div>
     </div>
   </div></section>
 
   <section class="block" id="pricing"><div class="wrap" style="text-align:center">
-    <div class="eyebrow">Pricing</div>
-    <h2>Full access, one simple plan</h2>
-    <p class="lead" style="margin:0 auto">Every case and tool included. Start with a 3-day free trial. Cancel anytime.</p>
+    <div class="eyebrow reveal" style="justify-content:center">Pricing</div>
+    <h2 class="reveal d1">Full access, one simple plan</h2>
+    <p class="lead reveal d2" style="margin:0 auto">Every case and tool included. Start with a 3-day free trial. Cancel anytime.</p>
     <div class="price-wrap">
-      <div class="price">
+      <div class="price reveal d2">
         <div class="plan">Monthly</div>
         <div class="amt">$14.99<span>/month</span></div>
         <div class="tag">3-day free trial</div>
@@ -293,7 +438,7 @@ footer .links a{margin-right:18px}
         <a class="btn btn-ghost" href="/trainer" data-cta="trial">Start free trial</a>
         <div class="fine">Billed monthly. Cancel anytime.</div>
       </div>
-      <div class="price featured">
+      <div class="price featured reveal d3">
         <div class="badge">Best value · save 33%</div>
         <div class="plan">Annual</div>
         <div class="amt">$120<span>/year</span></div>
@@ -311,10 +456,10 @@ footer .links a{margin-right:18px}
   </div></section>
 
   <section class="block" id="faq"><div class="wrap" style="text-align:center">
-    <div class="eyebrow">FAQ</div>
-    <h2>Common questions</h2>
-    <p class="lead" style="margin:0 auto">What RT image matching is, how the trainer works, and who it's for.</p>
-    <div class="faq">
+    <div class="eyebrow reveal" style="justify-content:center">FAQ</div>
+    <h2 class="reveal d1">Common questions</h2>
+    <p class="lead reveal d2" style="margin:0 auto">What RT image matching is, how the trainer works, and who it's for.</p>
+    <div class="faq reveal d2">
       <details>
         <summary>What is RT image matching?</summary>
         <p>RT image matching (image-guided radiation therapy, or IGRT) is lining up a patient's daily setup image with the reference from their planning CT, then reading off the couch correction that puts them in the planned position. It's how therapists verify position before each treatment. <a href="/guides/igrt-image-guided-radiation-therapy">Read the IGRT primer &rarr;</a></p>
@@ -357,6 +502,55 @@ footer .links a{margin-right:18px}
   <div class="foot-disc">RT Image Matching Trainer is an educational training simulator. It is <b>not a medical device</b> and is <b>not approved for clinical decision-making</b>. All imaging, patient offsets, and values are fictional and for training only.</div>
 </div></footer>
 
+<script>
+(function(){
+  var reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion:reduce)').matches);
+
+  /* ambient particle haze (skipped under reduced-motion) */
+  var h=document.getElementById('haze');
+  if(h && !reduce){
+    for(var i=0;i<46;i++){var s=document.createElement('i');if(i%4===0)s.className='b';
+      s.style.left=(Math.random()*100).toFixed(2)+'%';s.style.top=(Math.random()*100).toFixed(2)+'%';
+      s.style.animationDelay=(-Math.random()*6).toFixed(2)+'s';s.style.animationDuration=(4+Math.random()*4).toFixed(2)+'s';
+      s.style.opacity=(0.1+Math.random()*0.45).toFixed(2);h.appendChild(s);}
+  }
+
+  /* reveal-on-scroll — reveal in-view items immediately (no above-the-fold flash), observe the rest */
+  var els=[].slice.call(document.querySelectorAll('.reveal'));
+  if(!('IntersectionObserver' in window) || reduce){
+    els.forEach(function(e){e.classList.add('in');});
+  } else {
+    var vh=window.innerHeight||0;
+    els.forEach(function(e){ if(e.getBoundingClientRect().top < vh*0.95) e.classList.add('in'); });
+    var io=new IntersectionObserver(function(ents){ents.forEach(function(en){
+      if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{threshold:.12,rootMargin:'0px 0px -8% 0px'});
+    els.forEach(function(e){ if(!e.classList.contains('in')) io.observe(e); });
+  }
+
+  /* scroll-progress bar + hero parallax-dissolve (rAF-throttled, passive) */
+  var prog=document.getElementById('scrollProg');
+  var hero=document.querySelector('.hero');
+  var heroWrap=document.querySelector('.hero .wrap');
+  var ticking=false;
+  function frame(){
+    ticking=false;
+    var y=window.pageYOffset||document.documentElement.scrollTop||0;
+    if(prog){
+      var max=(document.documentElement.scrollHeight - window.innerHeight)||1;
+      prog.style.transform='scaleX('+Math.min(1,Math.max(0,y/max))+')';
+    }
+    if(!reduce && hero && heroWrap){
+      var hh=hero.offsetHeight||600;
+      if(y<hh){ heroWrap.style.transform='translate3d(0,'+(y*0.28).toFixed(1)+'px,0)'; heroWrap.style.opacity=(1-(y/hh)*0.92).toFixed(3); }
+      else { heroWrap.style.opacity='0'; }
+    }
+  }
+  function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(frame); } }
+  window.addEventListener('scroll',onScroll,{passive:true});
+  window.addEventListener('resize',onScroll,{passive:true});
+  frame();
+})();
+</script>
 <script src="/clerk-auth.js"></script>
 </body>
 </html>
