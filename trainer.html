@@ -1180,11 +1180,12 @@ html:not(.auth-pending) #authGate{display:none}
 </div>
 <div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
 
-<!-- Breast 2D/2D assets (SCV + medial tangent DRRs, MLC reference + anatomy portal) -->
-<script src="breast_drr_data.js"></script>
-<script src="image_data.js"></script>
-<!-- 2D/2D prostate fiducial-match case: kV AP + Lateral radiographs + planning fiducial triad -->
-<script src="prostate2d_data.js"></script>
+<!-- 2D/2D case data (breast_drr_data.js, image_data.js ~4.3 MB, prostate2d_data.js) is NOT
+     loaded eagerly: ensure2DData() loads it on demand only AFTER the auth gate confirms an
+     active subscription, so logged-out / unsubscribed visitors never download it. The CASES
+     entries start with null image fields and are filled by hydrate2DCases() once loaded.
+     NOTE: image_data.js is shared with CBCT (pelvis fallback PELVIS_CBCT_*), so the CBCT
+     module's preload is guarded + re-kicked from hydrate2DCases() (see loadRealPelvis). -->
 <script>
 
 
@@ -1305,24 +1306,24 @@ setup(views.lat);
 //   (these DRRs + brain have anterior on the LEFT -> latAntRight:false)
 // This drives the ANT/POST labels and the Vrt readout sign so "move ANT -> Vrt decreases" holds.
 const CASES = {
-  brain: { name:'Brain · CT DRR (3D)', ap:BRAIN_AP_SRC, lat:BRAIN_LAT_SRC, latAntRight:false,
+  brain: { name:'Brain · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.50}, lat:{x:0.50,y:0.50} }, tilt:'brain' },
-  pelvis:{ name:'Pelvis · CT DRR (3D)', ap:PELVIS_AP_SRC, lat:PELVIS_LAT_SRC, latAntRight:false,
+  pelvis:{ name:'Pelvis · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.59}, lat:{x:0.50,y:0.59} }, tilt:'pelvis' },
   // Thorax: the out-of-plane tilt (pitch in AP, roll in LAT) is shown via CT frames
   // re-projected at the rotated angle (real depth-parallax), cross-faded by the residual
   // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
-  thorax:{ name:'Thorax · CT DRR (3D)', ap:THORAX_AP_SRC, lat:THORAX_LAT_SRC, latAntRight:false,
+  thorax:{ name:'Thorax · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:'thorax' },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
   // orthogonal pair -> 'ap' slot = SCV (gantry 0), 'lat' slot = Medial tangent (g~305).
   // Reference = full MLC DRR; the moving "acquired" image (por) is a clean anatomy
   // projection cropped to the field + 3 cm, overlaid on the reference by isocenter (crop).
-  breast:{ name:'Breast L · SCV + Tangent', ap:BREAST_SCV_REF_SRC, lat:BREAST_MED_REF_SRC,
-           por:{ ap:BREAST_SCV_POR_SRC, lat:BREAST_MED_POR_SRC },
-           crop:{ ap:BREAST_META.scv.crop, lat:BREAST_META.med.crop },
-           fovMm:{ ap:BREAST_META.scv.fovMm, lat:BREAST_META.med.fovMm },
-           iso:{ ap:BREAST_META.scv.iso, lat:BREAST_META.med.iso },
+  breast:{ name:'Breast L · SCV + Tangent', ap:null, lat:null,
+           por:{ ap:null, lat:null },
+           crop:{ ap:null, lat:null },
+           fovMm:{ ap:null, lat:null },
+           iso:{ ap:null, lat:null },
            latAntRight:false, tilt:null,
            viewTags:{ ap:'Supraclav · G0', lat:'Medial tangent · G305' } },
   // Prostate fiducial match (Varian-style 2D/2D kV): drag a 3-marker triad onto the gold
@@ -1341,7 +1342,7 @@ let zSign=1;    // Vrt readout sign: table/anatomy ANT -> negative Vrt (isocente
 // For a 3D-tilt case, load the re-projected DRR frames (drr/ files) per view: AP varies
 // with pitch, LAT with roll; 0deg reuses the base image. Non-tilt cases clear v.tilt.
 // cheap content tag for cache-busting external frame PNGs (changes when a DRR is regenerated)
-function assetTag(s){ let h=0; const step=Math.max(1,s.length>>12); for(let i=0;i<s.length;i+=step){ h=(h*131+s.charCodeAt(i))|0; } return (h>>>0).toString(36); }
+function assetTag(s){ if(!s) return '0'; let h=0; const step=Math.max(1,s.length>>12); for(let i=0;i<s.length;i+=step){ h=(h*131+s.charCodeAt(i))|0; } return (h>>>0).toString(36); }
 function loadTiltStacks(c){
   ['ap','lat'].forEach(k=>{
     const v=views[k];
@@ -1367,9 +1368,74 @@ function loadTiltStacks(c){
     v.tilt=stack;
   });
 }
+// ── On-demand 2D case data ────────────────────────────────────────────────
+// The three 2D data files are loaded only after the auth gate confirms an active
+// subscription (see the window 'load' init), so logged-out / unsubscribed visitors
+// never fetch the ~4.3 MB image_data.js. data2dReady() = all three executed;
+// hydrate2DCases() fills the null-placeholder CASES entries (and re-kicks the CBCT
+// pelvis fallback, since image_data.js is shared); ensure2DData() loads them once
+// (re-entrant; terminal on error) then runs cb. Mirrors the CBCT lazy load.
+let _2dState='idle';            // 'idle' | 'loading' | 'ready' | 'error'
+const _2dQueue=[];
+function data2dReady(){
+  return typeof BRAIN_AP_SRC!=='undefined'
+      && typeof BREAST_SCV_REF_SRC!=='undefined'
+      && typeof BREAST_META!=='undefined'
+      && typeof PROSTATE2D!=='undefined';
+}
+function hydrate2DCases(){
+  if(typeof BRAIN_AP_SRC!=='undefined'){
+    CASES.brain.ap=BRAIN_AP_SRC;   CASES.brain.lat=BRAIN_LAT_SRC;
+    CASES.pelvis.ap=PELVIS_AP_SRC; CASES.pelvis.lat=PELVIS_LAT_SRC;
+    CASES.thorax.ap=THORAX_AP_SRC; CASES.thorax.lat=THORAX_LAT_SRC;
+  }
+  if(typeof BREAST_SCV_REF_SRC!=='undefined' && typeof BREAST_META!=='undefined'){
+    const b=CASES.breast;
+    b.ap=BREAST_SCV_REF_SRC; b.lat=BREAST_MED_REF_SRC;
+    b.por={ ap:BREAST_SCV_POR_SRC, lat:BREAST_MED_POR_SRC };
+    b.crop={ ap:BREAST_META.scv.crop, lat:BREAST_META.med.crop };
+    b.fovMm={ ap:BREAST_META.scv.fovMm, lat:BREAST_META.med.fovMm };
+    b.iso={ ap:BREAST_META.scv.iso, lat:BREAST_META.med.iso };
+    // breastDIBH is a shallow snapshot of breast taken at declaration (when the fields were
+    // null); copy the now-hydrated fields onto it WITHOUT clobbering its distinct name.
+    ['ap','lat','por','crop','fovMm','iso'].forEach(function(k){ CASES.breastDIBH[k]=b[k]; });
+  }
+  // image_data.js also carries the CBCT pelvis fallback (PELVIS_CBCT_*); kick its (guarded)
+  // preload now that the file is loaded. CBCT is defined by the time hydrate runs (post-load).
+  if(typeof CBCT!=='undefined' && CBCT.loadRealPelvis) CBCT.loadRealPelvis();
+}
+function _flush2DQueue(){ const q=_2dQueue.splice(0); q.forEach(function(cb){ try{cb();}catch(e){console.error(e);} }); }
+function ensure2DData(cb){
+  if(_2dState==='ready'){ hydrate2DCases(); if(cb) cb(); return; }
+  if(cb) _2dQueue.push(cb);
+  if(_2dState==='loading' || _2dState==='error') return;   // a load is in flight / failed; don't restart
+  if(data2dReady()){ _2dState='ready'; hydrate2DCases(); _flush2DQueue(); return; }
+  _2dState='loading';
+  const files=['breast_drr_data.js','image_data.js','prostate2d_data.js'];
+  let pending=files.length;
+  const done=function(){
+    if(--pending>0) return;
+    if(data2dReady()){ _2dState='ready'; hydrate2DCases(); }
+    else { _2dState='error'; const m=document.getElementById('statusMsg'); if(m) m.textContent='Case data failed to load — please reload the page.'; }
+    _flush2DQueue();
+  };
+  files.forEach(function(src){
+    const s=document.createElement('script'); s.src=src; s.async=false;
+    s.onload=done; s.onerror=done;   // resolve on error too -> terminal 'error' state, no infinite retry
+    document.head.appendChild(s);
+  });
+}
+
 function applyCase(key){
   const c=CASES[key]; if(!c) return;
   currentCase=key;
+  // The 2D image data may not be loaded yet (fetched on demand post-auth). If not ready, kick
+  // the load and re-apply when it lands. Terminal error -> surface a message, don't loop.
+  if(!data2dReady()){
+    if(_2dState==='error'){ const m=document.getElementById('statusMsg'); if(m) m.textContent='Case data failed to load — please reload the page.'; return; }
+    ensure2DData(function(){ applyCase(key); });
+    return;
+  }
   const sel=document.getElementById('caseSelect'); if(sel) sel.value=key;
   // Fiducial-match case: the FID2D module owns its own radiographs, markers, readout
   // (a 6DOF Yaw row is injected) and pointer handlers. Skip the normal portal/DRR setup.
@@ -3559,11 +3625,19 @@ const CBCT=(function(){
   const sliceIdx={axial:40,coronal:40,sagittal:40};
   const sliceImgs={axial:[],coronal:[],sagittal:[]};
   let stacksLoaded=false;
-  // existing single-slice real pelvis images (fallback while vol stacks load)
+  // single-slice real pelvis images (fallback while vol stacks load). Their source globals
+  // live in image_data.js, which now loads on demand post-auth — so GUARD the preload (it
+  // would throw at parse time when the file isn't loaded yet) and let hydrate2DCases()
+  // re-kick it via CBCT.loadRealPelvis() once image_data.js has loaded.
   const realPelvis={};
-  [['axial',PELVIS_CBCT_AXIAL],['coronal',PELVIS_CBCT_CORONAL],['sagittal',PELVIS_CBCT_SAGITTAL]].forEach(function(pr){
-    const im=new Image();im.onload=function(){realPelvis[pr[0]]=im;if(started&&caseKey==='pelvis'&&!stacksLoaded)applyCase('pelvis');};im.src=pr[1];
-  });
+  function loadRealPelvis(){
+    if(loadRealPelvis._done || typeof PELVIS_CBCT_AXIAL==='undefined') return;
+    loadRealPelvis._done=true;
+    [['axial',PELVIS_CBCT_AXIAL],['coronal',PELVIS_CBCT_CORONAL],['sagittal',PELVIS_CBCT_SAGITTAL]].forEach(function(pr){
+      const im=new Image();im.onload=function(){realPelvis[pr[0]]=im;if(started&&caseKey==='pelvis'&&!stacksLoaded)applyCase('pelvis');};im.src=pr[1];
+    });
+  }
+  loadRealPelvis();
   const gid=id=>document.getElementById(id);
   function net(){const n={};ORDER.forEach(k=>n[k]=shift[k]-hidden[k]);return n;}
 
@@ -4728,7 +4802,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,timerMs:()=>cbTimer.elapsed()};
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed()};
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
@@ -4907,7 +4981,23 @@ const CBCT3D=(function(){
 
 window.addEventListener('resize',resizeAll);
 setStep(1);
-applyCase(currentCase);   // loads the starting case's images + isocenter + random offset
+// Defer loading the (large) 2D case data until the auth gate confirms an active subscription,
+// so logged-out / unsubscribed visitors never download it. clerk-auth.js (which defines
+// window.RTAuth) loads AFTER this inline script, so window.RTAuth is undefined right here —
+// wait for the window 'load' event (all scripts done by then). Gate STRICTLY on
+// hasActiveSub()===true. No RTAuth at all (headless / ungated) -> load directly.
+window.addEventListener('load', function(){
+  if (window.RTAuth && window.RTAuth.ready && window.RTAuth.ready.then) {
+    window.RTAuth.ready.then(function(){
+      if (typeof RTAuth.hasActiveSub==='function' && RTAuth.hasActiveSub()===true) {
+        ensure2DData(function(){ applyCase(currentCase); });
+      }
+      // signed-out / no active subscription -> the auth gate redirects; load no case data
+    });
+  } else {
+    ensure2DData(function(){ applyCase(currentCase); });   // no RTAuth (headless / ungated)
+  }
+});
 setToolButtons();
 selectView('ap');
 requestAnimationFrame(()=>{
