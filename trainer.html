@@ -925,12 +925,12 @@ html:not(.auth-pending) #authGate{display:none}
           <li><span class="dot red"></span><strong>Drag inside the red ring = move</strong>; drag outside = rotate (<strong>roll</strong> on AP, <strong>pitch</strong> on lateral).</li>
           <li><span class="dot gold"></span><strong>Hold <span class="kbd">1</span>/<span class="kbd">2</span>/<span class="kbd">3</span> + drag to lock one couch axis</strong> &mdash; <span class="kbd">1</span> A&#8209;P (drag &#8597;), <span class="kbd">2</span> S&#8209;I (drag &#8597;), <span class="kbd">3</span> L&#8209;R (drag &#8596;). Works from either view.</li>
           <li><span class="dot mov"></span>Each view has <strong>its own blend slider</strong> &mdash; fade cyan reference &harr; orange portal.</li>
-          <li><span class="dot ref"></span>Tap <span class="kbd kmod">Ctrl</span>+<span class="kbd">A</span> to flip the slider and <strong>flicker</strong> the two images so misalignment pops.</li>
+          <li><span class="dot ref"></span>Tap <span class="kbd kopt">Ctrl</span>+<span class="kbd">A</span> to flip the slider and <strong>flicker</strong> the two images so misalignment pops.</li>
           <li><span class="dot grn"></span><span class="kbd">C</span> Color Wash (aligned anatomy &rarr; white) &middot; <span class="kbd">S</span> Spyglass lens.</li>
           <li><span class="dot gold"></span><strong>Prostate (kV fiducial)</strong> works differently &mdash; instead of overlaying a DRR you <strong>drag a 3&#8209;marker triad</strong> onto the gold seeds in both views: plain drag moves all three (translation), <span class="kbd kmod">Ctrl</span>+drag moves the nearest marker (adds rotation). Check Match reads out the recovered couch shift.</li>
           <li><span class="dot grn"></span><strong>Breast&nbsp;L &middot; DIBH</strong> adds voice-coached breath-hold before the match &mdash; see the <strong>DIBH</strong> tab.</li>
         </ul>
-        <div class="guide-hero sm"><svg viewBox="0 0 560 150" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono',monospace" role="img" aria-label="Blend slider fades reference to moving; Ctrl plus A flickers between them"><defs><linearGradient id="s4grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient><marker id="s4a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker><marker id="s4b" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker></defs><rect x="1" y="1" width="558" height="148" rx="12" fill="var(--panel)" stroke="var(--border)"/><text x="20" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">BLEND</text><text x="20" y="44" fill="var(--muted)" font-size="9">fade reference &#8596; moving</text><rect x="20" y="66" width="230" height="6" rx="3" fill="url(#s4grad)"/><text x="20" y="92" fill="var(--accent-hi)" font-size="8.5">REF</text><text x="232" y="92" fill="var(--accent2)" font-size="8.5">MOV</text><circle cx="135" cy="69" r="9" fill="#fff" stroke="rgba(8,11,16,.8)" stroke-width="2"/><line x1="300" y1="24" x2="300" y2="126" stroke="var(--border)" stroke-dasharray="3 6"/><text x="330" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">FLICKER</text><g transform="translate(330,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="43" cy="33" rx="22" ry="26" fill="none" stroke="var(--accent)" stroke-width="2"/></g><g transform="translate(440,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="49" cy="28" rx="22" ry="26" fill="none" stroke="var(--accent2)" stroke-width="2"/></g><path d="M420,60 a16,16 0 0 1 18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4a)"/><path d="M438,94 a16,16 0 0 1 -18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4b)"/><text x="428" y="132" text-anchor="middle" fill="var(--muted)" font-size="9" data-macmod>Ctrl+A swaps the two</text></svg></div>
+        <div class="guide-hero sm"><svg viewBox="0 0 560 150" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono',monospace" role="img" aria-label="Blend slider fades reference to moving; Ctrl plus A flickers between them"><defs><linearGradient id="s4grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient><marker id="s4a" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker><marker id="s4b" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--label)"/></marker></defs><rect x="1" y="1" width="558" height="148" rx="12" fill="var(--panel)" stroke="var(--border)"/><text x="20" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">BLEND</text><text x="20" y="44" fill="var(--muted)" font-size="9">fade reference &#8596; moving</text><rect x="20" y="66" width="230" height="6" rx="3" fill="url(#s4grad)"/><text x="20" y="92" fill="var(--accent-hi)" font-size="8.5">REF</text><text x="232" y="92" fill="var(--accent2)" font-size="8.5">MOV</text><circle cx="135" cy="69" r="9" fill="#fff" stroke="rgba(8,11,16,.8)" stroke-width="2"/><line x1="300" y1="24" x2="300" y2="126" stroke="var(--border)" stroke-dasharray="3 6"/><text x="330" y="28" fill="var(--accent-hi)" font-size="10" font-weight="700" letter-spacing="1">FLICKER</text><g transform="translate(330,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="43" cy="33" rx="22" ry="26" fill="none" stroke="var(--accent)" stroke-width="2"/></g><g transform="translate(440,44)"><rect x="0" y="0" width="86" height="66" rx="6" fill="#000" stroke="var(--border2)"/><ellipse cx="49" cy="28" rx="22" ry="26" fill="none" stroke="var(--accent2)" stroke-width="2"/></g><path d="M420,60 a16,16 0 0 1 18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4a)"/><path d="M438,94 a16,16 0 0 1 -18,0" fill="none" stroke="var(--label)" stroke-width="2" marker-end="url(#s4b)"/><text x="428" y="132" text-anchor="middle" fill="var(--muted)" font-size="9" data-macopt>Ctrl+A swaps the two</text></svg></div>
       </section>
 
       <!-- CBCT -->
@@ -982,10 +982,10 @@ html:not(.auth-pending) #authGate{display:none}
             <div class="key-line"><span>Hold <span class="kbd">1</span><span class="kbd">2</span><span class="kbd">3</span>+drag</span> Lock A&#8209;P / S&#8209;I / L&#8209;R</div>
             <div class="key-line"><span><span class="kbd">Q</span><span class="kbd">E</span></span> Roll</div>
             <div class="key-line"><span><span class="kbd">A</span><span class="kbd">D</span></span> Pitch</div>
-            <div class="key-line"><span><span class="kbd kfinerot">Ctrl</span>+<span class="kbd">&larr;</span><span class="kbd">&rarr;</span></span> Fine rotate 0.1&deg;</div>
+            <div class="key-line"><span><span class="kbd kopt">Ctrl</span>+<span class="kbd">&larr;</span><span class="kbd">&rarr;</span></span> Fine rotate 0.1&deg;</div>
             <div class="key-line"><span><span class="kbd">+</span><span class="kbd">&minus;</span> / wheel</span> Zoom</div>
             <div class="key-line"><span><span class="kbd">[</span><span class="kbd">]</span></span> Blend</div>
-            <div class="key-line"><span><span class="kbd kmod">Ctrl</span>+<span class="kbd">A</span></span> Flip / flicker</div>
+            <div class="key-line"><span><span class="kbd kopt">Ctrl</span>+<span class="kbd">A</span></span> Flip / flicker</div>
             <div class="key-line"><span><span class="kbd">C</span><span class="kbd">S</span><span class="kbd">G</span><span class="kbd">F</span></span> Wash / Spy / Grid / Full</div>
             <div class="key-line"><span><span class="kbd kmod">Ctrl</span>+<span class="kbd">Z</span> &middot; <span class="kbd">R</span> &middot; <span class="kbd">N</span></span> Undo / Reset / New</div>
           </div>
@@ -2942,8 +2942,13 @@ function macifyLabels(){
     if(t==='Ctrl') el.textContent='⌘';
     else if(t==='Alt') el.textContent='⌥';
   });
-  // Fine-rotate modifier: macOS reserves Ctrl+←/→ for spaces, so show ⌥ (Option) on Mac.
-  document.querySelectorAll('.kbd.kfinerot').forEach(function(el){ el.textContent='⌥'; });
+  // Option-key actions (fine-rotate, flicker): macOS reserves Ctrl+←/→ (spaces) and ⌘
+  // combos clash with the browser, so these use ⌥ (Option) on Mac. Chips tagged .kopt;
+  // inline text tagged [data-macopt].
+  document.querySelectorAll('.kbd.kopt').forEach(function(el){ el.textContent='⌥'; });
+  document.querySelectorAll('[data-macopt]').forEach(function(el){
+    if(el.children.length===0) el.textContent=el.textContent.replace(/Ctrl/g,'⌥');
+  });
   document.querySelectorAll('[data-macmod]').forEach(function(el){
     if(el.children.length===0)
       el.textContent=el.textContent.replace(/Ctrl/g,'⌘').replace(/\bAlt\b/g,'⌥');
@@ -2982,8 +2987,9 @@ document.addEventListener('keydown',e=>{
     undo();
     return;
   }
-  // Ctrl+A : flip the active view's blend slider to its mirror position (A/B flicker)
-  if((e.ctrlKey||e.metaKey) && (e.key==='a'||e.key==='A')){
+  // Flicker (flip the active view's blend to its mirror): Ctrl/⌘+A, or ⌥(Option)+A on Mac.
+  //   Option rewrites e.key to 'å', so the Option case matches the physical key via e.code.
+  if(((e.ctrlKey||e.metaKey) && (e.key==='a'||e.key==='A')) || (IS_MAC&&e.altKey&&e.code==='KeyA')){
     e.preventDefault();
     flipBlend(activeView);
     return;
@@ -4477,8 +4483,9 @@ const CBCT=(function(){
     // Ctrl+R (or the V key): rotate which plane fills the large left (primary) pane — Axial → Coronal → Sagittal.
     // metaKey intentionally NOT matched here so ⌘R stays free for browser reload on macOS.
     if(e.ctrlKey&&!e.metaKey&&(e.key==='r'||e.key==='R')){e.preventDefault();cyclePrimary();return;}
-    // Ctrl+A: A/B flicker — mirror all three planes' blend (same as 2D-2D flipBlend)
-    if((e.ctrlKey||e.metaKey)&&(e.key==='a'||e.key==='A')){
+    // Flicker — mirror all three planes' blend (same as 2D-2D flipBlend): Ctrl/⌘+A, or
+    // ⌥(Option)+A on Mac (Option rewrites e.key to 'å', so match the physical key via e.code).
+    if(((e.ctrlKey||e.metaKey)&&(e.key==='a'||e.key==='A')) || (IS_MAC&&e.altKey&&e.code==='KeyA')){
       e.preventDefault();
       Object.keys(PLANES).forEach(name=>{const st=ST[name];st.blend=100-st.blend;const sl=gid(PLANES[name].sl);if(sl)sl.value=st.blend;drawPlane(name);});
       return;
