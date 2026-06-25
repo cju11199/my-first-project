@@ -245,7 +245,7 @@ Stripe code here). Plan key **`full_access`**: $14.99/mo, $120/yr, 3-day trial.
   authorized for `full_access`.
 - **Comp / free-access logic in `isComped()`:**
   - `COMP_USER_IDS` — Clerk user-id allowlist (currently empty).
-  - `COMP_EMAILS` — owner emails, full access no subscription: `cju1999@pm.me`, `cju11199@pm.me`
+  - `COMP_EMAILS` — owner email, full access no subscription: `cju1999@pm.me`
     (matches any email on the account, verified or not).
   - `COMP_DOMAINS` — whole-institution free access for students/staff: `stonybrook.edu`,
     `mountsinai.org` (#71). Requires a **VERIFIED** email at the domain or a subdomain
