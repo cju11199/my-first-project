@@ -244,9 +244,10 @@ Stripe code here). Plan key **`full_access`**: $14.99/mo, $120/yr, 3-day trial.
 - Pages with `<body data-require-auth>` (the trainer) are bounced unless signed in **and**
   authorized for `full_access`.
 - **Comp / free-access logic in `isComped()`:**
-  - `COMP_USER_IDS` — Clerk user-id allowlist (currently empty).
-  - `COMP_EMAILS` — owner email, full access no subscription: `cju1999@pm.me`
-    (matches any email on the account, verified or not).
+  - `COMP_USER_IDS` — Clerk user-id allowlist; **checked first** and unspoofable. The owner is
+    comped here (full access, no subscription) via their Clerk user id.
+  - `COMP_EMAILS` — exact-email allowlist (testers); now **empty**. Any entry must be a
+    **VERIFIED** email on the account — an unverified address never grants access.
   - `COMP_DOMAINS` — whole-institution free access for students/staff: `stonybrook.edu`,
     `mountsinai.org` (#71). Requires a **VERIFIED** email at the domain or a subdomain
     (dot-boundary match, so `evilstonybrook.edu` does NOT match `stonybrook.edu`). Use
