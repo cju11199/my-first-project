@@ -19,9 +19,10 @@ _breast_seg/
 .claude/
 
 # Secrets / environment (never commit real keys)
-.env
-.env.local
-.env.*.local
+# Match every .env variant (.env.production, .env.local, etc.) so a stray
+# production secret file can't be committed; keep the public template.
+.env*
+!.env.example
 .vercel
 
 # Node

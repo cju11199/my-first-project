@@ -67,10 +67,12 @@
   var SUBSCRIBE_URL = '/subscribe';
 
   // Comped accounts: full access WITHOUT a paid subscription (owner, testers).
-  // Add your Clerk user id (preferred — opaque; Clerk Dashboard -> Users -> your
-  // user -> copy User ID) and/or the email you sign in with (lowercase).
+  // PREFERRED: add your Clerk user id (opaque + unspoofable; Clerk Dashboard ->
+  // Users -> your user -> copy User ID). COMP_EMAILS still works, but the email
+  // must now be VERIFIED on the account (see isComped) — an unverified address no
+  // longer grants access. Move the owner to COMP_USER_IDS when convenient.
   var COMP_USER_IDS = []; // e.g. 'user_2abcDEF456...'
-  var COMP_EMAILS = ['cju1999@pm.me']; // owner — full access, no subscription
+  var COMP_EMAILS = ['cju1999@pm.me']; // owner — full access, no subscription (must be a VERIFIED email)
   // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
   // of these domains (or a subdomain) gets in free — no subscription. Institution
   // domains only; a public domain (gmail.com) would free everyone.
@@ -109,12 +111,15 @@
     for (var i = 0; i < emails.length; i++) {
       var addr = (emails[i].emailAddress || '').toLowerCase();
       if (!addr) continue;
-      // Exact-email allowlist (owner/testers): any email on the account, verified or not.
-      if (allowEmails.indexOf(addr) !== -1) return true;
-      // Domain allowlist (students): require a VERIFIED email at the domain (or a
-      // subdomain) so it can't be faked with an unverified address.
+      // Only ever trust a VERIFIED email: an unverified address can be claimed by
+      // signing up with someone else's email, so neither the owner/tester allowlist
+      // nor the domain allowlist may grant access on an unverified address.
       var v = emails[i].verification;
-      if (v && v.status === 'verified' && allowDomains.length) {
+      if (!(v && v.status === 'verified')) continue;
+      // Exact-email allowlist (owner/testers).
+      if (allowEmails.indexOf(addr) !== -1) return true;
+      // Domain allowlist (students): VERIFIED email at the domain (or a subdomain).
+      if (allowDomains.length) {
         var at = addr.lastIndexOf('@');
         var dom = at >= 0 ? addr.slice(at + 1) : '';
         for (var j = 0; j < allowDomains.length; j++) {
@@ -203,7 +208,11 @@
    * Stored in Clerk `unsafeMetadata.rt` so it follows the user across devices
    * with no backend. unsafeMetadata is writable from the client and capped at a
    * few KB, so the payload is kept compact (aggregates + a short recent ring).
-   * The hard paywall (Phase 2) is unaffected — this is per-user UX state only.
+   * SECURITY: unsafeMetadata is CLIENT-WRITABLE — treat `rt` as cosmetic UX state
+   * ONLY. Never gate access, billing, or any trust/entitlement decision on it
+   * (isComped()/hasActiveSub() do not). Anything trust-bearing (leaderboards,
+   * certificates, CE credit, discounts) must be set server-side in publicMetadata
+   * via an authenticated /api endpoint (Phase 2), never here.
    * ------------------------------------------------------------------------- */
   var PROFILE_SCHEMA = 1;
   var _profile = null;        // in-memory working copy
