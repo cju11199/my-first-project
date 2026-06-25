@@ -61,7 +61,7 @@ function assertServedOutput(name, code, mustContain) {
       throw new Error(`[build-trainer] ${name}: gate invariant missing after minify: "${needle}" — refusing to ship.`);
     }
   }
-  const secret = code.match(/sk_(test|live)_[A-Za-z0-9]/) || code.match(/R2_SECRET_ACCESS_KEY/);
+  const secret = code.match(/sk_(test|live)_[A-Za-z0-9]/) || code.match(/R2_SECRET_ACCESS_KEY|R2_ACCESS_KEY_ID/) || code.match(/AKIA[0-9A-Z]{16}/);
   if (secret) {
     throw new Error(`[build-trainer] ${name}: possible server secret in client-served output (${secret[0]}…) — refusing to ship.`);
   }
@@ -97,7 +97,7 @@ function assertServedOutput(name, code, mustContain) {
   const js = await readFile('clerk-auth.js', 'utf8');
   const res = await minifyJs(js, TERSER);
   if (res.error) throw res.error;
-  assertServedOutput('clerk-auth.js', res.code, ['full_access', 'unsafeMetadata', 'data-require-auth', 'user_3FRbBFuCte2DQkTDzoeZe2VSfXB', 'stonybrook.edu']);
+  assertServedOutput('clerk-auth.js', res.code, ['full_access', 'unsafeMetadata', 'data-require-auth', 'user_3FRbBFuCte2DQkTDzoeZe2VSfXB', 'stonybrook.edu', 'mountsinai.org']);
   await writeFile(verify ? 'clerk-auth.min.js' : 'clerk-auth.js', res.code, 'utf8');
   report('clerk-auth.js', Buffer.byteLength(js, 'utf8'), Buffer.byteLength(res.code, 'utf8'));
 }
