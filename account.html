@@ -32,6 +32,10 @@ a{text-decoration:none;color:inherit}
     radial-gradient(1000px 720px at 80% 16%, rgba(45,212,238,.06), transparent 60%),
     radial-gradient(880px 660px at 14% 96%, rgba(255,122,69,.05), transparent 60%)}
 .imgbg::before{content:"";position:absolute;inset:0;opacity:.5;background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 4px);-webkit-mask:radial-gradient(110% 85% at 50% 20%,#000 24%,transparent 82%);mask:radial-gradient(110% 85% at 50% 20%,#000 24%,transparent 82%)}
+.fx{position:fixed;inset:0;pointer-events:none;z-index:60}
+.fx-vignette{background:radial-gradient(130% 110% at 50% 20%,transparent 56%,rgba(2,4,7,.5) 100%)}
+.fx-grain{opacity:.05;mix-blend-mode:overlay;background-size:200px 200px;animation:fxGrain 1s steps(4) infinite;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+@keyframes fxGrain{0%{transform:translate(0,0)}25%{transform:translate(-3%,2%)}50%{transform:translate(2%,-2%)}75%{transform:translate(-2%,-1%)}100%{transform:translate(1%,2%)}}
 
 header{position:sticky;top:0;z-index:30;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);background:linear-gradient(180deg,rgba(11,15,21,.82),rgba(7,10,15,.6));border-bottom:1px solid var(--hairline)}
 header .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
@@ -57,11 +61,13 @@ h1{font-size:clamp(26px,3.6vw,34px);letter-spacing:-.8px;margin:0 0 10px;text-al
 .foot{display:flex;gap:18px;justify-content:center;margin-top:30px;flex-wrap:wrap}
 .foot a{color:var(--label);font-size:14px}
 .foot a:hover{color:var(--text)}
-@media(prefers-reduced-motion:reduce){.logo-mark{filter:none}}
+@media(prefers-reduced-motion:reduce){.logo-mark{filter:none}.fx-grain{animation:none!important}}
 </style>
 </head>
 <body>
 <div class="imgbg" aria-hidden="true"></div>
+<div class="fx fx-vignette" aria-hidden="true"></div>
+<div class="fx fx-grain" aria-hidden="true"></div>
 
 <header><div class="wrap">
   <a class="logo" href="/">
