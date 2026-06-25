@@ -2283,7 +2283,12 @@ const DIBHVoice=(function(){
   function pill(text,cls){const p=el('dibhMicPill');if(p){p.textContent=text;p.className='dibh-mic-pill'+(cls?(' '+cls):'');}}
   function micLive(on){const b=el('dibhMicBtn');if(b){b.classList.toggle('live',on);b.setAttribute('aria-pressed',on?'true':'false');}}
   function showHeard(raw,id){const h=el('dibhHeard');if(!h)return;
-    h.innerHTML = id ? ('Heard: <b>“'+raw+'”</b> → '+CMD_LABEL[id]) : (raw?('Heard: “'+raw+'”'):'');}
+    // Build with textContent, not innerHTML: `raw` is the live speech transcript
+    // (untrusted text) — concatenating it into innerHTML would be an injection sink.
+    h.textContent='';if(!raw)return;
+    h.appendChild(document.createTextNode('Heard: '));
+    const b=document.createElement('b');b.textContent='“'+raw+'”';h.appendChild(b);
+    if(id)h.appendChild(document.createTextNode(' → '+CMD_LABEL[id]));}
   function flash(id){const c=COMMANDS.find(x=>x.id===id);if(!c)return;const b=el(c.btn);
     if(b){b.classList.remove('voice-fire');void b.offsetWidth;b.classList.add('voice-fire');}}
 

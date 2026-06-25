@@ -50,6 +50,23 @@ function report(file, before, after) {
   console.log(`[build-trainer] ${file}: ${before.toLocaleString()} B -> ${after.toLocaleString()} B  (-${pct}%)`);
 }
 
+// Security gate on the ACTUALLY-SERVED bytes. The build is the only place that sees
+// the minified output; humans only review the readable source, which stays correct
+// even if terser were to (accidentally) drop a security branch. Fail the build if a
+// load-bearing gate string vanished after minify, or if a server secret leaked into
+// a client-served file. String literals survive terser verbatim, so these are stable.
+function assertServedOutput(name, code, mustContain) {
+  for (const needle of mustContain) {
+    if (!code.includes(needle)) {
+      throw new Error(`[build-trainer] ${name}: gate invariant missing after minify: "${needle}" — refusing to ship.`);
+    }
+  }
+  const secret = code.match(/sk_(test|live)_[A-Za-z0-9]/) || code.match(/R2_SECRET_ACCESS_KEY/);
+  if (secret) {
+    throw new Error(`[build-trainer] ${name}: possible server secret in client-served output (${secret[0]}…) — refusing to ship.`);
+  }
+}
+
 // ---- trainer.html (inline JS via terser + CSS via clean-css + HTML) ----
 {
   const html = await readFile('trainer.html', 'utf8');
@@ -70,6 +87,7 @@ function report(file, before, after) {
     minifyCSS: true,
     minifyJS: TERSER,
   });
+  assertServedOutput('trainer.html', out, ['data-require-auth', '/clerk-auth.js', 'image_data.js', 'breast_drr_data.js', 'prostate2d_data.js']);
   await writeFile(verify ? 'trainer.min.html' : 'trainer.html', out, 'utf8');
   report('trainer.html', Buffer.byteLength(html, 'utf8'), Buffer.byteLength(out, 'utf8'));
 }
@@ -79,6 +97,7 @@ function report(file, before, after) {
   const js = await readFile('clerk-auth.js', 'utf8');
   const res = await minifyJs(js, TERSER);
   if (res.error) throw res.error;
+  assertServedOutput('clerk-auth.js', res.code, ['full_access', 'unsafeMetadata', 'data-require-auth', 'user_3FRbBFuCte2DQkTDzoeZe2VSfXB', 'stonybrook.edu']);
   await writeFile(verify ? 'clerk-auth.min.js' : 'clerk-auth.js', res.code, 'utf8');
   report('clerk-auth.js', Buffer.byteLength(js, 'utf8'), Buffer.byteLength(res.code, 'utf8'));
 }
