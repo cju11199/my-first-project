@@ -1,0 +1,26 @@
+name: Upload data to Blob
+
+# Manually-run uploader: pushes the case data from the repo into the PRIVATE Vercel Blob
+# store so /api/asset can serve it. No local files or terminal needed — run it from the
+# GitHub "Actions" tab (Run workflow).
+#
+# One-time setup: add a repository secret named BLOB_READ_WRITE_TOKEN
+#   (Settings -> Secrets and variables -> Actions -> New repository secret).
+#   Copy its value from Vercel: your project -> Storage -> the Blob store (or
+#   Settings -> Environment Variables -> BLOB_READ_WRITE_TOKEN).
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install @vercel/blob@2.5.0
+      - run: node scripts/upload-to-blob.mjs
+        env:
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
