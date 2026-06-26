@@ -632,6 +632,8 @@ html:not(.auth-pending) #authGate{display:none}
 .console-strip.st-ready .con-banner{color:var(--green)}
 .console-strip.st-beam .con-banner{color:var(--gold)}
 .console-strip.st-ilk .con-banner{color:var(--accent2)}
+.console-strip.st-hold .con-banner{color:var(--gold)}
+.console-strip.st-hold .con-bar-fill{background:linear-gradient(90deg,var(--gold),#caa23e);opacity:.6}
 .console-strip.st-done .con-banner{color:var(--green)}
 .con-lamps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 12px}
 .con-lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono),monospace;font-size:10px;letter-spacing:.05em;color:var(--muted)}
@@ -3520,8 +3522,8 @@ document.addEventListener('keydown',e=>{
   if(currentMode!=='2d2d') return; // CBCT mode has its own handler
   if(FID2D.active()) return;        // fiducial case is mouse-driven; no axis/tool shortcuts
   const tag=e.target.tagName;
-  const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA';
-  if(isText) return; // don't hijack real text fields
+  const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA'||tag==='SELECT';
+  if(isText) return; // don't hijack real text fields / the case-picker dropdown (native type-ahead)
   // 1 / 2 / 3 : hold to lock the next drag to a single couch axis
   //   1 = A-P (Vrt, vertical drag) · 2 = S-I (Lng, vertical drag) · 3 = L-R (Lat, vertical drag: up=right, down=left)
   if(e.key==='1'||e.key==='2'||e.key==='3'){
@@ -3535,8 +3537,9 @@ document.addEventListener('keydown',e=>{
     undo();
     return;
   }
-  // B : Beam On / Beam Hold on the delivery console (standard 2D cases; DIBH owns its own keys)
-  if((e.key==='b'||e.key==='B') && !e.ctrlKey && !e.metaKey && !e.altKey
+  // B : Beam On / Beam Hold on the delivery console (standard 2D cases; DIBH owns its own keys).
+  // !e.repeat so a held key delivers a single toggle, not a BEAM/HOLD strobe (mirrors the DIBH beam key).
+  if((e.key==='b'||e.key==='B') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey
      && !document.body.classList.contains('dibh-mode') && window.CONSOLE){
     e.preventDefault();
     CONSOLE.beam();
