@@ -15,8 +15,14 @@ _seg/
 _ts_out/
 _breast_seg/
 
-# Claude Code internal state
-.claude/
+# Claude Code: ignore internal/local state, but TRACK the shared project config
+# (skills, hooks, settings.json) so the whole team gets them.
+.claude/*
+!.claude/settings.json
+!.claude/skills/
+!.claude/hooks/
+!.claude/commands/
+.claude/settings.local.json
 
 # Secrets / environment (never commit real keys)
 # Match every .env variant (.env.production, .env.local, etc.) so a stray

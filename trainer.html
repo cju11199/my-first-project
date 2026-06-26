@@ -723,6 +723,8 @@ html:not(.auth-pending) #authGate{display:none}
           <div class="cb-dd-row on" id="cbCM_ptv"       onclick="CBCT.toggleStruct('ptv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
           <div class="cb-dd-row on" id="cbCM_tumor"     style="display:none" onclick="CBCT.toggleStruct('tumor')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>Tumour (TV)</div>
           <div class="cb-dd-row on" id="cbCM_cochlea"   style="display:none" onclick="CBCT.toggleStruct('cochlea')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#2fd6ff;color:#2fd6ff"></span>Cochlea</div>
+          <div class="cb-dd-row on" id="cbCM_edema"     style="display:none" onclick="CBCT.toggleStruct('edema')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#2fa0ff;color:#2fa0ff"></span>Edema</div>
+          <div class="cb-dd-row on" id="cbCM_liver"     style="display:none" onclick="CBCT.toggleStruct('liver')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>Liver</div>
           <div class="cb-dd-row on" id="cbCM_stomach"   style="display:none" onclick="CBCT.toggleStruct('stomach')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Stomach / duodenum</div>
           <div class="cb-dd-row on" id="cbCM_bowel"     style="display:none" onclick="CBCT.toggleStruct('bowel')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Small bowel</div>
           <div class="cb-dd-row on" id="cbCM_gtv"       onclick="CBCT.toggleStruct('gtv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
@@ -794,6 +796,7 @@ html:not(.auth-pending) #authGate{display:none}
       </div>
       <div class="cb-wl-presets" id="cbWinPresets" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-ptitle">PRESET WINDOW</div>
+        <div class="cb-wl-preset" onclick="CBCT.autoWindow()">Auto (fit histogram)</div>
         <div class="cb-wl-preset" onclick="CBCT.setWinPreset('bone')">Bone</div>
         <div class="cb-wl-preset" onclick="CBCT.setWinPreset('abdomen')">Abdomen</div>
         <div class="cb-wl-preset" onclick="CBCT.setWinPreset('lung')">Lung</div>
@@ -804,6 +807,8 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="cl-row" id="cbLG_ptv"><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
         <div class="cl-row" id="cbLG_tumor" style="display:none"><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>Tumour (TV)</div>
         <div class="cl-row" id="cbLG_cochlea" style="display:none"><span class="cl-sw" style="background:#2fd6ff;color:#2fd6ff"></span>Cochlea</div>
+        <div class="cl-row" id="cbLG_edema" style="display:none"><span class="cl-sw" style="background:#2fa0ff;color:#2fa0ff"></span>Edema</div>
+        <div class="cl-row" id="cbLG_liver" style="display:none"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>Liver</div>
         <div class="cl-row" id="cbLG_stomach" style="display:none"><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Stomach / duodenum</div>
         <div class="cl-row" id="cbLG_bowel" style="display:none"><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Small bowel</div>
         <div class="cl-row" id="cbLG_gtv" style="display:none"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
@@ -895,6 +900,7 @@ html:not(.auth-pending) #authGate{display:none}
           <option value="brain">Brain &middot; CT DRR (3D)</option>
       <option value="pelvis">Pelvis &middot; CT DRR (3D)</option>
       <option value="thorax">Thorax &middot; CT DRR (3D)</option>
+      <option value="femur">Femur &middot; CT DRR (3D)</option>
       <option value="breast">Breast L &middot; SCV + Tangent</option>
       <option value="prostate">Prostate &middot; Fiducial Match</option>
     </select>
@@ -1327,6 +1333,11 @@ const CASES = {
   // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
   thorax:{ name:'Thorax · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:'thorax' },
+  // Femur: orthogonal-pair (AP + Lateral) bone-emphasised DRRs of a single thigh, ray-summed
+  // from a real extremity CT (TCIA Soft-tissue-Sarcoma STS_004). Flat (tilt:null) — the femoral
+  // shaft is the bony landmark. iso sits at the bone centroid (mid-shaft). Data in image_data.js.
+  femur:{ name:'Femur · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
+          iso:{ ap:{x:0.588,y:0.475}, lat:{x:0.454,y:0.475} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
   // orthogonal pair -> 'ap' slot = SCV (gantry 0), 'lat' slot = Medial tangent (g~305).
   // Reference = full MLC DRR; the moving "acquired" image (por) is a clean anatomy
@@ -1408,6 +1419,7 @@ function hydrate2DCases(){
     CASES.brain.ap=BRAIN_AP_SRC;   CASES.brain.lat=BRAIN_LAT_SRC;
     CASES.pelvis.ap=PELVIS_AP_SRC; CASES.pelvis.lat=PELVIS_LAT_SRC;
     CASES.thorax.ap=THORAX_AP_SRC; CASES.thorax.lat=THORAX_LAT_SRC;
+    if(typeof FEMUR_AP_SRC!=='undefined'){ CASES.femur.ap=FEMUR_AP_SRC; CASES.femur.lat=FEMUR_LAT_SRC; }
   }
   if(typeof BREAST_SCV_REF_SRC!=='undefined' && typeof BREAST_META!=='undefined'){
     const b=CASES.breast;
@@ -1870,10 +1882,11 @@ const FID2D=(function(){
   function fidTransTol(){return fidTol().t1;}   // translation accept (mm) — markers must be seated too
   function randomize(keepResult){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
     const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
-    // Realistic per-axis rotation (2–3.5°). Across 3 axes the total angle compounds to ~3.5–6°;
-    // ensure that total comfortably exceeds the accept tolerance so rotation must be corrected.
-    let rv=[rr(2,3.5)*sg(),rr(2,3.5)*sg(),rr(2,3.5)*sg()];
-    const need=fidRotTol()+1.2,tot=Math.hypot(rv[0],rv[1],rv[2]);
+    // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
+    // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
+    // never seat all three markers — the student MUST Ctrl+drag one or two seeds to rotate the triad.
+    let rv=[rr(3,5)*sg(),rr(3,5)*sg(),rr(3,5)*sg()];
+    const need=fidRotTol()*2,tot=Math.hypot(rv[0],rv[1],rv[2]);
     if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
@@ -3305,6 +3318,7 @@ const CASE_LISTS={
     {v:'brain',  t:'Brain',   d:'CT DRR &middot; orthogonal pair'},
     {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
+    {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
     {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
@@ -3323,6 +3337,12 @@ const CASE_LISTS={
     // ACOUSTICMR: TCIA Vestibular-Schwannoma-SEG (CC BY 4.0). Contrast-T1 planning MR (not CT) —
     // tight SRS match on the enhancing tumour (TV) sparing the cochlea. Data built by generate_vs_mr.py.
     {v:'acousticMR',t:'Acoustic neuroma · MR', d:'MR &middot; SRS &middot; cochlea-sparing'},
+    // LIVER: TCIA Colorectal-Liver-Metastases (CC BY 4.0). Contrast CT, real liver + tumour (Mass)
+    // DICOM-SEG contours. Soft-tissue liver-lesion match. Data built by generate_liver_sbrt.py.
+    {v:'liver',  t:'Liver SBRT',      d:'CBCT &middot; liver metastasis'},
+    // GBM: TCIA UPenn-GBM (CC BY 4.0). Post-contrast T1 planning MR (not CT), real BraTS tumour SEG —
+    // cranial match on the enhancing GTV + necrotic core, with peritumoral edema. Data by generate_gbm_mr.py.
+    {v:'gbm',    t:'Glioblastoma · MR', d:'MR &middot; cranial &middot; enhancing tumour'},
     // SARCOMA: TCIA Soft-tissue-Sarcoma (CC BY 3.0). Extremity CT (thigh), real GTV_Mass tumour.
     // Unusual limb anatomy; femur is the bony landmark. Data built by generate_sarcoma.py.
     {v:'sarcoma',t:'Soft-tissue sarcoma', d:'CBCT &middot; thigh &middot; GTV match'},
@@ -3448,6 +3468,7 @@ const CASE_TOL={
   '2d2d:brain':     {t1:3, t2:7,   r1:2, r2:4},    // conventional cranial DRR
   '2d2d:pelvis':    {t1:3, t2:7,   r1:2, r2:4},    // conventional pelvis
   '2d2d:thorax':    {t1:3, t2:7,   r1:2, r2:4},    // conventional thorax
+  '2d2d:femur':     {t1:3, t2:7,   r1:2, r2:4},    // extremity / femur orthogonal pair
   '2d2d:breast':    {t1:5, t2:12,  r1:3, r2:4},    // breast SCV + tangent (loosest)
   '2d2d:breastDIBH':{t1:5, t2:12,  r1:3, r2:4},    // same match, breath-hold
   '2d2d:prostate':  {t1:3, t2:5.4, r1:3, r2:5.4},  // kV fiducial triad (FID2D); t2/r2 = accept*1.8
@@ -3459,6 +3480,8 @@ const CASE_TOL={
   'cbct:prostate':  {t1:2, t2:5,   r1:3, r2:4},    // gold fiducial seeds, rigid 6DOF
   'cbct:pancreas':  {t1:3, t2:7,   r1:2, r2:4},    // pancreas SBRT, breath-hold abdominal soft-tissue match
   'cbct:acousticMR':{t1:1, t2:2,   r1:1, r2:2},    // MR vestibular schwannoma SRS — intracranial, tightest
+  'cbct:liver':     {t1:2, t2:5,   r1:2, r2:4},    // liver SBRT — soft-tissue lesion match
+  'cbct:gbm':       {t1:2, t2:4,   r1:2, r2:3},    // GBM cranial — enhancing tumour match (looser than SRS, larger fractionated target)
   'cbct:sarcoma':   {t1:2, t2:5,   r1:2, r2:4},    // extremity soft-tissue sarcoma — soft-tissue limb match
 };
 const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
@@ -3748,7 +3771,9 @@ const CBCT=(function(){
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
     prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true},  // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
-    acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:100,w:700}, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. mr:true hides the CT-only bone/HU window presets. Data built by generate_vs_mr.py.
+    acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
+    liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
+    gbm:{file:'gbm3d_data.js', get:()=>typeof GBM3D_VOL!=='undefined'?GBM3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},   // GBM cranial (TCIA UPenn-GBM): post-contrast T1 planning MR (not CT), percentile-normalised. Real GTV (enhancing lesion + necrotic core) + peritumoral edema + brain envelope. autoWin fits the window from the histogram on open (mirrors the acoustic-neuroma MR case). 6DOF cranial match. Data built by generate_gbm_mr.py.
     sarcoma:{file:'sarcoma3d_data.js', get:()=>typeof SARCOMA3D_VOL!=='undefined'?SARCOMA3D_VOL:null, win:{l:40,w:400}, contours:true}   // soft-tissue sarcoma (TCIA Soft-tissue-Sarcoma): extremity CT (thigh), real GTV_Mass tumour. Unusual limb anatomy — rigid 6DOF soft-tissue match with the femur as the bony landmark. Data built by generate_sarcoma.py.
   };
   const hasVol=k=>!!VOLCASE[k];
@@ -3774,6 +3799,31 @@ const CBCT=(function(){
     const lv=gid('cbWLval');if(lv)lv.textContent=winL; const wv=gid('cbWWval');if(wv)wv.textContent=winW;
     const pm=gid('cbWinPresets');if(pm)pm.classList.remove('open');
     _invCaches();if(currentMode==='cbct')render();
+  }
+  // Auto-window: derive level/width from the loaded volume's OWN intensity histogram so the
+  // tissue fills the display range — a robust 2nd–98th percentile of non-background voxels.
+  // Built for the contrast-T1 MR case (intensities are arbitrary, not HU): its baked window
+  // otherwise clipped the brighter half of the brain/tumour to flat white. Generic, so the
+  // "Auto" preset works on any volume case.
+  function autoWindow(){
+    if(!V3||!V3.data)return false;
+    const data=V3.data,n=data.length,h=new Uint32Array(256);
+    for(let i=0;i<n;i++)h[data[i]]++;
+    const BG=8;                                    // drop the near-air background spike (density~0)
+    let tot=0;for(let d=BG+1;d<256;d++)tot+=h[d];
+    if(tot<2000)return false;                       // volume not ready / almost no tissue
+    const pct=p=>{const tgt=p*tot;let acc=0;for(let d=BG+1;d<256;d++){acc+=h[d];if(acc>=tgt)return d;}return 255;};
+    const lo=pct(0.02),hi=pct(0.98);
+    if(hi<=lo)return false;
+    const hu=d=>d*HU_SCALE+HU_OFF;                   // density(0..255) -> the window's HU units
+    let wl=Math.round((hu(lo)+hu(hi))/2/10)*10, ww=Math.round((hu(hi)-hu(lo))/20)*20;
+    wl=Math.max(-700,Math.min(900,wl));ww=Math.max(100,Math.min(2400,ww));   // clamp to the slider ranges
+    winL=wl;winW=ww;
+    const sL=gid('cbSlWL');if(sL)sL.value=winL; const sW=gid('cbSlWW');if(sW)sW.value=winW;
+    const lv=gid('cbWLval');if(lv)lv.textContent=winL; const wv=gid('cbWWval');if(wv)wv.textContent=winW;
+    const pm=gid('cbWinPresets');if(pm)pm.classList.remove('open');
+    _invCaches();if(currentMode==='cbct')render();
+    return true;
   }
   function toggleWindowing(){
     winMode=!winMode;
@@ -3815,6 +3865,7 @@ const CBCT=(function(){
     sliceIdx.axial=(Z/2)|0; sliceIdx.coronal=(Y/2)|0; sliceIdx.sagittal=(X/2)|0;
     _invCaches();_invContours();
     mprReady=true; mprCase=caseKey;
+    if(VOLCASE[caseKey]&&VOLCASE[caseKey].autoWin)autoWindow();   // MR: window from the volume's own histogram once it's decoded
     if(contoursOn){const vc=VOLCASE[caseKey];
       if(vc&&vc.contours&&curLBL())centerOnIso();          // label-volume case (brain/breast): re-center after volume decode
       else if(vc&&vc.ptv&&!vc.contours)centerOnTarget();}
@@ -4016,6 +4067,18 @@ const CBCT=(function(){
     {key:'tumor',   color:'#ff3b4e', lw:2.3},
   ];
   ACOUSTICMR_STRUCTS.forEach(S=>S.visible=true);
+  const LIVER_STRUCTS=[                               // liver SBRT: body + liver organ + tumour target (keys match generate_liver_sbrt.py bits)
+    {key:'body',  color:'#36e06a', lw:1.2},
+    {key:'liver', color:'#e8a13a', lw:1.6},
+    {key:'tumor', color:'#ff3b4e', lw:2.3},
+  ];
+  LIVER_STRUCTS.forEach(S=>S.visible=true);
+  const GBM_STRUCTS=[                                 // GBM cranial MR: brain envelope + peritumoral edema + GTV target (keys match generate_gbm_mr.py bits)
+    {key:'body',  color:'#36e06a', lw:1.2},
+    {key:'edema', color:'#2fa0ff', lw:1.6},
+    {key:'tumor', color:'#ff3b4e', lw:2.3},
+  ];
+  GBM_STRUCTS.forEach(S=>S.visible=true);
   const SARCOMA_STRUCTS=[                             // soft-tissue sarcoma: limb body + tumour target (keys match generate_sarcoma.py bits)
     {key:'body',  color:'#36e06a', lw:1.2},
     {key:'tumor', color:'#ff3b4e', lw:2.3},
@@ -4032,6 +4095,8 @@ const CBCT=(function(){
   let PROSTATE_LBL=null, PROSTATE_ISO_IDX=[99,76,32];  // prostate: gland centroid -> isocentre
   let PANCREAS_LBL=null, PANCREAS_ISO_IDX=[96,96,48];  // pancreas: target centroid -> isocentre (overwritten from the label file's isoIdx)
   let ACOUSTICMR_LBL=null, ACOUSTICMR_ISO_IDX=[94,101,91];  // MR VS: tumour (TV) centroid -> isocentre (overwritten from the label file's isoIdx)
+  let LIVER_LBL=null, LIVER_ISO_IDX=[78,100,79];        // liver: tumour (Mass) centroid -> isocentre (overwritten from the label file's isoIdx)
+  let GBM_LBL=null, GBM_ISO_IDX=[143,109,76];           // GBM: enhancing-tumour+necrosis centroid -> isocentre (overwritten from the label file's isoIdx)
   let SARCOMA_LBL=null, SARCOMA_ISO_IDX=[73,76,93];        // sarcoma: tumour (GTV_Mass) centroid -> isocentre (overwritten from the label file's isoIdx)
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
@@ -4041,6 +4106,8 @@ const CBCT=(function(){
   const _prostateCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _pancreasCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _acousticmrCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _liverCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _gbmCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _sarcomaCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   function _invContours(){
     _ctrCache.axial.k=_ctrCache.coronal.k=_ctrCache.sagittal.k=-1;
@@ -4051,17 +4118,21 @@ const CBCT=(function(){
     _prostateCtrCache.axial.k=_prostateCtrCache.coronal.k=_prostateCtrCache.sagittal.k=-1;
     _pancreasCtrCache.axial.k=_pancreasCtrCache.coronal.k=_pancreasCtrCache.sagittal.k=-1;
     _acousticmrCtrCache.axial.k=_acousticmrCtrCache.coronal.k=_acousticmrCtrCache.sagittal.k=-1;
+    _liverCtrCache.axial.k=_liverCtrCache.coronal.k=_liverCtrCache.sagittal.k=-1;
+    _gbmCtrCache.axial.k=_gbmCtrCache.coronal.k=_gbmCtrCache.sagittal.k=-1;
     _sarcomaCtrCache.axial.k=_sarcomaCtrCache.coronal.k=_sarcomaCtrCache.sagittal.k=-1;
   }
-  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:caseKey==='acousticMR'?ACOUSTICMR_LBL:caseKey==='sarcoma'?SARCOMA_LBL:LBL;}
-  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:caseKey==='acousticMR'?ACOUSTICMR_STRUCTS:caseKey==='sarcoma'?SARCOMA_STRUCTS:CB_STRUCTS;}
-  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:caseKey==='acousticMR'?ACOUSTICMR_ISO_IDX:caseKey==='sarcoma'?SARCOMA_ISO_IDX:CB_ISO_IDX;}
-  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:caseKey==='acousticMR'?_acousticmrCtrCache:caseKey==='sarcoma'?_sarcomaCtrCache:_ctrCache;}
+  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:caseKey==='acousticMR'?ACOUSTICMR_LBL:caseKey==='liver'?LIVER_LBL:caseKey==='gbm'?GBM_LBL:caseKey==='sarcoma'?SARCOMA_LBL:LBL;}
+  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:caseKey==='acousticMR'?ACOUSTICMR_STRUCTS:caseKey==='liver'?LIVER_STRUCTS:caseKey==='gbm'?GBM_STRUCTS:caseKey==='sarcoma'?SARCOMA_STRUCTS:CB_STRUCTS;}
+  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:caseKey==='acousticMR'?ACOUSTICMR_ISO_IDX:caseKey==='liver'?LIVER_ISO_IDX:caseKey==='gbm'?GBM_ISO_IDX:caseKey==='sarcoma'?SARCOMA_ISO_IDX:CB_ISO_IDX;}
+  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:caseKey==='acousticMR'?_acousticmrCtrCache:caseKey==='liver'?_liverCtrCache:caseKey==='gbm'?_gbmCtrCache:caseKey==='sarcoma'?_sarcomaCtrCache:_ctrCache;}
   function loadLabelMPR(){
     if(caseKey==='lung'){_loadLungLabelMPR();return;}
     if(caseKey==='prostate'){_loadProstateLabelMPR();return;}
     if(caseKey==='pancreas'){_loadPancreasLabelMPR();return;}
     if(caseKey==='acousticMR'){_loadAcousticMRLabelMPR();return;}
+    if(caseKey==='liver'){_loadLiverLabelMPR();return;}
+    if(caseKey==='gbm'){_loadGBMLabelMPR();return;}
     if(caseKey==='sarcoma'){_loadSarcomaLabelMPR();return;}
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
@@ -4249,6 +4320,52 @@ const CBCT=(function(){
     _invCaches();_invContours();
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
+  function _loadGBMLabelMPR(){
+    if(typeof GBM3D_LABELS==='undefined'){
+      if(_loadGBMLabelMPR._t)return; _loadGBMLabelMPR._t=1;
+      const s=document.createElement('script'); s.src=rtAssetUrl('gbm3d_labels_data.js');
+      s.onload=()=>{_loadGBMLabelMPR._t=0;_loadGBMLabelMPR();}; s.onerror=()=>{_loadGBMLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(GBM_LBL)return;
+    const img=new Image(); img.onload=()=>_decodeGBMLabels(img); img.src=GBM3D_LABELS.atlas;
+  }
+  function _decodeGBMLabels(img){
+    const V=GBM3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    GBM_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    GBM_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)GBM_ISO_IDX=V.isoIdx.slice();
+    _invCaches();_invContours();
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
+  function _loadLiverLabelMPR(){
+    if(typeof LIVER3D_LABELS==='undefined'){
+      if(_loadLiverLabelMPR._t)return; _loadLiverLabelMPR._t=1;
+      const s=document.createElement('script'); s.src=rtAssetUrl('liver3d_labels_data.js');
+      s.onload=()=>{_loadLiverLabelMPR._t=0;_loadLiverLabelMPR();}; s.onerror=()=>{_loadLiverLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(LIVER_LBL)return;
+    const img=new Image(); img.onload=()=>_decodeLiverLabels(img); img.src=LIVER3D_LABELS.atlas;
+  }
+  function _decodeLiverLabels(img){
+    const V=LIVER3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    LIVER_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    LIVER_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)LIVER_ISO_IDX=V.isoIdx.slice();
+    _invCaches();_invContours();
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
   function _loadSarcomaLabelMPR(){
     if(typeof SARCOMA3D_LABELS==='undefined'){
       if(_loadSarcomaLabelMPR._t)return; _loadSarcomaLabelMPR._t=1;
@@ -4401,11 +4518,13 @@ const CBCT=(function(){
     const prostate=caseKey==='prostate';
     const pancreas=caseKey==='pancreas';
     const acousticmr=caseKey==='acousticMR';
+    const liver=caseKey==='liver';
+    const gbm=caseKey==='gbm';
     const sarcoma=caseKey==='sarcoma';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
     show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);   // pancreas adds these; PTV (cbLG_ptv) stays on (it has a real contour)
-    show('cbLG_ptv',!acousticmr&&!sarcoma);show('cbLG_tumor',acousticmr||sarcoma);show('cbLG_cochlea',acousticmr);   // MR VS / sarcoma: tumour target, no PTV
+    show('cbLG_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma);show('cbLG_tumor',acousticmr||liver||gbm||sarcoma);show('cbLG_cochlea',acousticmr);show('cbLG_liver',liver);show('cbLG_edema',gbm);   // MR VS / liver / GBM / sarcoma: tumour target, no PTV; GBM adds edema
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
@@ -4415,7 +4534,7 @@ const CBCT=(function(){
     show('cbLG_body',true);
     // per-structure dropdown items
     show('cbCM_stomach',pancreas);show('cbCM_bowel',pancreas);
-    show('cbCM_ptv',!acousticmr&&!sarcoma);show('cbCM_tumor',acousticmr||sarcoma);show('cbCM_cochlea',acousticmr);
+    show('cbCM_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma);show('cbCM_tumor',acousticmr||liver||gbm||sarcoma);show('cbCM_cochlea',acousticmr);show('cbCM_liver',liver);show('cbCM_edema',gbm);
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
@@ -4960,7 +5079,7 @@ const CBCT=(function(){
     const ccaret=gid('cbContoursCaret');if(ccaret)ccaret.style.display=(vc&&vc.contours)?'':'none';
     applyCaseLegend();
     const lg=gid('cbContourLegend');if(lg)lg.classList.remove('show');
-    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'||key==='sarcoma'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
+    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'||key==='liver'||key==='gbm'||key==='sarcoma'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
       if(vc&&vc.contours){loadLabelMPR();if(curLBL())centerOnIso();}}   // contours ON by default
     Object.keys(PLANES).forEach(name=>{
       const st=ST[name],truth=makeTruth(key,name);
@@ -4984,7 +5103,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
 
