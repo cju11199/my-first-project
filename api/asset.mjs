@@ -25,7 +25,7 @@ const COMP_USER_IDS = [
   'user_3FdAKcEGAZ7GEURzye3YCHv0jsW', // comped account
   'user_3FbktcxWR3jnk8ZP6y4bm9ly9C1', // comped account
 ];
-const COMP_EMAILS = [];
+const COMP_EMAILS = ['cju1999@pm.me'];   // tester — must be a VERIFIED email on the account (see compedByEmail)
 const COMP_DOMAINS = ['stonybrook.edu', 'mountsinai.org'];
 
 // Allowlisted object keys — anything else 404s, so ?f= can never be coerced into
@@ -33,9 +33,10 @@ const COMP_DOMAINS = ['stonybrook.edu', 'mountsinai.org'];
 const DATASETS = new Set([
   'image_data.js', 'breast_drr_data.js', 'prostate2d_data.js',
   'brain3d_data.js', 'pelvis3d_data.js', 'breast3d_data.js',
-  'spine3d_data.js', 'lung3d_data.js', 'prostate3d_data.js',
+  'spine3d_data.js', 'lung3d_data.js', 'prostate3d_data.js', 'pancreas3d_data.js',
   'brain3d_labels_data.js', 'pelvis3d_labels_data.js', 'breast3d_labels_data.js',
   'spine3d_labels_data.js', 'lung3d_labels_data.js', 'prostate3d_labels_data.js',
+  'pancreas3d_labels_data.js',
 ]);
 const DRR_KEY = /^drr\/[a-z0-9_]+\.png$/i;
 

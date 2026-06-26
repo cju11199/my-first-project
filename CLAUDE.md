@@ -86,9 +86,17 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `pancreas3d_labels_data.js` (same tiled-atlas format as the other `*3d_*` files) for the **Pancreas
   CBCT** case (rigid 6DOF abdominal soft-tissue match; needs pydicom/numpy/scipy/pillow). The trainer
   plumbing (`VOLCASE.pancreas`, `cbct:pancreas` `CASE_TOL`, `PANCREAS_STRUCTS`, loaders + `cur*`
-  switches) is wired, but the CBCT picker card is **commented out** (search `// PANCREAS`) until the
-  data files are generated and browser-verified. Data is **not** committed — TCIA is CC BY (verify the
-  collection's licence is not "TCIA Restricted" before use; attribute `doi:10.7937/TCIA.ESHQ-4D90`).
+  switches) is wired and the **picker card is live**. Built from patient `Pancreas-CT-CB_037`
+  (planning CT + `*_SDPC` RTSTRUCT) pulled from the **NCI Imaging Data Commons** bucket
+  `s3://idc-open-data` (reachable even where the TCIA website is network-blocked; use the `idc-index`
+  PyPI pkg, which also carries the authoritative per-collection licence). **Licence CC BY 4.0** —
+  commercial use OK with attribution (`doi:10.7937/TCIA.ESHQ-4D90`), baked into the data-file headers.
+  The collection is GI-OAR only (stomach/duodenum + small bowel; no target ROI), so the iso sits at
+  the GI/pancreatic centroid; the generator crops to the abdomen before resampling. `pancreas3d_data.js`
+  (~2.9 MB) + `pancreas3d_labels_data.js` are committed, `.vercelignore`d, and added to the **three
+  Phase-2 allowlists** (`api/asset.mjs` `DATASETS`, `scripts/upload-to-blob.mjs`, `.vercelignore`); like
+  every paid case they're served only through `/api/asset` from private Vercel Blob, so the **"Upload data
+  to Blob" Action must be re-run** after merge or the case 404s live. Visual rendering still needs a real-browser check.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)

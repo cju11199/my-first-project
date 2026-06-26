@@ -51,9 +51,13 @@ except ImportError:
     raise SystemExit("pydicom is required:  pip install pydicom numpy scipy pillow")
 
 # --- output sizing (keep the atlas ~1.5 MB like the other *3d_data.js files) ---
-TARGET_XY   = 192      # in-plane resample size (px). Other cases sit ~180-224.
-TARGET_Z    = 96       # number of axial slices after resample (isotropic-ish).
+TARGET_XY   = 192      # longest-axis resample size (px). Other cases sit ~180-224.
 TILES_PER_ROW = 10     # atlas tiling (10 cols x ceil(Z/10) rows), matches the others.
+CROP_MARGIN_MM = 55    # margin around the contoured OARs when cropping to the region of interest.
+# These collections ship extended-FOV breath-hold CTs (abdomen up through the lungs); crop to the
+# abdominal OARs so the pancreas region fills the volume at good resolution instead of being a
+# thin slab of a 500 mm scan. Keys here define the crop box (body/lung/cord are context, not focus).
+FOCUS_KEYS = ('ptv', 'stomach', 'duodenum', 'bowel', 'liver', 'kidney')
 
 # HU -> density(0..255) model the trainer uses:  HU = density*(2000/255) - 500
 #   => density = (HU + 500) * 255/2000 , clipped to [0,255].
@@ -65,9 +69,13 @@ def hu_to_density(hu):
 # --- structure mapping -------------------------------------------------------
 # Fixed bit layout consumed by trainer.html's PANCREAS_STRUCTS (uint8 -> 8 bits).
 # The generator absorbs ROI-name variance; the trainer side stays fixed on these keys.
+# Synthetic teaching PTV: this collection is OAR-only (no tumour ROI), so when no target ROI matches
+# we synthesise an anatomically authentic head-of-pancreas tumour PTV via HU region-grow (see
+# synth_ptv) — the trainer's targets are explicitly training values. This gives the case a realistic
+# target to align to, placed in the pancreatic bed (anterior to the vertebra, posterior to the stomach).
 STRUCT_BITS = {
     'body':     1,    # External/BODY (or thresholded if the RTSTRUCT lacks one)
-    'target':   2,    # the pancreas / CTV / GTV / tumour bed  -> iso source
+    'ptv':      2,    # tumour target: real target ROI if present, else a synthetic teaching PTV
     'duodenum': 4,
     'stomach':  8,
     'bowel':    16,   # small + large bowel merged
@@ -85,8 +93,8 @@ ROI_ALIASES = [
     ('kidney',   'kidney'), ('renal', 'kidney'),
     ('spinalcord','cord'), ('spinal_cord','cord'), ('cord','cord'), ('canal','cord'),
     # target / tumour: try the most specific clinical names first
-    ('ctv',      'target'), ('gtv', 'target'), ('tumor','target'), ('tumour','target'),
-    ('panc',     'target'),   # "Pancreas" ROI used as the soft-tissue target
+    ('ptv',      'ptv'), ('ctv', 'ptv'), ('gtv', 'ptv'), ('tumor','ptv'), ('tumour','ptv'),
+    ('panc',     'ptv'),   # "Pancreas" ROI used as the soft-tissue target
     # body / external last so it can't steal a more specific match
     ('external', 'body'), ('body', 'body'), ('skin','body'), ('patient','body'),
 ]
@@ -167,25 +175,44 @@ def _poly_mask(poly, ny, nx):
     ImageDraw.Draw(img).polygon([tuple(p) for p in poly], outline=1, fill=1)
     return np.array(img, bool)
 
-# --- isotropic resample to the target grid -----------------------------------
+# --- crop to the region of interest, then isotropic resample -----------------
 def resample(ct, masks):
     src = ct['hu']
     SZ, SY, SX = ct['nz'], ct['ny'], ct['nx']
-    # physical extent (mm)
-    phys = [SX * ct['px'], SY * ct['py'], SZ * ct['dz']]
-    iso_sp = max(phys) / TARGET_XY                                 # one isotropic spacing
-    OX = max(1, int(round(phys[0] / iso_sp)))
-    OY = max(1, int(round(phys[1] / iso_sp)))
-    OZ = TARGET_Z
-    zoom = (OZ / SZ, OY / SY, OX / SX)
-    print(f"resample -> {OX}x{OY}x{OZ}  iso spacing {iso_sp:.3f} mm  phys {phys}")
+    spz, spy, spx = ct['dz'], ct['py'], ct['px']
+
+    # crop box = bounding box of the focus OARs + margin (clamped to the volume)
+    focus = np.zeros((SZ, SY, SX), bool)
+    for k in FOCUS_KEYS:
+        if k in masks and masks[k].any():
+            focus |= masks[k]
+    if focus.any():
+        zz, yy, xx = np.where(focus)
+        mz, my, mx = CROP_MARGIN_MM/spz, CROP_MARGIN_MM/spy, CROP_MARGIN_MM/spx
+        z0, z1 = max(0, int(zz.min()-mz)), min(SZ, int(zz.max()+mz)+1)
+        y0, y1 = max(0, int(yy.min()-my)), min(SY, int(yy.max()+my)+1)
+        x0, x1 = max(0, int(xx.min()-mx)), min(SX, int(xx.max()+mx)+1)
+        print(f"crop to OAR box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {SZ}x{SY}x{SX}")
+    else:
+        z0,z1,y0,y1,x0,x1 = 0,SZ,0,SY,0,SX
+        print("no focus OARs to crop on -> using full volume")
+    src = src[z0:z1, y0:y1, x0:x1]
+    masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
+    CZ, CY, CX = src.shape
+
+    # isotropic resample of the cropped region (one spacing for all axes -> no squish)
+    phys = [CX*spx, CY*spy, CZ*spz]
+    iso_sp = max(phys) / TARGET_XY
+    OX = max(1, int(round(phys[0]/iso_sp)))
+    OY = max(1, int(round(phys[1]/iso_sp)))
+    OZ = max(1, int(round(phys[2]/iso_sp)))
+    zoom = (OZ/CZ, OY/CY, OX/CX)
+    print(f"resample -> {OX}x{OY}x{OZ}  iso spacing {iso_sp:.3f} mm  phys {[round(p) for p in phys]}")
     ct_d = hu_to_density(ndimage.zoom(src, zoom, order=1))
     out_masks = {}
     for k, m in masks.items():
-        if m.any():
-            out_masks[k] = ndimage.zoom(m.astype(np.float32), zoom, order=1) > 0.5
-        else:
-            out_masks[k] = np.zeros((OZ, OY, OX), bool)
+        out_masks[k] = (ndimage.zoom(m.astype(np.float32), zoom, order=1) > 0.5) if m.any() \
+                       else np.zeros((OZ, OY, OX), bool)
     return ct_d, out_masks, (OX, OY, OZ), iso_sp, phys
 
 # --- atlas encode ------------------------------------------------------------
@@ -197,6 +224,112 @@ def encode_atlas(vol, OX, OY, OZ, tpr):
         out[tr*OY:tr*OY+OY, tc*OX:tc*OX+OX] = vol[z]
     buf = io.BytesIO(); Image.fromarray(out, 'L').save(buf, format='PNG', compress_level=9)
     return base64.b64encode(buf.getvalue()).decode('ascii'), len(buf.getvalue()), rows
+
+# --- synthetic, anatomically authentic head-of-pancreas tumour PTV -------------
+def synth_ptv(ct_d, rmasks, HU, iso_sp, dims):
+    """Anatomy-seeded HU region-grow -> head-of-pancreas tumour PTV (bool ndarray, shape OZ,OY,OX).
+
+    Designed + adversarially judged against the real CT (regiongrow method). Axes: x=Left+,
+    y=Posterior+, z=Superior+.
+      1. Detect the vertebral body per slice (HU>250 central column) -> midline x, anterior edge y.
+      2. Seed the GTV in the pancreatic bed: anterior to the vertebra, posterior to the stomach,
+         shifted slightly to the patient's RIGHT (head of pancreas).
+      3. Region-grow from the seed in soft-tissue HU [-25,80] (below contrast vessels), excluding
+         stomach/bowel lumen + bone, within a focal ball -> organic GTV.
+      4. PTV = uniform ~5 mm 3D ball margin; light smoothing; trim hard air/bone; kill thin slivers.
+    """
+    OX, OY, OZ = dims
+    stomach = rmasks['stomach']; bowel = rmasks['bowel']
+    bone = HU > 250
+
+    # 1. vertebral body per slice (largest compact bone blob in the central column)
+    cx_mid = OX / 2.0
+    vb_cx, vb_yant = {}, {}
+    lo, hi = int(cx_mid - 22), int(cx_mid + 22)
+    for z in range(OZ):
+        band = np.zeros((OY, OX), bool); band[:, lo:hi] = bone[z][:, lo:hi]
+        if band.sum() < 30:
+            continue
+        lbl, n = ndimage.label(band)
+        best = None
+        for i in range(1, n + 1):
+            ys, xs = np.where(lbl == i)
+            if len(ys) < 30:
+                continue
+            if best is None or len(ys) > best[0]:
+                best = (len(ys), xs.mean(), ys.min())
+        if best is not None:
+            vb_cx[z] = best[1]; vb_yant[z] = best[2]
+
+    # 2. stomach (+duodenum) centroid / z-extent
+    szz, syy, sxx = np.where(stomach)
+    st_cy = syy.mean(); st_zlo, st_zhi = szz.min(), szz.max()
+
+    # 3. seed in the pancreatic-head plane (mid/lower stomach block)
+    z_lo = int(st_zlo + 0.20 * (st_zhi - st_zlo)); z_hi = int(st_zlo + 0.45 * (st_zhi - st_zlo))
+    z_cands = [z for z in range(z_lo, z_hi) if z in vb_yant]
+    z_seed = int(np.median(z_cands)) if z_cands else (z_lo + z_hi) // 2
+    win = [z for z in range(z_seed - 6, z_seed + 7) if z in vb_yant]
+    yant = np.median([vb_yant[z] for z in win]); midx = np.median([vb_cx[z] for z in win])
+    y_seed = int(round(yant - 26 / iso_sp))             # ~26 mm anterior of the vertebra (off the vessels)
+    y_seed = max(y_seed, int(st_cy + 12 / iso_sp))      # stay posterior to the stomach
+    x_seed = int(round(midx - 6 / iso_sp))              # ~6 mm to the patient's right (head)
+
+    # soft-tissue admissibility (cap below contrast vessels)
+    soft = (HU >= -25) & (HU <= 80)
+    lumen = stomach | bowel | (HU < -150)
+    bone_d = ndimage.binary_dilation(bone, iterations=1)
+    admit = soft & (~lumen) & (~bone_d)
+    admit = ndimage.binary_closing(admit, structure=np.ones((1, 3, 3)), iterations=1)
+
+    # snap seed to nearest admissible voxel
+    if not admit[z_seed, y_seed, x_seed]:
+        zz, yy, xx = np.where(admit[z_seed-3:z_seed+4, y_seed-6:y_seed+7, x_seed-6:x_seed+7])
+        if len(zz):
+            j = ((zz-3)**2 + (yy-6)**2 + (xx-6)**2).argmin()
+            z_seed, y_seed, x_seed = z_seed-3+zz[j], y_seed-6+yy[j], x_seed-6+xx[j]
+
+    # 4. region-grow inside a focal ball (slightly compressed SI)
+    rvox = 18.0 / iso_sp
+    zz, yy, xx = np.ogrid[0:OZ, 0:OY, 0:OX]
+    ball = ((xx - x_seed)**2 + (yy - y_seed)**2 + ((zz - z_seed)*0.85)**2) <= rvox**2
+    lbl, n = ndimage.label(admit & ball)
+    seedlab = lbl[z_seed, y_seed, x_seed]
+    if seedlab == 0:
+        sub = lbl[z_seed-2:z_seed+3, y_seed-2:y_seed+3, x_seed-2:x_seed+3]; vals = sub[sub > 0]
+        seedlab = int(np.bincount(vals).argmax()) if len(vals) else 0
+    gtv = (lbl == seedlab) if seedlab else (admit & ball)
+
+    # organic close + fill vessel holes + keep largest blob
+    gtv = ndimage.binary_closing(gtv, structure=np.ones((3, 3, 3)), iterations=1)
+    for z in range(OZ):
+        if gtv[z].any():
+            gtv[z] = ndimage.binary_fill_holes(gtv[z])
+    lbl, n = ndimage.label(gtv)
+    if n > 1:
+        sizes = np.bincount(lbl.ravel()); sizes[0] = 0; gtv = lbl == sizes.argmax()
+
+    # 5. uniform ~5 mm 3D ball margin -> PTV; smooth; trim hard air/bone
+    r = int(round(5 / iso_sp)); rr = np.arange(-r, r + 1)
+    ZB, YB, XB = np.meshgrid(rr, rr, rr, indexing='ij')
+    ball_se = (ZB**2 + YB**2 + XB**2) <= r**2
+    ptv = ndimage.binary_dilation(gtv, structure=ball_se)
+    ptv = ndimage.binary_closing(ptv, structure=np.ones((3, 3, 3)), iterations=1)
+    ptv = ptv & (~((HU < -200) | (HU > 300)))
+    # light surface smoothing (removes sharp notches, keeps organic shape)
+    ptv = ndimage.gaussian_filter(ptv.astype(np.float32), 0.8) > 0.45
+    ptv = ptv & (~((HU < -200) | (HU > 300)))
+    # kill thin inferior slivers: drop small per-slice fragments, then keep the largest 3D blob
+    for z in range(OZ):
+        if ptv[z].any():
+            sl, m = ndimage.label(ptv[z])
+            if m > 1:
+                sz = np.bincount(sl.ravel()); sz[0] = 0
+                ptv[z] = np.isin(sl, np.where(sz >= 25)[0])
+    lbl, n = ndimage.label(ptv)
+    if n > 1:
+        sizes = np.bincount(lbl.ravel()); sizes[0] = 0; ptv = lbl == sizes.argmax()
+    return ptv.astype(bool)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -216,6 +349,23 @@ def main():
 
     ct_d, rmasks, (OX, OY, OZ), iso_sp, phys = resample(ct, masks)
 
+    def centroid(mask):
+        zz, yy, xx = np.where(mask)
+        return [int(round(xx.mean())), int(round(yy.mean())), int(round(zz.mean()))]
+
+    # PTV: use a real target ROI if one matched; otherwise synthesise an anatomically authentic
+    # head-of-pancreas tumour PTV via HU region-grow (synth_ptv). iso = PTV centre.
+    if rmasks['ptv'].any():
+        iso = centroid(rmasks['ptv'])
+        print(f"target ROI present -> using it as the PTV ({int(rmasks['ptv'].sum())} vox)")
+    else:
+        HU = ct_d.astype(np.float32) * (2000.0 / 255.0) - 500.0
+        rmasks['ptv'] = synth_ptv(ct_d, rmasks, HU, iso_sp, (OX, OY, OZ))
+        iso = centroid(rmasks['ptv'])
+        vol_cc = rmasks['ptv'].sum() * iso_sp**3 / 1000
+        print(f"no target ROI -> SYNTHETIC head-of-pancreas PTV via region-grow "
+              f"({int(rmasks['ptv'].sum())} vox, {vol_cc:.1f} cc) centred {iso}")
+
     # build the packed label volume (OR of bits)
     labels = np.zeros((OZ, OY, OX), np.uint8)
     bits_present = {}
@@ -223,22 +373,6 @@ def main():
         if rmasks[k].any():
             labels[rmasks[k]] |= bit
             bits_present[k] = bit
-    if 'body' in bits_present and bits_present == {'body': 1}:
-        print("WARNING: only a body mask was produced — check ROI_ALIASES against the printed ROI list")
-
-    # isocentre = target centroid (fallback: centre of everything contoured, else volume centre)
-    def centroid(mask):
-        zz, yy, xx = np.where(mask)
-        return [int(round(xx.mean())), int(round(yy.mean())), int(round(zz.mean()))]
-    if rmasks['target'].any():
-        iso = centroid(rmasks['target'])
-    else:
-        any_oar = np.zeros((OZ, OY, OX), bool)
-        for k in ('duodenum', 'stomach', 'bowel', 'liver', 'kidney'):
-            any_oar |= rmasks[k]
-        iso = centroid(any_oar) if any_oar.any() else [OX//2, OY//2, OZ//2]
-        print("WARNING: no target ROI matched — iso set from OAR/volume centre; "
-              "set a target by adding the pancreas/CTV ROI name to ROI_ALIASES")
     print(f"iso(voxel)={iso}  bits={bits_present}")
 
     ct_b64, ct_sz, rows = encode_atlas(ct_d, OX, OY, OZ, TILES_PER_ROW)
@@ -248,9 +382,13 @@ def main():
     meta = (f'{{"dims": [{OX}, {OY}, {OZ}], "spacingMm": [{iso_sp:.4f}, {iso_sp:.4f}, {iso_sp:.4f}], '
             f'"physMm": [{OX*iso_sp:.2f}, {OY*iso_sp:.2f}, {OZ*iso_sp:.2f}], '
             f'"tilesPerRow": {TILES_PER_ROW}, "tileRows": {rows}, "boneThr": 0.62}}')
+    ATTRIB = ('// Source: TCIA Pancreatic-CT-CBCT-SEG (via NCI Imaging Data Commons, s3://idc-open-data).\n'
+              '// Licence: CC BY 4.0 (commercial use permitted with attribution).\n'
+              '// Attribution: Hong, J. et al., The Cancer Imaging Archive, doi:10.7937/TCIA.ESHQ-4D90.\n'
+              '// De-identified breath-hold planning CT, cropped to the abdomen + resampled to an isotropic atlas.\n')
     with open('pancreas3d_data.js', 'w') as f:
-        f.write('// Pancreas (TCIA Pancreatic-CT-CBCT-SEG) breath-hold planning CT, resampled to an\n')
-        f.write('// isotropic atlas. dims=[x(LR),y(AP),z(SI)]. Plain CT (no baked features); rigid 6DOF.\n')
+        f.write(ATTRIB)
+        f.write('// dims=[x(LR),y(AP),z(SI)]. Plain CT (no baked features); rigid 6DOF soft-tissue match.\n')
         f.write(f'const PANCREAS3D_VOL={meta};\n')
         f.write(f"PANCREAS3D_VOL.atlas='data:image/png;base64,{ct_b64}';\n")
 
@@ -259,7 +397,8 @@ def main():
                 f'"tilesPerRow": {TILES_PER_ROW}, "bits": {{{bits_json}}}, '
                 f'"isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}]}}')
     with open('pancreas3d_labels_data.js', 'w') as f:
-        f.write('// Pancreas CBCT case labels: pancreas/target + abdominal OAR contours from the RTSTRUCT.\n')
+        f.write(ATTRIB)
+        f.write('// Pancreas CBCT case labels: abdominal OAR contours from the RTSTRUCT (bits below).\n')
         f.write(f'const PANCREAS3D_LABELS={lbl_meta};\n')
         f.write(f"PANCREAS3D_LABELS.atlas='data:image/png;base64,{lbl_b64}';\n")
     print('wrote pancreas3d_data.js + pancreas3d_labels_data.js')

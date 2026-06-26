@@ -48,28 +48,33 @@ git clone https://github.com/cju11199/my-first-project.git
 The site is hosted on [Vercel](https://vercel.com). Changes pushed to `main`
 redeploy automatically to the link above. See [DEPLOY.md](DEPLOY.md) for setup details.
 
-### Adding the Pancreas CBCT case (TCIA Pancreatic-CT-CBCT-SEG)
+### Pancreas CBCT case (TCIA Pancreatic-CT-CBCT-SEG)
 
-A new CBCT case sourced from real public data. All the in-app plumbing
-(`VOLCASE`/`CASE_TOL`/`PANCREAS_STRUCTS`/loaders) is already wired in `trainer.html`;
-the case just needs its data files generated and the picker card enabled.
+A CBCT case built from real public data: a breath-hold abdominal planning CT with
+stomach/duodenum + small-bowel OAR contours — a soft-tissue abdominal match. The data files
+(`pancreas3d_data.js` + `pancreas3d_labels_data.js`) are committed and the picker card is live.
 
-1. **Confirm the licence.** Open the [collection page](https://www.cancerimagingarchive.net/collection/pancreatic-ct-cbct-seg/)
-   and check the *Data Usage Licence* field reads **CC BY 3.0** or **CC BY 4.0** (commercial
-   use OK with attribution) — **not** "TCIA Restricted". This site is a paid product, so a
-   non-commercial licence would rule it out. Keep the attribution: *Hong, J. et al., TCIA,*
-   `https://doi.org/10.7937/TCIA.ESHQ-4D90`.
-2. **Download** one patient's planning-CT DICOM series + its RTSTRUCT.
-3. **Generate the atlas files:**
-   ```bash
-   pip install pydicom numpy scipy pillow
-   python generate_pancreas_cbct.py --ct /path/to/CT_series --rtstruct /path/to/RTSTRUCT.dcm
-   ```
-   This writes `pancreas3d_data.js` + `pancreas3d_labels_data.js` and prints the ROI names it
-   found and how it mapped them (adjust `ROI_ALIASES` in the script if a structure didn't match).
-4. **Enable + verify.** Uncomment the `{v:'pancreas', …}` picker card in `trainer.html` (search
-   `// PANCREAS`), then open `/trainer` in Chrome/Edge and check the MPR panes, contours, and
-   window/level look right (CBCT visuals can't be verified headless).
+- **Source / licence:** TCIA **Pancreatic-CT-CBCT-SEG**, patient `Pancreas-CT-CB_037`, obtained
+  via the **NCI Imaging Data Commons** public bucket `s3://idc-open-data`. Licence **CC BY 4.0**
+  (commercial use permitted **with attribution**) — verified from IDC's per-collection
+  `license_short_name` index, which is the authoritative license of record. Attribution:
+  *Hong, J. et al., The Cancer Imaging Archive,* `doi:10.7937/TCIA.ESHQ-4D90`. The attribution +
+  licence are also baked into the headers of the two generated `.js` files.
+
+**To regenerate / swap in a different patient** (the IDC buckets are reachable even where the TCIA
+website is blocked):
+
+```bash
+pip install idc-index pydicom numpy scipy pillow
+# idc-index bundles the series→S3 index + licences; download one patient's planning CT + its
+# *_SDPC RTSTRUCT (drawn on the planning CT, not the *_SDCB one drawn on CBCT), then:
+python generate_pancreas_cbct.py --ct /path/to/CT_series --rtstruct /path/to/RTSTRUCT.dcm
+```
+
+The generator crops to the abdominal OARs, resamples to an isotropic atlas, prints the ROI names it
+found + how it mapped them (adjust `ROI_ALIASES` if needed), and bakes in the CC BY attribution.
+After regenerating, **verify the MPR panes/contours in Chrome/Edge** — CBCT visuals can't be checked
+headless.
 
 ## License
 

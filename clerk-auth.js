@@ -76,7 +76,7 @@
     'user_3FdAKcEGAZ7GEURzye3YCHv0jsW', // comped account
     'user_3FbktcxWR3jnk8ZP6y4bm9ly9C1', // comped account
   ];
-  var COMP_EMAILS = []; // (owner moved to COMP_USER_IDS above; add testers here if needed — verified emails only)
+  var COMP_EMAILS = ['cju1999@pm.me']; // tester (verified emails only; checked against VERIFIED addresses in isComped)
   // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
   // of these domains (or a subdomain) gets in free — no subscription. Institution
   // domains only; a public domain (gmail.com) would free everyone.
