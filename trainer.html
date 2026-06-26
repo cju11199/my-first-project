@@ -3302,6 +3302,10 @@ const CASE_LISTS={
     {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
     {v:'lung',   t:'Lung SBRT',       d:'CBCT &middot; RLL nodule'},
     {v:'prostate',t:'Prostate',       d:'CBCT &middot; gold fiducials'},
+    // PANCREAS: enable after running generate_pancreas_cbct.py to build pancreas3d_data.js +
+    // pancreas3d_labels_data.js, and verifying the MPR panes/contours in Chrome/Edge. All the
+    // supporting plumbing (VOLCASE/CASE_TOL/PANCREAS_STRUCTS/loaders/switches) is already wired.
+    // {v:'pancreas',t:'Pancreas SBRT', d:'CBCT &middot; breath-hold'},
   ]},
 };
 function pickMode(mode){
@@ -3433,6 +3437,7 @@ const CASE_TOL={
   'cbct:spine':     {t1:1, t2:2.5, r1:1, r2:2},    // spine SBRT (cord-avoiding)
   'cbct:lung':      {t1:2, t2:6,   r1:2, r2:4},    // lung SBRT (off-bone; translation graded)
   'cbct:prostate':  {t1:2, t2:5,   r1:3, r2:4},    // gold fiducial seeds, rigid 6DOF
+  'cbct:pancreas':  {t1:3, t2:7,   r1:2, r2:4},    // pancreas SBRT, breath-hold abdominal soft-tissue match
 };
 const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
 function rtTol(mode,caseKey){return CASE_TOL[mode+':'+caseKey]||RT_TOL_DEFAULT;}
@@ -3719,7 +3724,8 @@ const CBCT=(function(){
                      okMsg:'✓ PTV aligned — target within tolerance',
                      hint:'✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton',
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
-    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true}   // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
+    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true},  // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
+    pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true}   // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
   };
   const hasVol=k=>!!VOLCASE[k];
   function curOffBone(){return (VOLCASE[caseKey]&&VOLCASE[caseKey].offBone)||null;}
@@ -3963,6 +3969,17 @@ const CBCT=(function(){
     {key:'fidctv',  color:'#ffffff', lw:1.8},
   ];
   PROSTATE_STRUCTS.forEach(S=>S.visible=true);
+  const PANCREAS_STRUCTS=[                            // pancreas SBRT: soft-tissue target + abdominal OARs (keys match generate_pancreas_cbct.py bits)
+    {key:'body',     color:'#36e06a', lw:1.3},
+    {key:'liver',    color:'#c8884a', lw:1.4},
+    {key:'kidney',   color:'#63b3ed', lw:1.5},
+    {key:'stomach',  color:'#ffd23f', lw:1.6},
+    {key:'bowel',    color:'#7bc043', lw:1.6},
+    {key:'duodenum', color:'#d36cff', lw:1.7},
+    {key:'target',   color:'#ff3b4e', lw:2.3},
+    {key:'cord',     color:'#00e5d0', lw:1.9},
+  ];
+  PANCREAS_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
   // *_ISO_IDX below are just pre-load fallbacks; each _decode*Labels() overwrites them from the label
   // file's isoIdx (the source of truth), so keep these in sync with the data to avoid confusion.
@@ -3972,12 +3989,14 @@ const CBCT=(function(){
   let SPINE_LBL=null, SPINE_ISO_IDX=[101,110,64];     // spine:  target vertebra centroid -> isocentre
   let LUNG_LBL=null, LUNG_ISO_IDX=[60,106,58];        // lung:   RLL nodule centroid -> isocentre
   let PROSTATE_LBL=null, PROSTATE_ISO_IDX=[99,76,32];  // prostate: gland centroid -> isocentre
+  let PANCREAS_LBL=null, PANCREAS_ISO_IDX=[96,96,48];  // pancreas: target centroid -> isocentre (overwritten from the label file's isoIdx)
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _breastCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _spineCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _lungCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _prostateCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _pancreasCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   function _invContours(){
     _ctrCache.axial.k=_ctrCache.coronal.k=_ctrCache.sagittal.k=-1;
     _brainCtrCache.axial.k=_brainCtrCache.coronal.k=_brainCtrCache.sagittal.k=-1;
@@ -3985,14 +4004,16 @@ const CBCT=(function(){
     _spineCtrCache.axial.k=_spineCtrCache.coronal.k=_spineCtrCache.sagittal.k=-1;
     _lungCtrCache.axial.k=_lungCtrCache.coronal.k=_lungCtrCache.sagittal.k=-1;
     _prostateCtrCache.axial.k=_prostateCtrCache.coronal.k=_prostateCtrCache.sagittal.k=-1;
+    _pancreasCtrCache.axial.k=_pancreasCtrCache.coronal.k=_pancreasCtrCache.sagittal.k=-1;
   }
-  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:LBL;}
-  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:CB_STRUCTS;}
-  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:CB_ISO_IDX;}
-  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:_ctrCache;}
+  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:LBL;}
+  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:CB_STRUCTS;}
+  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:CB_ISO_IDX;}
+  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:_ctrCache;}
   function loadLabelMPR(){
     if(caseKey==='lung'){_loadLungLabelMPR();return;}
     if(caseKey==='prostate'){_loadProstateLabelMPR();return;}
+    if(caseKey==='pancreas'){_loadPancreasLabelMPR();return;}
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
@@ -4131,6 +4152,29 @@ const CBCT=(function(){
     PROSTATE_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
     if(V.isoIdx)PROSTATE_ISO_IDX=V.isoIdx.slice();
     _invCaches();_invContours();   // moving reslice needs the fiducial mask for the off-bone seed drift
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
+  function _loadPancreasLabelMPR(){
+    if(typeof PANCREAS3D_LABELS==='undefined'){
+      if(_loadPancreasLabelMPR._t)return; _loadPancreasLabelMPR._t=1;
+      const s=document.createElement('script'); s.src=rtAssetUrl('pancreas3d_labels_data.js');
+      s.onload=()=>{_loadPancreasLabelMPR._t=0;_loadPancreasLabelMPR();}; s.onerror=()=>{_loadPancreasLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(PANCREAS_LBL)return;
+    const img=new Image(); img.onload=()=>_decodePancreasLabels(img); img.src=PANCREAS3D_LABELS.atlas;
+  }
+  function _decodePancreasLabels(img){
+    const V=PANCREAS3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    PANCREAS_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    PANCREAS_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)PANCREAS_ISO_IDX=V.isoIdx.slice();
+    _invCaches();_invContours();
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
   function centerOnIso(){
@@ -4809,7 +4853,7 @@ const CBCT=(function(){
     const ccaret=gid('cbContoursCaret');if(ccaret)ccaret.style.display=(vc&&vc.contours)?'':'none';
     applyCaseLegend();
     const lg=gid('cbContourLegend');if(lg)lg.classList.remove('show');
-    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
+    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
       if(vc&&vc.contours){loadLabelMPR();if(curLBL())centerOnIso();}}   // contours ON by default
     Object.keys(PLANES).forEach(name=>{
       const st=ST[name],truth=makeTruth(key,name);

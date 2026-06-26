@@ -48,6 +48,29 @@ git clone https://github.com/cju11199/my-first-project.git
 The site is hosted on [Vercel](https://vercel.com). Changes pushed to `main`
 redeploy automatically to the link above. See [DEPLOY.md](DEPLOY.md) for setup details.
 
+### Adding the Pancreas CBCT case (TCIA Pancreatic-CT-CBCT-SEG)
+
+A new CBCT case sourced from real public data. All the in-app plumbing
+(`VOLCASE`/`CASE_TOL`/`PANCREAS_STRUCTS`/loaders) is already wired in `trainer.html`;
+the case just needs its data files generated and the picker card enabled.
+
+1. **Confirm the licence.** Open the [collection page](https://www.cancerimagingarchive.net/collection/pancreatic-ct-cbct-seg/)
+   and check the *Data Usage Licence* field reads **CC BY 3.0** or **CC BY 4.0** (commercial
+   use OK with attribution) — **not** "TCIA Restricted". This site is a paid product, so a
+   non-commercial licence would rule it out. Keep the attribution: *Hong, J. et al., TCIA,*
+   `https://doi.org/10.7937/TCIA.ESHQ-4D90`.
+2. **Download** one patient's planning-CT DICOM series + its RTSTRUCT.
+3. **Generate the atlas files:**
+   ```bash
+   pip install pydicom numpy scipy pillow
+   python generate_pancreas_cbct.py --ct /path/to/CT_series --rtstruct /path/to/RTSTRUCT.dcm
+   ```
+   This writes `pancreas3d_data.js` + `pancreas3d_labels_data.js` and prints the ROI names it
+   found and how it mapped them (adjust `ROI_ALIASES` in the script if a structure didn't match).
+4. **Enable + verify.** Uncomment the `{v:'pancreas', …}` picker card in `trainer.html` (search
+   `// PANCREAS`), then open `/trainer` in Chrome/Edge and check the MPR panes, contours, and
+   window/level look right (CBCT visuals can't be verified headless).
+
 ## License
 
 Copyright (c) 2026 rtimagematch.com. All rights reserved. Unauthorized copying, reuse, or distribution is prohibited. See [LICENSE](LICENSE).
