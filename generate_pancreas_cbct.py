@@ -53,10 +53,14 @@ except ImportError:
 # --- output sizing (keep the atlas ~1.5 MB like the other *3d_data.js files) ---
 TARGET_XY   = 192      # longest-axis resample size (px). Other cases sit ~180-224.
 TILES_PER_ROW = 10     # atlas tiling (10 cols x ceil(Z/10) rows), matches the others.
-CROP_MARGIN_MM = 55    # margin around the contoured OARs when cropping to the region of interest.
-# These collections ship extended-FOV breath-hold CTs (abdomen up through the lungs); crop to the
-# abdominal OARs so the pancreas region fills the volume at good resolution instead of being a
-# thin slab of a 500 mm scan. Keys here define the crop box (body/lung/cord are context, not focus).
+CROP_MARGIN_MM = 55    # superior-inferior margin around the contoured OARs (defines the abdominal slab).
+BODY_MARGIN_MM = 8     # in-plane (LR/AP) skin margin around the BODY mask, so tissue isn't flush to the frame.
+# These collections ship extended-FOV breath-hold CTs (abdomen up through the lungs). Crop the
+# SUPERIOR-INFERIOR extent to the abdominal OARs (FOCUS_KEYS) so the pancreas region fills the slab
+# at good resolution instead of being a thin slab of a 500 mm scan, but crop the IN-PLANE (LR/AP)
+# extent to the BODY mask, not the OARs. The OARs are central, so an OAR-based in-plane crop sliced
+# the patient's sides/back off the frame (the "cut off at edge" artefact); the body bbox keeps the
+# whole torso cross-section in view. Keys here define the SI slab (body/lung/cord are context).
 FOCUS_KEYS = ('ptv', 'stomach', 'duodenum', 'bowel', 'liver', 'kidney')
 
 # HU -> density(0..255) model the trainer uses:  HU = density*(2000/255) - 500
@@ -181,21 +185,31 @@ def resample(ct, masks):
     SZ, SY, SX = ct['nz'], ct['ny'], ct['nx']
     spz, spy, spx = ct['dz'], ct['py'], ct['px']
 
-    # crop box = bounding box of the focus OARs + margin (clamped to the volume)
+    # Crop box (see CROP_MARGIN_MM / BODY_MARGIN_MM notes):
+    #   z (superior-inferior): focus OARs + CROP_MARGIN_MM  -> abdominal slab centred on the GI region.
+    #   x,y (in-plane LR/AP):  BODY mask + BODY_MARGIN_MM    -> full patient cross-section, never clipped.
     focus = np.zeros((SZ, SY, SX), bool)
     for k in FOCUS_KEYS:
         if k in masks and masks[k].any():
             focus |= masks[k]
     if focus.any():
-        zz, yy, xx = np.where(focus)
-        mz, my, mx = CROP_MARGIN_MM/spz, CROP_MARGIN_MM/spy, CROP_MARGIN_MM/spx
-        z0, z1 = max(0, int(zz.min()-mz)), min(SZ, int(zz.max()+mz)+1)
-        y0, y1 = max(0, int(yy.min()-my)), min(SY, int(yy.max()+my)+1)
-        x0, x1 = max(0, int(xx.min()-mx)), min(SX, int(xx.max()+mx)+1)
-        print(f"crop to OAR box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {SZ}x{SY}x{SX}")
+        zsel = np.where(focus.any(axis=(1, 2)))[0]
+        mz = CROP_MARGIN_MM/spz
+        z0, z1 = max(0, int(zsel.min()-mz)), min(SZ, int(zsel.max()+mz)+1)
     else:
-        z0,z1,y0,y1,x0,x1 = 0,SZ,0,SY,0,SX
-        print("no focus OARs to crop on -> using full volume")
+        z0, z1 = 0, SZ
+        print("no focus OARs to crop on -> full z range")
+    body = masks.get('body')
+    if body is not None and body.any():
+        bslab = body[z0:z1]                                    # body bbox within the abdominal slab
+        ysel = np.where(bslab.any(axis=(0, 2)))[0]
+        xsel = np.where(bslab.any(axis=(0, 1)))[0]
+        my, mx = BODY_MARGIN_MM/spy, BODY_MARGIN_MM/spx
+        y0, y1 = max(0, int(ysel.min()-my)), min(SY, int(ysel.max()+my)+1)
+        x0, x1 = max(0, int(xsel.min()-mx)), min(SX, int(xsel.max()+mx)+1)
+    else:
+        y0, y1, x0, x1 = 0, SY, 0, SX
+    print(f"crop z[{z0}:{z1}] (OAR slab) y[{y0}:{y1}] x[{x0}:{x1}] (body) of {SZ}x{SY}x{SX}")
     src = src[z0:z1, y0:y1, x0:x1]
     masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
     CZ, CY, CX = src.shape
@@ -345,6 +359,14 @@ def main():
         print("no body/external ROI -> thresholding the CT for a body mask")
         body = ndimage.binary_fill_holes(ct['hu'] > -350)
         body = ndimage.binary_opening(body, iterations=2)
+        # Keep only the largest connected component = the patient torso. The opening thins the
+        # patient's contact with the CT couch enough to split them, so this drops the table/rails
+        # (otherwise they widen the in-plane body bbox by ~150 mm, halving the atlas resolution and
+        # painting the couch into the body contour).
+        lbl, n = ndimage.label(body)
+        if n > 1:
+            sizes = np.bincount(lbl.ravel()); sizes[0] = 0
+            body = lbl == sizes.argmax()
         masks['body'] = body
 
     ct_d, rmasks, (OX, OY, OZ), iso_sp, phys = resample(ct, masks)

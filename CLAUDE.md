@@ -92,8 +92,11 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   PyPI pkg, which also carries the authoritative per-collection licence). **Licence CC BY 4.0** —
   commercial use OK with attribution (`doi:10.7937/TCIA.ESHQ-4D90`), baked into the data-file headers.
   The collection is GI-OAR only (stomach/duodenum + small bowel; no target ROI), so the iso sits at
-  the GI/pancreatic centroid; the generator crops to the abdomen before resampling. `pancreas3d_data.js`
-  (~2.9 MB) + `pancreas3d_labels_data.js` are committed, `.vercelignore`d, and added to the **three
+  the GI/pancreatic centroid; the generator crops the **superior-inferior** slab to the abdominal OARs
+  but the **in-plane** (LR/AP) extent to the **body** mask (largest connected component, couch excluded)
+  so the full patient cross-section stays framed — an OAR-based in-plane crop sliced the body off the
+  edge. `pancreas3d_data.js`
+  (~2.0 MB) + `pancreas3d_labels_data.js` are committed, `.vercelignore`d, and added to the **three
   Phase-2 allowlists** (`api/asset.mjs` `DATASETS`, `scripts/upload-to-blob.mjs`, `.vercelignore`); like
   every paid case they're served only through `/api/asset` from private Vercel Blob, so the **"Upload data
   to Blob" Action must be re-run** after merge or the case 404s live. Visual rendering still needs a real-browser check.
