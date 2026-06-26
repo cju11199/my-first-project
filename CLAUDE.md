@@ -81,6 +81,17 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
 - `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
   radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case).
+- `generate_femur_2d.py` — offline helper for the **2D/2D Femur** case: ray-sums a real thigh CT
+  (TCIA **Soft-tissue-Sarcoma** `STS_004`, the same series as the CBCT sarcoma case) into bone-emphasised
+  AP + Lateral DRRs of a **single femur** (the femoral shaft is the bony landmark; flat `tilt:null`
+  orthogonal pair). Both thighs are in-frame, so it splits the volume at the low-density inter-leg gap
+  and keeps only the side carrying the GTV (the bilateral projection is mirror-symmetric / the Lateral
+  superimposes both legs otherwise), then crops z to a hip→knee window around the lesion. **Appends**
+  `FEMUR_AP_SRC` + `FEMUR_LAT_SRC` to `image_data.js` (so the case rides the existing 2D infra — already
+  in the Phase-2 allowlists; **re-run the "Upload data to Blob" Action** after merge so the updated
+  `image_data.js` reaches the blob, or the femur DRRs 404). **Licence CC BY 3.0** — attribute
+  `doi:10.7937/K9/TCIA.2015.7GO2GSKS`, baked into the appended header. Visual rendering verified
+  headlessly (QC stills); live-trainer look needs a real-browser check.
 - `generate_breast_clips.py` — re-runnable in-place editor for the Breast CBCT surgical clips: reads
   `breast3d_data.js` + `breast3d_labels_data.js`, erases the old large hard-edged density-255 clip blobs
   and re-stamps small (~3–4 mm) feathered bright cores at the same centroids, then rewrites label bit 64
