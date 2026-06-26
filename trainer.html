@@ -898,6 +898,7 @@ html:not(.auth-pending) #authGate{display:none}
           <option value="brain">Brain &middot; CT DRR (3D)</option>
       <option value="pelvis">Pelvis &middot; CT DRR (3D)</option>
       <option value="thorax">Thorax &middot; CT DRR (3D)</option>
+      <option value="femur">Femur &middot; CT DRR (3D)</option>
       <option value="breast">Breast L &middot; SCV + Tangent</option>
       <option value="prostate">Prostate &middot; Fiducial Match</option>
     </select>
@@ -1330,6 +1331,11 @@ const CASES = {
   // angle, instead of a flat 2D scale. In-plane rotation + translations stay 2D. (loadTiltStacks)
   thorax:{ name:'Thorax · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
            iso:{ ap:{x:0.50,y:0.39}, lat:{x:0.50,y:0.39} }, tilt:'thorax' },
+  // Femur: orthogonal-pair (AP + Lateral) bone-emphasised DRRs of a single thigh, ray-summed
+  // from a real extremity CT (TCIA Soft-tissue-Sarcoma STS_004). Flat (tilt:null) — the femoral
+  // shaft is the bony landmark. iso sits at the bone centroid (mid-shaft). Data in image_data.js.
+  femur:{ name:'Femur · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
+          iso:{ ap:{x:0.588,y:0.475}, lat:{x:0.454,y:0.475} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
   // orthogonal pair -> 'ap' slot = SCV (gantry 0), 'lat' slot = Medial tangent (g~305).
   // Reference = full MLC DRR; the moving "acquired" image (por) is a clean anatomy
@@ -1411,6 +1417,7 @@ function hydrate2DCases(){
     CASES.brain.ap=BRAIN_AP_SRC;   CASES.brain.lat=BRAIN_LAT_SRC;
     CASES.pelvis.ap=PELVIS_AP_SRC; CASES.pelvis.lat=PELVIS_LAT_SRC;
     CASES.thorax.ap=THORAX_AP_SRC; CASES.thorax.lat=THORAX_LAT_SRC;
+    if(typeof FEMUR_AP_SRC!=='undefined'){ CASES.femur.ap=FEMUR_AP_SRC; CASES.femur.lat=FEMUR_LAT_SRC; }
   }
   if(typeof BREAST_SCV_REF_SRC!=='undefined' && typeof BREAST_META!=='undefined'){
     const b=CASES.breast;
@@ -3309,6 +3316,7 @@ const CASE_LISTS={
     {v:'brain',  t:'Brain',   d:'CT DRR &middot; orthogonal pair'},
     {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
+    {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
     {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
@@ -3452,6 +3460,7 @@ const CASE_TOL={
   '2d2d:brain':     {t1:3, t2:7,   r1:2, r2:4},    // conventional cranial DRR
   '2d2d:pelvis':    {t1:3, t2:7,   r1:2, r2:4},    // conventional pelvis
   '2d2d:thorax':    {t1:3, t2:7,   r1:2, r2:4},    // conventional thorax
+  '2d2d:femur':     {t1:3, t2:7,   r1:2, r2:4},    // extremity / femur orthogonal pair
   '2d2d:breast':    {t1:5, t2:12,  r1:3, r2:4},    // breast SCV + tangent (loosest)
   '2d2d:breastDIBH':{t1:5, t2:12,  r1:3, r2:4},    // same match, breath-hold
   '2d2d:prostate':  {t1:3, t2:5.4, r1:3, r2:5.4},  // kV fiducial triad (FID2D); t2/r2 = accept*1.8
