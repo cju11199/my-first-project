@@ -136,6 +136,22 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `CRLM-CT-1100` (48 cc met, 114-slice CT) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 4.0**
   — attribute `doi:10.7937/QXK2-QG03`, baked into the data-file headers. Files committed, `.vercelignore`d,
   in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge.
+- `generate_gbm_mr.py` — offline helper that ingests a **TCIA UPenn-GBM** patient (post-contrast T1
+  "stealth" planning **MR** + a BraTS-style tumour **DICOM-SEG**) and writes `gbm3d_data.js` +
+  `gbm3d_labels_data.js` for the **MR Glioblastoma** cranial case (`VOLCASE.gbm`, `cbct:gbm` `CASE_TOL`
+  2 mm/2°, `GBM_STRUCTS`). **Second MR case** (after the acoustic neuroma) — reuses that pipeline:
+  `mr:true` + `autoWin`, percentile-normalised intensity. **Target = GTV** = enhancing lesion +
+  necrotic core (SEG segments *Enhancing Lesion* + *Necrosis*); peritumoral **edema** kept as a
+  separate context structure. The source MR is **skull-stripped** (CaPTk-processed), so the **brain**
+  envelope (non-zero MR region, largest CC + fill) is used as the body structure. **SEG-sourced** like
+  Liver, but the AIMI/CaPTk SEG is stored at a **180° in-plane orientation** vs the MR
+  (`IOP=[-1,0,0,0,-1,0]`); `rasterize_seg()` detects the IOP sign vs the MR's and **flips rows/cols**
+  so the labels land on the correct side (a same-orientation SEG is left untouched). Built from patient
+  `UPENN-GBM-00019` (radiologist-corrected SEG) via the **IDC** bucket `s3://idc-open-data`. **Licence
+  CC BY 4.0** — attribute `doi:10.7937/TCIA.709X-DN49`, baked into the data-file headers. Files
+  committed, `.vercelignore`d, in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob"
+  Action** after merge. Reachable only from the **start-screen picker** (like the other recent CBCT
+  cases — not the in-app dropdown). Visual rendering still needs a real-browser check.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -264,7 +280,9 @@ Two workflows, picked on the start screen:
     are exposed for headless tests (the phrase matcher is unit-tested); live mic + recognition need real Chrome/Edge.
 - **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
-  Prostate (gold fiducial markers, **rigid**):
+  Prostate (gold fiducial markers, **rigid**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
+  **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,
+  with peritumoral edema; brain envelope as body — see `generate_gbm_mr.py`):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
     `generate_lung_contours.py` (`lung3d_data.js` + `lung3d_labels_data.js`); match the soft-tissue target.
   - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
