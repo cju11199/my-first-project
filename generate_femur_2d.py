@@ -84,10 +84,20 @@ gtv_zinf = int(round((pts[:, 2].min() - ipp0[2]) / dz))
 PAD = int(round(130 / dz))                                 # ~13 cm beyond the GTV each way
 z0, z1 = max(0, gtv_zinf - PAD), min(DZ, gtv_zsup + PAD + 1)
 
-ct = vol[z0:z1, y0:y1, x0:x1].copy()
-msk = limb[z0:z1, y0:y1, x0:x1]
-ct[~msk] = -1000                                           # blank everything outside the limb
+ct = vol[z0:z1, y0:y1, x0:x1].astype(np.float32)
+# FEATHER the limb mask instead of a hard cut: blur the binary mask in-plane and lerp the
+# outside voxels toward air. A hard mask carved an unnatural silhouette; this keeps a soft
+# natural soft-tissue falloff at the thigh edge while still suppressing the other leg/couch.
+soft = ndimage.gaussian_filter(limb[z0:z1, y0:y1, x0:x1].astype(np.float32), sigma=(0, 2.5, 2.5))
+ct = ct * soft + (-1000.0) * (1.0 - soft)
 print(f'crop x[{x0}:{x1}] y[{y0}:{y1}] z[{z0}:{z1}] → {ct.shape[::-1]}')
+
+# RESAMPLE to isotropic in-plane resolution along z: the slices are 3.75 mm thick vs ~1 mm
+# in-plane and the femur runs head-to-foot along z, so without this the projection rows are
+# coarse/blocky. Upsample z by dz/psx with linear interpolation before projecting.
+zf = dz / psx
+ct = ndimage.zoom(ct, (zf, 1.0, 1.0), order=1)
+print(f'isotropic resample z×{zf:.2f} → {ct.shape[::-1]}')
 
 # ── Bone-emphasised attenuation → ray-sum DRRs (cortical bone bright on black) ──
 # Soft tissue ~40 HU, cortical bone 300-1500 HU. A windowed power curve makes the femur read
