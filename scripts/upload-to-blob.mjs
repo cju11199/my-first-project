@@ -25,10 +25,10 @@ const DATASETS = [
   'image_data.js', 'breast_drr_data.js', 'prostate2d_data.js',
   'brain3d_data.js', 'pelvis3d_data.js', 'breast3d_data.js',
   'spine3d_data.js', 'lung3d_data.js', 'prostate3d_data.js', 'pancreas3d_data.js',
-  'acousticmr3d_data.js',
+  'acousticmr3d_data.js', 'liver3d_data.js',
   'brain3d_labels_data.js', 'pelvis3d_labels_data.js', 'breast3d_labels_data.js',
   'spine3d_labels_data.js', 'lung3d_labels_data.js', 'prostate3d_labels_data.js',
-  'pancreas3d_labels_data.js', 'acousticmr3d_labels_data.js',
+  'pancreas3d_labels_data.js', 'acousticmr3d_labels_data.js', 'liver3d_labels_data.js',
 ];
 
 async function up(key, body, contentType) {

@@ -115,6 +115,16 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   **Licence CC BY 4.0** — attribute `doi:10.7937/TCIA.9YTJ-5Q73`, baked into the data-file headers. Files are
   committed, `.vercelignore`d, and in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob"
   Action** after merge. (CT-only window presets aren't hidden for MR yet — minor follow-up.)
+- `generate_liver_sbrt.py` — offline helper that ingests a **TCIA Colorectal-Liver-Metastases** patient
+  (contrast CT + a **DICOM SEG** with `Liver` + `Mass` segments) and writes `liver3d_data.js` +
+  `liver3d_labels_data.js` for the **Liver SBRT** case (`VOLCASE.liver`, `cbct:liver` `CASE_TOL` 2 mm/2°,
+  `LIVER_STRUCTS`). **First SEG-sourced case** (not RTSTRUCT): `rasterize_seg()` reads the multi-frame
+  segmentation via per-frame `ImagePositionPatient` + `ReferencedSegmentNumber`. Real **liver organ** +
+  real **tumour (Mass)** target — no synthesis. These are wide arms-in-FOV abdominal CTs, so the crop
+  frames on the **liver** (focus bbox + margin) for resolution, not the whole torso. Built from patient
+  `CRLM-CT-1100` (48 cc met, 114-slice CT) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 4.0**
+  — attribute `doi:10.7937/QXK2-QG03`, baked into the data-file headers. Files committed, `.vercelignore`d,
+  in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)

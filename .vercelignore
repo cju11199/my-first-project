@@ -35,6 +35,7 @@ lung3d_data.js
 prostate3d_data.js
 pancreas3d_data.js
 acousticmr3d_data.js
+liver3d_data.js
 brain3d_labels_data.js
 pelvis3d_labels_data.js
 breast3d_labels_data.js
@@ -43,6 +44,7 @@ lung3d_labels_data.js
 prostate3d_labels_data.js
 pancreas3d_labels_data.js
 acousticmr3d_labels_data.js
+liver3d_labels_data.js
 drr/
 
 # Upload helper (run via the GitHub Action / locally, never served)
