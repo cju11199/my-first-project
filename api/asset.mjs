@@ -34,6 +34,15 @@ const DATASETS = new Set([
 ]);
 const DRR_KEY = /^drr\/[a-z0-9_]+\.png$/i;
 
+// Free-tier datasets — served WITHOUT a subscription (the 2D Breast + CBCT Spine cases).
+// EXACT-MATCH Set only: no regex, no prefixes, NO DRR entries. Every key not in this Set
+// keeps the unchanged fail-closed isAuthorized->403 path, so no private asset gains a bypass.
+const PUBLIC_KEYS = new Set([
+  'breast_drr_data.js',
+  'spine3d_data.js',
+  'spine3d_labels_data.js',
+]);
+
 const clerk = createClerkClient({
   secretKey: process.env.CLERK_SECRET_KEY,
   publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
@@ -90,10 +99,14 @@ export async function GET(request) {
   const isDrr = DRR_KEY.test(key);
   if (!isDataset && !isDrr) return json({ error: 'unknown asset' }, 404);
 
-  let ok = false;
-  try { ok = await isAuthorized(request, token); }
-  catch { return json({ error: 'authorization check failed' }, 500); }
-  if (!ok) return json({ error: 'active subscription required' }, 403);
+  // Public free-tier keys skip the subscription check; everything else stays fail-closed.
+  const isPublic = PUBLIC_KEYS.has(key);   // exact match on the already-allowlisted key
+  if (!isPublic) {
+    let ok = false;
+    try { ok = await isAuthorized(request, token); }
+    catch { return json({ error: 'authorization check failed' }, 500); }
+    if (!ok) return json({ error: 'active subscription required' }, 403);
+  }
 
   let result;
   try { result = await get(key, { access: 'private' }); }   // token defaults to BLOB_READ_WRITE_TOKEN
@@ -105,7 +118,9 @@ export async function GET(request) {
   return new Response(result.stream, {
     headers: {
       'Content-Type': isDataset ? 'application/javascript; charset=utf-8' : 'image/png',
-      'Cache-Control': isDataset ? 'private, no-store' : 'private, max-age=300',
+      'Cache-Control': isPublic
+        ? 'public, max-age=2592000, immutable'
+        : (isDataset ? 'private, no-store' : 'private, max-age=300'),
       'X-Content-Type-Options': 'nosniff',
     },
   });

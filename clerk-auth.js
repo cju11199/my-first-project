@@ -197,13 +197,16 @@
 
   function enforceGate() {
     if (!document.body.hasAttribute('data-require-auth')) return;
-    if (!window.Clerk || !window.Clerk.user) {
-      window.Clerk.redirectToSignIn({ signInForceRedirectUrl: window.location.pathname });
-    } else if (hasActiveSub()) {
-      document.documentElement.classList.remove('auth-pending');
+    // Free-tier model: NEVER bounce. Subscribers/comped get full access; everyone else
+    // (signed out OR signed in without a subscription) is let into the trainer in "free mode"
+    // where only the free cases are playable (the data gate at /api/asset still protects paid
+    // case data server-side, so letting them in cannot expose anything paid).
+    var de = document.documentElement;
+    de.classList.remove('auth-pending');
+    if (window.Clerk && window.Clerk.user && hasActiveSub()) {
+      de.classList.remove('free-mode');
     } else {
-      // Signed in but not subscribed -> send to checkout.
-      window.location.href = SUBSCRIBE_URL;
+      de.classList.add('free-mode');
     }
   }
 
@@ -316,8 +319,12 @@
   window.RTAuth = {
     ready: ready,
     hasActiveSub: hasActiveSub,
+    // True when the visitor is NOT entitled to full access (signed out, or signed in without a
+    // subscription). Folds in isComped() via hasActiveSub(), so subscribers/comped -> false.
+    isFreeMode: function () { return !hasActiveSub(); },
     PLAN_KEY: PLAN_KEY,
     TRAINER_URL: TRAINER_URL,
+    SUBSCRIBE_URL: SUBSCRIBE_URL,
     // Per-user progress/preferences store (Clerk unsafeMetadata-backed).
     profile: {
       get: getProfile,
