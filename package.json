@@ -8,7 +8,9 @@
     "node": "22.x"
   },
   "dependencies": {
-    "@vercel/edge": "^1.1.0"
+    "@vercel/edge": "^1.1.0",
+    "@clerk/backend": "^3.8.4",
+    "@vercel/blob": "^2.5.0"
   },
   "devDependencies": {
     "html-minifier-terser": "^7.2.0",
