@@ -81,6 +81,14 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
 - `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
   radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case).
+- `generate_pancreas_cbct.py` — offline helper that ingests a **TCIA Pancreatic-CT-CBCT-SEG** patient
+  (planning breath-hold CT DICOM series + RTSTRUCT) and writes `pancreas3d_data.js` +
+  `pancreas3d_labels_data.js` (same tiled-atlas format as the other `*3d_*` files) for the **Pancreas
+  CBCT** case (rigid 6DOF abdominal soft-tissue match; needs pydicom/numpy/scipy/pillow). The trainer
+  plumbing (`VOLCASE.pancreas`, `cbct:pancreas` `CASE_TOL`, `PANCREAS_STRUCTS`, loaders + `cur*`
+  switches) is wired, but the CBCT picker card is **commented out** (search `// PANCREAS`) until the
+  data files are generated and browser-verified. Data is **not** committed — TCIA is CC BY (verify the
+  collection's licence is not "TCIA Restricted" before use; attribute `doi:10.7937/TCIA.ESHQ-4D90`).
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
