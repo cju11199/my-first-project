@@ -893,6 +893,7 @@ html:not(.auth-pending) #authGate{display:none}
   </div>
   <div class="header-controls">
     <button class="btn-tool" id="washBtn" onclick="toggleWash()"><span class="glyph">&#9681;</span>Color Wash</button>
+    <button class="btn-tool" id="panBtn" onclick="togglePan()" title="Pan the view &mdash; drag to slide the image (or hold the mouse wheel / Shift+drag while zoomed)"><span class="glyph">&#10021;</span>Pan</button>
     <button class="btn-tool" id="spyBtn" onclick="toggleSpy()"><span class="glyph">&#128269;</span>Spyglass</button>
     <button class="btn-tool" id="contrastBtn" onclick="toggleContrast()"><span class="glyph">&#9728;</span>Contrast</button>
     <button class="btn-tool active" id="gridBtn" onclick="toggleGrid()"><span class="glyph">&#8853;</span>Iso/Grid</button>
@@ -1201,7 +1202,7 @@ html:not(.auth-pending) #authGate{display:none}
 let shift={x:0,y:0,z:0,roll:0,pitch:0};
 let hidden={x:0,y:0,z:0,roll:0,pitch:0};
 let step=1;
-let tool=null; // null | 'wash' | 'spy'
+let tool=null; // null | 'wash' | 'spy' | 'pan'
 let activeView='ap'; // which view the arrow keys drive: 'ap' | 'lat'
 let contrast=100;    // % applied to both images
 let brightness=100;  // % brightness for presets
@@ -1975,13 +1976,13 @@ const FID2D=(function(){
       if(!active())return;
       const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
       let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
-      // Middle-mouse, or Shift+drag while zoomed in: PAN the view (instead of moving markers).
-      if(ev.button===1 || (ev.shiftKey && (v.zoom||1)>1.001)){
+      // Middle-mouse, Shift+drag while zoomed, or the Pan tool: PAN the view (instead of moving markers).
+      if(ev.button===1 || (ev.shiftKey && (v.zoom||1)>1.001) || (tool==='pan' && ev.button===0)){
         const mvP=e2=>{const [x,y]=localXY(v,e2);v.panX+=x-px;v.panY+=y-py;px=x;py=y;clampPan(v);render();};
         const upP=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mvP);el.removeEventListener('pointerup',upP);};
         el.style.cursor='grabbing';
         el.addEventListener('pointermove',mvP);el.addEventListener('pointerup',upP,{once:true});
-        el.addEventListener('pointerup',()=>{el.style.cursor='';},{once:true});
+        el.addEventListener('pointerup',()=>{el.style.cursor=(tool==='pan')?'grab':'';},{once:true});
         ev.preventDefault();ev.stopPropagation();return;
       }
       if(ev.button!==0)return;
@@ -2566,11 +2567,14 @@ function render(){ if(FID2D.active()){FID2D.render();return;} renderView(views.a
 function setToolButtons(){
   document.getElementById('washBtn').classList.toggle('active', tool==='wash');
   document.getElementById('spyBtn').classList.toggle('active', tool==='spy');
+  const pb=document.getElementById('panBtn'); if(pb) pb.classList.toggle('active', tool==='pan');
   // show/hide spy rings + blend bar relevance
   ['ap','lat'].forEach(k=>{
     document.getElementById(k+'Spy').style.display=(tool==='spy')?'block':'none';
+    const a=document.getElementById(views[k].area); if(a) a.style.cursor=(tool==='pan')?'grab':'crosshair';   // pan tool -> grab cursor
   });
 }
+function togglePan(){ tool=(tool==='pan')?null:'pan'; afterToolChange(); }
 function toggleWash(){ tool=(tool==='wash')?null:'wash'; afterToolChange(); }
 function toggleSpy(){
   tool=(tool==='spy')?null:'spy';
@@ -2837,7 +2841,7 @@ function attachInteractions(key){
     if(tool==='spy') return;            // spyglass owns its own drag
     const pt=localPt(e);
     const dist=Math.hypot(pt.x-isoScreenX(v), pt.y-isoScreenY(v));
-    if(e.button===1 || (e.shiftKey && v.zoom>1)){
+    if(e.button===1 || (e.shiftKey && v.zoom>1) || (tool==='pan' && e.button===0)){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
       if(window.DIBH && DIBH.acquiring && DIBH.acquiring()) return;   // DIBH: no matching until both fields are acquired
@@ -2906,7 +2910,7 @@ function attachInteractions(key){
       }
     }
   });
-  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor='crosshair'; hideCue(); render(); } });
+  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor=(tool==='pan')?'grab':'crosshair'; hideCue(); render(); } });
 }
 
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
