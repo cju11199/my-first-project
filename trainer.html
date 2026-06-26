@@ -593,6 +593,26 @@ html:not(.auth-pending) #authGate{display:none}
 @keyframes dibhPulse{0%,100%{opacity:1}50%{opacity:.2}}
 .dibh-heard{flex-basis:100%;font-family:var(--mono),monospace;font-size:11px;color:var(--label);min-height:14px}
 .dibh-heard b{color:var(--text)}
+/* live input-level meter (shows the mic is hearing you while talking) */
+.dibh-mic-meter{display:inline-block;width:48px;height:6px;border-radius:999px;background:var(--border2);overflow:hidden;vertical-align:middle}
+.dibh-mic-meter-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#bfe34a);transition:width .06s linear}
+/* actionable help shown when the mic is blocked / missing (degrade) */
+.dibh-mic-help{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:11px;color:var(--accent2)}
+.dibh-mic-help.hidden{display:none}
+.dibh-mic-help .dibh-btn{font-size:11px;padding:4px 9px}
+/* pre-flight microphone test (start screen, before entering the case) */
+.dibh-preflight{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.62)}
+.dibh-preflight.hidden{display:none}
+.dibh-preflight .pf-card{background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:22px 24px;max-width:390px;width:90%;display:flex;flex-direction:column;gap:13px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.pf-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.pf-row{font-size:12px;color:var(--label);display:flex;flex-direction:column;gap:6px}
+.pf-row select{background:var(--panel2);color:var(--text);border:1px solid var(--border2);border-radius:8px;padding:7px 9px;font:inherit;font-size:12px;max-width:100%}
+.pf-meter{height:10px;border-radius:999px;background:var(--border2);overflow:hidden}
+.pf-meter-fill{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#bfe34a);transition:width .06s linear}
+.pf-hint{font-size:11px;color:var(--muted);min-height:15px}
+.pf-hint.ok{color:var(--green)} .pf-hint.warn{color:var(--accent2)}
+.pf-note{font-size:10px;color:var(--muted);line-height:1.45}
+.pf-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:2px}
 .dibh-btn.voice-fire{animation:dibhFlash .5s ease-out}
 @keyframes dibhFlash{0%{box-shadow:0 0 0 2px var(--accent)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
 @media(prefers-reduced-motion:reduce){.dibh-mic-pill.live::before{animation:none}.dibh-btn.voice-fire{animation:none}}
@@ -681,6 +701,24 @@ html:not(.auth-pending) #authGate{display:none}
   <p class="start-disclaimer">Training simulator &mdash; educational use only. Not for clinical decision-making.<br>All patient offsets and values shown are fictional.</p>
   <nav class="start-legal"><a href="/terms">Terms</a><span class="sep">&middot;</span><a href="/privacy">Privacy</a><span class="sep">&middot;</span><a href="/account">Account &amp; billing</a></nav>
   <div class="start-note" id="startNote">&nbsp;</div>
+  <!-- Pre-flight microphone test for the voice-coached Breast DIBH case. Shown after mic access is
+       granted, before entering the case, so the student confirms input is detected first. -->
+  <div class="dibh-preflight hidden" id="dibhPreflight" role="dialog" aria-modal="true" aria-labelledby="dibhPreTitle">
+    <div class="pf-card">
+      <div class="pf-title" id="dibhPreTitle"><span aria-hidden="true">&#127908;</span> Microphone check</div>
+      <label class="pf-row">Microphone
+        <select id="dibhMicDevice"></select>
+      </label>
+      <div class="pf-meter"><span class="pf-meter-fill" id="dibhPreMeter"></span></div>
+      <div class="pf-hint" id="dibhPreHint">Say &ldquo;take a deep breath in&rdquo; &mdash; the bar should move.</div>
+      <p class="pf-note">Voice recognition uses your browser&rsquo;s default microphone. If you pick a different
+        device here, also set it as the default in your browser/system sound settings.</p>
+      <div class="pf-actions">
+        <button type="button" class="dibh-btn" id="dibhPreCancel">Cancel</button>
+        <button type="button" class="dibh-btn beam" id="dibhPreStart">Start coaching &rarr;</button>
+      </div>
+    </div>
+  </div>
 </div>
 <script>
 /* Start-screen ambient particle haze — generated once; skipped under reduced-motion. */
@@ -1001,7 +1039,13 @@ html:not(.auth-pending) #authGate{display:none}
         </button>
         <label class="dibh-handsfree" title="Listen continuously instead of holding to talk"><input type="checkbox" id="dibhHandsfree">Hands-free</label>
         <span class="dibh-mic-pill" id="dibhMicPill" aria-live="polite">Voice off</span>
+        <span class="dibh-mic-meter" title="Microphone input level" aria-hidden="true"><span class="dibh-mic-meter-fill" id="dibhMicMeter"></span></span>
         <span class="dibh-heard" id="dibhHeard" aria-live="polite"></span>
+        <!-- Revealed by degrade() when the mic is blocked / missing: tell the student how to fix it + a retry. -->
+        <div class="dibh-mic-help hidden" id="dibhMicHelp" role="alert">
+          <span id="dibhMicHelpTxt"></span>
+          <button type="button" class="dibh-btn" id="dibhMicRetry">Retry mic</button>
+        </div>
       </div>
       <div class="dibh-msg" id="dibhMsg">Coach a breath-hold, then Beam On while in-gate.</div>
       <div class="dibh-score" id="dibhScore"></div>
@@ -2320,6 +2364,50 @@ const DIBH=(function(){
 window.DIBH=DIBH;
 
 /* ============================================================================
+   MicMeter — tiny shared input-level meter (Web Audio). Independent of the Web
+   Speech API: opens its own getUserMedia stream + AnalyserNode and reports an
+   RMS level 0..1 via requestAnimationFrame, so the student gets live "the mic
+   hears you" feedback (strip meter while talking + the pre-flight test). Single
+   active instance — start() tears down any prior one — since the pre-flight test
+   and the in-session strip meter never run at the same time. Fails soft: resolves
+   false (no throw) when getUserMedia / AudioContext is unavailable or denied.
+   ============================================================================ */
+const MicMeter=(function(){
+  let stream=null, ctx=null, analyser=null, data=null, raf=0, cb=null;
+  function stop(){
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+    if(stream){try{stream.getTracks().forEach(t=>t.stop());}catch(e){} stream=null;}
+    if(ctx){try{ctx.close();}catch(e){} ctx=null;}
+    analyser=null; data=null; cb=null;
+  }
+  // start(deviceId|null, onLevel): resolves true once metering, false if unavailable.
+  function start(deviceId, onLevel){
+    stop();
+    const md=navigator.mediaDevices, AC=window.AudioContext||window.webkitAudioContext;
+    if(!md||!md.getUserMedia||!AC) return Promise.resolve(false);
+    const constraints={audio: deviceId?{deviceId:{exact:deviceId}}:true};
+    return md.getUserMedia(constraints).then(function(s){
+      stream=s; ctx=new AC();
+      const src=ctx.createMediaStreamSource(s);
+      analyser=ctx.createAnalyser(); analyser.fftSize=512;
+      data=new Uint8Array(analyser.frequencyBinCount);
+      src.connect(analyser); cb=onLevel;
+      (function loop(){
+        if(!analyser) return;
+        analyser.getByteTimeDomainData(data);
+        let sum=0; for(let i=0;i<data.length;i++){const v=(data[i]-128)/128; sum+=v*v;}
+        const rms=Math.sqrt(sum/data.length);
+        if(cb) cb(Math.min(1, rms*3.2));               // speech RMS is small -> scale up for a lively bar
+        raf=requestAnimationFrame(loop);
+      })();
+      return true;
+    }).catch(function(){ stop(); return false; });
+  }
+  return {start, stop};
+})();
+window.MicMeter=MicMeter;
+
+/* ============================================================================
    DIBHVoice — Phase 2 microphone coaching (Web Speech API).
    A thin, OPTIONAL voice adapter: recognized coaching phrases call the existing
    DIBH.cmd('in'|'relax'|'beam'|'abort') — the SAME entry point the on-screen
@@ -2380,11 +2468,65 @@ const DIBHVoice=(function(){
   }
 
   let rec=null, recognizing=false, manualStop=false, ignoreOnend=false, lastStart=0, continuousMode=false;
+  let chosenDeviceId=null, metering=false;                  // selected mic (meter/pre-flight only; recognition uses default) / strip-meter active
   let netFails=0, lastError=null, pttHeld=false, spaceHeld=false, pausedByHide=false;   // network tally / last error / mouse-held PTT / Space-held PTT / paused (tab hidden)
   let firedThisUtterance=false; const lastFire={}; const COOLDOWN=1500; let idleTimer=0; let dead=false;
 
   function pill(text,cls){const p=el('dibhMicPill');if(p){p.textContent=text;p.className='dibh-mic-pill'+(cls?(' '+cls):'');}}
   function micLive(on){const b=el('dibhMicBtn');if(b){b.classList.toggle('live',on);b.setAttribute('aria-pressed',on?'true':'false');}}
+  function setBar(id,lvl){const f=el(id);if(f)f.style.width=Math.round(Math.max(0,Math.min(1,lvl))*100)+'%';}
+  // Strip level meter: live while the student is actually talking (push-to-talk hold or hands-free),
+  // independent of recognition respawns. meterOn is idempotent; meterOff is called from every stop path.
+  function meterOn(){ if(metering)return; metering=true; MicMeter.start(chosenDeviceId,function(lvl){setBar('dibhMicMeter',lvl);}); }
+  function meterOff(){ if(!metering)return; metering=false; MicMeter.stop(); setBar('dibhMicMeter',0); }
+  // Fill the pre-flight device dropdown. Labels are only populated once mic permission is granted,
+  // so this runs after requestAccess(). Recognition can't target a device (Web Speech limitation) —
+  // the picker drives the meter + pre-flight test only; the pf-note tells the student to set the default.
+  function populateDevices(){
+    const sel=el('dibhMicDevice'); const md=navigator.mediaDevices;
+    if(!sel||!md||!md.enumerateDevices) return Promise.resolve();
+    return md.enumerateDevices().then(function(list){
+      const mics=list.filter(d=>d.kind==='audioinput');
+      sel.innerHTML='';
+      const def=document.createElement('option'); def.value=''; def.textContent='Default microphone'; sel.appendChild(def);
+      mics.forEach(function(d,i){ const o=document.createElement('option'); o.value=d.deviceId;
+        o.textContent=d.label||('Microphone '+(i+1)); sel.appendChild(o); });
+      sel.value=chosenDeviceId||'';
+    }).catch(function(){});
+  }
+  // Pre-flight test: pick a device + watch the level bar move before entering the case.
+  // Resolves true to proceed, false if the student cancels.
+  function preflight(){
+    return new Promise(function(resolve){
+      const pf=el('dibhPreflight'); if(!pf){ resolve(true); return; }     // no panel in DOM -> just proceed
+      const startB=el('dibhPreStart'), cancelB=el('dibhPreCancel'), sel=el('dibhMicDevice'), hint=el('dibhPreHint');
+      let detected=false;
+      function setHint(t,cls){ if(hint){ hint.textContent=t; hint.className='pf-hint'+(cls?(' '+cls):''); } }
+      function runMeter(){
+        MicMeter.start(chosenDeviceId,function(lvl){
+          setBar('dibhPreMeter',lvl);
+          if(lvl>0.12 && !detected){ detected=true; setHint('Microphone is picking you up.','ok'); }
+        }).then(function(ok){ if(!ok) setHint('Could not open that microphone — try another, or your system default.','warn'); });
+      }
+      function cleanup(){ MicMeter.stop(); setBar('dibhPreMeter',0);
+        startB.onclick=null; cancelB.onclick=null; if(sel)sel.onchange=null; pf.classList.add('hidden'); }
+      pf.classList.remove('hidden');
+      setHint('Say “take a deep breath in” — the bar should move.','');
+      populateDevices().then(runMeter);
+      if(sel) sel.onchange=function(){ chosenDeviceId=sel.value||null; detected=false;
+        setHint('Say something — the bar should move.',''); runMeter(); };
+      startB.onclick=function(){ cleanup(); resolve(true); };
+      cancelB.onclick=function(){ cleanup(); resolve(false); };
+    });
+  }
+  // Block/denial recovery: re-probe permission; on success hide the help + re-arm coaching.
+  function reArm(){
+    requestAccess().then(function(ok){
+      if(!ok)return;                                          // still blocked -> leave help showing
+      const help=el('dibhMicHelp'); if(help)help.classList.add('hidden');
+      begin();                                                // dead=false, re-enable button, hide fallback
+    });
+  }
   function showHeard(raw,id){const h=el('dibhHeard');if(!h)return;
     // Build with textContent, not innerHTML: `raw` is the live speech transcript
     // (untrusted text) — concatenating it into innerHTML would be an injection sink.
@@ -2453,12 +2595,13 @@ const DIBHVoice=(function(){
     setTimeout(()=>{ if(dead||recognizing||manualStop)return;
       try{lastStart=Date.now();rec.start();}catch(err){ if(err&&err.name!=='InvalidStateError')throw err; } }, wait);
   }
-  function stopRec(){ manualStop=true; ignoreOnend=true; if(rec){try{rec.stop();}catch(e){}} micLive(false); if(!dead)pill('Voice off',''); }
-  function abortRec(){ manualStop=true; ignoreOnend=true; if(rec){try{rec.abort();}catch(e){}} micLive(false); }
+  function stopRec(){ manualStop=true; ignoreOnend=true; if(rec){try{rec.stop();}catch(e){}} micLive(false); meterOff(); if(!dead)pill('Voice off',''); }
+  function abortRec(){ manualStop=true; ignoreOnend=true; if(rec){try{rec.abort();}catch(e){}} micLive(false); meterOff(); }
 
   function degrade(reason){
     dead=true; ignoreOnend=true;
     if(rec){try{rec.abort();}catch(e){}}
+    meterOff();
     const b=el('dibhMicBtn'); if(b)b.disabled=true;
     const hf=el('dibhHandsfree'); if(hf){hf.checked=false;hf.disabled=true;}
     const fb=el('dibhCoachFallback'); if(fb)fb.classList.remove('hidden');   // mic lost -> restore coaching buttons so the student isn't stuck
@@ -2466,6 +2609,17 @@ const DIBHVoice=(function(){
         :reason==='audio-capture'?'No microphone — buttons restored'
         :reason==='network'?'Voice offline — buttons restored'
         :'Voice unavailable — buttons restored','warn');
+    // For recoverable device/permission failures, tell the student how to fix it + offer Retry.
+    const help=el('dibhMicHelp'), txt=el('dibhMicHelpTxt');
+    if(help && txt){
+      let msg='';
+      if(reason==='not-allowed'||reason==='service-not-allowed')
+        msg='Microphone access is blocked. Click the mic/lock icon in your browser’s address bar, set Microphone to Allow, then Retry.';
+      else if(reason==='audio-capture')
+        msg='No microphone was found. Connect one (or check your system sound settings), then Retry.';
+      if(msg){ txt.textContent=msg; help.classList.remove('hidden'); }
+      else help.classList.add('hidden');                     // network/other: buttons fallback is enough, no help card
+    }
   }
   // Verify a real microphone is actually available + permitted (the case is gated on this).
   // Resolves true only if getUserMedia grants audio; the stream is released immediately.
@@ -2489,6 +2643,7 @@ const DIBHVoice=(function(){
     const b=el('dibhMicBtn'); if(b)b.disabled=false;
     const hf=el('dibhHandsfree'); if(hf){hf.disabled=false;hf.checked=false;}
     const fb=el('dibhCoachFallback'); if(fb)fb.classList.add('hidden');
+    const help=el('dibhMicHelp'); if(help)help.classList.add('hidden');
     const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
     continuousMode=false; if(rec)rec.continuous=false;
     pill('Hold Space to talk','');
@@ -2499,18 +2654,18 @@ const DIBHVoice=(function(){
     manualStop=true; ignoreOnend=true; continuousMode=false;
     const hf=el('dibhHandsfree'); if(hf)hf.checked=false;
     if(rec){ rec.continuous=false; try{rec.stop();}catch(e){} }
-    micLive(false); if(!dead)pill('Voice off','');
+    micLive(false); meterOff(); if(!dead)pill('Voice off','');
     const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent='Hold to talk';
   }
 
   // push-to-talk (mouse / touch / V key) + hands-free toggle
-  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); pttHeld=true; lastStart=0; startRec(); }   // lastStart=0 -> user-held PTT starts immediately (throttle is only for auto-restart)
+  function pttDown(e){ if(dead||continuousMode)return; if(e&&e.preventDefault)e.preventDefault(); pttHeld=true; lastStart=0; meterOn(); startRec(); }   // lastStart=0 -> user-held PTT starts immediately (throttle is only for auto-restart)
   function pttUp(){ if(dead||continuousMode)return; pttHeld=false; stopRec(); }
   function dibhAcquiring(){ return !!(window.DIBH && DIBH.acquiring && DIBH.acquiring()); }
   function onHandsfree(){ const hf=el('dibhHandsfree'); if(!hf||dead)return;
     continuousMode=hf.checked; if(rec)rec.continuous=continuousMode;
     const lbl=el('dibhMicLbl'); if(lbl)lbl.textContent=continuousMode?'Listening (hands-free)':'Hold to talk';
-    if(continuousMode)startRec(); else stopRec();
+    if(continuousMode){ meterOn(); startRec(); } else stopRec();   // stopRec() runs meterOff
   }
   // Keyboard shortcuts, active only while coaching a DIBH acquisition:
   //   SPACE (hold) = push-to-talk    ·    ENTER = Beam On
@@ -2525,7 +2680,7 @@ const DIBHVoice=(function(){
     if(e.code==='Space'||e.key===' '){                         // Space (hold) -> push-to-talk
       e.preventDefault();                                      // stop page scroll + focused-button activation
       if(dead||continuousMode||e.repeat)return;
-      spaceHeld=true; lastStart=0; startRec();                 // immediate start for user-held PTT
+      spaceHeld=true; lastStart=0; meterOn(); startRec();      // immediate start for user-held PTT
     }
   }
   function onKeyUp(e){
@@ -2537,16 +2692,16 @@ const DIBHVoice=(function(){
   // Release the mic when the page is left / the tab is hidden — so the mic never stays hot outside
   // the case even if the user doesn't click Menu. Hands-free auto-resumes when the tab is shown again
   // (only while still acquiring); push-to-talk just stops.
-  function onPageHide(){ if(rec){try{rec.abort();}catch(e){}} micLive(false); }
+  function onPageHide(){ if(rec){try{rec.abort();}catch(e){}} micLive(false); meterOff(); }
   function onVisibility(){
     if(!voicePossible||dead)return;
     if(document.hidden){
       pausedByHide=continuousMode;                            // resume later only if it was hands-free
       manualStop=true; ignoreOnend=true; pttHeld=false;
       if(rec){try{rec.abort();}catch(e){}}
-      micLive(false); if(!dead)pill(continuousMode?'Voice paused':'Voice off', continuousMode?'warn':'');
+      micLive(false); meterOff(); if(!dead)pill(continuousMode?'Voice paused':'Voice off', continuousMode?'warn':'');
     }else if(pausedByHide && continuousMode && dibhAcquiring()){
-      pausedByHide=false; manualStop=false; ignoreOnend=false; startRec();
+      pausedByHide=false; manualStop=false; ignoreOnend=false; meterOn(); startRec();
     }else{ pausedByHide=false; }
   }
   function init(){
@@ -2564,6 +2719,7 @@ const DIBHVoice=(function(){
     }
     window.addEventListener('mouseup',()=>{ if(pttHeld)pttUp(); });   // only end a hold the mic button started
     const hf=el('dibhHandsfree'); if(hf)hf.addEventListener('change',onHandsfree);
+    const retry=el('dibhMicRetry'); if(retry)retry.addEventListener('click',reArm);   // block/denial recovery
     window.addEventListener('keydown',onKeyDown); window.addEventListener('keyup',onKeyUp);
     window.addEventListener('pagehide',onPageHide);            // close / navigate away -> release mic
     document.addEventListener('visibilitychange',onVisibility);// tab hidden -> stop; shown -> resume (if still acquiring)
@@ -2578,7 +2734,7 @@ const DIBHVoice=(function(){
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init); else init();
-  return { init, teardown, requestAccess, begin, suspend, _possible:voicePossible, _match:matchCommand };
+  return { init, teardown, requestAccess, begin, suspend, preflight, _possible:voicePossible, _match:matchCommand };
 })();
 window.DIBHVoice=DIBHVoice;
 
@@ -3403,7 +3559,11 @@ function launchCase(mode, key){
     DIBHVoice.requestAccess().then(function(ok){
       if(!ok){ if(note){ note.textContent='Microphone access is required for Breast L · DIBH. Allow the mic and try again.'; note.classList.add('warn'); } return; }
       if(note){ note.textContent=' '; note.classList.remove('warn'); }
-      chooseMode('2d2d'); DIBH.enter();
+      // Pre-flight mic test (pick a device, confirm input is detected) before entering the case.
+      DIBHVoice.preflight().then(function(go){
+        if(!go) return;                                       // student cancelled the mic check
+        chooseMode('2d2d'); DIBH.enter();
+      });
     });
     return;
   }
