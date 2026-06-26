@@ -39,13 +39,13 @@ const DATASETS = new Set([
 ]);
 const DRR_KEY = /^drr\/[a-z0-9_]+\.png$/i;
 
-// Free-tier datasets — served WITHOUT a subscription (the 2D Breast + CBCT Spine cases).
+// Free-tier datasets — served WITHOUT a subscription (the 2D Breast + CBCT Pelvis cases).
 // EXACT-MATCH Set only: no regex, no prefixes, NO DRR entries. Every key not in this Set
 // keeps the unchanged fail-closed isAuthorized->403 path, so no private asset gains a bypass.
 const PUBLIC_KEYS = new Set([
   'breast_drr_data.js',
-  'spine3d_data.js',
-  'spine3d_labels_data.js',
+  'pelvis3d_data.js',
+  'pelvis3d_labels_data.js',
 ]);
 
 const clerk = createClerkClient({
