@@ -99,20 +99,28 @@ zf = dz / psx
 ct = ndimage.zoom(ct, (zf, 1.0, 1.0), order=1)
 print(f'isotropic resample z×{zf:.2f} → {ct.shape[::-1]}')
 
-# ── Bone-emphasised attenuation → ray-sum DRRs (cortical bone bright on black) ──
-# Soft tissue ~40 HU, cortical bone 300-1500 HU. A windowed power curve makes the femur read
-# bright while muscle/fat stay dark — like a kV / DRR bone image.
-mu = np.clip((ct + 200.0) / 1700.0, 0, 1) ** 1.8
+# ── Beer–Lambert DRR: integrate linear attenuation along each ray (I = I0·e^−∫μ dl) ──
+# HU → linear attenuation μ (1/cm) with a two-segment water/bone model at an effective ~50 keV
+# beam: soft tissue scales with water; above 0 HU the slope steepens (calcium photoelectric) so
+# cortical bone attenuates strongly. The DRR pixel is the path integral ∫μ dl (= −log of the
+# transmitted fraction), which is bone-bright and — unlike showing raw transmission — does NOT
+# saturate to white through thick soft tissue, so the femur stays crisp against the muscle.
+MU_W = 0.206            # water linear attenuation ~50 keV (1/cm)
+BONE_GAIN = 2.6         # steepen the HU→μ slope above 0 HU to emphasise cortical bone
+hu = ct
+mu = np.where(hu < 0.0, MU_W * (1.0 + hu / 1000.0),
+                        MU_W * (1.0 + (hu / 1000.0) * BONE_GAIN))
+mu = np.clip(mu, 0.0, None)
 
-def project(axis):
-    s = mu.sum(axis=axis)                                  # AP: axis=1(y)→(z,x); LAT: axis=2(x)→(z,y)
-    s = s / (s.max() + 1e-6)
-    s = s ** 0.8                                           # gentle gamma for radiographic contrast
-    img = (np.clip(s, 0, 1) * 255).astype(np.uint8)
+def project(axis, dl_mm):
+    A = mu.sum(axis=axis) * (dl_mm / 10.0)                 # ∫μ dl (cm) — Beer–Lambert line integral
+    d = A / (A.max() + 1e-6)                               # bone-bright: brightness ∝ attenuation
+    d = d ** 0.7                                           # gentle gamma for radiographic contrast
+    img = (np.clip(d, 0, 1) * 255).astype(np.uint8)
     return img[::-1]                                       # flip z → superior at TOP
 
-ap  = project(1)   # rows=z(SI), cols=x(LR)
-lat = project(2)   # rows=z(SI), cols=y(AP)
+ap  = project(1, psy)   # rows=z(SI), cols=x(LR); sum over y, voxel y-extent = psy mm
+lat = project(2, psx)   # rows=z(SI), cols=y(AP); sum over x, voxel x-extent = psx mm
 
 def to_png_dataurl(arr, target_h=560):
     h, w = arr.shape
