@@ -3986,7 +3986,7 @@ const CBCT=(function(){
     {key:'stomach',  color:'#ffd23f', lw:1.6},
     {key:'bowel',    color:'#7bc043', lw:1.6},
     {key:'duodenum', color:'#d36cff', lw:1.7},
-    {key:'target',   color:'#ff3b4e', lw:2.3},
+    {key:'ptv',      color:'#ff3b4e', lw:2.3},
     {key:'cord',     color:'#00e5d0', lw:1.9},
   ];
   PANCREAS_STRUCTS.forEach(S=>S.visible=true);
@@ -4317,8 +4317,7 @@ const CBCT=(function(){
     const pancreas=caseKey==='pancreas';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
-    show('cbLG_ptv',!pancreas);   // every CBCT case has a PTV except pancreas (GI-OAR only)
-    show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);
+    show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);   // pancreas adds these; PTV (cbLG_ptv) stays on (it has a real contour)
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
@@ -4327,7 +4326,6 @@ const CBCT=(function(){
     show('cbLG_vertebra',spine);show('cbLG_cord',spine);show('cbLG_esophagus',spine);show('cbLG_aorta',spine);
     show('cbLG_body',true);
     // per-structure dropdown items
-    show('cbCM_ptv',!pancreas);
     show('cbCM_stomach',pancreas);show('cbCM_bowel',pancreas);
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);

@@ -57,7 +57,7 @@ CROP_MARGIN_MM = 55    # margin around the contoured OARs when cropping to the r
 # These collections ship extended-FOV breath-hold CTs (abdomen up through the lungs); crop to the
 # abdominal OARs so the pancreas region fills the volume at good resolution instead of being a
 # thin slab of a 500 mm scan. Keys here define the crop box (body/lung/cord are context, not focus).
-FOCUS_KEYS = ('target', 'stomach', 'duodenum', 'bowel', 'liver', 'kidney')
+FOCUS_KEYS = ('ptv', 'stomach', 'duodenum', 'bowel', 'liver', 'kidney')
 
 # HU -> density(0..255) model the trainer uses:  HU = density*(2000/255) - 500
 #   => density = (HU + 500) * 255/2000 , clipped to [0,255].
@@ -69,9 +69,14 @@ def hu_to_density(hu):
 # --- structure mapping -------------------------------------------------------
 # Fixed bit layout consumed by trainer.html's PANCREAS_STRUCTS (uint8 -> 8 bits).
 # The generator absorbs ROI-name variance; the trainer side stays fixed on these keys.
+# Synthetic teaching PTV: this collection is OAR-only (no tumour ROI), so when no target ROI
+# matches we bake an ellipsoid at the pancreatic bed (the GI-OAR centroid) as the 'ptv' structure.
+# The trainer's targets are explicitly training values; this gives the case a target to align to.
+PTV_SEMIAXES_MM = (17, 14, 16)   # (x,y,z) -> ~3.4 x 2.8 x 3.2 cm PTV
+
 STRUCT_BITS = {
     'body':     1,    # External/BODY (or thresholded if the RTSTRUCT lacks one)
-    'target':   2,    # the pancreas / CTV / GTV / tumour bed  -> iso source
+    'ptv':      2,    # tumour target: real target ROI if present, else a synthetic teaching PTV
     'duodenum': 4,
     'stomach':  8,
     'bowel':    16,   # small + large bowel merged
@@ -89,8 +94,8 @@ ROI_ALIASES = [
     ('kidney',   'kidney'), ('renal', 'kidney'),
     ('spinalcord','cord'), ('spinal_cord','cord'), ('cord','cord'), ('canal','cord'),
     # target / tumour: try the most specific clinical names first
-    ('ctv',      'target'), ('gtv', 'target'), ('tumor','target'), ('tumour','target'),
-    ('panc',     'target'),   # "Pancreas" ROI used as the soft-tissue target
+    ('ptv',      'ptv'), ('ctv', 'ptv'), ('gtv', 'ptv'), ('tumor','ptv'), ('tumour','ptv'),
+    ('panc',     'ptv'),   # "Pancreas" ROI used as the soft-tissue target
     # body / external last so it can't steal a more specific match
     ('external', 'body'), ('body', 'body'), ('skin','body'), ('patient','body'),
 ]
@@ -239,6 +244,28 @@ def main():
 
     ct_d, rmasks, (OX, OY, OZ), iso_sp, phys = resample(ct, masks)
 
+    def centroid(mask):
+        zz, yy, xx = np.where(mask)
+        return [int(round(xx.mean())), int(round(yy.mean())), int(round(zz.mean()))]
+
+    # PTV: use a real target ROI if one matched; otherwise bake a SYNTHETIC teaching PTV ellipsoid
+    # at the pancreatic bed (the GI-OAR centroid). iso = PTV centre.
+    if rmasks['ptv'].any():
+        iso = centroid(rmasks['ptv'])
+        print(f"target ROI present -> using it as the PTV ({int(rmasks['ptv'].sum())} vox)")
+    else:
+        any_oar = np.zeros((OZ, OY, OX), bool)
+        for k in ('duodenum', 'stomach', 'bowel', 'liver', 'kidney'):
+            any_oar |= rmasks[k]
+        c = centroid(any_oar) if any_oar.any() else [OX//2, OY//2, OZ//2]
+        ax, ay, az = PTV_SEMIAXES_MM
+        zz, yy, xx = np.ogrid[0:OZ, 0:OY, 0:OX]
+        rmasks['ptv'] = ((((xx-c[0])*iso_sp/ax)**2 + ((yy-c[1])*iso_sp/ay)**2
+                          + ((zz-c[2])*iso_sp/az)**2) <= 1.0)
+        iso = c
+        print(f"no target ROI -> SYNTHETIC teaching PTV ellipsoid {PTV_SEMIAXES_MM} mm "
+              f"at GI centroid {c} ({int(rmasks['ptv'].sum())} vox)")
+
     # build the packed label volume (OR of bits)
     labels = np.zeros((OZ, OY, OX), np.uint8)
     bits_present = {}
@@ -246,22 +273,6 @@ def main():
         if rmasks[k].any():
             labels[rmasks[k]] |= bit
             bits_present[k] = bit
-    if 'body' in bits_present and bits_present == {'body': 1}:
-        print("WARNING: only a body mask was produced — check ROI_ALIASES against the printed ROI list")
-
-    # isocentre = target centroid (fallback: centre of everything contoured, else volume centre)
-    def centroid(mask):
-        zz, yy, xx = np.where(mask)
-        return [int(round(xx.mean())), int(round(yy.mean())), int(round(zz.mean()))]
-    if rmasks['target'].any():
-        iso = centroid(rmasks['target'])
-    else:
-        any_oar = np.zeros((OZ, OY, OX), bool)
-        for k in ('duodenum', 'stomach', 'bowel', 'liver', 'kidney'):
-            any_oar |= rmasks[k]
-        iso = centroid(any_oar) if any_oar.any() else [OX//2, OY//2, OZ//2]
-        print("WARNING: no target ROI matched — iso set from OAR/volume centre; "
-              "set a target by adding the pancreas/CTV ROI name to ROI_ALIASES")
     print(f"iso(voxel)={iso}  bits={bits_present}")
 
     ct_b64, ct_sz, rows = encode_atlas(ct_d, OX, OY, OZ, TILES_PER_ROW)
