@@ -86,17 +86,6 @@ export async function GET(request) {
   const url = new URL(request.url);
   const key = url.searchParams.get('f') || '';
   const token = url.searchParams.get('t') || '';
-  if (url.searchParams.get('dbg') === '1') {
-    // TEMP diagnostic: prints which Clerk env the function actually runs with.
-    // Safe: publishable keys are public; secret key shows only its sk_live_/sk_test_ prefix.
-    console.log('RTDEBUG ' + JSON.stringify({
-      vercelEnv: process.env.VERCEL_ENV || '(unset)',
-      pk: (process.env.CLERK_PUBLISHABLE_KEY || '(unset)').slice(0, 12),
-      sk: (process.env.CLERK_SECRET_KEY || '(unset)').slice(0, 8),
-      hasBlob: !!process.env.BLOB_READ_WRITE_TOKEN,
-      clerkVars: Object.keys(process.env).filter((k) => /clerk/i.test(k)).sort().join(','),
-    }));
-  }
   const isDataset = DATASETS.has(key);
   const isDrr = DRR_KEY.test(key);
   if (!isDataset && !isDrr) return json({ error: 'unknown asset' }, 404);
