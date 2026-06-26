@@ -70,7 +70,10 @@
   // PREFERRED: Clerk user id (opaque + unspoofable; Clerk Dashboard -> Users ->
   // your user -> copy User ID). COMP_EMAILS also works but requires the email to
   // be VERIFIED on the account (see isComped) — an unverified address never grants access.
-  var COMP_USER_IDS = ['user_3FRbBFuCte2DQkTDzoeZe2VSfXB']; // owner — full access, no subscription
+  var COMP_USER_IDS = [
+    'user_3FRbBFuCte2DQkTDzoeZe2VSfXB', // owner — full access, no subscription
+    'user_3Fbnfz1v8QBrK8lwY8XN7YnadDk', // comped account
+  ];
   var COMP_EMAILS = []; // (owner moved to COMP_USER_IDS above; add testers here if needed — verified emails only)
   // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
   // of these domains (or a subdomain) gets in free — no subscription. Institution
