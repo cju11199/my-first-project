@@ -3738,7 +3738,7 @@ const CBCT=(function(){
     lung  :{file:'lung3d_data.js',   get:()=>typeof LUNG3D_VOL!=='undefined'?LUNG3D_VOL:null,    win:{l:-150,w:800}, contours:true,   // lung SBRT: window tuned to this atlas's lung HU so the lungs go dark and the peripheral RLL nodule pops (match the soft-tissue target, not bone)
             // off-bone differential motion: the GTV(bit 1) drifts vs the skeleton. Moving reslice hides the
             // planning-position lesion (overwrite with lung air dens 4) and redraws it at net-drift (lesion HU 74).
-            offBone:{driftBit:1, hideDens:4, drawDens:74, drift:{x:[3,5],y:[3,6],z:[3,5]},   // balanced, ~3-6mm/axis: clearly off-bone (>t1=2mm) but tight enough that the redrawn lesion stays near the hide-hole (no distant-blob smear). Total capped at 8mm in randomize().
+            offBone:{driftBit:1, hideDens:4, drawDens:74, drift:{x:[2,4],y:[3,5],z:[2,4]},   // subtle interfraction drift: SI(y) always >=3mm so it stays clearly off-bone (>t1=2mm accept tol) and a bony-only match still fails, but the offset is gentle (~4-5mm) rather than drastic. Total capped at 5mm in randomize().
                      okMsg:'✓ PTV aligned — target within tolerance',
                      hint:'✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton',
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
@@ -4656,7 +4656,7 @@ const CBCT=(function(){
     // drift ranges (mm) live in the VOLCASE offBone config.
     const _ob=curOffBone();
     targetDrift = _ob ? {x:ri(_ob.drift.x[0],_ob.drift.x[1])*sg(), y:ri(_ob.drift.y[0],_ob.drift.y[1])*sg(), z:ri(_ob.drift.z[0],_ob.drift.z[1])*sg()} : null;
-    if(targetDrift){const m=Math.hypot(targetDrift.x,targetDrift.y,targetDrift.z); if(m>8){const s=8/m; targetDrift={x:Math.round(targetDrift.x*s),y:Math.round(targetDrift.y*s),z:Math.round(targetDrift.z*s)};}}   // cap total off-bone drift at ~8mm so the lesion never sits a confusing distance from its hide-hole
+    if(targetDrift){const m=Math.hypot(targetDrift.x,targetDrift.y,targetDrift.z); if(m>5){const s=5/m; targetDrift={x:Math.round(targetDrift.x*s),y:Math.round(targetDrift.y*s),z:Math.round(targetDrift.z*s)};}}   // cap total off-bone drift at ~5mm so the off-bone offset stays subtle, not a drastic jump from the bony match
     shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();_invCaches();refreshReadouts();
     if(!keepResult){   // manual New Offset announces + clears the readouts; auto-advance on Check keeps the verdict + errors on screen
       clearErrors();
