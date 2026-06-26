@@ -721,6 +721,8 @@ html:not(.auth-pending) #authGate{display:none}
         <button class="btn-tool cb-dd-caret" id="cbContoursCaret" onclick="CBCT.toggleContourMenu(event)" title="Show / hide individual structures">&#9662;</button>
         <div class="cb-dd-menu" id="cbContourMenu">
           <div class="cb-dd-row on" id="cbCM_ptv"       onclick="CBCT.toggleStruct('ptv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
+          <div class="cb-dd-row on" id="cbCM_stomach"   style="display:none" onclick="CBCT.toggleStruct('stomach')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Stomach / duodenum</div>
+          <div class="cb-dd-row on" id="cbCM_bowel"     style="display:none" onclick="CBCT.toggleStruct('bowel')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Small bowel</div>
           <div class="cb-dd-row on" id="cbCM_gtv"       onclick="CBCT.toggleStruct('gtv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
           <div class="cb-dd-row on" id="cbCM_brain"     onclick="CBCT.toggleStruct('brain')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#aaddff;color:#aaddff"></span>Brain</div>
           <div class="cb-dd-row on" id="cbCM_prostate"  onclick="CBCT.toggleStruct('prostate')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>Prostate</div>
@@ -798,6 +800,8 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="cb-contour-legend" id="cbContourLegend">
         <div class="cl-title">STRUCTURES</div>
         <div class="cl-row" id="cbLG_ptv"><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
+        <div class="cl-row" id="cbLG_stomach" style="display:none"><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Stomach / duodenum</div>
+        <div class="cl-row" id="cbLG_bowel" style="display:none"><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Small bowel</div>
         <div class="cl-row" id="cbLG_gtv" style="display:none"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
         <div class="cl-row" id="cbLG_brain" style="display:none"><span class="cl-sw" style="background:#aaddff;color:#aaddff"></span>Brain</div>
         <div class="cl-row" id="cbLG_prostate"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>Prostate</div>
@@ -4310,8 +4314,11 @@ const CBCT=(function(){
     const spine=caseKey==='spine';
     const lung=caseKey==='lung';
     const prostate=caseKey==='prostate';
+    const pancreas=caseKey==='pancreas';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
+    show('cbLG_ptv',!pancreas);   // every CBCT case has a PTV except pancreas (GI-OAR only)
+    show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
@@ -4320,6 +4327,8 @@ const CBCT=(function(){
     show('cbLG_vertebra',spine);show('cbLG_cord',spine);show('cbLG_esophagus',spine);show('cbLG_aorta',spine);
     show('cbLG_body',true);
     // per-structure dropdown items
+    show('cbCM_ptv',!pancreas);
+    show('cbCM_stomach',pancreas);show('cbCM_bowel',pancreas);
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
