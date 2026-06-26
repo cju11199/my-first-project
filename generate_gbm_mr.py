@@ -4,7 +4,7 @@ generate_gbm_mr.py
 Build the MR Glioblastoma (GBM) cranial case from a UPenn-GBM patient (post-contrast
 T1 "stealth" planning MR + a BraTS-style tumour DICOM-SEG) and write
   - gbm3d_data.js        (MR volume atlas)                 -> GBM3D_VOL
-  - gbm3d_labels_data.js (enhancing+necrosis target, edema, brain)  -> GBM3D_LABELS
+  - gbm3d_labels_data.js (enhancing+necrosis target, edema, body)   -> GBM3D_LABELS
 
 Second MR case (after the acoustic neuroma). Like that one: no HU model — MR intensity is
 percentile-normalised to 0..255 and the VOLCASE entry carries `mr:true`. The moving image is
@@ -13,9 +13,9 @@ synthesised by reslicing the MR through a hidden 6DOF offset (no daily series ne
 SEG-sourced (like the Liver case), not RTSTRUCT: a multi-frame segmentation with three BraTS
 segments — Necrosis (1), Edema (2), Enhancing Lesion (3). The **target** is the GTV =
 enhancing lesion + necrotic core (contrast-enhancing rim + central necrosis); peritumoral
-**edema** is kept as a separate context structure. The source MR is **skull-stripped** (CaPTk
-processed), so there is no skull/body ROI — the **brain** envelope (the non-zero MR region) is
-used as the body structure.
+**edema** is kept as a separate context structure. The SEG carries no body ROI, so the **body**
+structure is a smoothed **external head contour** derived from the MR (this is a full-head MR —
+skull, scalp, orbits and face present — so body = the patient's outer head surface).
 
 DATA (NCI Imaging Data Commons public bucket, reachable where TCIA itself is blocked):
   pip install idc-index pydicom numpy scipy pillow
@@ -42,7 +42,7 @@ except ImportError:
 
 TARGET_XY      = 200    # longest-axis resample size (px)
 TILES_PER_ROW  = 10
-CROP_MARGIN_MM = 8      # margin around the brain bbox (whole brain in frame, minimal air)
+CROP_MARGIN_MM = 8      # margin around the head bbox (whole head in frame, minimal air)
 
 # Display normalisation (same map as the acoustic-neuroma MR case): trainer maps density
 # 0..255 -> "HU" = density*(2000/255)-500 for the window widget; we are not real HU.
@@ -153,23 +153,32 @@ def main():
     dens = normalize_mr(g['v'])
     spz, spy, spx = g['dz'], g['py'], g['px']
 
-    # Brain envelope as the body structure (skull-stripped MR -> non-zero region). Fill + largest CC.
-    brain = dens > 12
-    brain = ndimage.binary_closing(brain, iterations=2)
-    lab, n = ndimage.label(brain)
+    # External head/body contour. This MR is a FULL head (not skull-stripped — skull, scalp,
+    # orbits and face are all present), so `body` is the patient's outer head surface, the
+    # conventional external/body structure. A raw threshold of the noisy MR periphery gives a
+    # jagged, hairy contour, so smooth it: blur -> threshold -> close -> fill -> largest CC ->
+    # open (shave thin scalp/noise spikes) -> fill -> blur the binary mask and re-threshold so
+    # the rendered outline is a clean rounded head boundary instead of pixel-level fuzz.
+    sm = ndimage.gaussian_filter(dens.astype(np.float32), sigma=(0.6, 1.2, 1.2))
+    head = sm > 22
+    head = ndimage.binary_closing(head, iterations=3)
+    head = ndimage.binary_fill_holes(head)
+    lab, n = ndimage.label(head)
     if n:
         sizes = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
-        brain = lab == (1 + int(np.argmax(sizes)))
-    brain = ndimage.binary_fill_holes(brain)
-    masks['body'] = brain
+        head = lab == (1 + int(np.argmax(sizes)))
+    head = ndimage.binary_opening(head, iterations=2)        # remove thin protrusions (hair/noise)
+    head = ndimage.binary_fill_holes(head)
+    head = ndimage.gaussian_filter(head.astype(np.float32), sigma=1.0) > 0.5   # round the boundary
+    masks['body'] = head
 
-    # crop to the whole brain (bbox + small margin)
-    zz, yy, xx = np.where(brain)
+    # crop to the whole head (body bbox + small margin)
+    zz, yy, xx = np.where(head)
     mz, my, mx = CROP_MARGIN_MM/spz, CROP_MARGIN_MM/spy, CROP_MARGIN_MM/spx
     z0, z1 = max(0, int(zz.min()-mz)), min(g['nz'], int(zz.max()+mz)+1)
     y0, y1 = max(0, int(yy.min()-my)), min(g['ny'], int(yy.max()+my)+1)
     x0, x1 = max(0, int(xx.min()-mx)), min(g['nx'], int(xx.max()+mx)+1)
-    print(f"crop to brain box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {g['nz']}x{g['ny']}x{g['nx']}")
+    print(f"crop to head box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {g['nz']}x{g['ny']}x{g['nx']}")
     dens = dens[z0:z1, y0:y1, x0:x1]
     masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
     CZ, CY, CX = dens.shape
@@ -191,7 +200,7 @@ def main():
     tz, ty, tx = np.where(rmasks['tumor'])
     iso = [int(round(tx.mean())), int(round(ty.mean())), int(round(tz.mean()))]
     print(f"iso(voxel)={iso}  bits={bits}  tumour {int(rmasks['tumor'].sum())} vox  "
-          f"edema {int(rmasks['edema'].sum())} vox  brain {int(rmasks['body'].sum())} vox")
+          f"edema {int(rmasks['edema'].sum())} vox  body {int(rmasks['body'].sum())} vox")
 
     mr_b64, mr_sz, rows = encode_atlas(vol_d, OX, OY, OZ, TILES_PER_ROW)
     lbl_b64, lbl_sz, _  = encode_atlas(labels, OX, OY, OZ, TILES_PER_ROW)
@@ -208,7 +217,7 @@ def main():
               '// Licence: CC BY 4.0 (commercial use permitted with attribution).\n'
               '// Attribution: Bakas, S. et al., The Cancer Imaging Archive, doi:10.7937/TCIA.709X-DN49.\n'
               '// De-identified post-contrast T1 planning MR (skull-stripped, CaPTk-processed),\n'
-              '// cropped to the brain + percentile-normalised. Tumour SEG: BraTS radiologist-corrected.\n')
+              '// cropped to the head + percentile-normalised. Tumour SEG: BraTS radiologist-corrected.\n')
     meta = (f'{{"dims": [{OX}, {OY}, {OZ}], "spacingMm": [{iso_sp:.4f}, {iso_sp:.4f}, {iso_sp:.4f}], '
             f'"physMm": [{OX*iso_sp:.2f}, {OY*iso_sp:.2f}, {OZ*iso_sp:.2f}], '
             f'"tilesPerRow": {TILES_PER_ROW}, "tileRows": {rows}, "boneThr": 0.55, "mr": true}}')
@@ -222,7 +231,7 @@ def main():
                 f'"tilesPerRow": {TILES_PER_ROW}, "bits": {{{bits_json}}}, "isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}]}}')
     with open('gbm3d_labels_data.js', 'w') as f:
         f.write(ATTRIB)
-        f.write('// GBM labels: GTV (enhancing lesion + necrotic core), peritumoral edema, brain envelope.\n')
+        f.write('// GBM labels: GTV (enhancing lesion + necrotic core), peritumoral edema, external head/body contour.\n')
         f.write(f'const GBM3D_LABELS={lbl_meta};\n')
         f.write(f"GBM3D_LABELS.atlas='data:image/png;base64,{lbl_b64}';\n")
     print('wrote gbm3d_data.js + gbm3d_labels_data.js')

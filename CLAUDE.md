@@ -142,8 +142,10 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   2 mm/2°, `GBM_STRUCTS`). **Second MR case** (after the acoustic neuroma) — reuses that pipeline:
   `mr:true` + `autoWin`, percentile-normalised intensity. **Target = GTV** = enhancing lesion +
   necrotic core (SEG segments *Enhancing Lesion* + *Necrosis*); peritumoral **edema** kept as a
-  separate context structure. The source MR is **skull-stripped** (CaPTk-processed), so the **brain**
-  envelope (non-zero MR region, largest CC + fill) is used as the body structure. **SEG-sourced** like
+  separate context structure. The SEG carries no body ROI, so the **body** structure is a smoothed
+  **external head contour** derived from the MR (this is a full-head MR — skull/scalp/orbits/face all
+  present; the mask is blur→threshold→close→fill→largest-CC→open→re-blur so the rendered outline is a
+  clean rounded head boundary, not pixel-level fuzz). **SEG-sourced** like
   Liver, but the AIMI/CaPTk SEG is stored at a **180° in-plane orientation** vs the MR
   (`IOP=[-1,0,0,0,-1,0]`); `rasterize_seg()` detects the IOP sign vs the MR's and **flips rows/cols**
   so the labels land on the correct side (a same-orientation SEG is left untouched). Built from patient
@@ -283,7 +285,7 @@ Two workflows, picked on the start screen:
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
   Prostate (gold fiducial markers, **rigid**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
   **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,
-  with peritumoral edema; brain envelope as body — see `generate_gbm_mr.py`):
+  with peritumoral edema; smoothed external head contour as body — see `generate_gbm_mr.py`):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
     `generate_lung_contours.py` (`lung3d_data.js` + `lung3d_labels_data.js`); match the soft-tissue target.
   - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
