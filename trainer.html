@@ -3328,7 +3328,7 @@ function pickMode(mode){
     const el=document.createElement('div');
     const cid=mode+':'+c.v;
     const micCase=(mode==='2d2d' && c.v==='breastDIBH');               // voice-coached, mic-gated
-    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:spine');      // playable without a subscription
+    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:pelvis');      // playable without a subscription
     const paidLocked=freeMode && !isFreeCase;                          // locked behind the paywall
     const locked=(micCase && !(window.DIBHVoice && DIBHVoice._possible)) || paidLocked;
     const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
@@ -3351,7 +3351,7 @@ function launchCase(mode, key){
   // FREE TIER (authoritative client gate): without a subscription, only the Breast (2D) and
   // Spine (CBCT) cases are playable. Paid cases never reach applyCase / CBCT.applyCase here.
   if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode()
-     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='spine'))){
+     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='pelvis'))){
     const note=document.getElementById('startNote');
     if(note){ note.innerHTML='This case needs a subscription. <a href="'+((window.RTAuth&&RTAuth.SUBSCRIBE_URL)||'/subscribe')+'">Start your free trial &rarr;</a>'; note.classList.add('warn'); }
     return;
@@ -4848,7 +4848,7 @@ const CBCT=(function(){
   function applyCase(key){
     // Defense-in-depth: a free-tier user can only ever load the Spine volume (the public one),
     // so a paid CBCT case can never trigger a lazy rtAssetUrl fetch of protected data.
-    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='spine') return;
+    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='pelvis') return;
     caseKey=key;const sel=gid('cbCaseSelect');if(sel)sel.value=key;
     const vc=VOLCASE[key];
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
@@ -4883,7 +4883,7 @@ const CBCT=(function(){
     window.addEventListener('resize',()=>{if(currentMode==='cbct'){resize();render();}});
     select('axial');applyCase(caseKey);refreshReadouts();applyLayout();toggleContours();
   }
-  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='spine';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
+  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='pelvis';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
