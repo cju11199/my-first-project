@@ -51,9 +51,13 @@ except ImportError:
     raise SystemExit("pydicom is required:  pip install pydicom numpy scipy pillow")
 
 # --- output sizing (keep the atlas ~1.5 MB like the other *3d_data.js files) ---
-TARGET_XY   = 192      # in-plane resample size (px). Other cases sit ~180-224.
-TARGET_Z    = 96       # number of axial slices after resample (isotropic-ish).
+TARGET_XY   = 192      # longest-axis resample size (px). Other cases sit ~180-224.
 TILES_PER_ROW = 10     # atlas tiling (10 cols x ceil(Z/10) rows), matches the others.
+CROP_MARGIN_MM = 55    # margin around the contoured OARs when cropping to the region of interest.
+# These collections ship extended-FOV breath-hold CTs (abdomen up through the lungs); crop to the
+# abdominal OARs so the pancreas region fills the volume at good resolution instead of being a
+# thin slab of a 500 mm scan. Keys here define the crop box (body/lung/cord are context, not focus).
+FOCUS_KEYS = ('target', 'stomach', 'duodenum', 'bowel', 'liver', 'kidney')
 
 # HU -> density(0..255) model the trainer uses:  HU = density*(2000/255) - 500
 #   => density = (HU + 500) * 255/2000 , clipped to [0,255].
@@ -167,25 +171,44 @@ def _poly_mask(poly, ny, nx):
     ImageDraw.Draw(img).polygon([tuple(p) for p in poly], outline=1, fill=1)
     return np.array(img, bool)
 
-# --- isotropic resample to the target grid -----------------------------------
+# --- crop to the region of interest, then isotropic resample -----------------
 def resample(ct, masks):
     src = ct['hu']
     SZ, SY, SX = ct['nz'], ct['ny'], ct['nx']
-    # physical extent (mm)
-    phys = [SX * ct['px'], SY * ct['py'], SZ * ct['dz']]
-    iso_sp = max(phys) / TARGET_XY                                 # one isotropic spacing
-    OX = max(1, int(round(phys[0] / iso_sp)))
-    OY = max(1, int(round(phys[1] / iso_sp)))
-    OZ = TARGET_Z
-    zoom = (OZ / SZ, OY / SY, OX / SX)
-    print(f"resample -> {OX}x{OY}x{OZ}  iso spacing {iso_sp:.3f} mm  phys {phys}")
+    spz, spy, spx = ct['dz'], ct['py'], ct['px']
+
+    # crop box = bounding box of the focus OARs + margin (clamped to the volume)
+    focus = np.zeros((SZ, SY, SX), bool)
+    for k in FOCUS_KEYS:
+        if k in masks and masks[k].any():
+            focus |= masks[k]
+    if focus.any():
+        zz, yy, xx = np.where(focus)
+        mz, my, mx = CROP_MARGIN_MM/spz, CROP_MARGIN_MM/spy, CROP_MARGIN_MM/spx
+        z0, z1 = max(0, int(zz.min()-mz)), min(SZ, int(zz.max()+mz)+1)
+        y0, y1 = max(0, int(yy.min()-my)), min(SY, int(yy.max()+my)+1)
+        x0, x1 = max(0, int(xx.min()-mx)), min(SX, int(xx.max()+mx)+1)
+        print(f"crop to OAR box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {SZ}x{SY}x{SX}")
+    else:
+        z0,z1,y0,y1,x0,x1 = 0,SZ,0,SY,0,SX
+        print("no focus OARs to crop on -> using full volume")
+    src = src[z0:z1, y0:y1, x0:x1]
+    masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
+    CZ, CY, CX = src.shape
+
+    # isotropic resample of the cropped region (one spacing for all axes -> no squish)
+    phys = [CX*spx, CY*spy, CZ*spz]
+    iso_sp = max(phys) / TARGET_XY
+    OX = max(1, int(round(phys[0]/iso_sp)))
+    OY = max(1, int(round(phys[1]/iso_sp)))
+    OZ = max(1, int(round(phys[2]/iso_sp)))
+    zoom = (OZ/CZ, OY/CY, OX/CX)
+    print(f"resample -> {OX}x{OY}x{OZ}  iso spacing {iso_sp:.3f} mm  phys {[round(p) for p in phys]}")
     ct_d = hu_to_density(ndimage.zoom(src, zoom, order=1))
     out_masks = {}
     for k, m in masks.items():
-        if m.any():
-            out_masks[k] = ndimage.zoom(m.astype(np.float32), zoom, order=1) > 0.5
-        else:
-            out_masks[k] = np.zeros((OZ, OY, OX), bool)
+        out_masks[k] = (ndimage.zoom(m.astype(np.float32), zoom, order=1) > 0.5) if m.any() \
+                       else np.zeros((OZ, OY, OX), bool)
     return ct_d, out_masks, (OX, OY, OZ), iso_sp, phys
 
 # --- atlas encode ------------------------------------------------------------
@@ -248,9 +271,13 @@ def main():
     meta = (f'{{"dims": [{OX}, {OY}, {OZ}], "spacingMm": [{iso_sp:.4f}, {iso_sp:.4f}, {iso_sp:.4f}], '
             f'"physMm": [{OX*iso_sp:.2f}, {OY*iso_sp:.2f}, {OZ*iso_sp:.2f}], '
             f'"tilesPerRow": {TILES_PER_ROW}, "tileRows": {rows}, "boneThr": 0.62}}')
+    ATTRIB = ('// Source: TCIA Pancreatic-CT-CBCT-SEG (via NCI Imaging Data Commons, s3://idc-open-data).\n'
+              '// Licence: CC BY 4.0 (commercial use permitted with attribution).\n'
+              '// Attribution: Hong, J. et al., The Cancer Imaging Archive, doi:10.7937/TCIA.ESHQ-4D90.\n'
+              '// De-identified breath-hold planning CT, cropped to the abdomen + resampled to an isotropic atlas.\n')
     with open('pancreas3d_data.js', 'w') as f:
-        f.write('// Pancreas (TCIA Pancreatic-CT-CBCT-SEG) breath-hold planning CT, resampled to an\n')
-        f.write('// isotropic atlas. dims=[x(LR),y(AP),z(SI)]. Plain CT (no baked features); rigid 6DOF.\n')
+        f.write(ATTRIB)
+        f.write('// dims=[x(LR),y(AP),z(SI)]. Plain CT (no baked features); rigid 6DOF soft-tissue match.\n')
         f.write(f'const PANCREAS3D_VOL={meta};\n')
         f.write(f"PANCREAS3D_VOL.atlas='data:image/png;base64,{ct_b64}';\n")
 
@@ -259,7 +286,8 @@ def main():
                 f'"tilesPerRow": {TILES_PER_ROW}, "bits": {{{bits_json}}}, '
                 f'"isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}]}}')
     with open('pancreas3d_labels_data.js', 'w') as f:
-        f.write('// Pancreas CBCT case labels: pancreas/target + abdominal OAR contours from the RTSTRUCT.\n')
+        f.write(ATTRIB)
+        f.write('// Pancreas CBCT case labels: abdominal OAR contours from the RTSTRUCT (bits below).\n')
         f.write(f'const PANCREAS3D_LABELS={lbl_meta};\n')
         f.write(f"PANCREAS3D_LABELS.atlas='data:image/png;base64,{lbl_b64}';\n")
     print('wrote pancreas3d_data.js + pancreas3d_labels_data.js')

@@ -3302,10 +3302,10 @@ const CASE_LISTS={
     {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
     {v:'lung',   t:'Lung SBRT',       d:'CBCT &middot; RLL nodule'},
     {v:'prostate',t:'Prostate',       d:'CBCT &middot; gold fiducials'},
-    // PANCREAS: enable after running generate_pancreas_cbct.py to build pancreas3d_data.js +
-    // pancreas3d_labels_data.js, and verifying the MPR panes/contours in Chrome/Edge. All the
-    // supporting plumbing (VOLCASE/CASE_TOL/PANCREAS_STRUCTS/loaders/switches) is already wired.
-    // {v:'pancreas',t:'Pancreas SBRT', d:'CBCT &middot; breath-hold'},
+    // PANCREAS: TCIA Pancreatic-CT-CBCT-SEG (CC BY 4.0). Breath-hold abdominal soft-tissue match;
+    // stomach/duodenum + small-bowel OAR contours (no dedicated target ROI in this collection, so
+    // the iso sits at the GI/pancreatic centroid). Data built by generate_pancreas_cbct.py.
+    {v:'pancreas',t:'Pancreas',       d:'CBCT &middot; breath-hold abdomen'},
   ]},
 };
 function pickMode(mode){
