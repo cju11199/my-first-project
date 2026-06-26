@@ -128,8 +128,10 @@ Two workflows, picked on the start screen:
     all three markers (Sup/Inf/Lat); **Ctrl/⌘+drag** moves the nearest single marker (adds rotation).
     A least-squares rigid fit (**Horn quaternion**, `fit()`) of plan→placed markers reads out the
     couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. The hidden
-    rotation is a realistic **2–3.5°/axis** (compounding to ~4–6° total, scaled up if needed to exceed
-    the accept tolerance so rotation is always required — not solvable by translation alone). `check()`
+    rotation is a realistic **3–5°/axis** (compounding to ~5–8.5° total, scaled up if needed to clear
+    **twice** the accept tolerance so rotation is always required — a translate-only plain-drag solution
+    can never seat all three markers, so at least one or two seeds **must** be Ctrl/⌘+dragged
+    individually to rotate the triad). `check()`
     grades the **residual misregistration** `fit(M,Qtrue)`: accept = residual **rotation ≤ the case
     rotation tolerance** (`fidRotTol()` → the `2d2d:prostate` `CASE_TOL` entry's r1 = 3°) **and**
     residual translation ≤ the case translation tolerance (`fidTransTol()` → t1 = 2 mm). **Match time
