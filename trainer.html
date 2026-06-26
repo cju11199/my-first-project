@@ -893,6 +893,7 @@ html:not(.auth-pending) #authGate{display:none}
   </div>
   <div class="header-controls">
     <button class="btn-tool" id="washBtn" onclick="toggleWash()"><span class="glyph">&#9681;</span>Color Wash</button>
+    <button class="btn-tool" id="panBtn" onclick="togglePan()" title="Pan the view &mdash; drag to slide the image (or hold the mouse wheel / Shift+drag while zoomed)"><span class="glyph">&#10021;</span>Pan</button>
     <button class="btn-tool" id="spyBtn" onclick="toggleSpy()"><span class="glyph">&#128269;</span>Spyglass</button>
     <button class="btn-tool" id="contrastBtn" onclick="toggleContrast()"><span class="glyph">&#9728;</span>Contrast</button>
     <button class="btn-tool active" id="gridBtn" onclick="toggleGrid()"><span class="glyph">&#8853;</span>Iso/Grid</button>
@@ -1201,7 +1202,7 @@ html:not(.auth-pending) #authGate{display:none}
 let shift={x:0,y:0,z:0,roll:0,pitch:0};
 let hidden={x:0,y:0,z:0,roll:0,pitch:0};
 let step=1;
-let tool=null; // null | 'wash' | 'spy'
+let tool=null; // null | 'wash' | 'spy' | 'pan'
 let activeView='ap'; // which view the arrow keys drive: 'ap' | 'lat'
 let contrast=100;    // % applied to both images
 let brightness=100;  // % brightness for presets
@@ -1975,13 +1976,13 @@ const FID2D=(function(){
       if(!active())return;
       const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
       let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
-      // Middle-mouse, or Shift+drag while zoomed in: PAN the view (instead of moving markers).
-      if(ev.button===1 || (ev.shiftKey && (v.zoom||1)>1.001)){
+      // Middle-mouse, Shift+drag while zoomed, or the Pan tool: PAN the view (instead of moving markers).
+      if(ev.button===1 || (ev.shiftKey && (v.zoom||1)>1.001) || (tool==='pan' && ev.button===0)){
         const mvP=e2=>{const [x,y]=localXY(v,e2);v.panX+=x-px;v.panY+=y-py;px=x;py=y;clampPan(v);render();};
         const upP=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mvP);el.removeEventListener('pointerup',upP);};
         el.style.cursor='grabbing';
         el.addEventListener('pointermove',mvP);el.addEventListener('pointerup',upP,{once:true});
-        el.addEventListener('pointerup',()=>{el.style.cursor='';},{once:true});
+        el.addEventListener('pointerup',()=>{el.style.cursor=(tool==='pan')?'grab':'';},{once:true});
         ev.preventDefault();ev.stopPropagation();return;
       }
       if(ev.button!==0)return;
@@ -2566,11 +2567,14 @@ function render(){ if(FID2D.active()){FID2D.render();return;} renderView(views.a
 function setToolButtons(){
   document.getElementById('washBtn').classList.toggle('active', tool==='wash');
   document.getElementById('spyBtn').classList.toggle('active', tool==='spy');
+  const pb=document.getElementById('panBtn'); if(pb) pb.classList.toggle('active', tool==='pan');
   // show/hide spy rings + blend bar relevance
   ['ap','lat'].forEach(k=>{
     document.getElementById(k+'Spy').style.display=(tool==='spy')?'block':'none';
+    const a=document.getElementById(views[k].area); if(a) a.style.cursor=(tool==='pan')?'grab':'crosshair';   // pan tool -> grab cursor
   });
 }
+function togglePan(){ tool=(tool==='pan')?null:'pan'; afterToolChange(); }
 function toggleWash(){ tool=(tool==='wash')?null:'wash'; afterToolChange(); }
 function toggleSpy(){
   tool=(tool==='spy')?null:'spy';
@@ -2649,14 +2653,14 @@ function attachSpy(key){
     const r=area.getBoundingClientRect();
     return {x:e.clientX-r.left, y:e.clientY-r.top};
   }
-  // move lens: press anywhere in view while spy tool active (but not on handle)
+  // Grab the lens ONLY when pressing inside it; pressing elsewhere falls through to the
+  // image match drag, so you can still move/match the image while the spyglass is on.
   area.addEventListener('mousedown',e=>{
     if(tool!=='spy') return;
     if(e.target===handle) return;
     const p=localPt(e);
-    // inside the square lens? (sp.r = half-side) — else recenter lens to click
     const inside=Math.abs(p.x-v.spy.x)<=v.spy.r && Math.abs(p.y-v.spy.y)<=v.spy.r;
-    if(!inside){ v.spy.x=p.x; v.spy.y=p.y; render(); }
+    if(!inside) return;                 // outside the lens -> the match handler drives the image
     mode='move'; ox=p.x-v.spy.x; oy=p.y-v.spy.y;
     e.preventDefault(); e.stopPropagation();
   });
@@ -2805,7 +2809,7 @@ function attachInteractions(key){
   // hover cursor hint + rotation cue (only when idle)
   area.addEventListener('mousemove',e=>{
     if(FID2D.active()){ hideCue(); return; }       // fiducial case owns its own pointer handling
-    if(tool==='spy'){ hideCue(); return; }
+    if(tool==='spy'){ const rs=area.getBoundingClientRect(); if(Math.abs((e.clientX-rs.left)-v.spy.x)<=v.spy.r && Math.abs((e.clientY-rs.top)-v.spy.y)<=v.spy.r){ area.style.cursor='move'; hideCue(); return; } }  // over lens -> lens; else fall through to the match hover
     if(hoverDragView===key) return;               // dragging handled below
     const r=area.getBoundingClientRect();
     const dist=Math.hypot((e.clientX-r.left)-isoScreenX(v), (e.clientY-r.top)-isoScreenY(v));
@@ -2816,7 +2820,8 @@ function attachInteractions(key){
   });
   area.addEventListener('mouseleave',()=>{ if(hoverDragView!==key) hideCue(); });
   area.addEventListener('wheel',e=>{
-    if(tool==='spy') return; // spyglass handles its own wheel (resize)
+    // Over the lens, the spyglass owns the wheel (resize); elsewhere the wheel zooms the image.
+    if(tool==='spy'){ const rw=area.getBoundingClientRect(); if(Math.abs((e.clientX-rw.left)-v.spy.x)<=v.spy.r && Math.abs((e.clientY-rw.top)-v.spy.y)<=v.spy.r) return; }
     e.preventDefault();
     const rect=area.getBoundingClientRect();
     const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
@@ -2834,10 +2839,11 @@ function attachInteractions(key){
   function angleFromCenter(pt){ return Math.atan2(pt.y-isoScreenY(v), pt.x-isoScreenX(v)); }
   area.addEventListener('mousedown',e=>{
     if(FID2D.active()) return;          // fiducial case: FID2D's pointer handlers drive the markers
-    if(tool==='spy') return;            // spyglass owns its own drag
     const pt=localPt(e);
+    // Spyglass on: a press ON the lens is owned by the spyglass; press elsewhere drags the image.
+    if(tool==='spy'){ const s=v.spy; if(Math.abs(pt.x-s.x)<=s.r && Math.abs(pt.y-s.y)<=s.r) return; }
     const dist=Math.hypot(pt.x-isoScreenX(v), pt.y-isoScreenY(v));
-    if(e.button===1 || (e.shiftKey && v.zoom>1)){
+    if(e.button===1 || (e.shiftKey && v.zoom>1) || (tool==='pan' && e.button===0)){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
       if(window.DIBH && DIBH.acquiring && DIBH.acquiring()) return;   // DIBH: no matching until both fields are acquired
@@ -2906,7 +2912,7 @@ function attachInteractions(key){
       }
     }
   });
-  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor='crosshair'; hideCue(); render(); } });
+  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor=(tool==='pan')?'grab':'crosshair'; hideCue(); render(); } });
 }
 
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
@@ -3322,7 +3328,7 @@ function pickMode(mode){
     const el=document.createElement('div');
     const cid=mode+':'+c.v;
     const micCase=(mode==='2d2d' && c.v==='breastDIBH');               // voice-coached, mic-gated
-    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:spine');      // playable without a subscription
+    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:pelvis');      // playable without a subscription
     const paidLocked=freeMode && !isFreeCase;                          // locked behind the paywall
     const locked=(micCase && !(window.DIBHVoice && DIBHVoice._possible)) || paidLocked;
     const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
@@ -3345,7 +3351,7 @@ function launchCase(mode, key){
   // FREE TIER (authoritative client gate): without a subscription, only the Breast (2D) and
   // Spine (CBCT) cases are playable. Paid cases never reach applyCase / CBCT.applyCase here.
   if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode()
-     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='spine'))){
+     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='pelvis'))){
     const note=document.getElementById('startNote');
     if(note){ note.innerHTML='This case needs a subscription. <a href="'+((window.RTAuth&&RTAuth.SUBSCRIBE_URL)||'/subscribe')+'">Start your free trial &rarr;</a>'; note.classList.add('warn'); }
     return;
@@ -4694,8 +4700,8 @@ const CBCT=(function(){
       if(ev.buttons!==0)return;
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar')){hideRotCue();return;}
       if(panMode){el.style.cursor='grab';hideRotCue();return;}
-      if(crossMode){el.style.cursor='move';hideRotCue();return;}
-      if(spyMode){const sp=ST[name].spy;el.style.cursor=(Math.abs(ev.offsetX-sp.x)<=sp.r&&Math.abs(ev.offsetY-sp.y)<=sp.r)?'move':'default';hideRotCue();return;}
+      if(crossMode){const cr=ST[name].cross;if(Math.abs(ev.offsetX-cr.x)<=10||Math.abs(ev.offsetY-cr.y)<=10){el.style.cursor='move';hideRotCue();return;}}   // on a line -> move split; else fall through to the match hover
+      if(spyMode){const sp=ST[name].spy;if(Math.abs(ev.offsetX-sp.x)<=sp.r&&Math.abs(ev.offsetY-sp.y)<=sp.r){el.style.cursor='move';hideRotCue();return;}}   // inside lens -> move lens; else fall through
       const st=ST[name],ringR=Math.min(st.W,st.H)*0.38,cx=st.W/2+st.panX,cy=st.H/2+st.panY;
       const onCross=st.hasCross&&Math.hypot(ev.offsetX-st.crossX,ev.offsetY-st.crossY)<=14;
       const rotZone=!onCross&&Math.hypot(ev.offsetX-cx,ev.offsetY-cy)>ringR;
@@ -4713,13 +4719,15 @@ const CBCT=(function(){
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
       select(name);
       if(crossMode){
-        // drag the crosshair centre (click anywhere jumps it there)
-        const st=ST[name],cr=st.cross;
-        try{el.setPointerCapture(ev.pointerId);}catch(_){}
-        const mv=e2=>{cr.x=Math.max(0,Math.min(st.W,e2.offsetX));cr.y=Math.max(0,Math.min(st.H,e2.offsetY));drawPlane(name);};
-        const up=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);};
-        el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
-        mv(ev); ev.stopPropagation(); return;
+        // Grab the split ONLY when pressing on a crosshair line; press elsewhere drags the image.
+        const st=ST[name],cr=st.cross,T=10;
+        if(Math.abs(ev.offsetX-cr.x)<=T||Math.abs(ev.offsetY-cr.y)<=T){
+          try{el.setPointerCapture(ev.pointerId);}catch(_){}
+          const mv=e2=>{cr.x=Math.max(0,Math.min(st.W,e2.offsetX));cr.y=Math.max(0,Math.min(st.H,e2.offsetY));drawPlane(name);};
+          const up=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);};
+          el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);
+          mv(ev); ev.stopPropagation(); return;
+        }
       }
       if(spyMode){
         const st=ST[name],sp=st.spy;
@@ -4734,14 +4742,16 @@ const CBCT=(function(){
           el.addEventListener('pointermove',rm);el.addEventListener('pointerup',ru);
           ev.stopPropagation();return;
         }
+        // Grab the lens ONLY when pressing inside it; press elsewhere falls through to the image drag.
         const inside=Math.abs(ev.offsetX-sp.x)<=sp.r&&Math.abs(ev.offsetY-sp.y)<=sp.r;
-        if(!inside){sp.x=ev.offsetX;sp.y=ev.offsetY;render();}
-        let lx=ev.offsetX-sp.x,ly=ev.offsetY-sp.y;
-        try{el.setPointerCapture(ev.pointerId);}catch(_){}
-        const mm=e2=>{sp.x=Math.max(0,Math.min(st.W,e2.offsetX-lx));sp.y=Math.max(0,Math.min(st.H,e2.offsetY-ly));render();};
-        const mu=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mm);el.removeEventListener('pointerup',mu);};
-        el.addEventListener('pointermove',mm);el.addEventListener('pointerup',mu);
-        ev.stopPropagation();return;
+        if(inside){
+          let lx=ev.offsetX-sp.x,ly=ev.offsetY-sp.y;
+          try{el.setPointerCapture(ev.pointerId);}catch(_){}
+          const mm=e2=>{sp.x=Math.max(0,Math.min(st.W,e2.offsetX-lx));sp.y=Math.max(0,Math.min(st.H,e2.offsetY-ly));render();};
+          const mu=()=>{try{el.releasePointerCapture(ev.pointerId);}catch(_){}el.removeEventListener('pointermove',mm);el.removeEventListener('pointerup',mu);};
+          el.addEventListener('pointermove',mm);el.addEventListener('pointerup',mu);
+          ev.stopPropagation();return;
+        }
       }
       const st=ST[name],s=Math.min(st.W,st.H)/S,dw=S*s*st.zoom,cx=st.W/2+st.panX,cy=st.H/2+st.panY;
       // pan the view: middle mouse button, or left-drag while the Pan tool is active
@@ -4838,7 +4848,7 @@ const CBCT=(function(){
   function applyCase(key){
     // Defense-in-depth: a free-tier user can only ever load the Spine volume (the public one),
     // so a paid CBCT case can never trigger a lazy rtAssetUrl fetch of protected data.
-    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='spine') return;
+    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='pelvis') return;
     caseKey=key;const sel=gid('cbCaseSelect');if(sel)sel.value=key;
     const vc=VOLCASE[key];
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
@@ -4873,11 +4883,12 @@ const CBCT=(function(){
     window.addEventListener('resize',()=>{if(currentMode==='cbct'){resize();render();}});
     select('axial');applyCase(caseKey);refreshReadouts();applyLayout();toggleContours();
   }
-  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='spine';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
+  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='pelvis';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed()};
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
+    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
