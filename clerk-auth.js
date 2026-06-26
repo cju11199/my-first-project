@@ -167,6 +167,13 @@
       slot.appendChild(ub);
       window.Clerk.mountUserButton(ub, { afterSignOutUrl: '/' });
     } else {
+      // Signed out: a direct "Try free" entry into the trainer (free mode — no account
+      // needed for the free cases), plus the usual Sign in.
+      var tryFree = document.createElement('a');
+      tryFree.href = TRAINER_URL;
+      tryFree.className = 'cta';
+      tryFree.innerHTML = 'Try&nbsp;free&nbsp;&rarr;';
+      slot.appendChild(tryFree);
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'link-btn';
