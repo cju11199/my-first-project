@@ -295,6 +295,11 @@ main.shifts-collapsed .shift-tab{left:0}
 .cleared .sc-icon{color:var(--green);border-color:rgba(142,240,194,.3);background:radial-gradient(120% 120% at 30% 20%,rgba(142,240,194,.16),rgba(142,240,194,.03))}
 .case-card.locked{cursor:not-allowed;opacity:.62}
 .case-card.locked:hover{transform:none;border-color:var(--border);box-shadow:0 22px 50px -28px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.06)}
+/* Free-tier badges on the case picker */
+.case-card.paid-locked{cursor:pointer;opacity:.7}
+.case-card.free-case{opacity:1}
+.lock-badge{margin-top:9px;display:inline-block;font-size:11px;font-weight:600;letter-spacing:.02em;color:#ffb38a;background:rgba(255,122,69,.12);border:1px solid rgba(255,122,69,.35);border-radius:999px;padding:3px 10px}
+.free-badge{margin-top:9px;display:inline-block;font-size:11px;font-weight:600;letter-spacing:.02em;color:#7ee0a8;background:rgba(54,224,106,.12);border:1px solid rgba(54,224,106,.35);border-radius:999px;padding:3px 10px}
 .sc-title .mic-req{font-size:.8em;margin-left:6px;color:var(--gold);opacity:.95}
 .back-card{width:140px;min-height:150px;align-items:center;justify-content:center;text-align:center;background:linear-gradient(160deg,rgba(20,26,36,.5),rgba(14,19,27,.6));border-style:dashed}
 .back-card .sc-icon{margin-bottom:10px}
@@ -1383,14 +1388,14 @@ function loadTiltStacks(c){
 // hydrate2DCases() fills the null-placeholder CASES entries (and re-kicks the CBCT
 // pelvis fallback, since image_data.js is shared); ensure2DData() loads them once
 // (re-entrant; terminal on error) then runs cb. Mirrors the CBCT lazy load.
-let _2dState='idle';            // 'idle' | 'loading' | 'ready' | 'error'
-const _2dQueue=[];
-function data2dReady(){
-  return typeof BRAIN_AP_SRC!=='undefined'
-      && typeof BREAST_SCV_REF_SRC!=='undefined'
-      && typeof BREAST_META!=='undefined'
-      && typeof PROSTATE2D!=='undefined';
-}
+// Per-file readiness so a FREE user loads ONLY their case's data file (Breast -> just
+// breast_drr_data.js; never the paid image_data.js / prostate2d_data.js).
+function breastDataReady(){ return typeof BREAST_SCV_REF_SRC!=='undefined' && typeof BREAST_META!=='undefined'; }
+function imageDataReady(){  return typeof BRAIN_AP_SRC!=='undefined'; }
+function prostate2dReady(){ return typeof PROSTATE2D!=='undefined'; }
+function data2dReady(){ return breastDataReady() && imageDataReady() && prostate2dReady(); }   // all three (paid bulk)
+function file2dFor(key){ return (key==='breast'||key==='breastDIBH') ? 'breast_drr_data.js' : (key==='prostate' ? 'prostate2d_data.js' : 'image_data.js'); }
+function ready2dFor(key){ return (key==='breast'||key==='breastDIBH') ? breastDataReady() : (key==='prostate' ? prostate2dReady() : imageDataReady()); }
 function hydrate2DCases(){
   if(typeof BRAIN_AP_SRC!=='undefined'){
     CASES.brain.ap=BRAIN_AP_SRC;   CASES.brain.lat=BRAIN_LAT_SRC;
@@ -1412,36 +1417,40 @@ function hydrate2DCases(){
   // preload now that the file is loaded. CBCT is defined by the time hydrate runs (post-load).
   if(typeof CBCT!=='undefined' && CBCT.loadRealPelvis) CBCT.loadRealPelvis();
 }
-function _flush2DQueue(){ const q=_2dQueue.splice(0); q.forEach(function(cb){ try{cb();}catch(e){console.error(e);} }); }
-function ensure2DData(cb){
-  if(_2dState==='ready'){ hydrate2DCases(); if(cb) cb(); return; }
-  if(cb) _2dQueue.push(cb);
-  if(_2dState==='loading' || _2dState==='error') return;   // a load is in flight / failed; don't restart
-  if(data2dReady()){ _2dState='ready'; hydrate2DCases(); _flush2DQueue(); return; }
-  _2dState='loading';
-  const files=['breast_drr_data.js','image_data.js','prostate2d_data.js'];
-  let pending=files.length;
-  const done=function(){
-    if(--pending>0) return;
-    if(data2dReady()){ _2dState='ready'; hydrate2DCases(); }
-    else { _2dState='error'; const m=document.getElementById('statusMsg'); if(m) m.textContent='Case data failed to load — please reload the page.'; }
-    _flush2DQueue();
+// Load one data .js once (dedup by src; terminal on error -> message, no infinite retry).
+const _loadState={};   // src -> 'loading' | 'ready' | 'error'
+const _loadQueue={};
+function _load2dErr(){ const m=document.getElementById('statusMsg'); if(m) m.textContent='Case data failed to load — please reload the page.'; }
+function loadScriptOnce(src, ready, cb){
+  if(ready()){ if(cb) cb(); return; }
+  (_loadQueue[src]=_loadQueue[src]||[]).push(cb||null);
+  if(_loadState[src]==='loading') return;            // a load is in flight; queue and wait
+  if(_loadState[src]==='error'){ _load2dErr(); return; }
+  _loadState[src]='loading';
+  const s=document.createElement('script'); s.src=rtAssetUrl(src); s.async=false;
+  s.onload=s.onerror=function(){                       // resolve on error too -> terminal, no retry loop
+    _loadState[src]= ready()?'ready':'error';
+    if(_loadState[src]==='error') _load2dErr();
+    const q=_loadQueue[src]||[]; _loadQueue[src]=[];
+    q.forEach(function(c){ if(c){ try{c();}catch(e){console.error(e);} } });
   };
-  files.forEach(function(src){
-    const s=document.createElement('script'); s.src=rtAssetUrl(src); s.async=false;
-    s.onload=done; s.onerror=done;   // resolve on error too -> terminal 'error' state, no infinite retry
-    document.head.appendChild(s);
-  });
+  document.head.appendChild(s);
 }
+function ensureBreastData(cb){ loadScriptOnce('breast_drr_data.js', breastDataReady, function(){ hydrate2DCases(); if(cb) cb(); }); }
+function ensureImageData(cb){  loadScriptOnce('image_data.js',      imageDataReady,  function(){ hydrate2DCases(); if(cb) cb(); }); }
+function ensureProstate2d(cb){ loadScriptOnce('prostate2d_data.js',  prostate2dReady, function(){ hydrate2DCases(); if(cb) cb(); }); }
+function ensure2dFor(key, cb){ loadScriptOnce(file2dFor(key), function(){ return ready2dFor(key); }, function(){ hydrate2DCases(); if(cb) cb(); }); }
+// Paid bulk pre-load (subscribers at init): chain all three so every 2D case is instant.
+function ensure2DData(cb){ ensureBreastData(function(){ ensureImageData(function(){ ensureProstate2d(cb); }); }); }
 
 function applyCase(key){
   const c=CASES[key]; if(!c) return;
   currentCase=key;
   // The 2D image data may not be loaded yet (fetched on demand post-auth). If not ready, kick
   // the load and re-apply when it lands. Terminal error -> surface a message, don't loop.
-  if(!data2dReady()){
-    if(_2dState==='error'){ const m=document.getElementById('statusMsg'); if(m) m.textContent='Case data failed to load — please reload the page.'; return; }
-    ensure2DData(function(){ applyCase(key); });
+  if(!ready2dFor(key)){
+    if(_loadState[file2dFor(key)]==='error'){ const m=document.getElementById('statusMsg'); if(m) m.textContent='Case data failed to load — please reload the page.'; return; }
+    ensure2dFor(key, function(){ applyCase(key); });
     return;
   }
   const sel=document.getElementById('caseSelect'); if(sel) sel.value=key;
@@ -3306,14 +3315,19 @@ function pickMode(mode){
   back.className='start-card case-card back-card';
   back.innerHTML='<div class="sc-icon">←</div><div class="sc-title">Back</div><div class="sc-desc">Choose a different workflow.</div>';
   back.onclick=backToModes; cp.appendChild(back);
+  const freeMode=!!(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode());
   list.cases.forEach(function(c){
     const el=document.createElement('div');
     const cid=mode+':'+c.v;
     const micCase=(mode==='2d2d' && c.v==='breastDIBH');               // voice-coached, mic-gated
-    const locked=micCase && !(window.DIBHVoice && DIBHVoice._possible);
+    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:spine');      // playable without a subscription
+    const paidLocked=freeMode && !isFreeCase;                          // locked behind the paywall
+    const locked=(micCase && !(window.DIBHVoice && DIBHVoice._possible)) || paidLocked;
     const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
-    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'')+(locked?' locked':'');
-    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+title+'</div><div class="sc-desc">'+c.d+'</div>'+rtCardStat(cid);
+    el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'')+(locked?' locked':'')+(paidLocked?' paid-locked':'')+(freeMode&&isFreeCase?' free-case':'');
+    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+title+'</div><div class="sc-desc">'+c.d+'</div>'
+      +(paidLocked?'<div class="lock-badge">&#128274; Subscribe to unlock</div>':(freeMode&&isFreeCase?'<div class="free-badge">Free to try</div>':''))
+      +rtCardStat(cid);
     el.onclick=function(){ launchCase(mode,c.v); };
     cp.appendChild(el);
   });
@@ -3326,6 +3340,14 @@ function backToModes(){
   document.getElementById('startSub').textContent='Select an imaging workflow';
 }
 function launchCase(mode, key){
+  // FREE TIER (authoritative client gate): without a subscription, only the Breast (2D) and
+  // Spine (CBCT) cases are playable. Paid cases never reach applyCase / CBCT.applyCase here.
+  if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode()
+     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='spine'))){
+    const note=document.getElementById('startNote');
+    if(note){ note.innerHTML='This case needs a subscription. <a href="'+((window.RTAuth&&RTAuth.SUBSCRIBE_URL)||'/subscribe')+'">Start your free trial &rarr;</a>'; note.classList.add('warn'); }
+    return;
+  }
   // Breast DIBH is VOICE-COACHED and gated on microphone availability: coaching commands
   // (in/relax/abort) are spoken; only Beam On is a button. Block entry unless the Web Speech API
   // is usable AND a real mic grants access, then open the match screen (DIBH.enter auto-arms voice).
@@ -4772,6 +4794,9 @@ const CBCT=(function(){
 
   /* ---- case build / lifecycle ---- */
   function applyCase(key){
+    // Defense-in-depth: a free-tier user can only ever load the Spine volume (the public one),
+    // so a paid CBCT case can never trigger a lazy rtAssetUrl fetch of protected data.
+    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='spine') return;
     caseKey=key;const sel=gid('cbCaseSelect');if(sel)sel.value=key;
     const vc=VOLCASE[key];
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
@@ -4806,7 +4831,7 @@ const CBCT=(function(){
     window.addEventListener('resize',()=>{if(currentMode==='cbct'){resize();render();}});
     select('axial');applyCase(caseKey);refreshReadouts();applyLayout();toggleContours();
   }
-  function enter(){if(!started){build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
+  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='spine';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
@@ -4998,13 +5023,15 @@ window.addEventListener('load', function(){
   if (window.RTAuth && window.RTAuth.ready && window.RTAuth.ready.then) {
     window.RTAuth.ready.then(async function(){
       if (typeof RTAuth.hasActiveSub==='function' && RTAuth.hasActiveSub()===true) {
-        // Mint a Clerk session token for /api/asset (retry while session hydration lags),
-        // keep it fresh on a timer, then load the gated data.
+        // Subscriber/comped: mint a Clerk session token for /api/asset (retry while session
+        // hydration lags), keep it fresh, then pre-load all 2D data so every case is instant.
         for (let i=0; i<25 && !(await rtRefreshToken()); i++){ await new Promise(function(r){ setTimeout(r,150); }); }
         setInterval(rtRefreshToken, 30000);
         ensure2DData(function(){ applyCase(currentCase); });
       }
-      // signed-out / no active subscription -> the auth gate redirects; load no case data
+      // FREE / signed-out: load NOTHING eagerly (currentCase defaults to a paid case). The free
+      // cases (Breast 2D, Spine CBCT) load their own PUBLIC data on demand when launched; paid
+      // cases are blocked in launchCase, so no protected file is ever requested here.
     });
   } else {
     ensure2DData(function(){ applyCase(currentCase); });   // no RTAuth (headless / ungated)
