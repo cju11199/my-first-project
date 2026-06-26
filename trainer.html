@@ -795,6 +795,7 @@ html:not(.auth-pending) #authGate{display:none}
       </div>
       <div class="cb-wl-presets" id="cbWinPresets" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-ptitle">PRESET WINDOW</div>
+        <div class="cb-wl-preset" onclick="CBCT.autoWindow()">Auto (fit histogram)</div>
         <div class="cb-wl-preset" onclick="CBCT.setWinPreset('bone')">Bone</div>
         <div class="cb-wl-preset" onclick="CBCT.setWinPreset('abdomen')">Abdomen</div>
         <div class="cb-wl-preset" onclick="CBCT.setWinPreset('lung')">Lung</div>
@@ -1872,10 +1873,11 @@ const FID2D=(function(){
   function fidTransTol(){return fidTol().t1;}   // translation accept (mm) — markers must be seated too
   function randomize(keepResult){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
     const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
-    // Realistic per-axis rotation (2–3.5°). Across 3 axes the total angle compounds to ~3.5–6°;
-    // ensure that total comfortably exceeds the accept tolerance so rotation must be corrected.
-    let rv=[rr(2,3.5)*sg(),rr(2,3.5)*sg(),rr(2,3.5)*sg()];
-    const need=fidRotTol()+1.2,tot=Math.hypot(rv[0],rv[1],rv[2]);
+    // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
+    // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
+    // never seat all three markers — the student MUST Ctrl+drag one or two seeds to rotate the triad.
+    let rv=[rr(3,5)*sg(),rr(3,5)*sg(),rr(3,5)*sg()];
+    const need=fidRotTol()*2,tot=Math.hypot(rv[0],rv[1],rv[2]);
     if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
@@ -3750,7 +3752,7 @@ const CBCT=(function(){
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
     prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true},  // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
-    acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:100,w:700}, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. mr:true hides the CT-only bone/HU window presets. Data built by generate_vs_mr.py.
+    acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
     liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true}   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
   };
   const hasVol=k=>!!VOLCASE[k];
@@ -3776,6 +3778,31 @@ const CBCT=(function(){
     const lv=gid('cbWLval');if(lv)lv.textContent=winL; const wv=gid('cbWWval');if(wv)wv.textContent=winW;
     const pm=gid('cbWinPresets');if(pm)pm.classList.remove('open');
     _invCaches();if(currentMode==='cbct')render();
+  }
+  // Auto-window: derive level/width from the loaded volume's OWN intensity histogram so the
+  // tissue fills the display range — a robust 2nd–98th percentile of non-background voxels.
+  // Built for the contrast-T1 MR case (intensities are arbitrary, not HU): its baked window
+  // otherwise clipped the brighter half of the brain/tumour to flat white. Generic, so the
+  // "Auto" preset works on any volume case.
+  function autoWindow(){
+    if(!V3||!V3.data)return false;
+    const data=V3.data,n=data.length,h=new Uint32Array(256);
+    for(let i=0;i<n;i++)h[data[i]]++;
+    const BG=8;                                    // drop the near-air background spike (density~0)
+    let tot=0;for(let d=BG+1;d<256;d++)tot+=h[d];
+    if(tot<2000)return false;                       // volume not ready / almost no tissue
+    const pct=p=>{const tgt=p*tot;let acc=0;for(let d=BG+1;d<256;d++){acc+=h[d];if(acc>=tgt)return d;}return 255;};
+    const lo=pct(0.02),hi=pct(0.98);
+    if(hi<=lo)return false;
+    const hu=d=>d*HU_SCALE+HU_OFF;                   // density(0..255) -> the window's HU units
+    let wl=Math.round((hu(lo)+hu(hi))/2/10)*10, ww=Math.round((hu(hi)-hu(lo))/20)*20;
+    wl=Math.max(-700,Math.min(900,wl));ww=Math.max(100,Math.min(2400,ww));   // clamp to the slider ranges
+    winL=wl;winW=ww;
+    const sL=gid('cbSlWL');if(sL)sL.value=winL; const sW=gid('cbSlWW');if(sW)sW.value=winW;
+    const lv=gid('cbWLval');if(lv)lv.textContent=winL; const wv=gid('cbWWval');if(wv)wv.textContent=winW;
+    const pm=gid('cbWinPresets');if(pm)pm.classList.remove('open');
+    _invCaches();if(currentMode==='cbct')render();
+    return true;
   }
   function toggleWindowing(){
     winMode=!winMode;
@@ -3817,6 +3844,7 @@ const CBCT=(function(){
     sliceIdx.axial=(Z/2)|0; sliceIdx.coronal=(Y/2)|0; sliceIdx.sagittal=(X/2)|0;
     _invCaches();_invContours();
     mprReady=true; mprCase=caseKey;
+    if(VOLCASE[caseKey]&&VOLCASE[caseKey].autoWin)autoWindow();   // MR: window from the volume's own histogram once it's decoded
     if(contoursOn){const vc=VOLCASE[caseKey];
       if(vc&&vc.contours&&curLBL())centerOnIso();          // label-volume case (brain/breast): re-center after volume decode
       else if(vc&&vc.ptv&&!vc.contours)centerOnTarget();}
@@ -4987,7 +5015,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
 

@@ -81,6 +81,11 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
 - `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
   radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case).
+- `generate_breast_clips.py` — re-runnable in-place editor for the Breast CBCT surgical clips: reads
+  `breast3d_data.js` + `breast3d_labels_data.js`, erases the old large hard-edged density-255 clip blobs
+  and re-stamps small (~3–4 mm) feathered bright cores at the same centroids, then rewrites label bit 64
+  (clips) + recomputes bit 128 (clips + 5 mm). Shrinks the markers and softens the 255-vs-tissue cliff so
+  the moving reslice shimmers/blooms less (needs numpy/scipy/pillow; browser-verify the canvas result).
 - `generate_pancreas_cbct.py` — offline helper that ingests a **TCIA Pancreatic-CT-CBCT-SEG** patient
   (planning breath-hold CT DICOM series + RTSTRUCT) and writes `pancreas3d_data.js` +
   `pancreas3d_labels_data.js` (same tiled-atlas format as the other `*3d_*` files) for the **Pancreas
@@ -138,8 +143,10 @@ Two workflows, picked on the start screen:
     all three markers (Sup/Inf/Lat); **Ctrl/⌘+drag** moves the nearest single marker (adds rotation).
     A least-squares rigid fit (**Horn quaternion**, `fit()`) of plan→placed markers reads out the
     couch shift; the readout panel grows a **Yaw** row (`fidPanel`) so all 6DOF show. The hidden
-    rotation is a realistic **2–3.5°/axis** (compounding to ~4–6° total, scaled up if needed to exceed
-    the accept tolerance so rotation is always required — not solvable by translation alone). `check()`
+    rotation is a realistic **3–5°/axis** (compounding to ~5–8.5° total, scaled up if needed to clear
+    **twice** the accept tolerance so rotation is always required — a translate-only plain-drag solution
+    can never seat all three markers, so at least one or two seeds **must** be Ctrl/⌘+dragged
+    individually to rotate the triad). `check()`
     grades the **residual misregistration** `fit(M,Qtrue)`: accept = residual **rotation ≤ the case
     rotation tolerance** (`fidRotTol()` → the `2d2d:prostate` `CASE_TOL` entry's r1 = 3°) **and**
     residual translation ≤ the case translation tolerance (`fidTransTol()` → t1 = 2 mm). **Match time
