@@ -97,9 +97,9 @@ h1 .grad{background:linear-gradient(110deg,var(--accent-hi),var(--accent) 45%,va
 </div></header>
 
 <main><div class="wrap">
-  <span class="chip"><span class="dot"></span>3-day free trial</span>
+  <span class="chip"><span class="dot"></span>14-day free trial · no card</span>
   <h1>Start your <span class="grad">free trial</span></h1>
-  <p class="sub">Full access to every case and matching tool. Cancel anytime during the trial and you won't be charged.</p>
+  <p class="sub">Full access to every case and matching tool — no credit card required to start. Cancel anytime during the trial and you won't be charged.</p>
   <div class="shots">
     <figure><img src="/assets/shots/trainer-cbct.gif" width="540" height="369" loading="lazy" alt="CBCT 6DOF volumetric fusion converging"></figure>
     <figure><img src="/assets/shots/trainer-2d2d.webp" width="1600" height="975" loading="lazy" alt="2D/2D portal-to-DRR matching"></figure>
@@ -128,7 +128,7 @@ h1 .grad{background:linear-gradient(110deg,var(--accent-hi),var(--accent) 45%,va
     // Must be signed in to subscribe.
     if (!Clerk.user) { Clerk.openSignUp({ forceRedirectUrl: window.location.href }); return; }
 
-    // Render Clerk's pricing table (handles checkout + the 3-day trial).
+    // Render Clerk's pricing table (handles checkout + the free trial).
     try {
       Clerk.mountPricingTable(document.getElementById('pricing-table'), {
         forceRedirectUrl: RTAuth.TRAINER_URL
