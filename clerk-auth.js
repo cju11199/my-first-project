@@ -74,6 +74,7 @@
     'user_3FRbBFuCte2DQkTDzoeZe2VSfXB', // owner — full access, no subscription
     'user_3Fbnfz1v8QBrK8lwY8XN7YnadDk', // comped account
     'user_3FdAKcEGAZ7GEURzye3YCHv0jsW', // comped account
+    'user_3FbktcxWR3jnk8ZP6y4bm9ly9C1', // comped account
   ];
   var COMP_EMAILS = []; // (owner moved to COMP_USER_IDS above; add testers here if needed — verified emails only)
   // Whole-domain free access (students/staff): anyone with a VERIFIED email at one
