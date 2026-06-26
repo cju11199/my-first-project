@@ -597,6 +597,66 @@ html:not(.auth-pending) #authGate{display:none}
 @keyframes dibhFlash{0%{box-shadow:0 0 0 2px var(--accent)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
 @media(prefers-reduced-motion:reduce){.dibh-mic-pill.live::before{animation:none}.dibh-btn.voice-fire{animation:none}}
 @media(max-width:880px){.dibh-strip{flex-direction:column}.dibh-side{flex-basis:auto}#dibhTrace{height:118px}}
+/* ── Treatment delivery console (standard 2D cases): a TrueBeam-style beam-params + status-lamp +
+   Beam On strip docked at the BOTTOM of the match screen, mirroring the DIBH strip. Hidden except on
+   standard 2D cases (CONSOLE.refresh/exit). Suppressed on fid-mode (prostate) + dibh-mode (Breast DIBH
+   owns this slot) so only one bottom strip ever shows. ── */
+.console-strip{display:flex;gap:12px;align-items:stretch;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:10px 12px;flex:0 0 auto}
+.console-strip.hidden{display:none}
+.con-main{flex:1 1 auto;min-width:0;background:#05080c;border:1px solid var(--border2);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:8px;font-family:var(--mono),monospace}
+.con-side{flex:0 0 330px;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.con-seq{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text);letter-spacing:.04em}
+.con-seq-lbl{white-space:nowrap}
+.con-fields{display:inline-flex;gap:5px}
+.con-pip{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.18);border:1px solid var(--border2)}
+.con-pip.cur{background:var(--accent);border-color:var(--accent)}
+.con-pip.done{background:var(--green);border-color:var(--green)}
+.con-energy{font-size:10px;color:var(--gold);border:1px solid rgba(230,194,90,.45);border-radius:6px;padding:1px 6px}
+.con-plan{margin-left:auto;font-size:10px;color:var(--muted);letter-spacing:.08em}
+.con-meters{display:flex;align-items:center;gap:14px}
+.con-mu{display:flex;align-items:baseline;gap:5px}
+.con-mu .cl{font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.con-mu .cl i{font-style:normal}
+.con-mu b{font-size:20px;color:var(--accent);font-variant-numeric:tabular-nums}
+.con-mu.rate b{color:var(--gold)}
+.con-mu.rate i{font-size:9px;color:var(--muted);font-style:normal;margin-left:3px}
+.con-bar{flex:1;height:8px;background:rgba(255,255,255,.10);border-radius:4px;overflow:hidden}
+.con-bar-fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#1ba9c4);transition:width .1s linear}
+.console-strip.st-beam .con-bar-fill{background:linear-gradient(90deg,var(--gold),#caa23e)}
+.con-params{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.con-cell{display:flex;flex-direction:column;min-width:0}
+.con-cell .cl{font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.con-cell b{font-size:13px;color:var(--text)}
+.con-cell i{font-size:9px;color:var(--muted);font-style:normal}
+.con-banner{font-size:11px;letter-spacing:.08em;color:var(--label);background:rgba(8,11,16,.6);border:1px solid var(--border2);border-radius:8px;padding:5px 9px}
+.console-strip.st-ready .con-banner{color:var(--green)}
+.console-strip.st-beam .con-banner{color:var(--gold)}
+.console-strip.st-ilk .con-banner{color:var(--accent2)}
+.console-strip.st-done .con-banner{color:var(--green)}
+.con-lamps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 12px}
+.con-lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono),monospace;font-size:10px;letter-spacing:.05em;color:var(--muted)}
+.con-lamp i{width:10px;height:10px;border-radius:50%;background:#1a2230;border:1px solid var(--border2);flex:0 0 auto}
+.con-lamp.on{color:var(--text)}
+.con-lamp.on i{background:var(--green);box-shadow:0 0 7px 1px rgba(61,220,151,.7);border-color:transparent}
+.con-lamp.warn{color:var(--text)}
+.con-lamp.warn i{background:var(--gold);box-shadow:0 0 7px 1px rgba(230,194,90,.7);border-color:transparent}
+.con-lamp.beam{color:var(--text)}
+.con-lamp.beam i{background:var(--accent2);box-shadow:0 0 7px 1px rgba(255,122,69,.8);border-color:transparent;animation:conBeamPulse .9s ease-in-out infinite}
+.con-lamp.block{color:#ff7a72}
+.con-lamp.block i{background:#ff5147;box-shadow:0 0 8px 1px rgba(255,81,71,.8);border-color:transparent}
+@keyframes conBeamPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.con-beam{padding:14px 12px;font:inherit;font-size:15px;font-weight:700;letter-spacing:.03em;border-radius:9px;cursor:pointer;border:1px solid transparent;background:linear-gradient(135deg,var(--green),#1f9d6b);color:#04140d}
+.con-beam .kbd{font-family:var(--mono),monospace;font-size:9px;font-weight:600;opacity:.85;border:1px solid currentColor;border-radius:4px;padding:1px 4px;margin-left:8px;vertical-align:middle}
+.con-beam:active{transform:translateY(1px)}
+.con-beam:disabled{opacity:.4;cursor:not-allowed;transform:none;background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2)}
+.console-strip.st-beam .con-beam{background:linear-gradient(135deg,#ff5147,#c63a32);color:#fff}
+.con-msg{font-size:12px;color:var(--label);min-height:16px;line-height:1.3}
+.con-msg.ok{color:var(--green)}
+.con-msg.bad{color:var(--accent2)}
+/* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
+body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
+@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}}
+@media(max-width:880px){.console-strip{flex-direction:column}.con-side{flex-basis:auto}.con-params{grid-template-columns:repeat(3,1fr)}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
 <body data-require-auth>
@@ -1005,6 +1065,48 @@ html:not(.auth-pending) #authGate{display:none}
       </div>
       <div class="dibh-msg" id="dibhMsg">Coach a breath-hold, then Beam On while in-gate.</div>
       <div class="dibh-score" id="dibhScore"></div>
+    </div>
+  </div>
+  <!-- TrueBeam-style delivery console: beam params + status/interlock lamps + Beam On, docked at the
+       bottom of the 2D match screen after the DRR views. Hidden except on standard 2D cases
+       (CONSOLE.refresh/exit). Suppressed on the fiducial (fid-mode) and Breast DIBH cases (DIBH owns
+       this slot — only one bottom strip shows at a time). -->
+  <div class="console-strip hidden" id="consoleStrip" aria-label="Treatment delivery console">
+    <div class="con-main">
+      <div class="con-seq">
+        <span class="con-seq-lbl" id="conSeqLbl">FIELD 1 / 2 &middot; AP</span>
+        <span class="con-fields" id="conFields"></span>
+        <span class="con-energy" id="conEnergy">6X</span>
+        <span class="con-plan" id="conPlan">&mdash;</span>
+      </div>
+      <div class="con-meters">
+        <div class="con-mu"><span class="cl">MU 1</span><b id="conMu1">0</b><span class="cl">/ <i id="conMuTgt1">0</i></span></div>
+        <div class="con-mu"><span class="cl">MU 2</span><b id="conMu2">0</b><span class="cl">/ <i id="conMuTgt2">0</i></span></div>
+        <div class="con-mu rate"><span class="cl">DOSE RATE</span><b id="conRate">0</b><i>MU/min</i></div>
+        <div class="con-bar"><div class="con-bar-fill" id="conBar"></div></div>
+      </div>
+      <div class="con-params">
+        <div class="con-cell"><span class="cl">GANTRY</span><b id="conG">0.0</b><i>deg</i></div>
+        <div class="con-cell"><span class="cl">COLL</span><b id="conColl">0.0</b><i>deg</i></div>
+        <div class="con-cell"><span class="cl">COUCH</span><b id="conCouch">0.0</b><i>deg</i></div>
+        <div class="con-cell"><span class="cl">FIELD</span><b id="conFs">&mdash;</b><i>cm</i></div>
+        <div class="con-cell"><span class="cl">SSD</span><b id="conSsd">&mdash;</b><i>cm</i></div>
+      </div>
+      <div class="con-banner" id="conBanner">INTERLOCK &mdash; VERIFY IMAGE MATCH</div>
+    </div>
+    <div class="con-side">
+      <div class="con-lamps" id="conLamps">
+        <span class="con-lamp" id="lampReady"><i></i>BEAM READY</span>
+        <span class="con-lamp" id="lampBeam"><i></i>BEAM ON</span>
+        <span class="con-lamp" id="lampMotion"><i></i>MOTION</span>
+        <span class="con-lamp" id="lampImg"><i></i>IMG MATCH</span>
+        <span class="con-lamp" id="lampDoor"><i></i>DOOR</span>
+        <span class="con-lamp" id="lampMlc"><i></i>MLC</span>
+      </div>
+      <button class="con-beam" id="conBeamBtn" type="button" onclick="CONSOLE.beam()" disabled
+        title="Deliver this field — enabled once the image match is accepted, or press B">
+        <span id="conBeamLbl">BEAM ON</span><span class="kbd">B</span></button>
+      <div class="con-msg" id="conMsg">Accept an image match to clear the interlock, then Beam On.</div>
     </div>
   </div>
   </div><!-- /.match-col -->
@@ -1482,6 +1584,7 @@ function applyCase(key){
     document.getElementById('latDirLeft').textContent='A';
     document.getElementById('latDirRight').textContent='P';
     document.body.classList.add('fid-mode');   // hides blend/contrast/tool widgets that don't apply
+    if(window.CONSOLE) CONSOLE.exit();   // fiducial case: never show the delivery console
     FID2D.enter();
     return;
   }
@@ -1510,6 +1613,7 @@ function applyCase(key){
   views.ap.img.src=c.ap;
   views.lat.img.src=c.lat;
   randomizeShift();           // fresh random offset for the new case (also refreshes readouts)
+  if(window.CONSOLE) CONSOLE.refresh(key);   // show/hide + reset the delivery console for this case
 }
 
 function toggleGrid(){
@@ -2320,6 +2424,181 @@ const DIBH=(function(){
 window.DIBH=DIBH;
 
 /* ============================================================================
+   CONSOLE — simulated TrueBeam-style treatment-delivery console for the 2D cases.
+   Docked as a strip (#consoleStrip) at the bottom of the match screen, mirroring
+   the DIBH strip. After the trainee accepts a 2D image match, the IMG MATCH
+   interlock clears and they deliver the case's treatment fields one at a time:
+   Beam On ramps the dual MU chambers at the case dose-rate, and on field-complete
+   the sequencer advances to the next field (which must be re-matched) until the
+   plan is delivered. Self-contained; consumes the match-accept event via
+   matchAccepted() — it never grades the match itself. _dbg exposes a deterministic
+   ramp stepper so the whole delivery loop is headless-testable.
+   ============================================================================ */
+// Per-case treatment plans (clinically-plausible, IEC scale, symmetric jaws). Keyed by 2D case key.
+// breastDIBH + prostate are intentionally ABSENT -> CONSOLE_PLANS[key] is the visibility test.
+const CONSOLE_PLANS={
+  brain:{plan:'BRAIN_SRT', fields:[
+    {id:'AP',   energy:'6X', mu:240, rate:600, g:0,   coll:0,  couch:0, x:8.0, y:8.0, ssd:91.4},
+    {id:'L LAT',energy:'6X', mu:255, rate:600, g:270, coll:90, couch:0, x:8.0, y:8.0, ssd:90.2} ]},
+  pelvis:{plan:'PELVIS_IMRT', fields:[
+    {id:'AP',   energy:'10X',mu:182, rate:600, g:0,   coll:0,  couch:0, x:14.0,y:13.0,ssd:88.5},
+    {id:'RPO',  energy:'10X',mu:190, rate:600, g:90,  coll:0,  couch:0, x:12.0,y:13.0,ssd:78.0},
+    {id:'LPO',  energy:'10X',mu:188, rate:600, g:270, coll:0,  couch:0, x:12.0,y:13.0,ssd:78.0} ]},
+  thorax:{plan:'THORAX_3DC', fields:[
+    {id:'AP',   energy:'6X', mu:165, rate:400, g:0,   coll:0,  couch:0, x:12.0,y:14.0,ssd:92.0},
+    {id:'PA',   energy:'6X', mu:150, rate:400, g:180, coll:0,  couch:0, x:12.0,y:14.0,ssd:90.0},
+    {id:'R LAT',energy:'10X',mu:110, rate:600, g:90,  coll:0,  couch:0, x:11.0,y:14.0,ssd:85.0} ]},
+  femur:{plan:'FEMUR_3DC', fields:[
+    {id:'AP',   energy:'6X', mu:200, rate:400, g:0,   coll:0,  couch:0, x:9.0, y:20.0,ssd:95.0},
+    {id:'PA',   energy:'6X', mu:202, rate:400, g:180, coll:0,  couch:0, x:9.0, y:20.0,ssd:95.0} ]},
+  breast:{plan:'BREAST_L_MONO', fields:[
+    {id:'SCV',    energy:'6X',mu:150, rate:400, g:0,   coll:0,  couch:0, x:16.0,y:10.0,ssd:91.0},
+    {id:'MED TAN',energy:'6X',mu:280, rate:400, g:305, coll:0,  couch:0, x:9.5, y:22.0,ssd:90.5},
+    {id:'LAT TAN',energy:'6X',mu:272, rate:400, g:125, coll:0,  couch:0, x:9.5, y:22.0,ssd:90.5} ]}
+};
+const CONSOLE=(()=>{
+  const el=id=>document.getElementById(id);
+  let active=false,caseKey=null,plan=null,fields=[],idx=0,delivered=[],
+      st='INTERLOCKED',mu1=0,mu2=0,beamOn=false,latched=false,door='closed',
+      lastTs=0,raf=0,motionTmr=0;
+  const cur=()=>fields[idx]||null;
+  const totalMU=()=>fields.reduce((s,f,i)=>s+(delivered[i]?f.mu:0),0);
+
+  // ---- visibility / lifecycle (mirrors DIBH.enter/exit) ----
+  function refresh(key){   // single idempotent entry; also covers the #caseSelect dropdown (calls applyCase)
+    // DIBH owns the strip on breastDIBH; prostate is fid-mode; an unplanned key stays hidden.
+    if(key==='breastDIBH'||document.body.classList.contains('dibh-mode')||
+       document.body.classList.contains('fid-mode')||!CONSOLE_PLANS[key]){ exit(); return; }
+    caseKey=key; plan=CONSOLE_PLANS[key]; fields=plan.fields.slice();
+    idx=0; delivered=fields.map(()=>false); mu1=mu2=0; beamOn=false; latched=false; door='closed';
+    active=true; stopRamp(); clearTimeout(motionTmr);
+    const s=el('consoleStrip'); if(s)s.classList.remove('hidden');
+    document.body.classList.add('console-mode');
+    el('conPlan').textContent=plan.plan;
+    setSt('INTERLOCKED');
+    msg('Accept an image match to clear the interlock, then Beam On.','');
+  }
+  function exit(){
+    stopRamp(); clearTimeout(motionTmr); active=false; beamOn=false;
+    const s=el('consoleStrip'); if(s)s.classList.add('hidden');
+    document.body.classList.remove('console-mode');
+  }
+
+  // ---- render ----
+  function render(){
+    const f=cur(); if(!f)return;
+    el('conSeqLbl').textContent='FIELD '+(idx+1)+' / '+fields.length+' · '+f.id;
+    el('conEnergy').textContent=f.energy;
+    el('conG').textContent=f.g.toFixed(1); el('conColl').textContent=f.coll.toFixed(1);
+    el('conCouch').textContent=f.couch.toFixed(1);
+    el('conFs').textContent=f.x.toFixed(1)+' × '+f.y.toFixed(1); el('conSsd').textContent=f.ssd.toFixed(1);
+    el('conMuTgt1').textContent=f.mu; el('conMuTgt2').textContent=f.mu;
+    renderMeters(); renderPips();
+  }
+  function renderMeters(){
+    const f=cur(); if(!f)return;
+    el('conMu1').textContent=Math.round(mu1); el('conMu2').textContent=Math.round(mu2);
+    el('conRate').textContent=beamOn?f.rate:0;
+    el('conBar').style.width=(100*mu1/f.mu)+'%';
+  }
+  function renderPips(){
+    const box=el('conFields'); if(!box)return; box.innerHTML='';
+    fields.forEach((f,i)=>{const p=document.createElement('i');
+      p.className='con-pip'+(delivered[i]?' done':i===idx?' cur':''); box.appendChild(p);});
+  }
+  function refreshLamps(){
+    const set=(id,c)=>{const e=el(id); if(e)e.className='con-lamp'+(c?' '+c:'');};
+    set('lampReady', st==='READY'?'on':'');
+    set('lampBeam',  beamOn?'beam':'');
+    set('lampImg',   latched?'on':'block');
+    set('lampDoor',  door==='closed'?'on':'block');
+    set('lampMlc',   active?'on':'');
+    const btn=el('conBeamBtn');
+    if(btn){
+      btn.disabled=!(st==='READY'||st==='HOLD');
+      el('conBeamLbl').textContent=st==='BEAM'?'BEAM HOLD':st==='COMPLETE'?'PLAN COMPLETE':'BEAM ON';
+    }
+  }
+  function setSt(s){
+    st=s; const strip=el('consoleStrip');
+    if(strip)strip.className='console-strip'+(active?'':' hidden')+
+      (s==='READY'?' st-ready':s==='BEAM'?' st-beam':s==='HOLD'?' st-hold':
+       s==='COMPLETE'?' st-done':' st-ilk');
+    const f=cur(), b=el('conBanner');
+    if(b)b.textContent=
+      s==='READY'?'BEAM READY — FIELD '+(idx+1)+'/'+fields.length+' · '+(f&&f.id):
+      s==='BEAM'?'BEAM ON — DELIVERING':
+      s==='HOLD'?'BEAM HOLD':
+      s==='COMPLETE'?'TREATMENT COMPLETE — '+totalMU()+' MU':
+      'INTERLOCK — VERIFY IMAGE MATCH';
+    render(); refreshLamps();
+  }
+  function msg(t,c){const m=el('conMsg'); if(m){m.textContent=t;m.className='con-msg'+(c?' '+c:'');}}
+
+  // ---- match unlock (called from checkMatch / applyNewOffset2d) ----
+  function matchAccepted(){
+    if(!active||beamOn||st==='COMPLETE'||delivered[idx])return;
+    latched=true; setSt('READY'); msg('Interlock cleared — Beam On to deliver this field.','ok');
+  }
+  function reinterlock(){   // fresh offset re-locks UNLESS a field is latched/beaming/complete
+    if(!active||latched||beamOn||st==='COMPLETE')return;   // a just-accepted READY latch survives the same Check Match
+    setSt('INTERLOCKED');
+  }
+
+  // ---- delivery ----
+  function beam(){
+    if(!active)return;
+    if(st==='BEAM'){ beamOn=false; stopRamp(); setSt('HOLD'); msg('Beam held — Beam On to resume.','bad'); return; }
+    if(!(st==='READY'||st==='HOLD'))return;   // gated; no-op while interlocked / complete
+    if(door!=='closed')return;
+    beamOn=true; latched=true; setSt('BEAM'); startRamp();
+  }
+  function ramp(dt){
+    const f=cur(); if(!f)return;
+    mu1=Math.min(f.mu, mu1+f.rate/60*dt);
+    mu2=Math.max(0, Math.min(mu1, mu1-0.3));
+    if(mu1>=f.mu){ mu1=mu2=f.mu; renderMeters(); completeField(); return; }
+    renderMeters(); refreshLamps();
+  }
+  function completeField(){
+    beamOn=false; stopRamp(); delivered[idx]=true; renderPips();
+    if(idx<fields.length-1){
+      idx++; mu1=mu2=0; latched=false; flashMotion(); setSt('INTERLOCKED');
+      msg('Field delivered — match the next field, then Beam On.','ok');
+    }else{ setSt('COMPLETE'); msg('All fields delivered — treatment complete.','ok'); }
+  }
+  function flashMotion(){   // cosmetic: amber MOTION lamp for a beat while axes reposition (skipped headless)
+    const e=el('lampMotion'); if(!e)return; e.className='con-lamp warn';
+    clearTimeout(motionTmr); motionTmr=setTimeout(()=>{if(!beamOn)refreshLamps();},450);
+  }
+  // rAF ramp loop with DIBH's tab-switch clamp
+  function frame(ts){ if(!beamOn)return; if(!lastTs)lastTs=ts;
+    let dt=(ts-lastTs)/1000; lastTs=ts; if(dt>0.1)dt=0.1; ramp(dt);
+    if(beamOn)raf=requestAnimationFrame(frame); }
+  function startRamp(){ lastTs=0; cancelAnimationFrame(raf); raf=requestAnimationFrame(frame); }
+  function stopRamp(){ cancelAnimationFrame(raf); raf=0; }
+
+  // ---- _dbg: deterministic headless hooks (no rAF) ----
+  const _dbg={
+    refresh, exit, matchAccepted, reinterlock, beam,
+    set:(o)=>{o=o||{};
+      if(o.idx!=null)idx=o.idx; if(o.mu1!=null)mu1=o.mu1; if(o.mu2!=null)mu2=o.mu2;
+      if(o.st!=null)st=o.st; if(o.beamOn!=null)beamOn=o.beamOn; if(o.latched!=null)latched=o.latched;
+      if(o.door!=null)door=o.door; if(o.active!=null)active=o.active; if(o.delivered)delivered=o.delivered.slice();
+      render(); refreshLamps();},
+    advance:(secs,d=0.05)=>{for(let t=0;t<secs&&beamOn;t+=d)ramp(d);},   // run the ramp synchronously
+    state:()=>({caseKey,plan:plan&&plan.plan,st,idx,fieldId:cur()&&cur().id,
+      mu1:+mu1.toFixed(1),mu2:+mu2.toFixed(1),mu:cur()&&cur().mu,rate:cur()&&cur().rate,g:cur()&&cur().g,
+      beamOn,latched,door,delivered:delivered.slice(),active,totalMU:totalMU(),done:st==='COMPLETE'}),
+    lampStates:()=>({ready:st==='READY',beam:beamOn,img:latched,door:door==='closed',
+      beamDisabled:el('conBeamBtn')?el('conBeamBtn').disabled:true}),
+    plans:CONSOLE_PLANS, fields:()=>fields.slice(), cur,
+  };
+  return {refresh,exit,matchAccepted,reinterlock,beam,_dbg};
+})();
+window.CONSOLE=CONSOLE;
+
+/* ============================================================================
    DIBHVoice — Phase 2 microphone coaching (Web Speech API).
    A thin, OPTIONAL voice adapter: recognized coaching phrases call the existing
    DIBH.cmd('in'|'relax'|'beam'|'abort') — the SAME entry point the on-screen
@@ -3069,6 +3348,7 @@ function applyNewOffset2d(){   // pick a fresh hidden 5DOF setup error (used by 
   hidden.z=rnd(6,16)*sgn();
   hidden.roll=rnd(0,4)*sgn();
   hidden.pitch=rnd(0,4)*sgn();
+  if(window.CONSOLE) CONSOLE.reinterlock();   // fresh offset re-interlocks the console unless a field is latched/beaming/complete
 }
 function randomizeShift(){
   if(FID2D.active()){ matchTimer2d.reset(); FID2D.randomize(); return; }
@@ -3152,7 +3432,8 @@ function checkMatch(){
   const close=Math.abs(e.x)<=TOL.t2&&Math.abs(e.y)<=TOL.t2&&Math.abs(e.z)<=TOL.t2;
   const ms=matchTimer2d.elapsed();
   const timeTag=(ok&&ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // time only counts when within tolerance
-  if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
+  if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);
+    if(window.CONSOLE) CONSOLE.matchAccepted();}   // accepted match releases the IMG MATCH interlock -> BEAM READY
   // record this attempt; only document a time when the match is within tolerance
   rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ok?ms:null});
   // Check Match resets the clock and loads a fresh offset for the next rep. Keep the verdict and the
@@ -3252,6 +3533,13 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey) && (e.key==='z'||e.key==='Z')){
     e.preventDefault();
     undo();
+    return;
+  }
+  // B : Beam On / Beam Hold on the delivery console (standard 2D cases; DIBH owns its own keys)
+  if((e.key==='b'||e.key==='B') && !e.ctrlKey && !e.metaKey && !e.altKey
+     && !document.body.classList.contains('dibh-mode') && window.CONSOLE){
+    e.preventDefault();
+    CONSOLE.beam();
     return;
   }
   // Flicker (flip the active view's blend to its mirror): Ctrl/⌘+A, or ⌥(Option)+A on Mac.
@@ -3640,6 +3928,7 @@ window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&
 function backToMenu(){
   currentMode=null;
   DIBH.exit();   // stop the breath-hold animation + hide its overlay if it was open
+  if(window.CONSOLE) CONSOLE.exit();   // hide the delivery console + stop its MU ramp on return to the picker
   document.body.classList.remove('fid-mode');   // clear the fiducial-case UI state
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
