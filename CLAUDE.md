@@ -81,6 +81,11 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
 - `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
   radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case).
+- `generate_breast_clips.py` — re-runnable in-place editor for the Breast CBCT surgical clips: reads
+  `breast3d_data.js` + `breast3d_labels_data.js`, erases the old large hard-edged density-255 clip blobs
+  and re-stamps small (~3–4 mm) feathered bright cores at the same centroids, then rewrites label bit 64
+  (clips) + recomputes bit 128 (clips + 5 mm). Shrinks the markers and softens the 255-vs-tissue cliff so
+  the moving reslice shimmers/blooms less (needs numpy/scipy/pillow; browser-verify the canvas result).
 - `generate_pancreas_cbct.py` — offline helper that ingests a **TCIA Pancreatic-CT-CBCT-SEG** patient
   (planning breath-hold CT DICOM series + RTSTRUCT) and writes `pancreas3d_data.js` +
   `pancreas3d_labels_data.js` (same tiled-atlas format as the other `*3d_*` files) for the **Pancreas
