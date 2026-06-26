@@ -721,6 +721,8 @@ html:not(.auth-pending) #authGate{display:none}
         <button class="btn-tool cb-dd-caret" id="cbContoursCaret" onclick="CBCT.toggleContourMenu(event)" title="Show / hide individual structures">&#9662;</button>
         <div class="cb-dd-menu" id="cbContourMenu">
           <div class="cb-dd-row on" id="cbCM_ptv"       onclick="CBCT.toggleStruct('ptv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
+          <div class="cb-dd-row on" id="cbCM_tumor"     style="display:none" onclick="CBCT.toggleStruct('tumor')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>Tumour (TV)</div>
+          <div class="cb-dd-row on" id="cbCM_cochlea"   style="display:none" onclick="CBCT.toggleStruct('cochlea')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#2fd6ff;color:#2fd6ff"></span>Cochlea</div>
           <div class="cb-dd-row on" id="cbCM_stomach"   style="display:none" onclick="CBCT.toggleStruct('stomach')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Stomach / duodenum</div>
           <div class="cb-dd-row on" id="cbCM_bowel"     style="display:none" onclick="CBCT.toggleStruct('bowel')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Small bowel</div>
           <div class="cb-dd-row on" id="cbCM_gtv"       onclick="CBCT.toggleStruct('gtv')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
@@ -800,6 +802,8 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="cb-contour-legend" id="cbContourLegend">
         <div class="cl-title">STRUCTURES</div>
         <div class="cl-row" id="cbLG_ptv"><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>PTV</div>
+        <div class="cl-row" id="cbLG_tumor" style="display:none"><span class="cl-sw" style="background:#ff3b4e;color:#ff3b4e"></span>Tumour (TV)</div>
+        <div class="cl-row" id="cbLG_cochlea" style="display:none"><span class="cl-sw" style="background:#2fd6ff;color:#2fd6ff"></span>Cochlea</div>
         <div class="cl-row" id="cbLG_stomach" style="display:none"><span class="cl-sw" style="background:#ffd23f;color:#ffd23f"></span>Stomach / duodenum</div>
         <div class="cl-row" id="cbLG_bowel" style="display:none"><span class="cl-sw" style="background:#7bc043;color:#7bc043"></span>Small bowel</div>
         <div class="cl-row" id="cbLG_gtv" style="display:none"><span class="cl-sw" style="background:#e8a13a;color:#e8a13a"></span>GTV</div>
@@ -3316,6 +3320,9 @@ const CASE_LISTS={
     // stomach/duodenum + small-bowel OAR contours (no dedicated target ROI in this collection, so
     // the iso sits at the GI/pancreatic centroid). Data built by generate_pancreas_cbct.py.
     {v:'pancreas',t:'Pancreas',       d:'CBCT &middot; breath-hold abdomen'},
+    // ACOUSTICMR: TCIA Vestibular-Schwannoma-SEG (CC BY 4.0). Contrast-T1 planning MR (not CT) —
+    // tight SRS match on the enhancing tumour (TV) sparing the cochlea. Data built by generate_vs_mr.py.
+    {v:'acousticMR',t:'Acoustic neuroma · MR', d:'MR &middot; SRS &middot; cochlea-sparing'},
   ]},
 };
 function pickMode(mode){
@@ -3448,6 +3455,7 @@ const CASE_TOL={
   'cbct:lung':      {t1:2, t2:6,   r1:2, r2:4},    // lung SBRT (off-bone; translation graded)
   'cbct:prostate':  {t1:2, t2:5,   r1:3, r2:4},    // gold fiducial seeds, rigid 6DOF
   'cbct:pancreas':  {t1:3, t2:7,   r1:2, r2:4},    // pancreas SBRT, breath-hold abdominal soft-tissue match
+  'cbct:acousticMR':{t1:1, t2:2,   r1:1, r2:2},    // MR vestibular schwannoma SRS — intracranial, tightest
 };
 const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
 function rtTol(mode,caseKey){return CASE_TOL[mode+':'+caseKey]||RT_TOL_DEFAULT;}
@@ -3735,7 +3743,8 @@ const CBCT=(function(){
                      hint:'✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton',
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
     prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true},  // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
-    pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true}   // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
+    pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
+    acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:100,w:700}, contours:true, mr:true}   // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. mr:true hides the CT-only bone/HU window presets. Data built by generate_vs_mr.py.
   };
   const hasVol=k=>!!VOLCASE[k];
   function curOffBone(){return (VOLCASE[caseKey]&&VOLCASE[caseKey].offBone)||null;}
@@ -3996,6 +4005,12 @@ const CBCT=(function(){
     {key:'cord',     color:'#00e5d0', lw:1.9},
   ];
   PANCREAS_STRUCTS.forEach(S=>S.visible=true);
+  const ACOUSTICMR_STRUCTS=[                          // MR vestibular schwannoma SRS: skull/body + cochlea OAR + tumour target (keys match generate_vs_mr.py bits)
+    {key:'body',    color:'#36e06a', lw:1.2},
+    {key:'cochlea', color:'#2fd6ff', lw:1.9},
+    {key:'tumor',   color:'#ff3b4e', lw:2.3},
+  ];
+  ACOUSTICMR_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
   // *_ISO_IDX below are just pre-load fallbacks; each _decode*Labels() overwrites them from the label
   // file's isoIdx (the source of truth), so keep these in sync with the data to avoid confusion.
@@ -4006,6 +4021,7 @@ const CBCT=(function(){
   let LUNG_LBL=null, LUNG_ISO_IDX=[60,106,58];        // lung:   RLL nodule centroid -> isocentre
   let PROSTATE_LBL=null, PROSTATE_ISO_IDX=[99,76,32];  // prostate: gland centroid -> isocentre
   let PANCREAS_LBL=null, PANCREAS_ISO_IDX=[96,96,48];  // pancreas: target centroid -> isocentre (overwritten from the label file's isoIdx)
+  let ACOUSTICMR_LBL=null, ACOUSTICMR_ISO_IDX=[94,101,91];  // MR VS: tumour (TV) centroid -> isocentre (overwritten from the label file's isoIdx)
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _breastCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
@@ -4013,6 +4029,7 @@ const CBCT=(function(){
   const _lungCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _prostateCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _pancreasCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _acousticmrCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   function _invContours(){
     _ctrCache.axial.k=_ctrCache.coronal.k=_ctrCache.sagittal.k=-1;
     _brainCtrCache.axial.k=_brainCtrCache.coronal.k=_brainCtrCache.sagittal.k=-1;
@@ -4021,15 +4038,17 @@ const CBCT=(function(){
     _lungCtrCache.axial.k=_lungCtrCache.coronal.k=_lungCtrCache.sagittal.k=-1;
     _prostateCtrCache.axial.k=_prostateCtrCache.coronal.k=_prostateCtrCache.sagittal.k=-1;
     _pancreasCtrCache.axial.k=_pancreasCtrCache.coronal.k=_pancreasCtrCache.sagittal.k=-1;
+    _acousticmrCtrCache.axial.k=_acousticmrCtrCache.coronal.k=_acousticmrCtrCache.sagittal.k=-1;
   }
-  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:LBL;}
-  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:CB_STRUCTS;}
-  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:CB_ISO_IDX;}
-  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:_ctrCache;}
+  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:caseKey==='acousticMR'?ACOUSTICMR_LBL:LBL;}
+  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:caseKey==='acousticMR'?ACOUSTICMR_STRUCTS:CB_STRUCTS;}
+  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:caseKey==='acousticMR'?ACOUSTICMR_ISO_IDX:CB_ISO_IDX;}
+  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:caseKey==='acousticMR'?_acousticmrCtrCache:_ctrCache;}
   function loadLabelMPR(){
     if(caseKey==='lung'){_loadLungLabelMPR();return;}
     if(caseKey==='prostate'){_loadProstateLabelMPR();return;}
     if(caseKey==='pancreas'){_loadPancreasLabelMPR();return;}
+    if(caseKey==='acousticMR'){_loadAcousticMRLabelMPR();return;}
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
@@ -4193,6 +4212,29 @@ const CBCT=(function(){
     _invCaches();_invContours();
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
+  function _loadAcousticMRLabelMPR(){
+    if(typeof ACOUSTICMR3D_LABELS==='undefined'){
+      if(_loadAcousticMRLabelMPR._t)return; _loadAcousticMRLabelMPR._t=1;
+      const s=document.createElement('script'); s.src=rtAssetUrl('acousticmr3d_labels_data.js');
+      s.onload=()=>{_loadAcousticMRLabelMPR._t=0;_loadAcousticMRLabelMPR();}; s.onerror=()=>{_loadAcousticMRLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(ACOUSTICMR_LBL)return;
+    const img=new Image(); img.onload=()=>_decodeAcousticMRLabels(img); img.src=ACOUSTICMR3D_LABELS.atlas;
+  }
+  function _decodeAcousticMRLabels(img){
+    const V=ACOUSTICMR3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    ACOUSTICMR_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    ACOUSTICMR_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)ACOUSTICMR_ISO_IDX=V.isoIdx.slice();
+    _invCaches();_invContours();
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
   function centerOnIso(){
     const lbl=curLBL(),iso=curIsoIdx();if(!lbl)return;
     sliceIdx.sagittal=Math.max(0,Math.min(lbl.X-1,iso[0]));
@@ -4321,9 +4363,11 @@ const CBCT=(function(){
     const lung=caseKey==='lung';
     const prostate=caseKey==='prostate';
     const pancreas=caseKey==='pancreas';
+    const acousticmr=caseKey==='acousticMR';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
     show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);   // pancreas adds these; PTV (cbLG_ptv) stays on (it has a real contour)
+    show('cbLG_ptv',!acousticmr);show('cbLG_tumor',acousticmr);show('cbLG_cochlea',acousticmr);   // MR VS: tumour + cochlea, no PTV
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
@@ -4333,6 +4377,7 @@ const CBCT=(function(){
     show('cbLG_body',true);
     // per-structure dropdown items
     show('cbCM_stomach',pancreas);show('cbCM_bowel',pancreas);
+    show('cbCM_ptv',!acousticmr);show('cbCM_tumor',acousticmr);show('cbCM_cochlea',acousticmr);
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
@@ -4877,7 +4922,7 @@ const CBCT=(function(){
     const ccaret=gid('cbContoursCaret');if(ccaret)ccaret.style.display=(vc&&vc.contours)?'':'none';
     applyCaseLegend();
     const lg=gid('cbContourLegend');if(lg)lg.classList.remove('show');
-    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
+    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
       if(vc&&vc.contours){loadLabelMPR();if(curLBL())centerOnIso();}}   // contours ON by default
     Object.keys(PLANES).forEach(name=>{
       const st=ST[name],truth=makeTruth(key,name);
