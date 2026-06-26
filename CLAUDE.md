@@ -242,7 +242,7 @@ Two workflows, picked on the start screen:
 ## Auth & paywall (clerk-auth.js)
 
 Client gate using **Clerk** (auth) + **Clerk Billing** (Clerk owns the Stripe integration — no
-Stripe code here). Plan key **`full_access`**: $14.99/mo, $120/yr, 3-day trial.
+Stripe code here). Plan key **`full_access`**: $9.99/mo, $72/yr, 3-day trial.
 
 - **Host-detected keys:** production (`rtimagematch.com`) uses the **live** Clerk instance
   (`clerk.rtimagematch.com`, `pk_live_…`); localhost + `*.vercel.app` previews stay on the **dev**
