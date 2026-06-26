@@ -111,15 +111,13 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
    The per-view zoom controls (.view-tools / .vt-zoom) stay so you can zoom into the seeds. */
 body.fid-mode .view-blend,body.fid-mode .view-contrast,body.fid-mode .spy-ring,body.fid-mode #washBtn,body.fid-mode #spyBtn,body.fid-mode #contrastBtn,body.fid-mode #gridBtn{display:none !important}
 .vb-lbl{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;font-variant-numeric:var(--num)}
-.vb-lbl.ref{color:var(--accent-hi)}
-.vb-lbl.por{color:var(--accent2)}
-.vb-slider{-webkit-appearance:none;appearance:none;width:108px;height:4px;border-radius:var(--radius-pill);outline:none;cursor:pointer;background:linear-gradient(to right,var(--accent),var(--accent2))}
+.vb-lbl.ref{color:var(--label)}
+.vb-lbl.por{color:var(--label)}
+.vb-slider{-webkit-appearance:none;appearance:none;width:108px;height:4px;border-radius:var(--radius-pill);outline:none;cursor:pointer;background:rgba(234,241,248,.28)}
 .vb-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid rgba(8,11,16,.8);box-shadow:0 2px 6px rgba(0,0,0,.7);cursor:pointer;transition:transform .12s var(--ease)}
 .vb-slider::-webkit-slider-thumb:hover{transform:scale(1.12)}
 .vb-slider::-moz-range-thumb{width:16px;height:16px;border:2px solid rgba(8,11,16,.8);border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.7);cursor:pointer}
-/* CBCT blend sliders read "clear" — neutral track + labels rather than the orange/blue gradient (2D Color Wash keeps its colour) */
-.cbct-pane .vb-slider{background:rgba(234,241,248,.28)}
-.cbct-pane .vb-lbl.ref,.cbct-pane .vb-lbl.por{color:var(--label)}
+/* All blend sliders (2D Color Wash + CBCT) read "clear" — neutral track + neutral labels (no orange/blue gradient). */
 
 /* vertical contrast slider on the side of each image */
 .view-contrast{position:absolute;z-index:12;top:50%;right:18px;transform:translateY(-50%);display:none;flex-direction:column;align-items:center;gap:10px;background:rgba(10,14,20,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border2);border-radius:16px;padding:14px 10px;pointer-events:auto;user-select:none;box-shadow:var(--shadow)}
