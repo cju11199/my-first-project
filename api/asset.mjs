@@ -19,7 +19,12 @@ const PLAN_KEY = 'full_access';
 
 // Comp tiers — mirror clerk-auth.js isComped(): owner via the unspoofable user id
 // (checked first); any COMP_EMAILS / COMP_DOMAINS entry must be a VERIFIED email.
-const COMP_USER_IDS = ['user_3FRbBFuCte2DQkTDzoeZe2VSfXB'];
+const COMP_USER_IDS = [
+  'user_3FRbBFuCte2DQkTDzoeZe2VSfXB', // owner — full access, no subscription
+  'user_3Fbnfz1v8QBrK8lwY8XN7YnadDk', // comped account
+  'user_3FdAKcEGAZ7GEURzye3YCHv0jsW', // comped account
+  'user_3FbktcxWR3jnk8ZP6y4bm9ly9C1', // comped account
+];
 const COMP_EMAILS = [];
 const COMP_DOMAINS = ['stonybrook.edu', 'mountsinai.org'];
 
