@@ -44,7 +44,8 @@ def hu_to_density(hu):
 
 STRUCT_BITS = {'body': 1, 'tumor': 2}
 ROI_ALIASES = [
-    ('gtv', 'tumor'), ('mass', 'tumor'), ('tumor', 'tumor'), ('tumour', 'tumor'),
+    ('edema', None), ('oedema', None),                    # GTV_Edema is NOT the target -> skip (else 'gtv' below folds it into the mass)
+    ('mass', 'tumor'), ('gtvmass', 'tumor'), ('gtv', 'tumor'), ('tumor', 'tumor'), ('tumour', 'tumor'),
     ('lesion', 'tumor'), ('sarcoma', 'tumor'),
     ('external', 'body'), ('body', 'body'), ('skin', 'body'),
 ]
@@ -120,8 +121,16 @@ def main():
     masks = rasterize(args.rtstruct, ct)
     if not masks['tumor'].any():
         raise SystemExit("no GTV/tumour ROI matched — check ROI_ALIASES against the printed ROI list")
-    masks['body'] = ndimage.binary_opening(ndimage.binary_fill_holes(ct['hu'] > -350), iterations=2)
+    # body = the limb; keep the largest 3D connected component so the CT/CT-table support
+    # (couch) is excluded (its own component), then zero the CT outside the limb to drop the
+    # bright table arc from view.
+    body = ndimage.binary_opening(ndimage.binary_fill_holes(ct['hu'] > -350), iterations=2)
+    lb, n = ndimage.label(body)
+    if n > 1:
+        sizes = np.bincount(lb.ravel()); sizes[0] = 0; body = lb == sizes.argmax()
+    masks['body'] = body
     dens = hu_to_density(ct['hu'])
+    dens[~ndimage.binary_dilation(body, iterations=2)] = 0   # remove couch/background
     spz, spy, spx = ct['dz'], ct['py'], ct['px']
 
     # crop: SI (z) to the tumour slab; in-plane (x,y) to the AFFECTED LIMB (tumour bbox + margin,

@@ -110,6 +110,7 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   **Licence CC BY 4.0** — attribute `doi:10.7937/TCIA.9YTJ-5Q73`, baked into the data-file headers. Files are
   committed, `.vercelignore`d, and in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob"
   Action** after merge. (CT-only window presets aren't hidden for MR yet — minor follow-up.)
+- `generate_sarcoma.py` — offline helper that ingests a **TCIA Soft-tissue-Sarcoma** patient (extremity CT + a `GTV_Mass` RTSTRUCT) and writes `sarcoma3d_data.js` + `sarcoma3d_labels_data.js` for the **Soft-tissue sarcoma** case (`VOLCASE.sarcoma`, `cbct:sarcoma` `CASE_TOL` 2 mm/2°, `SARCOMA_STRUCTS`). Unusual limb anatomy (thigh) — real tumour target, femur as the bony landmark. ROI map skips `GTV_Edema` (else the generic `gtv` alias folds it into the mass); body mask keeps the largest connected component and zeroes outside it to drop the CT couch. Built from patient `STS_004` (picked by an ultracode workflow over 5 candidates for tumour clarity/framing) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 3.0** — attribute `doi:10.7937/K9/TCIA.2015.7GO2GSKS`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
