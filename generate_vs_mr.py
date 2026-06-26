@@ -39,7 +39,7 @@ except ImportError:
 
 TARGET_XY      = 200    # longest-axis resample size (px)
 TILES_PER_ROW  = 10
-CROP_MARGIN_MM = 38     # margin around the tumour+cochlea (posterior-fossa context)
+CROP_MARGIN_MM = 8      # margin around the skull/body bbox (whole head in frame, minimal air)
 
 # Display normalisation: the trainer maps atlas density 0..255 -> "HU" = density*(2000/255)-500
 # for the window/level widget. We are not real HU, but keep the same map so the existing window
@@ -135,14 +135,16 @@ def main():
     dens = normalize_mr(g['v'])
     spz, spy, spx = g['dz'], g['py'], g['px']
 
-    # crop to the tumour+cochlea bed + margin
-    focus = masks['tumor'] | masks['cochlea']
-    zz, yy, xx = np.where(focus)
+    # crop to the WHOLE HEAD (skull/body bounding box + a small margin) so the entire head is in
+    # frame, not just the IAC/CPA tumour (ultracode-judged "skullbbox" framing). Fall back to a
+    # thresholded head mask if no skull/body ROI is present.
+    head = masks['body'] if masks['body'].any() else (dens > 28)
+    zz, yy, xx = np.where(head)
     mz, my, mx = CROP_MARGIN_MM/spz, CROP_MARGIN_MM/spy, CROP_MARGIN_MM/spx
     z0, z1 = max(0, int(zz.min()-mz)), min(g['nz'], int(zz.max()+mz)+1)
     y0, y1 = max(0, int(yy.min()-my)), min(g['ny'], int(yy.max()+my)+1)
     x0, x1 = max(0, int(xx.min()-mx)), min(g['nx'], int(xx.max()+mx)+1)
-    print(f"crop to tumour box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {g['nz']}x{g['ny']}x{g['nx']}")
+    print(f"crop to head box z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {g['nz']}x{g['ny']}x{g['nx']}")
     dens = dens[z0:z1, y0:y1, x0:x1]
     masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
     CZ, CY, CX = dens.shape
@@ -156,6 +158,10 @@ def main():
     vol_d = np.clip(ndimage.zoom(dens.astype(np.float32), zoom, order=1), 0, 255).astype(np.uint8)
     rmasks = {k: (ndimage.zoom(m.astype(np.float32), zoom, order=1) > 0.5) if m.any()
                  else np.zeros((OZ, OY, OX), bool) for k, m in masks.items()}
+    # the cochlea is tiny (~3 mm); at whole-head resolution it's only a few voxels, so dilate 1
+    # voxel for a legible contour (it's a key SRS avoidance structure).
+    if rmasks['cochlea'].any():
+        rmasks['cochlea'] = ndimage.binary_dilation(rmasks['cochlea'], iterations=1)
 
     labels = np.zeros((OZ, OY, OX), np.uint8); bits = {}
     for k, bit in STRUCT_BITS.items():
