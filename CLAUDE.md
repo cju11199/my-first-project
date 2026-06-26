@@ -97,6 +97,16 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   Phase-2 allowlists** (`api/asset.mjs` `DATASETS`, `scripts/upload-to-blob.mjs`, `.vercelignore`); like
   every paid case they're served only through `/api/asset` from private Vercel Blob, so the **"Upload data
   to Blob" Action must be re-run** after merge or the case 404s live. Visual rendering still needs a real-browser check.
+- `generate_vs_mr.py` — offline helper that ingests a **TCIA Vestibular-Schwannoma-SEG** patient
+  (contrast-T1 GammaKnife planning **MR** series + its T1-Gd RTSTRUCT) and writes `acousticmr3d_data.js`
+  + `acousticmr3d_labels_data.js` for the **MR Acoustic neuroma** SRS case (`VOLCASE.acousticMR`,
+  `cbct:acousticMR` `CASE_TOL` 1 mm/1°, `ACOUSTICMR_STRUCTS`). **First MR case** (not CT): no HU model, so
+  intensity is percentile-normalised to 0..255 and the `VOLCASE` entry carries `mr:true` (tuned `win`,
+  no real HU). Real **tumour (TV)** target + **cochlea** OAR + skull/body from the RTSTRUCT; cropped to the
+  IAC/CPA. Built from patient `VS-SEG-001` via the **IDC** bucket `s3://idc-open-data` (`idc-index`).
+  **Licence CC BY 4.0** — attribute `doi:10.7937/TCIA.9YTJ-5Q73`, baked into the data-file headers. Files are
+  committed, `.vercelignore`d, and in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob"
+  Action** after merge. (CT-only window presets aren't hidden for MR yet — minor follow-up.)
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
