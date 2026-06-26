@@ -366,6 +366,20 @@ outbound as the address would require switching to a real mailbox (iCloud+ custo
   add an external origin (e.g. Clerk domains), update the CSP accordingly.
 - Per-image canvas filters (not whole-canvas CSS filters) so backgrounds/overlays stay clean.
 
+## Dev tooling (`.claude/` + `scripts/`)
+
+- **`/new-case` skill** (`.claude/skills/new-case/SKILL.md`) — the full add-a-case pipeline
+  (IDC sourcing → generator → `trainer.html` wiring → 3 allowlists → build-verify → draft PR →
+  post-merge Blob upload). Invoke it whenever adding a 2D/2D or CBCT case.
+- **`/check-blob` skill** (`.claude/skills/check-blob/SKILL.md`) — verifies the allowlists are in
+  sync and (re-)runs the "Upload data to Blob" Action. The standard **post-merge** step for a case.
+- **`scripts/check-allowlists.mjs`** — no-deps checker that the `*_data.js` files match all three
+  Phase-2 lists (`upload-to-blob.mjs`, `api/asset.mjs`, `.vercelignore`). Run it before any push.
+- **Pre-push hook** (`.claude/settings.json` PreToolUse → `.claude/hooks/prepush-guard.mjs`) —
+  before any `git push` it runs the allowlist check (always) + `build-trainer.mjs --out` (if the
+  minify deps are installed) and **blocks the push** on failure, so a forgotten allowlist entry or
+  a broken minify can't reach a PR.
+
 ## Status / next steps (Phase 2 — hard data lockdown)
 
 Not started in code. Plan (PAYWALL.md): move case data to **Cloudflare R2**, add a Vercel
