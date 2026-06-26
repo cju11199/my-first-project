@@ -37,8 +37,11 @@ except ImportError:
 TARGET_XY      = 200
 TILES_PER_ROW  = 10
 CROP_MARGIN_MM    = 30   # SI margin around the liver+tumour (defines the upper-abdomen slab)
-INPLANE_MARGIN_MM = 28   # in-plane margin around the LIVER (these are wide, arms-in-FOV abdominal CTs,
-                         # so frame on the liver for good resolution rather than the whole torso width)
+BODY_MARGIN_MM    = 10   # in-plane (LR/AP) skin margin around the BODY mask, so tissue isn't flush to the frame.
+                         # These are wide, arms-in-FOV abdominal CTs; cropping in-plane to the liver bbox sliced
+                         # the patient's body wall off at the frame (the "cut off at edge" artefact), so crop the
+                         # IN-PLANE extent to the BODY mask (full torso cross-section) and only the SI slab to the
+                         # liver+tumour. (Same fix as the pancreas case.)
 FOCUS_KEYS = ('liver', 'tumor')
 
 HU_OFF, HU_SCALE = -500.0, 2000.0 / 255.0
@@ -130,20 +133,31 @@ def main():
     masks = rasterize_seg(args.seg, ct)
     if not masks['tumor'].any():
         raise SystemExit("no tumour/mass segment matched — check SEG_ALIASES against the printed segment list")
-    masks['body'] = ndimage.binary_opening(ndimage.binary_fill_holes(ct['hu'] > -350), iterations=2)
+    body = ndimage.binary_opening(ndimage.binary_fill_holes(ct['hu'] > -350), iterations=2)
+    # keep only the largest connected component = the patient torso, so the couch/table doesn't widen
+    # the in-plane body bbox (which would clip resolution and paint the couch into the frame).
+    lbl, n = ndimage.label(body)
+    if n > 1:
+        sizes = ndimage.sum(np.ones_like(lbl), lbl, range(1, n + 1))
+        body = lbl == (int(sizes.argmax()) + 1)
+    masks['body'] = body
     dens = hu_to_density(ct['hu'])
     spz, spy, spx = ct['dz'], ct['py'], ct['px']
 
-    # crop: SI (z) to the liver+tumour slab; in-plane (x,y) to the BODY bbox (keep the torso in frame)
+    # crop: SI (z) to the liver+tumour slab; in-plane (x,y) to the BODY bbox (keep the whole torso in frame)
     focus = np.zeros_like(masks['tumor'])
     for k in FOCUS_KEYS:
         focus |= masks[k]
-    fzz, fyy, fxx = np.where(focus)
-    mz, my, mx = CROP_MARGIN_MM/spz, INPLANE_MARGIN_MM/spy, INPLANE_MARGIN_MM/spx
+    fzz = np.where(focus.any(axis=(1, 2)))[0]
+    mz = CROP_MARGIN_MM/spz
     z0, z1 = max(0, int(fzz.min()-mz)), min(ct['nz'], int(fzz.max()+mz)+1)
-    y0, y1 = max(0, int(fyy.min()-my)), min(ct['ny'], int(fyy.max()+my)+1)
-    x0, x1 = max(0, int(fxx.min()-mx)), min(ct['nx'], int(fxx.max()+mx)+1)
-    print(f"crop z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {ct['nz']}x{ct['ny']}x{ct['nx']}")
+    bslab = masks['body'][z0:z1]                                 # body bbox within the abdominal slab
+    yy = np.where(bslab.any(axis=(0, 2)))[0]
+    xx = np.where(bslab.any(axis=(0, 1)))[0]
+    my, mx = BODY_MARGIN_MM/spy, BODY_MARGIN_MM/spx
+    y0, y1 = max(0, int(yy.min()-my)), min(ct['ny'], int(yy.max()+my)+1)
+    x0, x1 = max(0, int(xx.min()-mx)), min(ct['nx'], int(xx.max()+mx)+1)
+    print(f"crop z[{z0}:{z1}] (liver slab) y[{y0}:{y1}] x[{x0}:{x1}] (body) of {ct['nz']}x{ct['ny']}x{ct['nx']}")
     dens = dens[z0:z1, y0:y1, x0:x1]
     masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
     CZ, CY, CX = dens.shape
