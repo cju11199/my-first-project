@@ -3343,6 +3343,9 @@ const CASE_LISTS={
     // GBM: TCIA UPenn-GBM (CC BY 4.0). Post-contrast T1 planning MR (not CT), real BraTS tumour SEG —
     // cranial match on the enhancing GTV + necrotic core, with peritumoral edema. Data by generate_gbm_mr.py.
     {v:'gbm',    t:'Glioblastoma · MR', d:'MR &middot; cranial &middot; enhancing tumour'},
+    // SARCOMA: TCIA Soft-tissue-Sarcoma (CC BY 3.0). Extremity CT (thigh), real GTV_Mass tumour.
+    // Unusual limb anatomy; femur is the bony landmark. Data built by generate_sarcoma.py.
+    {v:'sarcoma',t:'Soft-tissue sarcoma', d:'CBCT &middot; thigh &middot; GTV match'},
   ]},
 };
 function pickMode(mode){
@@ -3479,6 +3482,7 @@ const CASE_TOL={
   'cbct:acousticMR':{t1:1, t2:2,   r1:1, r2:2},    // MR vestibular schwannoma SRS — intracranial, tightest
   'cbct:liver':     {t1:2, t2:5,   r1:2, r2:4},    // liver SBRT — soft-tissue lesion match
   'cbct:gbm':       {t1:2, t2:4,   r1:2, r2:3},    // GBM cranial — enhancing tumour match (looser than SRS, larger fractionated target)
+  'cbct:sarcoma':   {t1:2, t2:5,   r1:2, r2:4},    // extremity soft-tissue sarcoma — soft-tissue limb match
 };
 const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
 function rtTol(mode,caseKey){return CASE_TOL[mode+':'+caseKey]||RT_TOL_DEFAULT;}
@@ -3769,7 +3773,8 @@ const CBCT=(function(){
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
     acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
     liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
-    gbm:{file:'gbm3d_data.js', get:()=>typeof GBM3D_VOL!=='undefined'?GBM3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true}   // GBM cranial (TCIA UPenn-GBM): post-contrast T1 planning MR (not CT), percentile-normalised. Real GTV (enhancing lesion + necrotic core) + peritumoral edema + brain envelope. autoWin fits the window from the histogram on open (mirrors the acoustic-neuroma MR case). 6DOF cranial match. Data built by generate_gbm_mr.py.
+    gbm:{file:'gbm3d_data.js', get:()=>typeof GBM3D_VOL!=='undefined'?GBM3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},   // GBM cranial (TCIA UPenn-GBM): post-contrast T1 planning MR (not CT), percentile-normalised. Real GTV (enhancing lesion + necrotic core) + peritumoral edema + brain envelope. autoWin fits the window from the histogram on open (mirrors the acoustic-neuroma MR case). 6DOF cranial match. Data built by generate_gbm_mr.py.
+    sarcoma:{file:'sarcoma3d_data.js', get:()=>typeof SARCOMA3D_VOL!=='undefined'?SARCOMA3D_VOL:null, win:{l:40,w:400}, contours:true}   // soft-tissue sarcoma (TCIA Soft-tissue-Sarcoma): extremity CT (thigh), real GTV_Mass tumour. Unusual limb anatomy — rigid 6DOF soft-tissue match with the femur as the bony landmark. Data built by generate_sarcoma.py.
   };
   const hasVol=k=>!!VOLCASE[k];
   function curOffBone(){return (VOLCASE[caseKey]&&VOLCASE[caseKey].offBone)||null;}
@@ -4074,6 +4079,11 @@ const CBCT=(function(){
     {key:'tumor', color:'#ff3b4e', lw:2.3},
   ];
   GBM_STRUCTS.forEach(S=>S.visible=true);
+  const SARCOMA_STRUCTS=[                             // soft-tissue sarcoma: limb body + tumour target (keys match generate_sarcoma.py bits)
+    {key:'body',  color:'#36e06a', lw:1.2},
+    {key:'tumor', color:'#ff3b4e', lw:2.3},
+  ];
+  SARCOMA_STRUCTS.forEach(S=>S.visible=true);
   let isoVisible=true;
   // *_ISO_IDX below are just pre-load fallbacks; each _decode*Labels() overwrites them from the label
   // file's isoIdx (the source of truth), so keep these in sync with the data to avoid confusion.
@@ -4087,6 +4097,7 @@ const CBCT=(function(){
   let ACOUSTICMR_LBL=null, ACOUSTICMR_ISO_IDX=[94,101,91];  // MR VS: tumour (TV) centroid -> isocentre (overwritten from the label file's isoIdx)
   let LIVER_LBL=null, LIVER_ISO_IDX=[78,100,79];        // liver: tumour (Mass) centroid -> isocentre (overwritten from the label file's isoIdx)
   let GBM_LBL=null, GBM_ISO_IDX=[143,109,76];           // GBM: enhancing-tumour+necrosis centroid -> isocentre (overwritten from the label file's isoIdx)
+  let SARCOMA_LBL=null, SARCOMA_ISO_IDX=[73,76,93];        // sarcoma: tumour (GTV_Mass) centroid -> isocentre (overwritten from the label file's isoIdx)
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _breastCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
@@ -4097,6 +4108,7 @@ const CBCT=(function(){
   const _acousticmrCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _liverCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _gbmCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
+  const _sarcomaCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   function _invContours(){
     _ctrCache.axial.k=_ctrCache.coronal.k=_ctrCache.sagittal.k=-1;
     _brainCtrCache.axial.k=_brainCtrCache.coronal.k=_brainCtrCache.sagittal.k=-1;
@@ -4108,11 +4120,12 @@ const CBCT=(function(){
     _acousticmrCtrCache.axial.k=_acousticmrCtrCache.coronal.k=_acousticmrCtrCache.sagittal.k=-1;
     _liverCtrCache.axial.k=_liverCtrCache.coronal.k=_liverCtrCache.sagittal.k=-1;
     _gbmCtrCache.axial.k=_gbmCtrCache.coronal.k=_gbmCtrCache.sagittal.k=-1;
+    _sarcomaCtrCache.axial.k=_sarcomaCtrCache.coronal.k=_sarcomaCtrCache.sagittal.k=-1;
   }
-  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:caseKey==='acousticMR'?ACOUSTICMR_LBL:caseKey==='liver'?LIVER_LBL:caseKey==='gbm'?GBM_LBL:LBL;}
-  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:caseKey==='acousticMR'?ACOUSTICMR_STRUCTS:caseKey==='liver'?LIVER_STRUCTS:caseKey==='gbm'?GBM_STRUCTS:CB_STRUCTS;}
-  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:caseKey==='acousticMR'?ACOUSTICMR_ISO_IDX:caseKey==='liver'?LIVER_ISO_IDX:caseKey==='gbm'?GBM_ISO_IDX:CB_ISO_IDX;}
-  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:caseKey==='acousticMR'?_acousticmrCtrCache:caseKey==='liver'?_liverCtrCache:caseKey==='gbm'?_gbmCtrCache:_ctrCache;}
+  function curLBL(){return caseKey==='brain'?BRAIN_LBL:caseKey==='breast'?BREAST_LBL:caseKey==='spine'?SPINE_LBL:caseKey==='lung'?LUNG_LBL:caseKey==='prostate'?PROSTATE_LBL:caseKey==='pancreas'?PANCREAS_LBL:caseKey==='acousticMR'?ACOUSTICMR_LBL:caseKey==='liver'?LIVER_LBL:caseKey==='gbm'?GBM_LBL:caseKey==='sarcoma'?SARCOMA_LBL:LBL;}
+  function curStructs(){return caseKey==='brain'?BRAIN_STRUCTS:caseKey==='breast'?BREAST_STRUCTS:caseKey==='spine'?SPINE_STRUCTS:caseKey==='lung'?LUNG_STRUCTS:caseKey==='prostate'?PROSTATE_STRUCTS:caseKey==='pancreas'?PANCREAS_STRUCTS:caseKey==='acousticMR'?ACOUSTICMR_STRUCTS:caseKey==='liver'?LIVER_STRUCTS:caseKey==='gbm'?GBM_STRUCTS:caseKey==='sarcoma'?SARCOMA_STRUCTS:CB_STRUCTS;}
+  function curIsoIdx(){return caseKey==='brain'?BRAIN_ISO_IDX:caseKey==='breast'?BREAST_ISO_IDX:caseKey==='spine'?SPINE_ISO_IDX:caseKey==='lung'?LUNG_ISO_IDX:caseKey==='prostate'?PROSTATE_ISO_IDX:caseKey==='pancreas'?PANCREAS_ISO_IDX:caseKey==='acousticMR'?ACOUSTICMR_ISO_IDX:caseKey==='liver'?LIVER_ISO_IDX:caseKey==='gbm'?GBM_ISO_IDX:caseKey==='sarcoma'?SARCOMA_ISO_IDX:CB_ISO_IDX;}
+  function curCtrCache(){return caseKey==='brain'?_brainCtrCache:caseKey==='breast'?_breastCtrCache:caseKey==='spine'?_spineCtrCache:caseKey==='lung'?_lungCtrCache:caseKey==='prostate'?_prostateCtrCache:caseKey==='pancreas'?_pancreasCtrCache:caseKey==='acousticMR'?_acousticmrCtrCache:caseKey==='liver'?_liverCtrCache:caseKey==='gbm'?_gbmCtrCache:caseKey==='sarcoma'?_sarcomaCtrCache:_ctrCache;}
   function loadLabelMPR(){
     if(caseKey==='lung'){_loadLungLabelMPR();return;}
     if(caseKey==='prostate'){_loadProstateLabelMPR();return;}
@@ -4120,6 +4133,7 @@ const CBCT=(function(){
     if(caseKey==='acousticMR'){_loadAcousticMRLabelMPR();return;}
     if(caseKey==='liver'){_loadLiverLabelMPR();return;}
     if(caseKey==='gbm'){_loadGBMLabelMPR();return;}
+    if(caseKey==='sarcoma'){_loadSarcomaLabelMPR();return;}
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
@@ -4352,6 +4366,29 @@ const CBCT=(function(){
     _invCaches();_invContours();
     if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
   }
+  function _loadSarcomaLabelMPR(){
+    if(typeof SARCOMA3D_LABELS==='undefined'){
+      if(_loadSarcomaLabelMPR._t)return; _loadSarcomaLabelMPR._t=1;
+      const s=document.createElement('script'); s.src=rtAssetUrl('sarcoma3d_labels_data.js');
+      s.onload=()=>{_loadSarcomaLabelMPR._t=0;_loadSarcomaLabelMPR();}; s.onerror=()=>{_loadSarcomaLabelMPR._t=0;};
+      document.head.appendChild(s); return;
+    }
+    if(SARCOMA_LBL)return;
+    const img=new Image(); img.onload=()=>_decodeSarcomaLabels(img); img.src=SARCOMA3D_LABELS.atlas;
+  }
+  function _decodeSarcomaLabels(img){
+    const V=SARCOMA3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
+    const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
+    const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
+    for(let z=0;z<Z;z++){const tc=z%tpr,tr=(z/tpr)|0,ox=tc*X,oy=tr*Y;
+      for(let y=0;y<Y;y++){const ar=((oy+y)*img.width+ox)*4,dr=(z*Y+y)*X;for(let x=0;x<X;x++)data[dr+x]=px[ar+x*4];}}
+    SARCOMA_LBL={data,X,Y,Z,sp:V.spacingMm[0]};
+    SARCOMA_STRUCTS.forEach(S=>{S.bit=(V.bits&&V.bits[S.key])||0;});
+    if(V.isoIdx)SARCOMA_ISO_IDX=V.isoIdx.slice();
+    _invCaches();_invContours();
+    if(currentMode==='cbct'&&contoursOn){centerOnIso();render();}
+  }
   function centerOnIso(){
     const lbl=curLBL(),iso=curIsoIdx();if(!lbl)return;
     sliceIdx.sagittal=Math.max(0,Math.min(lbl.X-1,iso[0]));
@@ -4483,10 +4520,11 @@ const CBCT=(function(){
     const acousticmr=caseKey==='acousticMR';
     const liver=caseKey==='liver';
     const gbm=caseKey==='gbm';
+    const sarcoma=caseKey==='sarcoma';
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
     show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);   // pancreas adds these; PTV (cbLG_ptv) stays on (it has a real contour)
-    show('cbLG_ptv',!acousticmr&&!liver&&!gbm);show('cbLG_tumor',acousticmr||liver||gbm);show('cbLG_cochlea',acousticmr);show('cbLG_liver',liver);show('cbLG_edema',gbm);   // MR VS / liver / GBM: tumour target, no PTV; GBM adds edema
+    show('cbLG_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma);show('cbLG_tumor',acousticmr||liver||gbm||sarcoma);show('cbLG_cochlea',acousticmr);show('cbLG_liver',liver);show('cbLG_edema',gbm);   // MR VS / liver / GBM / sarcoma: tumour target, no PTV; GBM adds edema
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
@@ -4496,7 +4534,7 @@ const CBCT=(function(){
     show('cbLG_body',true);
     // per-structure dropdown items
     show('cbCM_stomach',pancreas);show('cbCM_bowel',pancreas);
-    show('cbCM_ptv',!acousticmr&&!liver&&!gbm);show('cbCM_tumor',acousticmr||liver||gbm);show('cbCM_cochlea',acousticmr);show('cbCM_liver',liver);show('cbCM_edema',gbm);
+    show('cbCM_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma);show('cbCM_tumor',acousticmr||liver||gbm||sarcoma);show('cbCM_cochlea',acousticmr);show('cbCM_liver',liver);show('cbCM_edema',gbm);
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
@@ -5041,7 +5079,7 @@ const CBCT=(function(){
     const ccaret=gid('cbContoursCaret');if(ccaret)ccaret.style.display=(vc&&vc.contours)?'':'none';
     applyCaseLegend();
     const lg=gid('cbContourLegend');if(lg)lg.classList.remove('show');
-    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'||key==='liver'||key==='gbm'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
+    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'||key==='liver'||key==='gbm'||key==='sarcoma'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
       if(vc&&vc.contours){loadLabelMPR();if(curLBL())centerOnIso();}}   // contours ON by default
     Object.keys(PLANES).forEach(name=>{
       const st=ST[name],truth=makeTruth(key,name);
