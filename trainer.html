@@ -3769,7 +3769,17 @@ const CBCT=(function(){
                      okMsg:'✓ PTV aligned — target within tolerance',
                      hint:'✗ Bones aligned, but the GTV is off — match the tumour, not the skeleton',
                      setup:'New setup — the tumour has drifted off the bone; match the GTV, not the skeleton'}},
-    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true},  // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours. Rigid 6DOF (no off-bone drift) — the seeds move with the bone, so they render as plain CT and stay maximally stable.
+    prostate:{file:'prostate3d_data.js', get:()=>typeof PROSTATE3D_VOL!=='undefined'?PROSTATE3D_VOL:null, win:{l:40,w:460}, contours:true,  // prostate IGRT: 3 implanted gold fiducials (bright, baked) + prostate/PTV/bladder/rectum/SV contours.
+            // Off-bone (config-driven): bladder/rectal filling shifts the prostate + its gold seeds OFF the bony
+            // pelvis, so a bony match fails — the student must register the implanted fiducials. The moving CBCT
+            // hides the planning-position seeds (overwrite the bit-32 fiducial voxels with prostate soft-tissue
+            // density 70) and redraws them at bone+drift through the residual net-drift transform at gold density 255.
+            // Drift dominant in AP (y>=3mm so it clearly clears the t1=2mm fiducial tolerance); total capped at 5mm
+            // in randomize(). check() grades translation onto the seeds (rotations shown, not graded).
+            offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3], y:[3,5], z:[2,4]},
+                     okMsg:'✓ Fiducials aligned — gold seeds within tolerance',
+                     hint:'✗ Pelvis bones aligned, but the seeds are off — match the gold fiducials, not the bone',
+                     setup:'New setup — the prostate has drifted off the bony pelvis; match the gold fiducials, not the bone'}},
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
     acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
     liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.

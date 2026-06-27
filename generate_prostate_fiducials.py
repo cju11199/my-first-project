@@ -69,8 +69,12 @@ def snap_inside(c):
     return [int(ix[j]), int(iy[j]), int(iz[j])]
 
 seeds = [snap_inside(c) for c in cands]
-SEED_RMM = 2.0                      # tiny single-voxel seed; the case is rigid (plain trilinear CT
-                                    # sampling, no redraw) so it stays smooth/stable at this size
+# Seed size: a small SOLID blob (~3-voxel core), not a single voxel. The off-bone reslice hides
+# and redraws each seed via TRILINEAR label occupancy; a 1-voxel seed's occupancy collapses to
+# ~0.12 half a voxel off-centre, so the drifted redraw renders faint and shimmers. At this 2.2 mm
+# grid, rmm 3.6 captures the centre + face + edge neighbours (~19 vox), giving a solid ~5 mm core
+# that the redraw samples reliably (bright, stable) while still reading as a small implanted marker.
+SEED_RMM = 3.6
 fid = np.zeros((DZ, DY, DX), bool)
 for s in seeds:
     fid |= sph(s, SEED_RMM)
@@ -118,7 +122,8 @@ meta = (f'{{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], '
         f'"tileRows": {math.ceil(DZ/TPR)}, "boneThr": 0.42}}')
 with open('prostate3d_data.js', 'w') as f:
     f.write('// Pelvis CT (the prostate plan) with 3 implanted gold fiducial markers baked in.\n')
-    f.write('// dims=[x(LR),y(AP),z(SI)]  seeds = bright (density 255) hard-edged blobs in the prostate.\n')
+    f.write('// dims=[x(LR),y(AP),z(SI)]  seeds = bright (density 255) ~5 mm solid blobs in the prostate\n')
+    f.write('// (sized so the off-bone reslice redraw samples them solidly when the seeds drift off the pelvis).\n')
     f.write(f'const PROSTATE3D_VOL={meta};\n')
     f.write(f"PROSTATE3D_VOL.atlas='data:image/png;base64,{ct_b64}';\n")
 
