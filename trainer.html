@@ -2841,7 +2841,8 @@ const CONSOLE=(()=>{
       for(let i=0;i<=n;i++){out.push((((a+(b-a)*i/n)%360)+360)%360);} return out;},
   };
   return {refresh,exit,rotate,rotateToView,acquire,enterMatch,applyShifts,reinterlock,beam,
-          active:isActive,phase:()=>phase,acquiring,matchable,hidesPortal,motionEnable,_dbg};
+          active:isActive,phase:()=>phase,readyToMatch:()=>active&&phase==='ACQUIRE'&&bothAcquired(),
+          acquiring,matchable,hidesPortal,motionEnable,_dbg};
 })();
 window.CONSOLE=CONSOLE;
 
@@ -3671,8 +3672,14 @@ function checkMatch(){
     document.getElementById('statusMsg').textContent='Acquire both fields (coach a breath-hold → Beam On) before matching.';
     return;
   }
-  if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){   // IGRT console: acquire both, then press 2D/2D MATCH
-    document.getElementById('statusMsg').textContent='Acquire both images, then press 2D/2D MATCH on the console before matching.';
+  // IGRT console: when both images are taken, the "2D/2D Match" action (sidebar button / Enter) commits to matching.
+  if(window.CONSOLE && CONSOLE.readyToMatch && CONSOLE.readyToMatch()){
+    CONSOLE.enterMatch();
+    document.getElementById('statusMsg').textContent='2D/2D match started — register both views, then Apply Shifts.';
+    return;
+  }
+  if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){   // still acquiring: must take both images first
+    document.getElementById('statusMsg').textContent='Acquire both images (click a pane / hold SPACE to rotate) before matching.';
     return;
   }
   const e={};
