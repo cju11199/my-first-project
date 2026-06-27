@@ -329,6 +329,16 @@
     // True when the visitor is NOT entitled to full access (signed out, or signed in without a
     // subscription). Folds in isComped() via hasActiveSub(), so subscribers/comped -> false.
     isFreeMode: function () { return !hasActiveSub(); },
+    // True once a Clerk user exists (signed in), regardless of subscription state. Used by the
+    // trainer's post-clear "save your progress" nudge, which only targets signed-OUT visitors.
+    isSignedIn: function () { return !!(window.Clerk && window.Clerk.user); },
+    // Open Clerk's sign-up flow, returning to the trainer afterwards (the anonymous localStorage
+    // progress is migrated into the new account on reload — see RTProfile.migrate in trainer.html).
+    promptSignUp: function () {
+      if (window.Clerk && typeof window.Clerk.openSignUp === 'function') {
+        window.Clerk.openSignUp({ forceRedirectUrl: TRAINER_URL });
+      }
+    },
     PLAN_KEY: PLAN_KEY,
     TRAINER_URL: TRAINER_URL,
     SUBSCRIBE_URL: SUBSCRIBE_URL,

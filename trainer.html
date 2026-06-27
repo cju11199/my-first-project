@@ -484,6 +484,16 @@ main.shifts-collapsed .shift-tab{left:0}
 .rt-toast-ic{font-size:22px;color:var(--accent-hi);flex:none}
 .rt-toast-tx{font-family:var(--mono);font-size:11px;color:var(--label);line-height:1.5}
 .rt-toast-tx b{color:var(--accent-hi);font-size:9px;letter-spacing:.14em;text-transform:uppercase}
+/* Post-clear "create a free account" nudge (signed-out visitors only) */
+.rt-acct-nudge{position:fixed;right:18px;bottom:18px;z-index:420;max-width:320px;display:flex;flex-direction:column;gap:9px;padding:16px 16px 14px;border-radius:16px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid rgba(45,212,238,.5);box-shadow:var(--shadow),0 0 0 3px var(--accent-dim);visibility:hidden;opacity:0;transform:translateY(16px);pointer-events:none;transition:transform .35s var(--ease),opacity .35s var(--ease)}
+.rt-acct-nudge.show{visibility:visible;opacity:1;transform:none;pointer-events:auto}
+.rt-an-ic{font-size:20px;color:var(--accent-hi)}
+.rt-an-tx{font-family:var(--sans);font-size:13px;color:var(--text);line-height:1.5}
+.rt-an-tx b{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-hi);margin-bottom:5px}
+.rt-an-act{display:flex;gap:8px;margin-top:3px}
+.rt-an-act .btn-primary,.rt-an-act .btn-ghost{font-size:11px;padding:8px 12px}
+.rt-an-x{position:absolute;top:8px;right:8px;width:24px;height:24px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:transparent;border:none;box-shadow:none;color:var(--muted);font-size:16px;line-height:1}
+.rt-an-x:hover{color:var(--text);background:var(--panel2)}
 /* progress dashboard (reuses .modal-bg/.open) */
 .rt-modal{z-index:270}
 .rt-card{display:flex;flex-direction:column;width:min(720px,94vw);max-height:88vh;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:18px;box-shadow:var(--shadow),0 0 0 1px var(--hairline) inset;overflow:hidden}
@@ -1500,6 +1510,15 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   </div>
 </div>
 <div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
+<div class="rt-acct-nudge" id="rtAcctNudge" role="dialog" aria-label="Save your progress" aria-hidden="true">
+  <button class="rt-an-x" type="button" onclick="rtDismissNudge()" aria-label="Dismiss">&times;</button>
+  <div class="rt-an-ic">&#10003;</div>
+  <div class="rt-an-tx"><b>Nice match</b>Create a free account to save your progress, streak and badges &mdash; and pick up where you left off on any device.</div>
+  <div class="rt-an-act">
+    <button class="btn-primary" type="button" onclick="rtNudgeSignUp()">Create free account</button>
+    <button class="btn-ghost" type="button" onclick="rtDismissNudge(true)">Not now</button>
+  </div>
+</div>
 
 <!-- 2D/2D case data (breast_drr_data.js, image_data.js ~4.3 MB, prostate2d_data.js) is NOT
      loaded eagerly: ensure2DData() loads it on demand only AFTER the auth gate confirms an
@@ -4351,7 +4370,31 @@ const RTProfile=(function(){
     try{localStorage.setItem(LS,JSON.stringify(p));}catch(e){}
     return p;
   }
-  return {get,save,authReady};
+  function localRaw(){try{return JSON.parse(localStorage.getItem(LS));}catch(e){return null;}}
+  // One-time copy of anonymous (signed-out) localStorage progress into a freshly signed-in
+  // account, so the post-clear "save your progress" promise is real. No-ops unless the account
+  // profile is empty (never clobbers real account history) and runs at most once per device.
+  function migrate(){
+    if(!authReady())return false;
+    let done=false;try{done=!!localStorage.getItem(LS+'_migrated');}catch(e){}
+    if(done)return false;
+    const loc=localRaw();
+    const hasLocal=loc&&loc.totals&&(loc.totals.attempts>0||(loc.xp>0));
+    const acct=window.RTAuth.profile.get();
+    const acctEmpty=!(acct.totals&&acct.totals.attempts>0);
+    if(hasLocal&&acctEmpty){
+      window.RTAuth.profile.save(p=>{
+        p.stats=loc.stats||{};p.ach=loc.ach||{};
+        p.totals=loc.totals||{attempts:0,accepts:0};
+        p.xp=loc.xp||0;p.streak=loc.streak||{count:0,best:0,last:null};
+        p.recent=Array.isArray(loc.recent)?loc.recent:[];
+        if(loc.prefs)Object.keys(loc.prefs).forEach(k=>{p.prefs[k]=loc.prefs[k];});
+      });
+    }
+    try{localStorage.setItem(LS+'_migrated','1');}catch(e){}
+    return hasLocal&&acctEmpty;
+  }
+  return {get,save,authReady,migrate};
 })();
 
 // Per-case match tolerances, keyed mode+':'+caseKey. t1/t2 = translation accept/close (mm);
@@ -4440,7 +4483,33 @@ function rtRecord(mode,caseKey,o){
     RT_ACH.forEach(a=>{if(!p.ach[a.id]){try{if(a.test(p,ctx)){p.ach[a.id]=Date.now();newly.push(a);}}catch(e){}}});
   });
   if(newly.length)rtToast(newly);
+  if(o.accepted)rtMaybeAccountNudge();
   rtRefreshProgress();
+}
+
+// Post-clear account nudge — shown once per session to SIGNED-OUT visitors after they pass a
+// match (an earned-value moment). Signed-in users already have a profile; their relevant prompt
+// (subscribe) lives on the locked case cards. Absent in headless tests (no RTAuth helpers).
+let rtNudgeShown=false;
+function rtMaybeAccountNudge(){
+  if(rtNudgeShown)return;
+  if(!(window.RTAuth&&RTAuth.isSignedIn&&RTAuth.promptSignUp))return;   // auth not present -> never nudge
+  if(RTAuth.isSignedIn())return;                                       // already has an account
+  try{if(localStorage.getItem('rtNudgeOff'))return;}catch(e){}          // user said "Not now" before
+  const el=document.getElementById('rtAcctNudge');if(!el)return;
+  rtNudgeShown=true;
+  el.classList.remove('show');
+  requestAnimationFrame(()=>el.classList.add('show'));
+  el.setAttribute('aria-hidden','false');
+}
+function rtDismissNudge(persist){
+  const el=document.getElementById('rtAcctNudge');
+  if(el){el.classList.remove('show');el.setAttribute('aria-hidden','true');}
+  if(persist){try{localStorage.setItem('rtNudgeOff','1');}catch(e){}}   // "Not now" -> stop asking
+}
+function rtNudgeSignUp(){
+  rtDismissNudge(true);
+  if(window.RTAuth&&RTAuth.promptSignUp)RTAuth.promptSignUp();
 }
 
 function rtToast(list){
@@ -4529,7 +4598,7 @@ function rtReset(){if(!window.confirm('Reset all training progress, stats and ac
 document.getElementById('rtProgModal').addEventListener('click',function(e){if(e.target===this)rtCloseProgress();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('rtProgModal').classList.contains('open')){e.stopPropagation();rtCloseProgress();}},true);
 // First paint (local), then refresh once the Clerk/account profile is ready so synced stats appear.
-window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&window.RTAuth.ready&&window.RTAuth.ready.then){window.RTAuth.ready.then(function(){rtRefreshProgress();});}});
+window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&window.RTAuth.ready&&window.RTAuth.ready.then){window.RTAuth.ready.then(function(){if(RTProfile.migrate)RTProfile.migrate();rtRefreshProgress();});}});
 
 function backToMenu(){
   currentMode=null;
