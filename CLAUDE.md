@@ -296,20 +296,22 @@ Two workflows, picked on the start screen:
     solidly; a single-voxel seed redrew faint, peak density ~100 vs 255). The case is **off-bone**: bladder/rectal
     filling shifts the prostate + seeds off the bony pelvis, so a bony match fails and the student must register
     the fiducials (`VOLCASE.prostate.offBone` config; see below).
-    - **Rectum/bladder filling simulation** (`offBone.fill`): a **Filling** picker (`#cbFillSelect`, shown only
-      for prostate) + each **New Offset** rolls a daily filling scenario — `gas` (dark rectal-gas pocket, rect
-      density 6), `stool` (distended rectum 95), `bladder` (darker/fuller bladder, urine 44), `mixed`. Each
-      scenario both (a) **overwrites the rectum/bladder label-region density in the MOVING CBCT only** (the
-      planning reference keeps its normal rectum — a true differential), via the same `gtvOcc` density-blend the
-      seed redraw uses, sampled at the bone-fixed planning position so the filling rides with the pelvis; and
-      (b) sets a **deterministic `targetDrift`** in the matching direction (gas/distension push the prostate
-      **anterior** = −y; a full bladder pushes it **posterior/inferior**). So the off-bone shift has a *visible
-      cause*. Scenario drifts are pre-validated (|y| ≥ 3 mm > the 2 mm tol, total ≤ 5 mm), so `randomize()` uses
-      them directly (no range-random/cap) and the case never starts already-accepted. `pendingFill` holds the
-      picker selection (null = random each offset); `curFill` is the active scenario. Synthetic forward model on
-      the single planning CT — no bladder *geometry* change, so the full-bladder cue is a darker fluid region,
-      not a larger one (the weakest scenario visually; the seeds still carry the match). `bladder`/`lung` etc.
-      have no `fill` block, so they keep the plain range-random drift.
+    - **Bladder-filling simulation** (`offBone.fill`): a **Bladder** picker (`#cbFillSelect`, shown only for
+      prostate) + each **New Offset** rolls a daily bladder-fill scenario — `empty` (`bladderScale` 0.62),
+      `full` (1.30), `veryfull` (1.55). Each scenario renders the bladder at a different **SIZE at its own
+      CONSTANT urine density** (NOT a density tint): in the MOVING CBCT only, the bladder label region (bit 4)
+      is **scaled about the prostate/iso anchor** (`curIsoIdx()`) by `bladderScale`, so it grows superiorly/
+      anteriorly *away* from the gland (a real bladder fills upward); the scaled region is painted at the
+      bladder's `urine` density (~64), the prostate gland (bit 1) is **skipped** so the gold seeds are never
+      covered, and an emptied bladder repaints the receded part of the planning bladder as soft tissue
+      (`erase` 55). Drawn UNDER the seed hide/redraw so the seeds always render on top. Each scenario also sets
+      a **deterministic `targetDrift`** matching the fill: a fuller bladder pushes the prostate **posterior/
+      inferior** (+y/−z), an emptier one **anterior/superior** (−y/+z). |drift.y| ≥ 3 mm > the 2 mm tol and
+      total ≤ 5 mm, so `randomize()` uses the scenario drift directly (no range-random/cap) and the case never
+      starts already-accepted. `pendingFill` holds the picker selection (null = random each offset); `curFill`
+      is the active scenario. Synthetic forward model on the single planning CT (the size change is a
+      centroid-anchored label scale, not a real deformation). `lung` has no `fill` block, so it keeps the
+      plain range-random drift.
   - **Off-bone differential motion (config-driven; lung + prostate):** the target moves independently of
     the skeleton, so a bony match leaves it off — only matching the soft-tissue target / fiducials scores.
     Each off-bone case carries a `VOLCASE[case].offBone` config (`driftBit`, `hideDens`, `drawDens`, per-axis
