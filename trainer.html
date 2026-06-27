@@ -617,6 +617,146 @@ html:not(.auth-pending) #authGate{display:none}
 @keyframes dibhFlash{0%{box-shadow:0 0 0 2px var(--accent)}100%{box-shadow:0 0 0 0 rgba(0,0,0,0)}}
 @media(prefers-reduced-motion:reduce){.dibh-mic-pill.live::before{animation:none}.dibh-btn.voice-fire{animation:none}}
 @media(max-width:880px){.dibh-strip{flex-direction:column}.dibh-side{flex-basis:auto}#dibhTrace{height:118px}}
+/* ── IGRT setup console (standard 2D cases): couch coords + a rotating SVG linac + acquire/rotate/apply,
+   docked at the BOTTOM of the match screen, mirroring the DIBH strip. Hidden except on standard 2D cases
+   (CONSOLE.refresh/exit). Suppressed on fid-mode (prostate) + dibh-mode (Breast DIBH owns this slot). ── */
+.console-strip{display:flex;gap:12px;align-items:stretch;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:10px 12px;flex:0 0 auto}
+.console-strip.hidden{display:none}
+.con-main{flex:1 1 auto;min-width:0;background:#05080c;border:1px solid var(--border2);border-radius:10px;padding:9px 12px;display:flex;flex-direction:column;gap:8px;font-family:var(--mono),monospace}
+.con-side{flex:0 0 330px;display:flex;flex-direction:column;gap:8px;justify-content:center}
+.con-seq{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text);letter-spacing:.04em}
+.con-seq-lbl{white-space:nowrap}
+.con-fields{display:inline-flex;gap:5px}
+.con-pip{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.18);border:1px solid var(--border2)}
+.con-pip.cur{background:var(--accent);border-color:var(--accent)}
+.con-pip.done{background:var(--green);border-color:var(--green)}
+.con-plan{margin-left:auto;font-size:10px;color:var(--muted);letter-spacing:.08em}
+/* ── SVG linac gantry visualization ── */
+.con-viz{flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px}
+.con-svg{width:128px;height:116px;display:block}
+.con-bore{fill:none;stroke:rgba(255,255,255,.10);stroke-width:5}
+.con-limit{stroke:#ff5147;stroke-width:2.5;stroke-linecap:round;opacity:.65}
+.con-pt{fill:rgba(45,212,238,.10);stroke:rgba(45,212,238,.45);stroke-width:1}
+.con-arm{stroke:#39506b;stroke-width:3;stroke-linecap:round}
+.con-head{fill:#2a3852;stroke:#475b78;stroke-width:1}
+.con-coll{fill:#475b78}
+.con-epid{fill:#1f2c3e;stroke:#3a4d68;stroke-width:1}
+.con-kvsrc{fill:#33414f;stroke:#54657a;stroke-width:1}
+.con-kvpan{fill:#1f2c3e;stroke:#3a4d68;stroke-width:1}
+.con-pgly{font-family:var(--mono),monospace;font-size:7px;fill:var(--muted);text-anchor:middle}
+.con-pgly.kv{fill:var(--accent)}.con-pgly.mv{fill:var(--gold)}
+.con-vmark line{stroke:rgba(255,255,255,.22);stroke-width:3;stroke-linecap:round}
+.con-vmark.cur line{stroke:var(--accent);filter:drop-shadow(0 0 3px rgba(45,212,238,.8))}
+.con-vmark.done line{stroke:var(--green)}
+.con-beamfan{opacity:0;transition:opacity .15s}
+.con-beamfan.kv{fill:rgba(45,212,238,.85)}
+.con-beamfan.mv{fill:rgba(255,122,69,.85)}
+.con-beamfan.fire{animation:conFan .85s ease-out}
+@keyframes conFan{0%{opacity:0}15%{opacity:.9}100%{opacity:0}}
+/* ── couch encoder readout ── */
+/* ── COUCH encoder readout — vertical stack, one axis per row (Varian-style), compact + left-docked ── */
+.con-couch{display:grid;grid-template-columns:auto;gap:2px;align-content:start;align-self:flex-start;background:rgba(8,11,16,.5);border:1px solid var(--border2);border-radius:8px;padding:6px 11px}
+.con-couch-ttl{font-family:var(--mono),monospace;font-size:9px;letter-spacing:.12em;color:var(--accent);margin-bottom:2px}
+/* fixed columns so every row's numbers right-align in the same mono column: LABEL | VALUE(right) | UNIT | delta chip.
+   DOM order is value,chip,unit; grid-column places them so it reads "VRT   +97.40 cm  [chip]". */
+.con-couch .con-cell{display:grid;grid-template-columns:32px 78px 16px auto;align-items:baseline;column-gap:6px;line-height:1.1}
+.con-couch .con-cell .cl{grid-column:1;align-self:center;font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.con-couch .con-cell b{grid-column:2;font-family:var(--mono),monospace;font-size:16px;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;transition:color .4s ease}
+.con-couch .con-cell .u{grid-column:3;align-self:center;font-size:9px;color:var(--muted)}
+.con-couch .dchip{grid-column:4;justify-self:start;min-width:42px;font-size:9px;color:var(--green);font-style:normal;font-variant-numeric:tabular-nums}
+.console-strip.ph-aligned .con-couch .con-cell b{color:var(--green)}
+.con-couch .con-cell.flash b{animation:conCouchFlash 1s ease}
+@keyframes conCouchFlash{0%{color:var(--accent);text-shadow:0 0 9px rgba(45,212,238,.7)}100%{text-shadow:none}}
+.con-row2{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.con-gantry{display:flex;align-items:baseline;gap:8px}
+.con-gantry .cl{font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.con-gantry b{font-size:16px;color:var(--gold);font-variant-numeric:tabular-nums}
+.con-gtgt{font-size:10px;color:var(--accent2);letter-spacing:.04em}
+.console-strip.ph-match .con-gtgt,.console-strip.ph-aligned .con-gtgt{color:var(--muted)}
+.con-pending{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.con-pending .cl{font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.con-pending .ps{font-family:var(--mono),monospace;font-size:11px;color:var(--label);font-variant-numeric:tabular-nums}
+.console-strip.ph-aligned .con-pending .ps{color:var(--green)}
+.con-banner{font-size:11px;letter-spacing:.08em;color:var(--label);background:rgba(8,11,16,.6);border:1px solid var(--border2);border-radius:8px;padding:5px 9px}
+.console-strip.ph-acquire .con-banner{color:var(--accent2)}
+.console-strip.ph-match   .con-banner{color:var(--accent)}
+.console-strip.ph-aligned .con-banner{color:var(--green)}
+/* ── Treatment-console PENDANT: a brushed-metal box (right cluster) evoking a linac hand pendant ── */
+.con-pendant{flex:0 0 336px;display:flex;flex-direction:column;gap:9px;justify-content:flex-start;padding:11px;border-radius:12px;
+  background:linear-gradient(157deg,#6c7278,#474c52 60%,#3d4147);border:1px solid #2a2d31;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 7px rgba(0,0,0,.4),0 5px 16px rgba(0,0,0,.5)}
+.con-pendant-hd{display:flex;align-items:center;justify-content:space-between;background:#181b1f;border:1px solid #0d0f12;border-radius:5px;padding:3px 9px}
+.con-pendant-ttl{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.14em;color:#cdd2d8}
+.con-pendant-sn{font-family:var(--mono),monospace;font-size:9px;letter-spacing:.08em;color:#828990}
+.con-pendant-screen{display:flex;gap:9px;align-items:stretch}
+/* gantry movement gauge (recessed) */
+.con-gauge{flex:0 0 auto;width:66px;height:66px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 40%,#0c1118,#05080c);border:1px solid #20242a;box-shadow:inset 0 1px 5px rgba(0,0,0,.65)}
+.con-gauge .con-headsvg{width:60px;height:60px}
+.con-gauge-ring{fill:none;stroke:rgba(255,255,255,.12);stroke-width:2}
+.con-gauge-tick{stroke:rgba(255,255,255,.28);stroke-width:1.5;stroke-linecap:round}
+.con-headarm{stroke:#607690;stroke-width:2;stroke-linecap:round}
+.con-headblk{fill:#3a4d68;stroke:#607690;stroke-width:.5}
+.con-gauge-pt{fill:rgba(45,212,238,.16);stroke:rgba(45,212,238,.5);stroke-width:1}
+.con-gauge.ok .con-headblk{fill:var(--green);stroke:var(--green)}.con-gauge.ok .con-headarm{stroke:var(--green)}
+.con-gauge.off .con-headblk{fill:var(--accent2);stroke:var(--accent2)}.con-gauge.off .con-headarm{stroke:var(--accent2)}
+.con-gauge.moving .con-headblk{fill:var(--gold);stroke:var(--gold)}.con-gauge.moving .con-headarm{stroke:var(--gold)}
+.con-gauge.moving{animation:conHeadPulse 1s ease-in-out infinite}
+@keyframes conHeadPulse{0%,100%{box-shadow:inset 0 1px 5px rgba(0,0,0,.65)}50%{box-shadow:inset 0 1px 5px rgba(0,0,0,.65),0 0 9px 1px rgba(230,194,90,.55)}}
+/* LCD message screen */
+.con-lcd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:6px 9px;border-radius:7px;font-family:var(--mono),monospace;
+  background:linear-gradient(180deg,#04122e,#06224a);border:1px solid #0a1a3a;box-shadow:inset 0 1px 7px rgba(0,0,0,.5)}
+.con-lcd-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.con-lcd-row .lk{font-size:9px;letter-spacing:.1em;color:#5a86c8}
+.con-lcd-row b{font-size:14px;color:#7fd6ff;font-variant-numeric:tabular-nums}
+.con-lcd-st{font-size:10px;letter-spacing:.03em;color:#7fffc0}
+.con-lcd-st.off{color:#ffb38a}.con-lcd-st.moving{color:#ffe08a}.con-lcd-st.ok{color:#7fffc0}
+.con-lcd-leds{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}
+.con-lcd-leds .con-lamp{font-size:8px;gap:3px;color:#3f6098}
+.con-lcd-leds .con-lamp i{width:7px;height:7px}
+.con-lcd-leds .con-lamp.on{color:#9fe9ff}
+/* physical buttons */
+.con-pendant-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pbtn{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:46px;padding:8px 6px;border-radius:7px;cursor:pointer;
+  font-family:var(--mono),monospace;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#1a1d22;border:1px solid #20242a;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:linear-gradient(180deg,#f1f3f5,#c7ccd2);box-shadow:0 2px 0 #6f757c,0 3px 5px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.85)}
+.pbtn-lbl{font-size:12px;line-height:1.05;text-align:center}
+.pbtn-key{font-size:8px;font-weight:600;opacity:.55}
+.pbtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 0 0 #6f757c,inset 0 2px 4px rgba(0,0,0,.3)}
+.pbtn:disabled{opacity:.42;cursor:not-allowed;color:#565b62;box-shadow:0 1px 0 #6f757c,inset 0 1px 0 rgba(255,255,255,.4)}
+.pbtn.motion{background:linear-gradient(180deg,#e9ecef,#a9afb6)}
+.pbtn.motion::after{content:'';position:absolute;left:18%;right:18%;top:50%;height:1px;background:rgba(0,0,0,.25)}   /* paddle seam */
+/* glow ORANGE when the gantry is off the target angle (a move is needed); green while actually moving */
+.pbtn.motion.needmove:not(:disabled){background:linear-gradient(180deg,#ffc49e,#ff8a4d);color:#3a1c0a;animation:conMotionGlow 1.1s ease-in-out infinite}
+.pbtn.motion.moving:not(:disabled){background:linear-gradient(180deg,#aef0c8,#3ddc97);color:#04140d;animation:none}
+@keyframes conMotionGlow{0%,100%{box-shadow:0 2px 0 #6f757c,0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 2px 0 #6f757c,0 0 13px 2px rgba(255,138,77,.75)}}
+.pbtn.kvbeam{grid-column:auto}
+#conAcqBtn.exposing{box-shadow:0 0 0 2px var(--accent),0 2px 0 #6f757c,0 3px 7px rgba(45,212,238,.5)}
+.con-acqprog{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--accent);box-shadow:0 0 6px 1px rgba(45,212,238,.8)}
+.con-beamfan.firing{opacity:.85}   /* kV beam stays on while you hold the exposure */
+#conMatchBtn,#conApplyBtn{grid-column:1/3}
+.pbtn.match.ready{background:linear-gradient(180deg,#ffc49e,#ff7a45);color:#3a1c0a;animation:conMatchPulse 1.4s ease-in-out infinite}
+.pbtn.apply:not(:disabled){background:linear-gradient(180deg,#8fe9f7,#2dd4ee);color:#04222a}
+@keyframes conMatchPulse{0%,100%{box-shadow:0 2px 0 #6f757c,0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 2px 0 #6f757c,0 0 12px 1px rgba(255,122,69,.6)}}
+.con-lamps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 12px}
+.con-lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono),monospace;font-size:10px;letter-spacing:.05em;color:var(--muted)}
+.con-lamp i{width:10px;height:10px;border-radius:50%;background:#1a2230;border:1px solid var(--border2);flex:0 0 auto}
+.con-lamp.on{color:var(--text)}
+.con-lamp.on i{background:var(--green);box-shadow:0 0 7px 1px rgba(61,220,151,.7);border-color:transparent}
+.con-lamp.warn{color:var(--text)}
+.con-lamp.warn i{background:var(--gold);box-shadow:0 0 7px 1px rgba(230,194,90,.7);border-color:transparent}
+.con-lamp.beam{color:var(--text)}
+.con-lamp.beam i{background:var(--accent2);box-shadow:0 0 7px 1px rgba(255,122,69,.8);border-color:transparent;animation:conBeamPulse .9s ease-in-out infinite}
+.con-lamp.block{color:#ff7a72}
+.con-lamp.block i{background:#ff5147;box-shadow:0 0 8px 1px rgba(255,81,71,.8);border-color:transparent}
+@keyframes conBeamPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.con-msg{font-size:12px;color:var(--label);min-height:16px;line-height:1.3}
+.con-msg.ok{color:var(--green)}
+.con-msg.bad{color:var(--accent2)}
+/* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
+body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
+@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}}
+@media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
 <body data-require-auth>
@@ -1060,6 +1200,110 @@ html:not(.auth-pending) #authGate{display:none}
       <div class="dibh-score" id="dibhScore"></div>
     </div>
   </div>
+  <!-- TrueBeam-style delivery console: beam params + status/interlock lamps + Beam On, docked at the
+       bottom of the 2D match screen after the DRR views. Hidden except on standard 2D cases
+       (CONSOLE.refresh/exit). Suppressed on the fiducial (fid-mode) and Breast DIBH cases (DIBH owns
+       this slot — only one bottom strip shows at a time). -->
+  <div class="console-strip hidden ph-acquire" id="consoleStrip" aria-label="IGRT setup console">
+    <!-- SVG linac: a rotating gantry rig (head + MV/EPID + kV source/panel) with a beam-fan flash on Acquire -->
+    <div class="con-viz">
+      <svg viewBox="0 0 128 116" class="con-svg" aria-hidden="true">
+        <circle class="con-bore" cx="64" cy="58" r="47"/>
+        <!-- gantry hard limit (180°, bottom): the rig cannot transit this point (no full 360) -->
+        <line class="con-limit" x1="64" y1="99" x2="64" y2="113"/>
+        <ellipse class="con-pt" cx="64" cy="58" rx="11" ry="8.5"/>
+        <!-- view-angle ticks (positioned/coloured by JS) -->
+        <g id="conMark0" class="con-vmark"><line x1="64" y1="9" x2="64" y2="16"/></g>
+        <g id="conMark1" class="con-vmark"><line x1="64" y1="9" x2="64" y2="16"/></g>
+        <!-- rotating rig (transform set by JS) -->
+        <g id="conRig" transform="rotate(0 64 58)">
+          <polygon id="conMvBeam" class="con-beamfan mv" points="64,26 52,98 76,98"/>
+          <polygon id="conKvBeam" class="con-beamfan kv" points="106,58 22,49 22,67"/>
+          <line class="con-arm" x1="64" y1="20" x2="64" y2="98"/>
+          <line class="con-arm" x1="22" y1="58" x2="106" y2="58"/>
+          <rect class="con-head" x="50" y="9" width="28" height="17" rx="3"/>
+          <rect class="con-coll" x="58" y="24" width="12" height="5"/>
+          <rect class="con-epid" x="45" y="97" width="38" height="7" rx="2"/>
+          <text class="con-pgly mv" x="64" y="20">MV</text>
+          <rect class="con-kvsrc" x="100" y="50" width="12" height="16" rx="2"/>
+          <rect class="con-kvpan" x="17" y="46" width="6" height="24" rx="2"/>
+          <text class="con-pgly kv" x="106" y="62">kV</text>
+        </g>
+      </svg>
+    </div>
+    <div class="con-main">
+      <div class="con-seq">
+        <span class="con-seq-lbl" id="conSeqLbl">SETUP &middot; ACQUIRE BOTH VIEWS</span>
+        <span class="con-fields" id="conFields"></span>
+        <span class="con-plan" id="conPlan">&mdash;</span>
+      </div>
+      <!-- ABSOLUTE COUCH ENCODER -->
+      <div class="con-couch" aria-label="Couch coordinates">
+        <span class="con-couch-ttl">COUCH</span>
+        <div class="con-cell"><span class="cl">VRT</span><b id="conVrt">0.00</b><i id="conVrtD" class="dchip"></i><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LNG</span><b id="conLng">0.00</b><i id="conLngD" class="dchip"></i><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LAT</span><b id="conLat">0.00</b><i id="conLatD" class="dchip"></i><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">RTN</span><b id="conRtn">0.0</b><i id="conRtnD" class="dchip"></i><span class="u">&deg;</span></div>
+      </div>
+      <!-- GANTRY + APPLIED SHIFT -->
+      <div class="con-row2">
+        <div class="con-gantry"><span class="cl">GANTRY</span><b id="conGantry">0.0&deg;</b>
+          <span class="con-gtgt" id="conGantryTgt">hold SPACE / click an image to rotate</span></div>
+        <div class="con-pending" id="conPending">
+          <span class="cl">APPLIED SHIFT</span>
+          <span class="ps" id="conPsLat">Lat &mdash;</span><span class="ps" id="conPsLng">Lng &mdash;</span>
+          <span class="ps" id="conPsVrt">Vrt &mdash;</span><span class="ps" id="conPsRtn">Rtn &mdash;</span>
+          <span class="ps" id="conPsPit">Pitch &mdash;</span>
+        </div>
+      </div>
+      <div class="con-banner" id="conBanner">SETUP &mdash; ACQUIRE BOTH IMAGES</div>
+    </div>
+    <!-- Treatment-console pendant: brushed-metal box with a gantry gauge + LCD + status LEDs and the physical
+         Motion Enable / kV Beam On (hold) + 2D/2D Match / Apply Shifts buttons, evoking a linac hand pendant. -->
+    <div class="con-side con-pendant">
+      <div class="con-pendant-hd"><span class="con-pendant-ttl" id="conConsoleTtl">kV IMAGING CONSOLE</span><span class="con-pendant-sn" id="conPlan2">&mdash;</span></div>
+      <div class="con-pendant-screen">
+        <!-- gantry movement indicator (gauge): head points at the live gantry angle; ticks mark the valid stops -->
+        <div class="con-gauge off" id="conHeadInd">
+          <svg viewBox="0 0 46 46" class="con-headsvg" aria-hidden="true">
+            <circle class="con-gauge-ring" cx="23" cy="23" r="19"/>
+            <line class="con-gauge-tick" x1="23" y1="2" x2="23" y2="7"/>
+            <line class="con-gauge-tick" x1="44" y1="23" x2="39" y2="23"/>
+            <line class="con-gauge-tick" x1="23" y1="44" x2="23" y2="39"/>
+            <line class="con-gauge-tick" x1="2" y1="23" x2="7" y2="23"/>
+            <g id="conHeadRig" transform="rotate(90 23 23)">
+              <line class="con-headarm" x1="23" y1="23" x2="23" y2="9"/>
+              <rect class="con-headblk" x="18" y="4" width="10" height="6" rx="1.5"/>
+            </g>
+            <circle class="con-gauge-pt" cx="23" cy="23" r="3.4"/>
+          </svg>
+        </div>
+        <!-- LCD message screen -->
+        <div class="con-lcd">
+          <div class="con-lcd-row"><span class="lk">GANTRY</span><b id="conLcdG">090.0&deg;</b></div>
+          <div class="con-lcd-row"><b class="con-lcd-st" id="conHeadLbl">AT G90 · ACQUIRE</b></div>
+          <div class="con-lcd-leds" id="conLamps">
+            <span class="con-lamp" id="lampImg1"><i></i>IMG1</span>
+            <span class="con-lamp" id="lampImg2"><i></i>IMG2</span>
+            <span class="con-lamp" id="lampMotion"><i></i>MOT</span>
+            <span class="con-lamp" id="lampMatch"><i></i>MTCH</span>
+            <span class="con-lamp" id="lampAligned"><i></i>ALGN</span>
+          </div>
+        </div>
+      </div>
+      <div class="con-pendant-btns">
+        <button class="pbtn motion" id="conMotionBtn" type="button" disabled
+          onpointerdown="CONSOLE.motionEnable(true,true)" onpointerup="CONSOLE.motionEnable(false,true)" onpointerleave="CONSOLE.motionEnable(false,true)"
+          title="HOLD to drive the gantry toward the selected view (deadman) — or hold SPACE"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
+        <button class="pbtn kvbeam" id="conAcqBtn" type="button" disabled
+          onpointerdown="CONSOLE.acquireHoldStart()" onpointerup="CONSOLE.acquireHoldCancel()" onpointerleave="CONSOLE.acquireHoldCancel()"
+          title="HOLD ~1 s to take the exposure — or hold Enter"><span class="pbtn-lbl" id="conAcqLbl">kV BEAM ON</span><span class="pbtn-key">&crarr; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
+        <button class="pbtn match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match"><span class="pbtn-lbl">2D / 2D MATCH</span></button>
+        <button class="pbtn apply" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+      </div>
+      <div class="con-msg" id="conMsg">Click an image to select it. HOLD Motion Enable (or SPACE) to drive the gantry to the kV angle, then HOLD kV Beam On (or Enter ~1 s) to expose. AP = G90/270, Lateral = G0/180.</div>
+    </div>
+  </div>
   </div><!-- /.match-col -->
   <div class="controls-strip">
     <div class="ctrl-group">
@@ -1084,7 +1328,7 @@ html:not(.auth-pending) #authGate{display:none}
       </div>
       <div class="status-msg" id="statusMsg">Match both views to the reference</div>
       <div class="match-timer" id="matchTimerDisp" title="Match time — starts on your first adjustment, resets each Check Match">&#9201; 0:00.0</div>
-      <button class="btn-primary" onclick="checkMatch()" style="font-size:11px;padding:5px 16px;">Check Match</button>
+      <button class="btn-primary" id="checkMatchBtn" onclick="checkMatch()" style="font-size:11px;padding:5px 16px;">Check Match</button>
     </div>
   </div>
   <div class="shift-tab" onclick="toggleShifts()" title="Show / hide the shift controls (both views go full-width when hidden)"><span class="chev" id="shiftChev">&#10094;</span>SHIFTS</div>
@@ -1535,6 +1779,7 @@ function applyCase(key){
     document.getElementById('latDirLeft').textContent='A';
     document.getElementById('latDirRight').textContent='P';
     document.body.classList.add('fid-mode');   // hides blend/contrast/tool widgets that don't apply
+    if(window.CONSOLE) CONSOLE.exit();   // fiducial case: never show the delivery console
     FID2D.enter();
     return;
   }
@@ -1563,6 +1808,7 @@ function applyCase(key){
   views.ap.img.src=c.ap;
   views.lat.img.src=c.lat;
   randomizeShift();           // fresh random offset for the new case (also refreshes readouts)
+  if(window.CONSOLE) CONSOLE.refresh(key);   // show/hide + reset the delivery console for this case
 }
 
 function toggleGrid(){
@@ -1759,6 +2005,7 @@ function renderView(v, key){
   }
   function drawPor(ctx){
     if(window.DIBH && DIBH.hidesPortal && DIBH.hidesPortal(key)) return;     // DIBH: field not yet beamed/acquired
+    if(window.CONSOLE && CONSOLE.hidesPortal && CONSOLE.hidesPortal(key)) return;   // IGRT console: view not yet acquired
     if(v.useCrop && !(v.porImg.complete && v.porImg.naturalWidth)) return;  // portal not loaded yet
     ctx.save();
     ctx.filter = imgFilter();   // contrast/brightness on the image only (not the black bg)
@@ -2344,6 +2591,9 @@ const DIBH=(function(){
     const g=el('dibhGate'); if(g)g.textContent=GATE_LO.toFixed(1)+'–'+GATE_HI.toFixed(1);
     if(typeof applyCase==='function') applyCase('breastDIBH');   // load DRRs + hidden offset (portals stay hidden until beamed)
     updateFieldLabel(); updateBadges(); updateButtons();
+    // restore the breath-hold badge copy (the IGRT console rewrites it to its own copy when it owns the badges)
+    ['apArea','latArea'].forEach(id=>{const a=el(id); if(a&&a.querySelector){const sub=a.querySelector('.acq-badge .sub');
+      if(sub)sub.textContent='Coach a breath-hold & Beam On to capture this field';}});
     setMsg('Field 1 of 2 — hold SPACE (or the mic) and coach into the gate: “take a deep breath in”, then “a little more / a little out” to fine-tune, “hold” to lock it. Press ENTER to beam when steady in the gate.','');
     const sc=el('dibhScore'); if(sc)sc.textContent='';
     const sm=el('statusMsg'); if(sm)sm.textContent='Breast DIBH — voice-coach and acquire both fields below, then match.';
@@ -2371,6 +2621,415 @@ const DIBH=(function(){
   return {enter,exit,cmd,resize,acquiring,hidesPortal,_dbg};
 })();
 window.DIBH=DIBH;
+
+/* ============================================================================
+   CONSOLE — simulated Varian-style 2D/2D kV IGRT SETUP console for the 2D cases.
+   Docked as a strip (#consoleStrip) at the bottom of the match screen, mirroring
+   the DIBH strip. Drives the authentic setup loop: starting couch coords → acquire
+   image 1 (gantry parked at its angle) → rotate the gantry (SPACE = motion enable)
+   → acquire image 2 → match (both required) → APPLY SHIFTS (couch += correction);
+   within tolerance = aligned/treat, otherwise re-acquire with the residual until in
+   tolerance. See the per-case data + module just below.
+   ============================================================================ */
+// Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
+// (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
+// couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
+// angles + hidesPortal + the awaiting badge. Because the OBI kV source sits 90° off the gantry head, an AP kV
+// image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
+const VIEW_ANGLES={ap:[90,270], lat:[0,180]};
+const CONSOLE_PLANS={
+  // couch = realistic Varian/IEC 61217 HFS-supine absolute encoder readout: large Lng (table driven into the
+  // bore, deepest for the head ~97, shallowest for an extremity ~73), small Vrt couch height, near-0 Lat, Rtn 0.
+  brain:{plan:'BRAIN_SRT', couch:{vrt:-3.85, lng:97.40, lat: 0.35, rtn:0}, views:[
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
+  pelvis:{plan:'PELVIS_IMRT', couch:{vrt: 6.20, lng:89.20, lat:-0.60, rtn:0}, views:[
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
+  thorax:{plan:'THORAX_3DC', couch:{vrt: 4.10, lng:90.30, lat: 0.20, rtn:0}, views:[
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
+  femur:{plan:'FEMUR_3DC', couch:{vrt: 1.55, lng:72.80, lat: 2.85, rtn:0}, views:[
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
+  // Breast tangents are verified with MV (the gantry head / EPID), NOT kV: image each tangent field at its own
+  // treatment gantry angle (medial ~G305, lateral ~G125 — parallel-opposed). mv:true + per-view angles override
+  // the kV geometry; the acquire fires the MV head→EPID beam and the console reads "MV".
+  // Breast tangents/SCV are verified with MV (gantry head/EPID), at the planned beam angles — NOT kV
+  // OBI geometry. The 'ap' pane is the SCV / supraclav field at gantry 0; the 'lat' pane is the medial
+  // tangent at gantry ~305 (matches the case's viewTags 'Supraclav · G0' / 'Medial tangent · G305').
+  breast:{plan:'BREAST_L_MONO', couch:{vrt: 5.35, lng:84.75, lat:-1.20, rtn:0}, mv:true, views:[
+    {slot:'ap',  label:'MV Supraclav', mv:true, angles:[0]},
+    {slot:'lat', label:'MV Med Tan',   mv:true, angles:[305]} ]}
+};
+/* IGRT SETUP console: starting couch coords -> ACQUIRE image 1 (gantry parked at its angle) -> ROTATE gantry
+   (SPACE = motion-enable deadman) -> ACQUIRE image 2 -> [match-drag + Apply Shifts BLOCKED until BOTH acquired]
+   -> MATCH -> APPLY SHIFTS (couch += the matched correction). If the residual is within tolerance the setup is
+   ALIGNED (Beam On / Enter to treat); if not, you must RE-ACQUIRE and the residual persists in the retaken
+   images, iterating until in tolerance. Reads the file-level globals shift/hidden/zSign/rtTol/refreshReadouts/
+   clearErrors/render/undoStack directly (in lexical scope, like DIBH). A small SVG draws the rotating linac
+   (gantry head + MV/EPID + kV source/panel) with a beam-fan flash on acquire. _dbg drives it all headless. */
+const CONSOLE=(()=>{
+  const el=id=>document.getElementById(id);
+  const ROT_SPEED=20;   // gantry deg/sec — brisk but still visibly mechanical (a 90° transit ≈ 4.5 s); the
+                        // motionStep clamp lands it exactly on the target so it auto-stops at the valid angle.
+  const EXPOSE_HOLD=1.0;   // seconds you must HOLD Enter (or the Acquire button) to take a kV exposure
+  // Hard cable-wrap limit: a real linac gantry cannot transit through GANTRY_LIMIT (180°), so it can never do a
+  // full 360°. Motion takes the shortest arc that does NOT pass strictly through the limit (the long way round
+  // otherwise); the limit angle itself is a reachable endpoint (you can stop at it, you just can't drive through).
+  const GANTRY_LIMIT=180;
+  const angDiff=(a,b)=>((a-b)%360+540)%360-180;                 // shortest signed a-b in (-180,180]
+  function crossesLimit(C,d){ const lo=Math.min(C,C+d), hi=Math.max(C,C+d);   // does C..C+d pass THROUGH the limit?
+    for(let k=-2;k<=2;k++){ const L=GANTRY_LIMIT+360*k; if(L>lo+1e-6 && L<hi-1e-6) return true; } return false; }
+  const gantryDelta=(C,T)=>{ let d=angDiff(T,C); if(crossesLimit(C,d)) d=d>0?d-360:d+360; return d; };   // shortest legal arc
+  let active=false, caseKey=null, plan=null, views=[],
+      couch={vrt:0,lng:0,lat:0,rtn:0}, couch0={vrt:0,lng:0,lat:0,rtn:0},
+      gantry=90, acquired=[false,false], applied=null, phase='ACQUIRE',
+      motOn=false, motDead=false, motRaf=0, motTs=0, motTarget=null, fireTmr=0, resetTmr=0,
+      acqHold=false, acqProg=0, acqRaf=0, acqTs=0;
+
+  const bothAcquired=()=>acquired[0]&&acquired[1];
+  // the valid gantry angles to acquire a view: per-view override (e.g. breast MV tangents) else the kV geometry
+  // by slot (AP at 90/270, lateral at 0/180). A view with mv:true is a gantry-head (MV/EPID) portal, not kV/OBI.
+  const viewAngles=v=>(v&&v.angles)||(v&&VIEW_ANGLES[v.slot])||[];
+  const viewAtGantry=()=>views.find(v=>viewAngles(v).some(a=>Math.abs(angDiff(a,gantry))<0.5))||null;
+  const nextUnacquired=()=>views.find((v,i)=>!acquired[i])||null;
+  // where the gantry should drive to: the next un-acquired view, else (both taken) the one we're NOT parked at (retake)
+  const rotateTarget=()=>{ const nx=nextUnacquired(); if(nx)return nx; const here=viewAtGantry(); return views.find(v=>v!==here)||null; };
+  // nearest valid angle of a view, reachable without crossing the limit (smallest legal arc)
+  const nearestAngle=v=>{ if(!v)return null; let best=null,bd=1e9;
+    viewAngles(v).forEach(a=>{const d=Math.abs(gantryDelta(gantry,a)); if(d<bd){bd=d;best=a;}}); return best; };
+  const startAngle=()=>{ const a=viewAngles(views[0]); return a.length?a[0]:90; };   // gantry parks at the first view
+  const canAcquire=()=>!!(active&&phase==='ACQUIRE'&&viewAtGantry());   // retakes: any parked view, regardless of prior acquire
+  const isActive=()=>active;
+
+  // ---- gating hooks consumed by the core (mousedown / drawPor / checkMatch) ----
+  // Block match-drag + checkMatch in EVERY phase except MATCH/ALIGNED, i.e. until the trainee presses 2D/2D MATCH.
+  const MATCHPHASES={MATCH:1,ALIGNED:1};
+  function acquiring(){ return active && !MATCHPHASES[phase]; }
+  function matchable(){ return !active || !!MATCHPHASES[phase]; }
+  function hidesPortal(key){ if(!active)return false;
+    const i=views.findIndex(v=>v.slot===key); return i>=0 ? !acquired[i] : false; }
+
+  // ---- lifecycle ----
+  function refresh(key){
+    if(key==='breastDIBH'||document.body.classList.contains('dibh-mode')||
+       document.body.classList.contains('fid-mode')||!CONSOLE_PLANS[key]){ exit(); return; }
+    caseKey=key; plan=CONSOLE_PLANS[key]; views=plan.views.slice();
+    couch={...plan.couch}; couch0={...plan.couch};
+    gantry=startAngle(); acquired=[false,false]; applied=null; phase='ACQUIRE'; motTarget=null;
+    stopMotion(); clearTimeout(resetTmr);
+    active=true;
+    const s=el('consoleStrip'); if(s)s.classList.remove('hidden');
+    document.body.classList.add('console-mode');
+    if(el('conPlan'))el('conPlan').textContent=plan.plan;
+    if(el('conPlan2'))el('conPlan2').textContent=plan.plan;
+    const mv=!!(plan.mv||(views[0]&&views[0].mv));   // MV (gantry-head/EPID) imaging vs kV (OBI) — relabel the console
+    if(el('conConsoleTtl'))el('conConsoleTtl').textContent=(mv?'MV':'kV')+' IMAGING CONSOLE';
+    if(el('conAcqLbl'))el('conAcqLbl').textContent=(mv?'MV':'kV')+' BEAM ON';
+    updateBadges();
+    setPhase('ACQUIRE');
+    msg('Acquire both setup images: click an image (or it is pre-selected), hold SPACE to drive the gantry to the right angle, then hold Enter to Acquire.','');
+    if(typeof render==='function')render();   // hide both portals immediately
+  }
+  function exit(){
+    stopMotion(); clearTimeout(resetTmr); cancelAnimationFrame(acqRaf); acqHold=false; acqProg=0; active=false; phase='ACQUIRE';
+    const s=el('consoleStrip'); if(s)s.classList.add('hidden');
+    document.body.classList.remove('console-mode');
+    ['apArea','latArea'].forEach(id=>{const a=el(id);if(a)a.classList.remove('awaiting');});
+  }
+
+  // ---- phase + render ----
+  function setPhase(p){
+    phase=p; const s=el('consoleStrip');
+    if(s)s.className='console-strip'+(active?'':' hidden')+' ph-'+p.toLowerCase();
+    renderAll();
+  }
+  function renderAll(){ renderCouch(false); renderGantry(); renderViz(); renderPending(); renderPips();
+    renderBanner(); renderButtons(); renderLamps(); }
+  function renderCouch(flash){
+    const put=(id,v,dp)=>{const e=el(id);if(e)e.textContent=(v>=0?'+':'')+v.toFixed(dp);};
+    put('conVrt',couch.vrt,2); put('conLng',couch.lng,2); put('conLat',couch.lat,2); put('conRtn',couch.rtn,1);
+    const dchip=(id,v,dp)=>{const e=el(id);if(e)e.textContent=applied?((v>=0?'+':'')+v.toFixed(dp)):'';};
+    dchip('conVrtD',applied&&applied.vrt,2); dchip('conLngD',applied&&applied.lng,2);
+    dchip('conLatD',applied&&applied.lat,2); dchip('conRtnD',applied&&applied.rtn,1);
+    if(flash){['conVrt','conLng','conLat','conRtn'].forEach(id=>{const e=el(id);if(!e||!e.closest)return;
+      const c=e.closest('.con-cell'); if(c){c.classList.remove('flash');void c.offsetWidth;c.classList.add('flash');}});}
+  }
+  function renderGantry(){
+    if(el('conGantry'))el('conGantry').textContent=gantry.toFixed(1)+'°';
+    const g3=(gantry<10?'00':gantry<100?'0':'')+gantry.toFixed(1);   // zero-padded for the LCD (e.g. 090.0)
+    if(el('conLcdG'))el('conLcdG').textContent=g3+'°';
+    const t=el('conGantryTgt'); if(!t)return;
+    const at=viewAtGantry();
+    if(at){ t.textContent='at '+at.label+' — hold Enter to Acquire'; }
+    else { const tgt=motTarget!=null?motTarget:nearestAngle(rotateTarget());
+      t.textContent='hold SPACE → G'+(tgt==null?'—':Math.round(tgt)); }
+  }
+  // SVG linac: rotate the rig group to the live gantry angle; mark each view's primary acquire angle; light MOTION.
+  function renderViz(){
+    const rig=el('conRig'); if(rig&&rig.setAttribute)rig.setAttribute('transform','rotate('+gantry+' 64 58)');
+    const at=viewAtGantry();
+    views.forEach((v,i)=>{const m=el('conMark'+i); if(!m||!m.setAttribute)return;
+      const a=viewAngles(v)[0];                                // this view's primary acquire angle (per-view/kV)
+      m.setAttribute('transform','rotate('+a+' 64 58)');
+      m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':'')));});
+    const mv=el('lampMotion'); if(mv)mv.className='con-lamp'+(motOn?' warn':'');
+    renderGantryHead();
+  }
+  // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
+  // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
+  function renderGantryHead(){
+    const at=!!viewAtGantry();
+    const needMove = motTarget!=null && Math.abs(angDiff(motTarget,gantry))>=0.5;   // selected a view we're not parked at
+    const state = motOn?'moving' : needMove?'off' : at?'ok' : 'off';
+    const wrap=el('conHeadInd'); if(wrap)wrap.className='con-gauge '+state;
+    const h=el('conHeadRig'); if(h&&h.setAttribute)h.setAttribute('transform','rotate('+gantry+' 23 23)');
+    const lbl=el('conHeadLbl'); if(lbl)lbl.className='con-lcd-st '+state;
+    if(lbl)lbl.textContent = motOn?('MOVING · G'+Math.round(gantry))
+      : needMove?('HOLD SPACE → G'+Math.round(motTarget))
+      : at?('AT G'+Math.round(gantry)+' · ACQUIRE')
+      : 'OFF ANGLE · HOLD SPACE';
+  }
+  function renderPending(){
+    const set=(id,lbl,v,unit,dp)=>{const e=el(id);if(e)e.textContent=applied?(lbl+' '+(v>=0?'+':'')+v.toFixed(dp)+unit):(lbl+' —');};
+    set('conPsLat','Lat', applied&&applied.lat,'cm',2); set('conPsLng','Lng', applied&&applied.lng,'cm',2);
+    set('conPsVrt','Vrt', applied&&applied.vrt,'cm',2); set('conPsRtn','Rtn', applied&&applied.rtn,'°',1);
+    set('conPsPit','Pitch', applied&&applied.pitch,'°',1);
+  }
+  function renderPips(){
+    const box=el('conFields'); if(!box)return; box.innerHTML='';
+    const at=viewAtGantry();
+    views.forEach((v,i)=>{const p=document.createElement('i');
+      p.className='con-pip'+(acquired[i]?' done':(v===at?' cur':'')); p.title=v.label; box.appendChild(p);});
+  }
+  function renderBanner(){
+    const ready=bothAcquired();
+    const sl=el('conSeqLbl'); if(sl)sl.textContent =
+      phase==='ACQUIRE'? (ready?'SETUP · READY TO MATCH':'SETUP · ACQUIRE BOTH VIEWS')
+    : phase==='MATCH'?   'SETUP · MATCH BOTH VIEWS'
+    :                    'SETUP · ALIGNED';
+    const b=el('conBanner'); if(!b)return;
+    b.textContent =
+      phase==='ACQUIRE'? (ready?'BOTH IMAGES ACQUIRED — PRESS 2D/2D MATCH (OR RETAKE)':'SETUP — ACQUIRE BOTH IMAGES')
+    : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN APPLY SHIFTS'
+    :                    'COUCH CORRECTED — WITHIN TOLERANCE · RESETTING';
+  }
+  function renderButtons(){
+    const acq=el('conAcqBtn'), mt=el('conMatchBtn'), ap=el('conApplyBtn'), mo=el('conMotionBtn');
+    const inAcq=active&&phase==='ACQUIRE', ready=bothAcquired();
+    if(mo){                                          // Motion Enable: hold to drive the gantry (ACQUIRE phase)
+      mo.disabled=!inAcq;
+      const need=inAcq && motTarget!=null && Math.abs(angDiff(motTarget,gantry))>=0.5;   // off the target angle -> a move is needed
+      mo.classList.toggle('needmove', need && !motOn);   // glow orange: you must hold Motion Enable to rotate
+      mo.classList.toggle('moving', motOn);
+    }
+    if(acq)acq.disabled=!canAcquire();
+    if(mt){ mt.disabled=!(inAcq&&ready); mt.classList.toggle('ready', inAcq&&ready);
+            mt.style.display=(active&&(phase==='ACQUIRE'||phase==='MATCH'))?'':'none'; }
+    if(ap)ap.disabled=!(phase==='MATCH');
+    // mirror the action label onto the sidebar Check Match button while the console drives the case
+    const cm=el('checkMatchBtn');
+    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
+  }
+  function renderLamps(){
+    const set=(id,c)=>{const e=el(id);if(e)e.className='con-lamp'+(c?' '+c:'');};
+    set('lampImg1', acquired[0]?'on':'block');
+    set('lampImg2', acquired[1]?'on':'block');
+    set('lampMatch', (phase==='MATCH'||phase==='ALIGNED')?'on':'');
+    set('lampAligned', (phase==='ALIGNED')?'on':'');
+  }
+  function updateBadges(){
+    const ap=el('apArea'), lat=el('latArea');
+    const apI=views.findIndex(v=>v.slot==='ap'), latI=views.findIndex(v=>v.slot==='lat');
+    if(ap)ap.classList.toggle('awaiting', active&&apI>=0&&!acquired[apI]);
+    if(lat)lat.classList.toggle('awaiting', active&&latI>=0&&!acquired[latI]);
+    // own the acquisition-badge sub copy while the console is active (DIBH sets its own on enter)
+    ['apArea','latArea'].forEach(id=>{const a=el(id); if(a&&a.querySelector){const sub=a.querySelector('.acq-badge .sub');
+      if(sub)sub.textContent='Park the gantry at this view, then hold Enter to Acquire.';}});
+  }
+  function msg(t,c){const m=el('conMsg');if(m){m.textContent=t;m.className='con-msg'+(c?' '+c:'');}}
+
+  // ---- gantry motion: CLICK an image selects the destination (motTarget); HOLD SPACE drives the gantry there ----
+  function selectView(slot){               // CLICK path: pick a view's nearest valid angle as the destination (NO move)
+    if(!active||phase!=='ACQUIRE')return;
+    const v=views.find(x=>x.slot===slot); if(!v)return;
+    const a=nearestAngle(v); if(a==null)return;
+    motTarget=a;
+    if(Math.abs(angDiff(a,gantry))<0.5) msg('Gantry already at '+v.label+' (G'+Math.round(a)+') — hold Enter to Acquire.','');
+    else msg('Selected '+v.label+' (G'+Math.round(a)+'). Hold SPACE to drive the gantry there.','');
+    renderGantry(); renderViz(); renderButtons();
+  }
+  function motionEnable(on, deadman){      // SPACE deadman: drive toward the selected motTarget while held
+    if(!active||phase!=='ACQUIRE'){ pauseMotion(); return; }
+    if(on){
+      if(motTarget==null){ const t=rotateTarget(); motTarget=t?nearestAngle(t):null; }   // default: next view to shoot
+      if(motTarget==null||Math.abs(angDiff(motTarget,gantry))<0.5){ renderViz(); return; }   // nothing to drive to
+      motOn=true; motDead=!!deadman; startMotion();
+    } else { if(deadman&&!motDead)return; pauseMotion(); }   // deadman release pauses where it is (motTarget kept)
+    renderViz();
+  }
+  function motionStep(dt){
+    if(motTarget==null){ pauseMotion(); return; }
+    const d=gantryDelta(gantry,motTarget);          // shortest legal arc (never transits the 180° limit, no full 360)
+    const step=Math.sign(d)*Math.min(Math.abs(d),ROT_SPEED*dt);
+    gantry=(((gantry+step)%360)+360)%360;
+    if(Math.abs(gantryDelta(gantry,motTarget))<0.4){ gantry=motTarget; pauseMotion(); motTarget=null;
+      const at=viewAtGantry(); if(at)msg('Gantry at G'+gantry.toFixed(0)+' — hold Enter to acquire '+at.label+'.',''); }
+    renderGantry(); renderViz(); renderButtons(); renderPips();
+  }
+  function motFrame(ts){ if(!motOn)return; if(!motTs)motTs=ts;
+    let dt=(ts-motTs)/1000; motTs=ts; if(dt>0.1)dt=0.1; motionStep(dt);
+    if(motOn)motRaf=requestAnimationFrame(motFrame); }
+  function startMotion(){ motTs=0; cancelAnimationFrame(motRaf); motRaf=requestAnimationFrame(motFrame); }
+  function pauseMotion(){ motOn=false; motDead=false; cancelAnimationFrame(motRaf); motRaf=0; const mv=el('lampMotion'); if(mv)mv.className='con-lamp'; }   // keep motTarget
+  function stopMotion(){ pauseMotion(); motTarget=null; }   // full stop (refresh/exit/commit)
+
+  // ---- acquire (with a kV beam-fan flash) ----
+  function fireBeam(kind){   // kind: 'kv' (acquire) | 'mv' (treat). Flash the fan; browser-only cosmetic.
+    const id=kind==='kv'?'conKvBeam':'conMvBeam', f=el(id); if(!f||!f.classList)return;
+    f.classList.remove('fire'); if(f.getBoundingClientRect)void f.getBoundingClientRect();
+    f.classList.add('fire'); clearTimeout(fireTmr);
+    if(typeof setTimeout==='function')fireTmr=setTimeout(()=>{if(f.classList)f.classList.remove('fire');},850);
+  }
+  function acquire(){                                    // idempotent: re-take either view as many times as you want
+    if(!canAcquire())return;
+    const v=viewAtGantry(), i=views.indexOf(v), retake=acquired[i];
+    fireBeam(v.mv?'mv':'kv');                             // kV (OBI) or MV (gantry head / EPID) beam per the view
+    acquired[i]=true; updateBadges();
+    if(typeof render==='function')render();               // (re)reveal that view's portal — stays revealed, SAME offset
+    // Set the auto-advance target BEFORE setPhase (which re-renders the buttons) so the
+    // Motion Enable glow (.needmove) is computed against the new target, not a stale null.
+    if(bothAcquired()){
+      motTarget=null;
+      msg((retake?'Re-took ':'Acquired ')+v.label+'. Both images in — press 2D/2D MATCH, or retake either view.','ok');
+    } else {
+      const nx=nextUnacquired();                          // AUTO-ADVANCE the target to the next view to shoot
+      motTarget=nearestAngle(nx);
+      msg((retake?'Re-took ':'Acquired ')+v.label+'. Hold MOTION ENABLE to rotate to '+(nx?nx.label:'the other view')+', then expose.',''); }
+    setPhase('ACQUIRE');                                  // NEVER auto-enter MATCH; the trainee presses 2D/2D MATCH
+  }
+  // ---- hold-to-expose: you must HOLD Enter (or the Acquire button) for EXPOSE_HOLD s to take the kV image ----
+  function acquireHoldStart(){
+    if(!canAcquire()||acqHold)return;
+    acqHold=true; acqProg=0; acqTs=0; setExposing(true);
+    cancelAnimationFrame(acqRaf); acqRaf=requestAnimationFrame(acqFrame);
+    msg('Exposing… keep holding to capture '+(viewAtGantry()||{}).label+'.','');
+  }
+  function acqFrame(ts){ if(!acqHold)return; if(!acqTs)acqTs=ts;
+    let dt=(ts-acqTs)/1000; acqTs=ts; if(dt>0.1)dt=0.1;
+    acqProg=Math.min(1,acqProg+dt/EXPOSE_HOLD); renderAcqProg();
+    if(acqProg>=1){ acqHold=false; cancelAnimationFrame(acqRaf); acqRaf=0; setExposing(false); acquire(); return; }
+    acqRaf=requestAnimationFrame(acqFrame);
+  }
+  function acquireHoldCancel(){            // release before the second is up -> no image
+    if(!acqHold)return;
+    acqHold=false; cancelAnimationFrame(acqRaf); acqRaf=0; acqProg=0; setExposing(false); renderAcqProg();
+    msg('Exposure released early — hold Enter (or the Acquire button) for a second to capture.','bad');
+  }
+  function setExposing(on){
+    const btn=el('conAcqBtn'); if(btn)btn.classList.toggle('exposing',on);
+    const f=el('conKvBeam'); if(f&&f.classList){ if(on)f.classList.add('firing'); else f.classList.remove('firing'); }
+    renderAcqProg();
+  }
+  function renderAcqProg(){ const p=el('conAcqProg'); if(p&&p.style)p.style.width=(acqProg*100).toFixed(0)+'%'; }
+
+  function enterMatch(){                                  // the deliberate image-first -> match commit (button only)
+    if(!active||phase!=='ACQUIRE'||!bothAcquired())return;
+    stopMotion(); cancelAnimationFrame(acqRaf); acqHold=false; acqProg=0; setExposing(false);
+    setPhase('MATCH');
+    msg('Matching enabled — drag both views to register, then Apply Shifts.','ok');
+  }
+
+  // ---- apply shifts (replaces Check Match while the console is active) ----
+  // Always applies couch += the dialed correction; if the residual is within tolerance -> ALIGNED, else the
+  // residual persists in the (re-acquired) images and the trainee iterates until in tolerance.
+  function applyShifts(){
+    if(!active||phase!=='MATCH')return;
+    if(typeof shift==='undefined'||typeof hidden==='undefined')return;
+    const e={x:shift.x-hidden.x,y:shift.y-hidden.y,z:shift.z-hidden.z,roll:shift.roll-hidden.roll,pitch:shift.pitch-hidden.pitch};
+    const TOL=(typeof rtTol==='function')?rtTol('2d2d',caseKey):{t1:2,t2:4,r1:2,r2:4};
+    const within=Math.abs(e.x)<=TOL.t1&&Math.abs(e.y)<=TOL.t1&&Math.abs(e.z)<=TOL.t1&&Math.abs(e.roll)<=TOL.r1&&Math.abs(e.pitch)<=TOL.r1;
+    // couch correction = the displayed shift the trainee dialed (same signs as the live valX/valY/valZ readouts)
+    const zs=(typeof zSign!=='undefined')?zSign:1;
+    const dLat=-shift.x/10, dLng=shift.y/10, dVrt=zs*shift.z/10, dRtn=shift.roll;
+    couch.lat=+(couch.lat+dLat).toFixed(2); couch.lng=+(couch.lng+dLng).toFixed(2);
+    couch.vrt=+(couch.vrt+dVrt).toFixed(2); couch.rtn=+(couch.rtn+dRtn).toFixed(1);
+    applied={lat:dLat,lng:dLng,vrt:dVrt,rtn:dRtn,pitch:shift.pitch};
+    // the couch physically moved by `shift`, so the remaining true error becomes hidden-shift; reset the dial.
+    hidden={x:hidden.x-shift.x,y:hidden.y-shift.y,z:hidden.z-shift.z,roll:hidden.roll-shift.roll,pitch:hidden.pitch-shift.pitch};
+    shift={x:0,y:0,z:0,roll:0,pitch:0};
+    if(typeof undoStack!=='undefined')undoStack=[];
+    if(typeof refreshReadouts==='function')refreshReadouts();
+    if(typeof clearErrors==='function')clearErrors();
+    if(typeof render==='function')render();
+    if(within){
+      setPhase('ALIGNED'); renderCouch(true);
+      msg('Couch moved ('+fmtDelta(applied)+') — setup ALIGNED within tolerance. Resetting…','ok');
+      scheduleReset();                                    // success -> auto-reset to a fresh rep
+    } else {
+      acquired=[false,false]; gantry=startAngle(); motTarget=null; updateBadges();
+      if(typeof render==='function')render();
+      setPhase('ACQUIRE'); renderCouch(true);
+      msg('Shift applied ('+fmtDelta(applied)+') — residual exceeds tolerance. Re-acquire both views and correct again.','bad');
+    }
+  }
+  function fmtDelta(a){const f=(n,d)=>(n>=0?'+':'')+n.toFixed(d);
+    return 'Lat '+f(a.lat,2)+' · Lng '+f(a.lng,2)+' · Vrt '+f(a.vrt,2)+' · Rtn '+f(a.rtn,1)+'°';}
+
+  // ---- New Offset / re-image: fresh setup error, re-acquire from scratch (couch unchanged here) ----
+  function reinterlock(){
+    if(!active)return;
+    acquired=[false,false]; applied=null; gantry=startAngle(); motTarget=null; stopMotion(); clearTimeout(resetTmr);
+    updateBadges(); if(typeof render==='function')render();
+    setPhase('ACQUIRE'); msg('New offset — re-acquire both images, then match.','');
+  }
+
+  // ---- auto-reset after a within-tolerance match: brief ALIGNED, then a fresh rep (new offset, couch back to start) ----
+  function scheduleReset(){ clearTimeout(resetTmr);
+    if(typeof setTimeout==='function')resetTmr=setTimeout(resetExercise,1800); }
+  function resetExercise(){
+    if(!active)return;
+    couch={...couch0};                                    // couch returns to the plan start for the next rep
+    if(typeof randomizeShift==='function') randomizeShift();   // -> applyNewOffset2d -> reinterlock() (resets acquire state)
+    else reinterlock();
+    renderCouch(false);
+    msg('Setup aligned & reset — new offset loaded. Acquire both images.','');
+  }
+
+  // ---- _dbg: deterministic headless hooks (no rAF / no setTimeout for state) ----
+  const _dbg={
+    refresh, exit, acquire, enterMatch, applyShifts, reinterlock, resetExercise, selectView,
+    rotateTo:(g)=>{gantry=g; motTarget=null; renderAll();},                       // snap to an angle (no rAF)
+    snapToView:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=viewAngles(v)[0]; motTarget=null; renderAll();}},   // snap to a view's primary angle
+    driveTo:(g,secs=60,d=0.05)=>{motTarget=g; motOn=true; for(let t=0;t<secs&&motOn;t+=d)motionStep(d); return +gantry.toFixed(1);},   // synchronous realistic-speed drive
+    retake:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=viewAngles(v)[0]; motTarget=null; acquire();} return acquired.slice();},   // park + (re)acquire
+    motion:(on)=>motionEnable(on,true),                                          // simulate SPACE hold/release
+    set:(o)=>{o=o||{};
+      if(o.gantry!=null)gantry=o.gantry; if(o.acquired)acquired=o.acquired.slice();
+      if(o.phase!=null)phase=o.phase; if(o.applied!==undefined)applied=o.applied;
+      if(o.couch)couch={...couch,...o.couch}; if(o.active!=null)active=o.active;
+      if(o.motTarget!==undefined)motTarget=o.motTarget;
+      renderAll();},
+    state:()=>({caseKey,plan:plan&&plan.plan,phase,gantry:+gantry.toFixed(1),
+      acquired:acquired.slice(),bothAcquired:bothAcquired(),couch:{...couch},couch0:{...couch0},
+      applied:applied?{...applied}:null,canAcquire:canAcquire(),acquiring:acquiring(),matchable:matchable(),
+      readyToMatch:(active&&phase==='ACQUIRE'&&bothAcquired()),atView:!!viewAtGantry(),
+      motTarget,motOn,active,aligned:phase==='ALIGNED'}),
+    buttons:()=>({acquire:el('conAcqBtn')?!el('conAcqBtn').disabled:false,
+      match:el('conMatchBtn')?!el('conMatchBtn').disabled:false,
+      apply:el('conApplyBtn')?!el('conApplyBtn').disabled:false}),
+    lamps:()=>({img1:acquired[0],img2:acquired[1],
+      match:(phase==='MATCH'||phase==='ALIGNED'),aligned:(phase==='ALIGNED')}),
+    matchable, acquiring, hidesPortal, viewAtGantry:()=>{const v=viewAtGantry();return v?v.slot:null;},
+    plans:CONSOLE_PLANS, viewAngles:VIEW_ANGLES, views:()=>views.slice(),
+    GANTRY_LIMIT, ROT_SPEED, gantryDelta, crossesLimit,
+    // sample the swept gantry angles driving from->to (to assert the path never transits the 180° limit)
+    sweep:(from,to)=>{const out=[from];let g=from;const d=gantryDelta(from,to),n=Math.max(2,Math.ceil(Math.abs(d)));
+      for(let i=1;i<=n;i++){g=(((from+d*i/n)%360)+360)%360;out.push(g);} return out;},
+  };
+  return {refresh,exit,selectView,acquire,acquireHoldStart,acquireHoldCancel,enterMatch,applyShifts,reinterlock,
+          active:isActive,phase:()=>phase,readyToMatch:()=>active&&phase==='ACQUIRE'&&bothAcquired(),
+          canAcquire,acquiring,matchable,hidesPortal,motionEnable,_dbg};
+})();
+window.CONSOLE=CONSOLE;
 
 /* ============================================================================
    MicMeter — tiny shared input-level meter (Web Audio). Independent of the Web
@@ -3033,6 +3692,14 @@ function attachInteractions(key){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
       if(window.DIBH && DIBH.acquiring && DIBH.acquiring()) return;   // DIBH: no matching until both fields are acquired
+      // IGRT console, pre-MATCH: a left-click on a pane is NOT a match drag — it SELECTS that view as the gantry
+      // destination (then hold SPACE to drive there). Never starts a drag. Once 2D/2D MATCH is pressed, acquiring()
+      // is false and this is skipped so the normal match-drag below runs.
+      if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){
+        if(CONSOLE.selectView) CONSOLE.selectView(key);
+        e.preventDefault();
+        return;
+      }
       if(axisLock){                         // couch-axis lock -> always single-axis move
         pushUndo(); mode='move'; accX=0; accY=0; area.style.cursor='move';
       } else if(dist > ringRadius(v)){
@@ -3234,6 +3901,7 @@ function applyNewOffset2d(){   // pick a fresh hidden 5DOF setup error (used by 
   hidden.z=rnd(6,16)*sgn();
   hidden.roll=rnd(0,4)*sgn();
   hidden.pitch=rnd(0,4)*sgn();
+  if(window.CONSOLE) CONSOLE.reinterlock();   // IGRT console: a new offset means re-image (back to ACQUIRE; couch unchanged)
 }
 function randomizeShift(){
   if(FID2D.active()){ matchTimer2d.reset(); FID2D.randomize(); return; }
@@ -3301,6 +3969,16 @@ function checkMatch(){
     document.getElementById('statusMsg').textContent='Acquire both fields (coach a breath-hold → Beam On) before matching.';
     return;
   }
+  // IGRT console: when both images are taken, the "2D/2D Match" action (sidebar button / Enter) commits to matching.
+  if(window.CONSOLE && CONSOLE.readyToMatch && CONSOLE.readyToMatch()){
+    CONSOLE.enterMatch();
+    document.getElementById('statusMsg').textContent='2D/2D match started — register both views, then Apply Shifts.';
+    return;
+  }
+  if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){   // still acquiring: must take both images first
+    document.getElementById('statusMsg').textContent='Acquire both images (click a pane / hold SPACE to rotate) before matching.';
+    return;
+  }
   const e={};
   ['x','y','z','roll','pitch'].forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
   const cc=(v,t1,t2)=>{const a=Math.abs(v);return a<=t1?'error-good':a<=t2?'error-ok':'error-bad';};
@@ -3320,17 +3998,25 @@ function checkMatch(){
   if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
   // record this attempt; only document a time when the match is within tolerance
   rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ok?ms:null});
-  // Check Match resets the clock and loads a fresh offset for the next rep. Keep the verdict and the
-  // per-axis errors on screen (they clear on the first adjustment of the new rep, like a normal move).
   const verdict=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
     :close?'\u26a1 Close \u2014 missed tolerance':'\u2717 Residual error \u2014 outside tolerance')+timeTag;
-  applyNewOffset2d();
-  matchTimer2d.reset();
-  shift={x:0,y:0,z:0,roll:0,pitch:0};
-  undoStack=[];
-  refreshReadouts();
-  render();
-  document.getElementById('statusMsg').textContent=verdict+'  \u00b7  new offset loaded';
+  // IGRT console drives the case: "Check Match" becomes APPLY SHIFTS \u2014 move the couch by the matched
+  // correction, then (if still out of tolerance) re-acquire and iterate. Otherwise: normal practice loop.
+  if(window.CONSOLE && CONSOLE.active && CONSOLE.active()){
+    matchTimer2d.reset();
+    CONSOLE.applyShifts();   // reads shift/hidden/zSign; moves couch, then aligns or forces a re-acquire
+    document.getElementById('statusMsg').textContent=verdict;
+  } else {
+    // Check Match resets the clock and loads a fresh offset for the next rep. Keep the verdict and the
+    // per-axis errors on screen (they clear on the first adjustment of the new rep, like a normal move).
+    applyNewOffset2d();
+    matchTimer2d.reset();
+    shift={x:0,y:0,z:0,roll:0,pitch:0};
+    undoStack=[];
+    refreshReadouts();
+    render();
+    document.getElementById('statusMsg').textContent=verdict+'  \u00b7  new offset loaded';
+  }
 }
 function clearErrors(){['errX','errY','errZ','errRoll','errPitch'].forEach(id=>{const e=document.getElementById(id);e.textContent='\u2014';e.className='error-val';});}
 // ===== How-to-use guide (launched from the start menu; replaces the old per-tool help) =====
@@ -3404,8 +4090,8 @@ document.addEventListener('keydown',e=>{
   if(currentMode!=='2d2d') return; // CBCT mode has its own handler
   if(FID2D.active()) return;        // fiducial case is mouse-driven; no axis/tool shortcuts
   const tag=e.target.tagName;
-  const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA';
-  if(isText) return; // don't hijack real text fields
+  const isText=(tag==='INPUT'&&e.target.type!=='range')||tag==='TEXTAREA'||tag==='SELECT';
+  if(isText) return; // don't hijack real text fields / the case-picker dropdown (native type-ahead)
   // 1 / 2 / 3 : hold to lock the next drag to a single couch axis
   //   1 = A-P (Vrt, vertical drag) · 2 = S-I (Lng, vertical drag) · 3 = L-R (Lat, vertical drag: up=right, down=left)
   if(e.key==='1'||e.key==='2'||e.key==='3'){
@@ -3418,6 +4104,19 @@ document.addEventListener('keydown',e=>{
     e.preventDefault();
     undo();
     return;
+  }
+  // ── IGRT console keys (standard 2D cases; DIBH owns its own keys). All require an active console,
+  //    no modifiers, and not dibh-mode. Bare-A sits BEFORE the Ctrl/⌥+A flicker block so they never collide.
+  const conOn = window.CONSOLE && CONSOLE.active && CONSOLE.active() && !document.body.classList.contains('dibh-mode');
+  if(conOn && !e.ctrlKey && !e.metaKey && !e.altKey){
+    const acq = CONSOLE.acquiring && CONSOLE.acquiring();
+    // SPACE (hold) = motion enable: drive the gantry toward the selected view while held (deadman). Acquire phase only.
+    if((e.key===' '||e.code==='Space') && acq){ e.preventDefault(); CONSOLE.motionEnable(true,true); return; }
+    // ENTER held for ~1 s = take the kV exposure, but ONLY when parked at a valid angle. The keyup (below) ends
+    // the hold. When NOT at a valid angle it falls through to checkMatch -> 2D/2D Match (both taken) / Apply Shifts.
+    if(e.key==='Enter' && !e.repeat && CONSOLE.canAcquire && CONSOLE.canAcquire()){
+      e.preventDefault(); CONSOLE.acquireHoldStart(); return;
+    }
   }
   // Flicker (flip the active view's blend to its mirror): Ctrl/⌘+A, or ⌥(Option)+A on Mac.
   //   Option rewrites e.key to 'å', so the Option case matches the physical key via e.code.
@@ -3468,8 +4167,13 @@ document.addEventListener('keydown',e=>{
 // Release the couch-axis lock when 1/2/3 is let go (or focus is lost mid-hold).
 document.addEventListener('keyup',e=>{
   if(axisLockKey && e.key===axisLockKey){ axisLock=null; axisLockKey=null; hideAxisCue(); }
+  // SPACE up releases the IGRT gantry motion-enable deadman (pauses rotation where it is).
+  if((e.key===' '||e.code==='Space') && window.CONSOLE && CONSOLE.motionEnable){ CONSOLE.motionEnable(false,true); }
+  // ENTER up ends the kV hold-to-expose (cancels if the second wasn't reached; no-op once captured).
+  if(e.key==='Enter' && window.CONSOLE && CONSOLE.acquireHoldCancel){ CONSOLE.acquireHoldCancel(); }
 });
-window.addEventListener('blur',()=>{ if(axisLock){ axisLock=null; axisLockKey=null; hideAxisCue(); } });
+window.addEventListener('blur',()=>{ if(axisLock){ axisLock=null; axisLockKey=null; hideAxisCue(); }
+  if(window.CONSOLE && CONSOLE.motionEnable) CONSOLE.motionEnable(false,true); });
 
 // Load screen: pick an imaging workflow before the matcher is shown.
 //   2d2d -> existing orthogonal-pair portal/DRR tool
@@ -3812,6 +4516,7 @@ window.addEventListener('load',function(){rtRefreshProgress();if(window.RTAuth&&
 function backToMenu(){
   currentMode=null;
   DIBH.exit();   // stop the breath-hold animation + hide its overlay if it was open
+  if(window.CONSOLE) CONSOLE.exit();   // hide the delivery console + stop its MU ramp on return to the picker
   document.body.classList.remove('fid-mode');   // clear the fiducial-case UI state
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
@@ -5022,8 +5727,11 @@ const CBCT=(function(){
   function setFill(v){ pendingFill = (v && v!=='random') ? v : null; randomize(); }
   function randomize(keepResult){
     const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
-    hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
-    hidden.pitch=rh(0,4)*sg();hidden.roll=rh(0,4)*sg();hidden.yaw=rh(0,4)*sg();
+    // Realistic pre-correction CBCT setup error: a few mm up to ~1.5 cm. Larger than this (the old
+    // 6-28 mm) flung the whole moving volume so far that anatomy — the prominent bladder especially —
+    // appeared to slide outside the body / over the bones at zoom. Rotations kept small (real couch/patient).
+    hidden.x=ri(6,15)*sg();hidden.y=ri(6,13)*sg();hidden.z=ri(6,13)*sg();
+    hidden.pitch=rh(0,3)*sg();hidden.roll=rh(0,3)*sg();hidden.yaw=rh(0,3)*sg();
     // Off-bone cases (lung GTV / prostate seeds): the target has also drifted relative to bone, so a
     // bony match leaves it off — the student must match the soft-tissue target / fiducials. Per-case
     // drift ranges (mm) live in the VOLCASE offBone config.
