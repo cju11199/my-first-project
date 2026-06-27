@@ -34,9 +34,8 @@ except ImportError:
 
 TARGET_XY      = 200
 TILES_PER_ROW  = 10
-CROP_MARGIN_MM    = 35   # SI margin around the tumour (slab of the limb around the lesion)
-INPLANE_MARGIN_MM = 55   # in-plane margin around the TUMOUR -> frames the AFFECTED limb (these scans
-                         # often image both legs; a tumour-centred crop keeps resolution + the right limb)
+CROP_MARGIN_MM = 35   # SI margin BELOW the tumour (inferior bound); the superior bound extends up to the PELVIS
+LIMB_MARGIN_MM = 14   # in-plane skin margin around the AFFECTED limb (lateral + AP) so tissue isn't flush to the frame
 
 HU_OFF, HU_SCALE = -500.0, 2000.0 / 255.0
 def hu_to_density(hu):
@@ -133,15 +132,31 @@ def main():
     dens[~ndimage.binary_dilation(body, iterations=2)] = 0   # remove couch/background
     spz, spy, spx = ct['dz'], ct['py'], ct['px']
 
-    # crop: SI (z) to the tumour slab; in-plane (x,y) to the AFFECTED LIMB (tumour bbox + margin,
-    # clamped to the body so we don't frame empty air)
+    # crop:
+    #   SI (z): inferior = tumour - CROP_MARGIN_MM; superior = up to the PELVIS (top of the scan), so the
+    #           case shows the femur up through the hip into the pelvis for more registration context.
+    #   in-plane (x,y): the AFFECTED LIMB + its hemipelvis. These scans image both legs, so split the volume
+    #           at the inter-leg gap and keep the tumour's side (lateral skin -> body midline). This frames the
+    #           whole limb/hemipelvis without slicing the soft-tissue edge (the old tumour-bbox crop cut the
+    #           limb off) and without folding in the other leg.
     tzz, tyy, txx = np.where(masks['tumor'])
-    mz, my, mx = CROP_MARGIN_MM/spz, INPLANE_MARGIN_MM/spy, INPLANE_MARGIN_MM/spx
-    z0, z1 = max(0, int(tzz.min()-mz)), min(ct['nz'], int(tzz.max()+mz)+1)
-    by, bx = np.where(masks['body'][z0:z1].any(axis=0))
-    y0 = max(int(by.min()), int(tyy.min()-my)); y1 = min(int(by.max())+1, int(tyy.max()+my)+1)
-    x0 = max(int(bx.min()), int(txx.min()-mx)); x1 = min(int(bx.max())+1, int(txx.max()+mx)+1)
-    print(f"crop z[{z0}:{z1}] y[{y0}:{y1}] x[{x0}:{x1}] of {ct['nz']}x{ct['ny']}x{ct['nx']}")
+    body = masks['body']; DZ, DY, DX = body.shape
+    # inter-leg split = lowest body coverage column within the central band (the gap between the thighs)
+    colcov = body.sum(axis=(0, 1))
+    c0, c1 = int(DX*0.30), int(DX*0.70)
+    split = c0 + int(np.argmin(colcov[c0:c1]))
+    gtv_col = int(round(txx.mean())); low = gtv_col < split
+    limb = body.copy()
+    if low: limb[:, :, split:] = False        # affected limb on the low-x side -> medial edge = midline split
+    else:   limb[:, :, :split] = False
+    mz, mly, mlx = CROP_MARGIN_MM/spz, LIMB_MARGIN_MM/spy, LIMB_MARGIN_MM/spx
+    z0, z1 = max(0, int(tzz.min()-mz)), ct['nz']    # extend superiorly to include the pelvis
+    lzz, lyy, lxx = np.where(limb[z0:z1])
+    y0, y1 = max(0, int(lyy.min()-mly)), min(DY, int(lyy.max()+mly)+1)
+    if low: x0, x1 = max(0, int(lxx.min()-mlx)), min(DX, split)              # lateral skin (+margin) -> midline
+    else:   x0, x1 = max(0, split),              min(DX, int(lxx.max()+mlx)+1)
+    print(f"affected limb {'low-x' if low else 'high-x'}  split col {split}  gtv col {gtv_col}")
+    print(f"crop z[{z0}:{z1}] (tumour->pelvis) y[{y0}:{y1}] x[{x0}:{x1}] of {ct['nz']}x{ct['ny']}x{ct['nx']}")
     dens = dens[z0:z1, y0:y1, x0:x1]
     masks = {k: m[z0:z1, y0:y1, x0:x1] for k, m in masks.items()}
     CZ, CY, CX = dens.shape
