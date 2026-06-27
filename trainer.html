@@ -800,6 +800,16 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="cbct-dof-row"><div class="ctrl-row"><span class="ctrl-label">Pitch</span><div class="ctrl-val" id="cbValPitch">0.0</div><span class="ctrl-unit">&deg;</span></div></div>
         <div class="cbct-dof-row"><div class="ctrl-row"><span class="ctrl-label">Roll</span><div class="ctrl-val" id="cbValRoll">0.0</div><span class="ctrl-unit">&deg;</span></div></div>
         <div class="cbct-dof-row"><div class="ctrl-row"><span class="ctrl-label">RTN</span><div class="ctrl-val" id="cbValYaw">0.0</div><span class="ctrl-unit">&deg;</span></div></div>
+        <div class="cbct-dof-row" id="cbFillRow" style="display:none"><div class="ctrl-row">
+          <span class="ctrl-label" title="Daily rectum / bladder filling — drives the prostate's off-bone shift; the rectal gas / filling is shown in the moving CBCT">Filling</span>
+          <select class="case-select" id="cbFillSelect" style="font-size:11px;padding:2px 4px;flex:1" onchange="CBCT.setFill(this.value)">
+            <option value="random">Random each offset</option>
+            <option value="gas">Rectal gas</option>
+            <option value="stool">Full rectum</option>
+            <option value="bladder">Full bladder</option>
+            <option value="mixed">Gas + full bladder</option>
+          </select>
+        </div></div>
         <div class="ctrl-actions">
           <button class="btn-warn" onclick="CBCT.reset()">Reset</button>
           <button class="btn-primary" onclick="CBCT.randomize()">New Offset</button>
@@ -3848,6 +3858,8 @@ const CBCT=(function(){
   // The moving CBCT renders the lesion at bone+drift, and grading is against the TARGET: a bony
   // match (net=0) leaves the GTV off; the GTV aligns at net=targetDrift.
   let targetDrift=null;
+  let curFill=null;        // active rectum/bladder filling scenario (prostate); drives the visible rectum density + the seed drift
+  let pendingFill=null;    // Filling picker selection: a scenario key to force, or null = random each New Offset
   let active='axial', fusion=false, caseKey='pelvis', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
@@ -3936,10 +3948,29 @@ const CBCT=(function(){
             // density 70) and redraws them at bone+drift through the residual net-drift transform at gold density 255.
             // Drift dominant in AP (y>=3mm so it clearly clears the t1=2mm fiducial tolerance); total capped at 5mm
             // in randomize(). check() grades translation onto the seeds (rotations shown, not graded).
+            // fill: daily rectum/bladder filling SCENARIOS. Each new offset rolls one (or the Filling
+            // picker forces one): the moving CBCT overwrites the rectum (and optionally bladder) label
+            // region's density so the filling is VISIBLE (rectal gas = dark pocket, full rectum = denser,
+            // full bladder = tinted), and the seeds drift in the matching direction (rectal gas/distension
+            // push the prostate anterior = -y; a full bladder pushes it posterior = +y). |drift.y|>=3 keeps
+            // it clearly off-bone (> t1=2mm). dens are on the 0..255 atlas scale (HU=dens*2000/255-500;
+            // ~6 = air/gas, 44 = distended bladder/urine, 70 = soft tissue, 95 = stool). Synthetic forward
+            // model on the single planning CT (no bladder geometry change — the full bladder reads as a
+            // darker/fuller fluid region, not a larger one), so the cause of the off-bone shift is shown.
             offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3], y:[3,5], z:[2,4]},
                      okMsg:'✓ Fiducials aligned — gold seeds within tolerance',
                      hint:'✗ Pelvis bones aligned, but the seeds are off — match the gold fiducials, not the bone',
-                     setup:'New setup — the prostate has drifted off the bony pelvis; match the gold fiducials, not the bone'}},
+                     setup:'New setup — the prostate has drifted off the bony pelvis; match the gold fiducials, not the bone',
+                     fill:{rectumBit:8, bladderBit:4, scenarios:[
+                       {key:'gas',     label:'Rectal gas',         rect:6,  bladder:null, drift:{x:1, y:-3, z:2},
+                        setup:'Daily CBCT — rectal gas: the prostate is pushed anterior. Match the gold fiducials, not the bone.'},
+                       {key:'stool',   label:'Full rectum',        rect:95, bladder:null, drift:{x:-1, y:-4, z:1},
+                        setup:'Daily CBCT — distended rectum: the prostate is pushed anterior. Match the gold fiducials.'},
+                       {key:'bladder', label:'Full bladder',       rect:null, bladder:44, drift:{x:1, y:3, z:-2},
+                        setup:'Daily CBCT — full bladder: the prostate is pushed posterior/inferior. Match the gold fiducials.'},
+                       {key:'mixed',   label:'Rectal gas + full bladder', rect:6, bladder:44, drift:{x:-1, y:-3, z:-2},
+                        setup:'Daily CBCT — rectal gas + full bladder: the prostate has shifted off the pelvis. Match the gold fiducials.'},
+                     ]}}},
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
     acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
     liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
@@ -4148,6 +4179,14 @@ const CBCT=(function(){
           const wL=_invL(w0);                                        // and redraw it drifted (residual net-drift)
           let oD=gtvOcc(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv,_ob.driftBit);
           if(oD>0){oD=oD<0.77?oD*1.3:1; dens=dens+(_ob.drawDens-dens)*oD;}
+          // Daily rectum/bladder filling (prostate): paint the moving CBCT's rectum (and bladder) label
+          // region with the scenario density so the filling is VISIBLE — rectal gas as a dark pocket, a
+          // distended rectum/full bladder as a denser region. Sampled at the bone-fixed planning position
+          // (gx,gy,gz): the filling rides with the pelvis as the couch moves, and is the cause of the drift.
+          if(_ob.fill&&curFill){
+            if(curFill.rect!=null){let oR=gtvOcc(_lbl,gx,gy,gz,_ob.fill.rectumBit); if(oR>0){oR=oR<0.7?oR*1.4:1; if(oR>1)oR=1; dens=dens+(curFill.rect-dens)*oR;}}
+            if(curFill.bladder!=null){let oBl=gtvOcc(_lbl,gx,gy,gz,_ob.fill.bladderBit); if(oBl>0){oBl=oBl<0.7?oBl*1.4:1; if(oBl>1)oBl=1; dens=dens+(curFill.bladder-dens)*oBl;}}
+          }
         }
         let val;
         if(dens<=0.5)val=0;                                  // air / outside the scan -> stays black (window only affects tissue)
@@ -4974,6 +5013,9 @@ const CBCT=(function(){
     render();
   }
   function reset(){pushUndo();cbTimer.reset();shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};clearErrors();refreshReadouts();const m=gid('cbStatusMsg');m.textContent='Fuse all three planes to the reference';m.style.color='var(--label)';render();}
+  // Filling picker (prostate off-bone): force a rectum/bladder filling scenario (or 'random' each offset),
+  // then load it as a fresh setup so the chosen filling drives both the visible rectum density and the seed drift.
+  function setFill(v){ pendingFill = (v && v!=='random') ? v : null; randomize(); }
   function randomize(keepResult){
     const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
     hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
@@ -4982,13 +5024,26 @@ const CBCT=(function(){
     // bony match leaves it off — the student must match the soft-tissue target / fiducials. Per-case
     // drift ranges (mm) live in the VOLCASE offBone config.
     const _ob=curOffBone();
-    targetDrift = _ob ? {x:ri(_ob.drift.x[0],_ob.drift.x[1])*sg(), y:ri(_ob.drift.y[0],_ob.drift.y[1])*sg(), z:ri(_ob.drift.z[0],_ob.drift.z[1])*sg()} : null;
-    if(targetDrift){const m=Math.hypot(targetDrift.x,targetDrift.y,targetDrift.z); if(m>5){const s=5/m; targetDrift={x:Math.round(targetDrift.x*s),y:Math.round(targetDrift.y*s),z:Math.round(targetDrift.z*s)};}}   // cap total off-bone drift at ~5mm so the off-bone offset stays subtle, not a drastic jump from the bony match
+    let setupMsg = _ob ? _ob.setup : 'New 6DOF setup error applied — register all three planes';
+    curFill=null;
+    if(_ob && _ob.fill){
+      // Prostate: a daily rectum/bladder FILLING scenario drives the drift. Roll one (or honour the
+      // Filling picker's pendingFill), then take the seed drift straight from it — the scenario drifts
+      // are pre-validated (|y|>=3mm, total<=5mm), so no range-random/cap needed. The visible rectum
+      // density (shown in the moving reslice) is the cause of this exact drift.
+      const sc=_ob.fill.scenarios;
+      curFill = (pendingFill && sc.find(s=>s.key===pendingFill)) || sc[Math.floor(Math.random()*sc.length)];
+      targetDrift = {x:curFill.drift.x, y:curFill.drift.y, z:curFill.drift.z};
+      setupMsg = curFill.setup || setupMsg;
+    } else {
+      targetDrift = _ob ? {x:ri(_ob.drift.x[0],_ob.drift.x[1])*sg(), y:ri(_ob.drift.y[0],_ob.drift.y[1])*sg(), z:ri(_ob.drift.z[0],_ob.drift.z[1])*sg()} : null;
+      if(targetDrift){const m=Math.hypot(targetDrift.x,targetDrift.y,targetDrift.z); if(m>5){const s=5/m; targetDrift={x:Math.round(targetDrift.x*s),y:Math.round(targetDrift.y*s),z:Math.round(targetDrift.z*s)};}}   // cap total off-bone drift at ~5mm so the off-bone offset stays subtle, not a drastic jump from the bony match
+    }
     shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};undoStack=[];cbTimer.reset();_invCaches();refreshReadouts();
     if(!keepResult){   // manual New Offset announces + clears the readouts; auto-advance on Check keeps the verdict + errors on screen
       clearErrors();
       const m=gid('cbStatusMsg');
-      m.textContent = _ob ? _ob.setup : 'New 6DOF setup error applied — register all three planes';
+      m.textContent = setupMsg;
       m.style.color='var(--label)';
     }
     render();
@@ -5237,6 +5292,10 @@ const CBCT=(function(){
     if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='pelvis') return;
     caseKey=key;const sel=gid('cbCaseSelect');if(sel)sel.value=key;
     const vc=VOLCASE[key];
+    // Filling picker: only for off-bone cases that carry filling scenarios (prostate). Reset to random.
+    const hasFill=!!(vc&&vc.offBone&&vc.offBone.fill);
+    pendingFill=null; const fr=gid('cbFillRow'); if(fr)fr.style.display=hasFill?'':'none';
+    const fs=gid('cbFillSelect'); if(fs)fs.value='random';
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
     if(hasVol(key)&&mprCase!==key){V3=null;mprReady=false;_invCaches();_invContours();}
     // per-case default CT window
@@ -5273,7 +5332,7 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
 
