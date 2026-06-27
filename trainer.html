@@ -668,6 +668,11 @@ html:not(.auth-pending) #authGate{display:none}
 .con-act:disabled{opacity:.4;cursor:not-allowed;transform:none;color:var(--muted)}
 #conApplyBtn{grid-column:1/3;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#04140d;border-color:transparent}
 #conApplyBtn:disabled{background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2)}
+/* 2D/2D MATCH — the deliberate image-first -> match commit; full-width, accent2 (image/orange) family */
+#conMatchBtn{grid-column:1/3;background:linear-gradient(135deg,var(--panel2),var(--panel));border-color:var(--border2)}
+#conMatchBtn.ready{background:linear-gradient(135deg,var(--accent2),#d65a2f);color:#1a0d06;border-color:transparent;animation:conMatchPulse 1.4s ease-in-out infinite}
+#conMatchBtn:disabled{opacity:.4;background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2);animation:none}
+@keyframes conMatchPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 0 10px 1px rgba(255,122,69,.55)}}
 .con-lamps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 12px}
 .con-lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono),monospace;font-size:10px;letter-spacing:.05em;color:var(--muted)}
 .con-lamp i{width:10px;height:10px;border-radius:50%;background:#1a2230;border:1px solid var(--border2);flex:0 0 auto}
@@ -689,7 +694,7 @@ html:not(.auth-pending) #authGate{display:none}
 .con-msg.bad{color:var(--accent2)}
 /* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
-@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}}
+@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}#conMatchBtn.ready{animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-couch{flex-wrap:wrap}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
@@ -1149,7 +1154,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <!-- GANTRY + APPLIED SHIFT -->
       <div class="con-row2">
         <div class="con-gantry"><span class="cl">GANTRY</span><b id="conGantry">0.0&deg;</b>
-          <span class="con-gtgt" id="conGantryTgt">hold SPACE to rotate</span></div>
+          <span class="con-gtgt" id="conGantryTgt">hold SPACE / click an image to rotate</span></div>
         <div class="con-pending" id="conPending">
           <span class="cl">APPLIED SHIFT</span>
           <span class="ps" id="conPsLat">Lat &mdash;</span><span class="ps" id="conPsLng">Lng &mdash;</span>
@@ -1169,12 +1174,13 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <span class="con-lamp" id="lampBeam"><i></i>BEAM</span>
       </div>
       <div class="con-btns">
-        <button class="con-act" id="conAcqBtn"    type="button" onclick="CONSOLE.acquire()"    disabled title="Acquire the kV image at the current gantry angle (A)">ACQUIRE<span class="kbd">A</span></button>
-        <button class="con-act" id="conRotateBtn" type="button" onclick="CONSOLE.rotate()"     disabled title="Rotate the gantry to the other view — or hold SPACE (motion enable)">ROTATE<span class="kbd">␣</span></button>
+        <button class="con-act" id="conAcqBtn"    type="button" onclick="CONSOLE.acquire()"    disabled title="Acquire the kV image at the current gantry angle — retake anytime (A)">ACQUIRE<span class="kbd">A</span></button>
+        <button class="con-act" id="conRotateBtn" type="button" onclick="CONSOLE.rotate()"     disabled title="Rotate the gantry to a view — hold SPACE, or click that image pane (motion enable)">ROTATE<span class="kbd">␣</span></button>
+        <button class="con-act con-match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match">2D/2D&nbsp;MATCH</button>
         <button class="con-act" id="conApplyBtn"  type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction">APPLY SHIFTS</button>
         <button class="con-beam" id="conBeamBtn"  type="button" onclick="CONSOLE.beam()"        disabled title="Deliver once aligned — Enter or B"><span id="conBeamLbl">BEAM ON</span><span class="kbd">&crarr;</span></button>
       </div>
-      <div class="con-msg" id="conMsg">Acquire both setup images: hold SPACE to rotate the gantry, then Acquire.</div>
+      <div class="con-msg" id="conMsg">Acquire both setup images: click a pane (or hold SPACE) to drive the gantry to a view, then Acquire (A). Retake freely; press 2D/2D MATCH when ready.</div>
     </div>
   </div>
   </div><!-- /.match-col -->
@@ -2537,7 +2543,8 @@ const CONSOLE_PLANS={
    (gantry head + MV/EPID + kV source/panel) with a beam-fan flash on acquire. _dbg drives it all headless. */
 const CONSOLE=(()=>{
   const el=id=>document.getElementById(id);
-  const ROT_SPEED=85;   // gantry deg/sec while motion-enabled
+  const ROT_SPEED=9;    // gantry deg/sec. Real Varian/IEC max is 1 RPM = 6°/s; 9 = 1.5× clinical so the
+                        // longest transit (≤90°) is ~10 s — clearly mechanical (not instant), retake-friendly.
   // Hard cable-wrap limit: a real linac gantry cannot transit through this point, so it can never do a full
   // 360°. lin() maps an angle onto a continuous (LIMIT, LIMIT+360] line whose seam is the forbidden point, so
   // motion takes the shortest path that does NOT cross the limit (the long way round when the short way would).
@@ -2546,18 +2553,23 @@ const CONSOLE=(()=>{
   let active=false, caseKey=null, plan=null, views=[],
       couch={vrt:0,lng:0,lat:0,rtn:0}, couch0={vrt:0,lng:0,lat:0,rtn:0},
       gantry=0, acquired=[false,false], applied=null, phase='ACQUIRE',
-      beamProg=0, beamRaf=0, motOn=false, motDead=false, motRaf=0, motTs=0, fireTmr=0;
+      beamProg=0, beamRaf=0, motOn=false, motDead=false, motRaf=0, motTs=0, motTarget=null, fireTmr=0;
 
   const bothAcquired=()=>acquired[0]&&acquired[1];
   const angDiff=(a,b)=>((a-b)%360+540)%360-180;                 // shortest signed a-b in (-180,180]
   const viewAtGantry=()=>views.find(v=>Math.abs(angDiff(v.g,gantry))<0.5)||null;
   const nextUnacquired=()=>views.find((v,i)=>!acquired[i])||null;
-  const canAcquire=()=>{const v=viewAtGantry();return !!(active&&phase==='ACQUIRE'&&v&&!acquired[views.indexOf(v)]);};
+  // where the gantry should drive to: the next un-acquired view, else (both taken) the one we're NOT parked at (retake)
+  const rotateTarget=()=>{ const nx=nextUnacquired(); if(nx)return nx; const here=viewAtGantry(); return views.find(v=>v!==here)||null; };
+  const canAcquire=()=>!!(active&&phase==='ACQUIRE'&&viewAtGantry());   // retakes: any parked view, regardless of prior acquire
   const isActive=()=>active;
 
   // ---- gating hooks consumed by the core (mousedown / drawPor / checkMatch) ----
-  function acquiring(){ return active && !bothAcquired(); }      // true => block match-drag + checkMatch
-  function matchable(){ return !active || bothAcquired(); }
+  // Block match-drag + checkMatch in EVERY phase except MATCH and the post-match delivery phases, i.e. until the
+  // trainee deliberately presses 2D/2D MATCH (which flips phase ACQUIRE -> MATCH).
+  const MATCHPHASES={MATCH:1,APPLIED:1,TREAT:1,DONE:1};
+  function acquiring(){ return active && !MATCHPHASES[phase]; }
+  function matchable(){ return !active || !!MATCHPHASES[phase]; }
   function hidesPortal(key){ if(!active)return false;
     const i=views.findIndex(v=>v.slot===key); return i>=0 ? !acquired[i] : false; }
 
@@ -2629,29 +2641,33 @@ const CONSOLE=(()=>{
       p.className='con-pip'+(acquired[i]?' done':(v===at?' cur':'')); p.title=v.label; box.appendChild(p);});
   }
   function renderBanner(){
+    const ready=bothAcquired();
     const sl=el('conSeqLbl'); if(sl)sl.textContent =
-      phase==='ACQUIRE'? 'SETUP · ACQUIRE BOTH VIEWS'
+      phase==='ACQUIRE'? (ready?'SETUP · READY TO MATCH':'SETUP · ACQUIRE BOTH VIEWS')
     : phase==='MATCH'?   'SETUP · MATCH BOTH VIEWS'
     : phase==='APPLIED'? 'SETUP · ALIGNED'
     : phase==='TREAT'?   'TREATING'
     :                    'SETUP · DELIVERED';
     const b=el('conBanner'); if(!b)return;
     b.textContent =
-      phase==='ACQUIRE'? 'SETUP — ACQUIRE BOTH IMAGES'
+      phase==='ACQUIRE'? (ready?'BOTH IMAGES ACQUIRED — PRESS 2D/2D MATCH TO ALIGN (OR RETAKE)':'SETUP — ACQUIRE BOTH IMAGES')
     : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN APPLY SHIFTS'
     : phase==='APPLIED'? 'COUCH CORRECTED — SETUP ALIGNED · BEAM ON (ENTER) TO TREAT'
     : phase==='TREAT'?   'BEAM ON — DELIVERING'
     :                    'TREATMENT DELIVERED';
   }
   function renderButtons(){
-    const acq=el('conAcqBtn'), rot=el('conRotateBtn'), ap=el('conApplyBtn'), bm=el('conBeamBtn');
+    const acq=el('conAcqBtn'), rot=el('conRotateBtn'), mt=el('conMatchBtn'), ap=el('conApplyBtn'), bm=el('conBeamBtn');
+    const inAcq=active&&phase==='ACQUIRE', ready=bothAcquired();
     if(acq)acq.disabled=!canAcquire();
-    if(rot){const nx=nextUnacquired(); rot.disabled=!(active&&phase==='ACQUIRE'&&nx&&Math.abs(angDiff(nx.g,gantry))>=0.5);}
+    if(rot){const t=rotateTarget(); rot.disabled=!(inAcq&&t&&Math.abs(angDiff(t.g,gantry))>=0.5);}   // drives to the other view (retake)
+    if(mt){ mt.disabled=!(inAcq&&ready); mt.classList.toggle('ready', inAcq&&ready);
+            mt.style.display=(active&&(phase==='ACQUIRE'||phase==='MATCH'))?'':'none'; }
     if(ap)ap.disabled=!(phase==='MATCH');
     if(bm){bm.disabled=!(phase==='APPLIED'); if(el('conBeamLbl'))el('conBeamLbl').textContent=(phase==='TREAT'||phase==='DONE')?'DELIVERED':'BEAM ON';}
     // mirror the action label onto the sidebar Check Match button while the console drives the case
     const cm=el('checkMatchBtn');
-    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?'Acquire First':phase==='APPLIED'?'Aligned':'Delivered') : 'Check Match';
+    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):phase==='APPLIED'?'Aligned':'Delivered') : 'Check Match';
   }
   function renderLamps(){
     const set=(id,c)=>{const e=el(id);if(e)e.className='con-lamp'+(c?' '+c:'');};
@@ -2672,32 +2688,40 @@ const CONSOLE=(()=>{
   }
   function msg(t,c){const m=el('conMsg');if(m){m.textContent=t;m.className='con-msg'+(c?' '+c:'');}}
 
-  // ---- gantry motion (SPACE = deadman; Rotate button = auto-drive to target) ----
-  function motionEnable(on, deadman){    // on=true starts driving toward the next view; deadman pauses on release
+  // ---- gantry motion: one motTarget angle shared by SPACE (deadman), ROTATE button, and click-an-image ----
+  function setTarget(g, deadman){          // record the destination + start the rAF drive (snaps + stops if already there)
+    if(!active||phase!=='ACQUIRE'||g==null){ stopMotion(); return; }
+    if(Math.abs(angDiff(g,gantry))<0.5){ gantry=g; stopMotion(); renderAll(); return; }
+    motTarget=g; motOn=true; motDead=!!deadman; startMotion(); renderViz();
+  }
+  function rotateToView(slot){             // CLICK path: drive to a specific view's angle (auto-drive, no hold)
+    if(!active||phase!=='ACQUIRE')return;
+    const v=views.find(x=>x.slot===slot); if(!v)return;
+    if(Math.abs(angDiff(v.g,gantry))<0.5){ msg('Gantry already at '+v.label+' — Acquire (A).',''); return; }
+    setTarget(v.g,false);
+  }
+  function motionEnable(on, deadman){      // SPACE/ROTATE entry: drive toward the next view to shoot
     if(!active||phase!=='ACQUIRE'){ stopMotion(); return; }
-    const nx=nextUnacquired();
-    if(on){ if(!nx||Math.abs(angDiff(nx.g,gantry))<0.5){ stopMotion(); return; }
-      motOn=true; motDead=!!deadman; startMotion(); }
-    else { if(deadman&&!motDead)return; stopMotion(); }
+    if(on){ const t=rotateTarget(); setTarget(t?t.g:null, deadman); }
+    else { if(deadman&&!motDead)return; stopMotion(); }   // deadman release pauses where it is; ignores auto-drives
     renderViz();
   }
   function motionStep(dt){
-    const nx=nextUnacquired();
-    if(!nx){ stopMotion(); return; }
-    const cur=lin(gantry), tgt=lin(nx.g);
+    if(motTarget==null){ stopMotion(); return; }
+    const cur=lin(gantry), tgt=lin(motTarget);
     let d=tgt-cur;                                   // linear distance: never crosses the hard limit (no full 360)
     const step=Math.sign(d)*Math.min(Math.abs(d),ROT_SPEED*dt);
     gantry=(((cur+step)%360)+360)%360;
-    if(Math.abs(lin(nx.g)-lin(gantry))<0.4){ gantry=nx.g; stopMotion();
-      msg('Gantry at '+gantry.toFixed(0)+'° — acquire '+nx.label+' (A).',''); }
+    if(Math.abs(lin(motTarget)-lin(gantry))<0.4){ gantry=motTarget; stopMotion();
+      const at=viewAtGantry(); if(at)msg('Gantry at '+gantry.toFixed(0)+'° — acquire '+at.label+' (A).',''); }
     renderGantry(); renderViz(); renderButtons(); renderPips();
   }
   function motFrame(ts){ if(!motOn)return; if(!motTs)motTs=ts;
     let dt=(ts-motTs)/1000; motTs=ts; if(dt>0.1)dt=0.1; motionStep(dt);
     if(motOn)motRaf=requestAnimationFrame(motFrame); }
   function startMotion(){ motTs=0; cancelAnimationFrame(motRaf); motRaf=requestAnimationFrame(motFrame); }
-  function stopMotion(){ motOn=false; motDead=false; cancelAnimationFrame(motRaf); motRaf=0; const mv=el('lampMotion'); if(mv)mv.className='con-lamp'; }
-  function rotate(){ motionEnable(true,false); }   // button: auto-drive to the other view (no hold)
+  function stopMotion(){ motOn=false; motDead=false; motTarget=null; cancelAnimationFrame(motRaf); motRaf=0; const mv=el('lampMotion'); if(mv)mv.className='con-lamp'; }
+  function rotate(){ motionEnable(true,false); }   // ROTATE button: auto-drive to the next/other view (no hold)
 
   // ---- acquire (with a kV beam-fan flash) ----
   function fireBeam(kind){   // kind: 'kv' (acquire) | 'mv' (treat). Flash the fan; browser-only cosmetic.
@@ -2706,15 +2730,22 @@ const CONSOLE=(()=>{
     f.classList.add('fire'); clearTimeout(fireTmr);
     if(typeof setTimeout==='function')fireTmr=setTimeout(()=>{if(f.classList)f.classList.remove('fire');},850);
   }
-  function acquire(){
+  function acquire(){                                    // idempotent: re-take either view as many times as you want
     if(!canAcquire())return;
-    const v=viewAtGantry(), i=views.indexOf(v);
-    fireBeam('kv');
+    const v=viewAtGantry(), i=views.indexOf(v), retake=acquired[i];
+    fireBeam('kv');                                       // re-flash the kV fan on every (re)take
     acquired[i]=true; updateBadges();
-    if(typeof render==='function')render();             // reveal that view's portal
-    if(bothAcquired()){ setPhase('MATCH'); msg('Both images acquired — match the views, then Apply Shifts.','ok'); }
-    else { const nx=nextUnacquired(); setPhase('ACQUIRE');
-      msg('Acquired '+v.label+'. Hold SPACE to rotate to '+(nx?nx.label:'')+', then Acquire.',''); }
+    if(typeof render==='function')render();               // (re)reveal that view's portal — stays revealed, SAME offset
+    setPhase('ACQUIRE');                                  // NEVER auto-enter MATCH; the trainee presses 2D/2D MATCH
+    if(bothAcquired())
+      msg((retake?'Re-took ':'Acquired ')+v.label+'. Both images in — press 2D/2D MATCH, or retake either view.','ok');
+    else { const nx=nextUnacquired();
+      msg((retake?'Re-took ':'Acquired ')+v.label+'. Rotate to '+(nx?nx.label:'the other view')+' (click its pane / hold SPACE), then Acquire.',''); }
+  }
+  function enterMatch(){                                  // the deliberate image-first -> match commit (button only)
+    if(!active||phase!=='ACQUIRE'||!bothAcquired())return;
+    stopMotion(); setPhase('MATCH');
+    msg('Matching enabled — drag both views to register, then Apply Shifts.','ok');
   }
 
   // ---- apply shifts (replaces Check Match while the console is active) ----
@@ -2775,34 +2806,41 @@ const CONSOLE=(()=>{
 
   // ---- _dbg: deterministic headless hooks (no rAF / no setTimeout for state) ----
   const _dbg={
-    refresh, exit, acquire, applyShifts, reinterlock, beam,
-    rotate:()=>{const nx=nextUnacquired(); if(nx){gantry=nx.g; renderAll();}},   // snap (test): jump to next view angle
+    refresh, exit, acquire, enterMatch, applyShifts, reinterlock, beam, rotateToView,
+    rotate:()=>{const t=rotateTarget(); if(t){gantry=t.g; motTarget=null; renderAll();}},   // snap (test): jump to the rotate target
     rotateTo:(g)=>{gantry=g; renderAll();},
+    snapToView:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=v.g; motTarget=null; renderAll();}},   // snap, no rAF
+    driveTo:(g,secs=30,d=0.05)=>{setTarget(g,false); for(let t=0;t<secs&&motOn;t+=d)motionStep(d); return +gantry.toFixed(1);},   // synchronous realistic-speed drive
+    retake:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=v.g; motTarget=null; acquire();} return acquired.slice();},   // park + (re)acquire
     motion:(on)=>motionEnable(on,true),                                          // simulate SPACE hold/release
     set:(o)=>{o=o||{};
       if(o.gantry!=null)gantry=o.gantry; if(o.acquired)acquired=o.acquired.slice();
       if(o.phase!=null)phase=o.phase; if(o.applied!==undefined)applied=o.applied;
       if(o.couch)couch={...couch,...o.couch}; if(o.active!=null)active=o.active;
+      if(o.motTarget!==undefined)motTarget=o.motTarget;
       renderAll();},
     advance:(secs,d=0.05)=>{for(let t=0;t<secs&&phase==='TREAT';t+=d)deliverStep(d);},   // synchronous deliver
     state:()=>({caseKey,plan:plan&&plan.plan,phase,gantry:+gantry.toFixed(1),
       acquired:acquired.slice(),bothAcquired:bothAcquired(),couch:{...couch},couch0:{...couch0},
       applied:applied?{...applied}:null,canAcquire:canAcquire(),acquiring:acquiring(),matchable:matchable(),
-      nextG:(nextUnacquired()||{}).g,beamProg:+beamProg.toFixed(2),active,done:phase==='DONE'}),
+      readyToMatch:(active&&phase==='ACQUIRE'&&bothAcquired()),nextG:(nextUnacquired()||{}).g,
+      rotateTargetG:(rotateTarget()||{}).g,motTarget,motOn,
+      beamProg:+beamProg.toFixed(2),active,done:phase==='DONE'}),
     buttons:()=>({acquire:el('conAcqBtn')?!el('conAcqBtn').disabled:false,
       rotate:el('conRotateBtn')?!el('conRotateBtn').disabled:false,
+      match:el('conMatchBtn')?!el('conMatchBtn').disabled:false,
       apply:el('conApplyBtn')?!el('conApplyBtn').disabled:false,
       beam:el('conBeamBtn')?!el('conBeamBtn').disabled:false}),
     lamps:()=>({img1:acquired[0],img2:acquired[1],
       match:(phase==='APPLIED'||phase==='TREAT'||phase==='DONE'),
       aligned:(phase==='APPLIED'||phase==='TREAT'||phase==='DONE'),beam:phase==='TREAT'}),
     matchable, acquiring, hidesPortal, plans:CONSOLE_PLANS, views:()=>views.slice(),
-    lin, GANTRY_LIMIT,
+    lin, GANTRY_LIMIT, ROT_SPEED,
     // simulate a full rotation from->to in lin-space; returns the swept gantry samples (to assert it never hits the limit)
     sweep:(from,to)=>{const out=[];const a=lin(from),b=lin(to);const n=Math.max(2,Math.ceil(Math.abs(b-a)));
       for(let i=0;i<=n;i++){out.push((((a+(b-a)*i/n)%360)+360)%360);} return out;},
   };
-  return {refresh,exit,rotate,acquire,applyShifts,reinterlock,beam,
+  return {refresh,exit,rotate,rotateToView,acquire,enterMatch,applyShifts,reinterlock,beam,
           active:isActive,phase:()=>phase,acquiring,matchable,hidesPortal,motionEnable,_dbg};
 })();
 window.CONSOLE=CONSOLE;
@@ -3356,7 +3394,14 @@ function attachInteractions(key){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
       if(window.DIBH && DIBH.acquiring && DIBH.acquiring()) return;   // DIBH: no matching until both fields are acquired
-      if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()) return;   // IGRT console: no matching until both images acquired
+      // IGRT console, pre-MATCH: a left-click on a pane is NOT a match drag — it drives the gantry to THAT view's
+      // angle (realistic speed, limit-aware). Never starts a drag. Once 2D/2D MATCH is pressed, acquiring() is
+      // false and this is skipped so the normal match-drag below runs.
+      if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){
+        if(CONSOLE.rotateToView) CONSOLE.rotateToView(key);
+        e.preventDefault();
+        return;
+      }
       if(axisLock){                         // couch-axis lock -> always single-axis move
         pushUndo(); mode='move'; accX=0; accY=0; area.style.cursor='move';
       } else if(dist > ringRadius(v)){
@@ -3626,8 +3671,8 @@ function checkMatch(){
     document.getElementById('statusMsg').textContent='Acquire both fields (coach a breath-hold → Beam On) before matching.';
     return;
   }
-  if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){   // IGRT console: acquire both images first
-    document.getElementById('statusMsg').textContent='Acquire both images (hold SPACE to rotate the gantry between views) before matching.';
+  if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){   // IGRT console: acquire both, then press 2D/2D MATCH
+    document.getElementById('statusMsg').textContent='Acquire both images, then press 2D/2D MATCH on the console before matching.';
     return;
   }
   const e={};
