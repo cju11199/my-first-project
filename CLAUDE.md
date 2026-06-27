@@ -70,7 +70,7 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   - `image_data.js` (~4.3 MB), `breast_drr_data.js` — embedded DRR/portal images for 2D/2D.
   - `prostate2d_data.js` (~140 KB) — kV-style AP + Lateral pelvis radiographs (ray-sum of the pelvis
     CT) + planning fiducial-triad geometry for the 2D/2D prostate fiducial-match case (`PROSTATE2D`).
-  - `*3d_data.js` (brain, breast, pelvis, spine) — 3D CT volume datasets for CBCT (data-URI atlases).
+  - `*3d_data.js` (brain, breast, cervix, pelvis, spine, …) — 3D CT volume datasets for CBCT (data-URI atlases).
   - `*3d_labels_data.js` — structure/label volumes for CBCT contours.
   - `drr/*.png` — DRR images.
   - `assets/fonts/` — self-hosted web fonts.
@@ -155,6 +155,24 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   Action** after merge. Reachable only from the **start-screen picker** (like the other recent CBCT
   cases — not the in-app dropdown). Visual rendering still needs a real-browser check.
 - `generate_sarcoma.py` — offline helper that ingests a **TCIA Soft-tissue-Sarcoma** patient (extremity CT + a `GTV_Mass` RTSTRUCT) and writes `sarcoma3d_data.js` + `sarcoma3d_labels_data.js` for the **Soft-tissue sarcoma** case (`VOLCASE.sarcoma`, `cbct:sarcoma` `CASE_TOL` 2 mm/2°, `SARCOMA_STRUCTS`). Unusual limb anatomy (thigh) — real tumour target, femur as the bony landmark. ROI map skips `GTV_Edema` (else the generic `gtv` alias folds it into the mass); body mask keeps the largest connected component and zeroes outside it to drop the CT couch. Built from patient `STS_004` (picked by an ultracode workflow over 5 candidates for tumour clarity/framing) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 3.0** — attribute `doi:10.7937/K9/TCIA.2015.7GO2GSKS`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge.
+- `generate_cervix_cbct.py` — offline helper that ingests a **CPTAC-UCEC** patient (contrast venous-phase
+  pelvic CT + a radiologist **UTERUS** tumour-annotation RTSTRUCT) and writes `cervix3d_data.js` +
+  `cervix3d_labels_data.js` for the **Gynae / Uterus** CBCT case (`VOLCASE.cervix`, `cbct:cervix` `CASE_TOL`
+  4 mm/3°). This case **replaced the old Pelvis CBCT bony-match case** (which was nearly identical to the
+  Prostate case — both rode the same prostate-centred pelvis volume); it is now the **free/demo CBCT case**
+  (start-screen `free-case` badge + `api/asset.mjs` `PUBLIC_KEYS`, swapped from the pelvis files). The case
+  uses the trainer's **default CBCT branch** (`CB_STRUCTS`/`decodeLabels`/`CERVIX3D_LABELS`/`CB_ISO_IDX`) —
+  body + the real uterine tumour target, which reuses the generic **`tumor`** legend/contour slot (like
+  liver/sarcoma), so no new legend HTML was needed. Rigid 6DOF soft-tissue match (register the uterus, not
+  the bony pelvis). Body is thresholded from the CT (the annotation RTSTRUCT carries no external/OAR ROIs);
+  the uterus outline-only contours are z-gap-filled into a solid target. The old pelvis slice-stack /
+  `realPelvis` fallback machinery went **dormant** (no case key is `pelvis` anymore) — left in place, guarded
+  and unreferenced. `pelvis3d_data.js`/`pelvis3d_labels_data.js` stay in the repo + allowlists as the
+  regeneration source for the prostate cases. Built from patient `C3N-00872` (venous-phase series; the UTERUS
+  annotation references that CT) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 4.0** — attribute
+  `doi:10.7937/k9/tcia.2018.3r3juisw`, baked into the data-file headers. Files committed, `.vercelignore`d, in
+  the **three Phase-2 allowlists** (and `PUBLIC_KEYS` since it's the free case); re-run the **"Upload data to
+  Blob" Action** after merge or the case 404s live. Visual rendering still needs a real-browser check.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -281,9 +299,10 @@ Two workflows, picked on the start screen:
     `network`) route there. **No CSP or `Permissions-Policy` change is needed** (speech recognition is a JS API, not a
     fetched origin; mic Permissions-Policy defaults to `self` and the trainer is same-origin). `_match`/`_possible`
     are exposed for headless tests (the phrase matcher is unit-tested); live mic + recognition need real Chrome/Edge.
-- **CBCT:** Pelvis · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
+- **CBCT:** Gynae / Uterus (CPTAC-UCEC; real uterine tumour soft-tissue target — the **free/demo** CBCT case,
+  replaced the old Pelvis bony-match case) · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
-  Prostate (gold fiducial markers, **rigid**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
+  Prostate (gold fiducial markers, **off-bone**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
   **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,
   with peritumoral edema; smoothed external head contour as body — see `generate_gbm_mr.py`):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
@@ -291,10 +310,28 @@ Two workflows, picked on the start screen:
   - Prostate — 3 **gold fiducial markers** implanted in the prostate of the existing pelvis plan, baked
     in via `generate_prostate_fiducials.py` (`prostate3d_data.js` + `prostate3d_labels_data.js`, reuses
     the pelvis volume + its prostate/PTV/bladder/rectum/SV labels, adds a `fiducial` bit 32 for the seed
-    voxels + a `fidctv` bit 64 = a **0.5 cm contour** around the seeds). The seeds are bright baked voxels;
-    the case is a **rigid 6DOF** match (no `offBone` config, so the seeds move with the bone and render as
-    plain trilinear-sampled CT — maximally stable). The off-bone-drift variant was removed at the owner's request.
-  - **Off-bone differential motion (config-driven; lung only today):** the target moves independently of
+    voxels + a `fidctv` bit 64 = a **0.5 cm contour** around the seeds). The seeds are bright baked voxels
+    (gold density 255, sized as ~5 mm solid blobs — `SEED_RMM` 3.6 — so the off-bone redraw samples them
+    solidly; a single-voxel seed redrew faint, peak density ~100 vs 255). The case is **off-bone**: bladder/rectal
+    filling shifts the prostate + seeds off the bony pelvis, so a bony match fails and the student must register
+    the fiducials (`VOLCASE.prostate.offBone` config; see below).
+    - **Bladder-filling simulation** (`offBone.fill`): a **Bladder** picker (`#cbFillSelect`, shown only for
+      prostate) + each **New Offset** rolls a daily bladder-fill scenario — `empty` (`bladderScale` 0.62),
+      `full` (1.30), `veryfull` (1.55). Each scenario renders the bladder at a different **SIZE at its own
+      CONSTANT urine density** (NOT a density tint): in the MOVING CBCT only, the bladder label region (bit 4)
+      is **scaled about the prostate/iso anchor** (`curIsoIdx()`) by `bladderScale`, so it grows superiorly/
+      anteriorly *away* from the gland (a real bladder fills upward); the scaled region is painted at the
+      bladder's `urine` density (~64), the prostate gland (bit 1) is **skipped** so the gold seeds are never
+      covered, and an emptied bladder repaints the receded part of the planning bladder as soft tissue
+      (`erase` 55). Drawn UNDER the seed hide/redraw so the seeds always render on top. Each scenario also sets
+      a **deterministic `targetDrift`** matching the fill: a fuller bladder pushes the prostate **posterior/
+      inferior** (+y/−z), an emptier one **anterior/superior** (−y/+z). |drift.y| ≥ 3 mm > the 2 mm tol and
+      total ≤ 5 mm, so `randomize()` uses the scenario drift directly (no range-random/cap) and the case never
+      starts already-accepted. `pendingFill` holds the picker selection (null = random each offset); `curFill`
+      is the active scenario. Synthetic forward model on the single planning CT (the size change is a
+      centroid-anchored label scale, not a real deformation). `lung` has no `fill` block, so it keeps the
+      plain range-random drift.
+  - **Off-bone differential motion (config-driven; lung + prostate):** the target moves independently of
     the skeleton, so a bony match leaves it off — only matching the soft-tissue target / fiducials scores.
     Each off-bone case carries a `VOLCASE[case].offBone` config (`driftBit`, `hideDens`, `drawDens`, per-axis
     `drift` ranges mm, plus `okMsg`/`hint`/`setup` strings); `curOffBone()` returns it. `randomize()` picks a
@@ -304,10 +341,12 @@ Two workflows, picked on the start screen:
     **redraws** it sampled through the residual *net − drift* transform (`movInvFrom`) at `drawDens`
     (lesion HU 74 / gold 255). Occupancy is **trilinear** (`gtvOcc`, density blended by fractional
     coverage) so the feature has soft edges and moves fluidly with the couch — nearest-neighbour
-    (`gtvAt`) shimmered/popped, which made small seeds finicky. `check()` grades a **target/fiducial match**:
+    (`gtvAt`) shimmered/popped, which made small seeds finicky (so the prostate seeds are baked as ~5 mm
+    solid blobs, not single voxels, to redraw cleanly). `check()` grades a **target/fiducial match**:
     translations against `e − targetDrift`, with the 6DOF **rotations shown but not graded**, so acceptance
-    is translation-only; the bones-aligned-but-target-off `hint` comes from the config. Other cases keep
-    `targetDrift` `null` (no `offBone` config) so they stay pure rigid 6DOF.
+    is translation-only; the bones-aligned-but-target-off `hint` comes from the config. Prostate drift is
+    AP-dominant (`y:[3,5]`, always clearing the 2 mm fiducial tolerance) and total-capped at ~5 mm. Other
+    cases keep `targetDrift` `null` (no `offBone` config) so they stay pure rigid 6DOF.
 
 ## Auth & paywall (clerk-auth.js)
 

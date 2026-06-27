@@ -32,23 +32,23 @@ const COMP_DOMAINS = ['stonybrook.edu', 'mountsinai.org'];
 // fetching an arbitrary key from the store (no path traversal / presign-anything oracle).
 const DATASETS = new Set([
   'image_data.js', 'breast_drr_data.js', 'prostate2d_data.js',
-  'brain3d_data.js', 'pelvis3d_data.js', 'breast3d_data.js',
+  'brain3d_data.js', 'pelvis3d_data.js', 'cervix3d_data.js', 'breast3d_data.js',
   'spine3d_data.js', 'lung3d_data.js', 'prostate3d_data.js', 'pancreas3d_data.js',
   'acousticmr3d_data.js', 'liver3d_data.js', 'gbm3d_data.js', 'sarcoma3d_data.js',
-  'brain3d_labels_data.js', 'pelvis3d_labels_data.js', 'breast3d_labels_data.js',
+  'brain3d_labels_data.js', 'pelvis3d_labels_data.js', 'cervix3d_labels_data.js', 'breast3d_labels_data.js',
   'spine3d_labels_data.js', 'lung3d_labels_data.js', 'prostate3d_labels_data.js',
   'pancreas3d_labels_data.js', 'acousticmr3d_labels_data.js', 'liver3d_labels_data.js',
   'gbm3d_labels_data.js', 'sarcoma3d_labels_data.js',
 ]);
 const DRR_KEY = /^drr\/[a-z0-9_]+\.png$/i;
 
-// Free-tier datasets — served WITHOUT a subscription (the 2D Breast + CBCT Pelvis cases).
+// Free-tier datasets — served WITHOUT a subscription (the 2D Breast + CBCT Gynae/Uterus cases).
 // EXACT-MATCH Set only: no regex, no prefixes, NO DRR entries. Every key not in this Set
 // keeps the unchanged fail-closed isAuthorized->403 path, so no private asset gains a bypass.
 const PUBLIC_KEYS = new Set([
   'breast_drr_data.js',
-  'pelvis3d_data.js',
-  'pelvis3d_labels_data.js',
+  'cervix3d_data.js',
+  'cervix3d_labels_data.js',
 ]);
 
 const clerk = createClerkClient({
