@@ -664,6 +664,10 @@ html:not(.auth-pending) #authGate{display:none}
 .con-act:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .con-act:active:not(:disabled){transform:translateY(1px)}
 .con-act:disabled{opacity:.4;cursor:not-allowed;transform:none;color:var(--muted)}
+#conAcqBtn{position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
+#conAcqBtn.exposing{border-color:var(--accent);color:var(--accent)}
+.con-acqprog{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);box-shadow:0 0 6px 1px rgba(45,212,238,.7);border-radius:0 0 8px 8px}
+.con-beamfan.firing{opacity:.85}   /* kV beam stays on while you hold the exposure */
 #conApplyBtn{background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#04140d;border-color:transparent}
 #conApplyBtn:disabled{background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2)}
 /* gantry-head indicator (replaces ROTATE): mini head + status, recolours by whether you're on a valid angle */
@@ -1200,11 +1204,13 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <span class="con-headlbl" id="conHeadLbl">OFF ANGLE · HOLD SPACE</span>
       </div>
       <div class="con-btns">
-        <button class="con-act" id="conAcqBtn" type="button" onclick="CONSOLE.acquire()" disabled title="Acquire the kV image at the current gantry angle — retake anytime (A)">ACQUIRE<span class="kbd">A</span></button>
+        <button class="con-act" id="conAcqBtn" type="button" disabled
+          onpointerdown="CONSOLE.acquireHoldStart()" onpointerup="CONSOLE.acquireHoldCancel()" onpointerleave="CONSOLE.acquireHoldCancel()"
+          title="HOLD to take the kV exposure (~1 s) — hold this button or press and hold Enter">ACQUIRE<span class="kbd">&crarr; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
         <button class="con-act con-match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match">2D/2D&nbsp;MATCH</button>
         <button class="con-act" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)">APPLY SHIFTS</button>
       </div>
-      <div class="con-msg" id="conMsg">Click an image to select it, hold SPACE to drive the gantry to the kV angle (AP = G90/270, Lateral = G0/180), then Acquire (A). Retake freely; press 2D/2D MATCH when ready.</div>
+      <div class="con-msg" id="conMsg">Click an image to select it, hold SPACE to drive the gantry to the kV angle (AP = G90/270, Lateral = G0/180), then hold Enter to Acquire. Retake freely; press 2D/2D MATCH when ready.</div>
     </div>
   </div>
   </div><!-- /.match-col -->
@@ -2564,6 +2570,7 @@ const CONSOLE=(()=>{
   const el=id=>document.getElementById(id);
   const ROT_SPEED=9;    // gantry deg/sec. Real Varian/IEC max is 1 RPM = 6°/s; 9 = 1.5× clinical so the
                         // longest transit (≤90°) is ~10 s — clearly mechanical (not instant), retake-friendly.
+  const EXPOSE_HOLD=1.0;   // seconds you must HOLD Enter (or the Acquire button) to take a kV exposure
   // Hard cable-wrap limit: a real linac gantry cannot transit through GANTRY_LIMIT (180°), so it can never do a
   // full 360°. Motion takes the shortest arc that does NOT pass strictly through the limit (the long way round
   // otherwise); the limit angle itself is a reachable endpoint (you can stop at it, you just can't drive through).
@@ -2575,7 +2582,8 @@ const CONSOLE=(()=>{
   let active=false, caseKey=null, plan=null, views=[],
       couch={vrt:0,lng:0,lat:0,rtn:0}, couch0={vrt:0,lng:0,lat:0,rtn:0},
       gantry=90, acquired=[false,false], applied=null, phase='ACQUIRE',
-      motOn=false, motDead=false, motRaf=0, motTs=0, motTarget=null, fireTmr=0, resetTmr=0;
+      motOn=false, motDead=false, motRaf=0, motTs=0, motTarget=null, fireTmr=0, resetTmr=0,
+      acqHold=false, acqProg=0, acqRaf=0, acqTs=0;
 
   const bothAcquired=()=>acquired[0]&&acquired[1];
   const slotAngles=slot=>VIEW_ANGLES[slot]||[];                 // the valid gantry angles to acquire that view
@@ -2612,11 +2620,11 @@ const CONSOLE=(()=>{
     if(el('conPlan'))el('conPlan').textContent=plan.plan;
     updateBadges();
     setPhase('ACQUIRE');
-    msg('Acquire both setup images: click an image (or it is pre-selected), hold SPACE to drive the gantry to the right angle, then Acquire (A).','');
+    msg('Acquire both setup images: click an image (or it is pre-selected), hold SPACE to drive the gantry to the right angle, then hold Enter to Acquire.','');
     if(typeof render==='function')render();   // hide both portals immediately
   }
   function exit(){
-    stopMotion(); clearTimeout(resetTmr); active=false; phase='ACQUIRE';
+    stopMotion(); clearTimeout(resetTmr); cancelAnimationFrame(acqRaf); acqHold=false; acqProg=0; active=false; phase='ACQUIRE';
     const s=el('consoleStrip'); if(s)s.classList.add('hidden');
     document.body.classList.remove('console-mode');
     ['apArea','latArea'].forEach(id=>{const a=el(id);if(a)a.classList.remove('awaiting');});
@@ -2643,7 +2651,7 @@ const CONSOLE=(()=>{
     if(el('conGantry'))el('conGantry').textContent=gantry.toFixed(1)+'°';
     const t=el('conGantryTgt'); if(!t)return;
     const at=viewAtGantry();
-    if(at){ t.textContent='at '+at.label+' — Acquire (A)'; }
+    if(at){ t.textContent='at '+at.label+' — hold Enter to Acquire'; }
     else { const tgt=motTarget!=null?motTarget:nearestAngle(rotateTarget());
       t.textContent='hold SPACE → G'+(tgt==null?'—':Math.round(tgt)); }
   }
@@ -2721,7 +2729,7 @@ const CONSOLE=(()=>{
     if(lat)lat.classList.toggle('awaiting', active&&latI>=0&&!acquired[latI]);
     // own the acquisition-badge sub copy while the console is active (DIBH sets its own on enter)
     ['apArea','latArea'].forEach(id=>{const a=el(id); if(a&&a.querySelector){const sub=a.querySelector('.acq-badge .sub');
-      if(sub)sub.textContent='Park the gantry at this view, then Acquire (A).';}});
+      if(sub)sub.textContent='Park the gantry at this view, then hold Enter to Acquire.';}});
   }
   function msg(t,c){const m=el('conMsg');if(m){m.textContent=t;m.className='con-msg'+(c?' '+c:'');}}
 
@@ -2731,7 +2739,7 @@ const CONSOLE=(()=>{
     const v=views.find(x=>x.slot===slot); if(!v)return;
     const a=nearestAngle(v); if(a==null)return;
     motTarget=a;
-    if(Math.abs(angDiff(a,gantry))<0.5) msg('Gantry already at '+v.label+' (G'+Math.round(a)+') — Acquire (A).','');
+    if(Math.abs(angDiff(a,gantry))<0.5) msg('Gantry already at '+v.label+' (G'+Math.round(a)+') — hold Enter to Acquire.','');
     else msg('Selected '+v.label+' (G'+Math.round(a)+'). Hold SPACE to drive the gantry there.','');
     renderGantry(); renderViz(); renderButtons();
   }
@@ -2750,7 +2758,7 @@ const CONSOLE=(()=>{
     const step=Math.sign(d)*Math.min(Math.abs(d),ROT_SPEED*dt);
     gantry=(((gantry+step)%360)+360)%360;
     if(Math.abs(gantryDelta(gantry,motTarget))<0.4){ gantry=motTarget; pauseMotion(); motTarget=null;
-      const at=viewAtGantry(); if(at)msg('Gantry at G'+gantry.toFixed(0)+' — acquire '+at.label+' (A).',''); }
+      const at=viewAtGantry(); if(at)msg('Gantry at G'+gantry.toFixed(0)+' — hold Enter to acquire '+at.label+'.',''); }
     renderGantry(); renderViz(); renderButtons(); renderPips();
   }
   function motFrame(ts){ if(!motOn)return; if(!motTs)motTs=ts;
@@ -2779,9 +2787,35 @@ const CONSOLE=(()=>{
     else { const nx=nextUnacquired();
       msg((retake?'Re-took ':'Acquired ')+v.label+'. Rotate to '+(nx?nx.label:'the other view')+' (click its pane / hold SPACE), then Acquire.',''); }
   }
+  // ---- hold-to-expose: you must HOLD Enter (or the Acquire button) for EXPOSE_HOLD s to take the kV image ----
+  function acquireHoldStart(){
+    if(!canAcquire()||acqHold)return;
+    acqHold=true; acqProg=0; acqTs=0; setExposing(true);
+    cancelAnimationFrame(acqRaf); acqRaf=requestAnimationFrame(acqFrame);
+    msg('Exposing… keep holding to capture '+(viewAtGantry()||{}).label+'.','');
+  }
+  function acqFrame(ts){ if(!acqHold)return; if(!acqTs)acqTs=ts;
+    let dt=(ts-acqTs)/1000; acqTs=ts; if(dt>0.1)dt=0.1;
+    acqProg=Math.min(1,acqProg+dt/EXPOSE_HOLD); renderAcqProg();
+    if(acqProg>=1){ acqHold=false; cancelAnimationFrame(acqRaf); acqRaf=0; setExposing(false); acquire(); return; }
+    acqRaf=requestAnimationFrame(acqFrame);
+  }
+  function acquireHoldCancel(){            // release before the second is up -> no image
+    if(!acqHold)return;
+    acqHold=false; cancelAnimationFrame(acqRaf); acqRaf=0; acqProg=0; setExposing(false); renderAcqProg();
+    msg('Exposure released early — hold Enter (or the Acquire button) for a second to capture.','bad');
+  }
+  function setExposing(on){
+    const btn=el('conAcqBtn'); if(btn)btn.classList.toggle('exposing',on);
+    const f=el('conKvBeam'); if(f&&f.classList){ if(on)f.classList.add('firing'); else f.classList.remove('firing'); }
+    renderAcqProg();
+  }
+  function renderAcqProg(){ const p=el('conAcqProg'); if(p&&p.style)p.style.width=(acqProg*100).toFixed(0)+'%'; }
+
   function enterMatch(){                                  // the deliberate image-first -> match commit (button only)
     if(!active||phase!=='ACQUIRE'||!bothAcquired())return;
-    stopMotion(); setPhase('MATCH');
+    stopMotion(); cancelAnimationFrame(acqRaf); acqHold=false; acqProg=0; setExposing(false);
+    setPhase('MATCH');
     msg('Matching enabled — drag both views to register, then Apply Shifts.','ok');
   }
 
@@ -2872,9 +2906,9 @@ const CONSOLE=(()=>{
     sweep:(from,to)=>{const out=[from];let g=from;const d=gantryDelta(from,to),n=Math.max(2,Math.ceil(Math.abs(d)));
       for(let i=1;i<=n;i++){g=(((from+d*i/n)%360)+360)%360;out.push(g);} return out;},
   };
-  return {refresh,exit,selectView,acquire,enterMatch,applyShifts,reinterlock,
+  return {refresh,exit,selectView,acquire,acquireHoldStart,acquireHoldCancel,enterMatch,applyShifts,reinterlock,
           active:isActive,phase:()=>phase,readyToMatch:()=>active&&phase==='ACQUIRE'&&bothAcquired(),
-          acquiring,matchable,hidesPortal,motionEnable,_dbg};
+          canAcquire,acquiring,matchable,hidesPortal,motionEnable,_dbg};
 })();
 window.CONSOLE=CONSOLE;
 
@@ -3847,9 +3881,11 @@ document.addEventListener('keydown',e=>{
     const acq = CONSOLE.acquiring && CONSOLE.acquiring();
     // SPACE (hold) = motion enable: drive the gantry toward the selected view while held (deadman). Acquire phase only.
     if((e.key===' '||e.code==='Space') && acq){ e.preventDefault(); CONSOLE.motionEnable(true,true); return; }
-    // A = acquire the kV image at the current gantry angle (acquire phase only; else falls through to pitch nudge).
-    if((e.key==='a'||e.key==='A') && !e.repeat && acq){ e.preventDefault(); CONSOLE.acquire(); return; }
-    // ENTER falls through to checkMatch -> 2D/2D Match (ACQUIRE+both) / Apply Shifts (MATCH), so the loop is keyboard-drivable.
+    // ENTER held for ~1 s = take the kV exposure, but ONLY when parked at a valid angle. The keyup (below) ends
+    // the hold. When NOT at a valid angle it falls through to checkMatch -> 2D/2D Match (both taken) / Apply Shifts.
+    if(e.key==='Enter' && !e.repeat && CONSOLE.canAcquire && CONSOLE.canAcquire()){
+      e.preventDefault(); CONSOLE.acquireHoldStart(); return;
+    }
   }
   // Flicker (flip the active view's blend to its mirror): Ctrl/⌘+A, or ⌥(Option)+A on Mac.
   //   Option rewrites e.key to 'å', so the Option case matches the physical key via e.code.
@@ -3902,6 +3938,8 @@ document.addEventListener('keyup',e=>{
   if(axisLockKey && e.key===axisLockKey){ axisLock=null; axisLockKey=null; hideAxisCue(); }
   // SPACE up releases the IGRT gantry motion-enable deadman (pauses rotation where it is).
   if((e.key===' '||e.code==='Space') && window.CONSOLE && CONSOLE.motionEnable){ CONSOLE.motionEnable(false,true); }
+  // ENTER up ends the kV hold-to-expose (cancels if the second wasn't reached; no-op once captured).
+  if(e.key==='Enter' && window.CONSOLE && CONSOLE.acquireHoldCancel){ CONSOLE.acquireHoldCancel(); }
 });
 window.addEventListener('blur',()=>{ if(axisLock){ axisLock=null; axisLockKey=null; hideAxisCue(); }
   if(window.CONSOLE && CONSOLE.motionEnable) CONSOLE.motionEnable(false,true); });
