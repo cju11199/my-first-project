@@ -615,6 +615,7 @@ html:not(.auth-pending) #authGate{display:none}
 .con-viz{flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px}
 .con-svg{width:128px;height:116px;display:block}
 .con-bore{fill:none;stroke:rgba(255,255,255,.10);stroke-width:5}
+.con-limit{stroke:#ff5147;stroke-width:2.5;stroke-linecap:round;opacity:.65}
 .con-pt{fill:rgba(45,212,238,.10);stroke:rgba(45,212,238,.45);stroke-width:1}
 .con-arm{stroke:#39506b;stroke-width:3;stroke-linecap:round}
 .con-head{fill:#2a3852;stroke:#475b78;stroke-width:1}
@@ -1109,6 +1110,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <div class="con-viz">
       <svg viewBox="0 0 128 116" class="con-svg" aria-hidden="true">
         <circle class="con-bore" cx="64" cy="58" r="47"/>
+        <!-- gantry hard limit (180°, bottom): the rig cannot transit this point (no full 360) -->
+        <line class="con-limit" x1="64" y1="99" x2="64" y2="113"/>
         <ellipse class="con-pt" cx="64" cy="58" rx="11" ry="8.5"/>
         <!-- view-angle ticks (positioned/coloured by JS) -->
         <g id="conMark0" class="con-vmark"><line x1="64" y1="9" x2="64" y2="16"/></g>
@@ -2535,6 +2538,11 @@ const CONSOLE_PLANS={
 const CONSOLE=(()=>{
   const el=id=>document.getElementById(id);
   const ROT_SPEED=85;   // gantry deg/sec while motion-enabled
+  // Hard cable-wrap limit: a real linac gantry cannot transit through this point, so it can never do a full
+  // 360°. lin() maps an angle onto a continuous (LIMIT, LIMIT+360] line whose seam is the forbidden point, so
+  // motion takes the shortest path that does NOT cross the limit (the long way round when the short way would).
+  const GANTRY_LIMIT=180;
+  const lin=a=>{a=((a%360)+360)%360; return a>GANTRY_LIMIT ? a : a+360;};
   let active=false, caseKey=null, plan=null, views=[],
       couch={vrt:0,lng:0,lat:0,rtn:0}, couch0={vrt:0,lng:0,lat:0,rtn:0},
       gantry=0, acquired=[false,false], applied=null, phase='ACQUIRE',
@@ -2676,10 +2684,11 @@ const CONSOLE=(()=>{
   function motionStep(dt){
     const nx=nextUnacquired();
     if(!nx){ stopMotion(); return; }
-    let d=angDiff(nx.g,gantry);
+    const cur=lin(gantry), tgt=lin(nx.g);
+    let d=tgt-cur;                                   // linear distance: never crosses the hard limit (no full 360)
     const step=Math.sign(d)*Math.min(Math.abs(d),ROT_SPEED*dt);
-    gantry=(gantry+step+360)%360;
-    if(Math.abs(angDiff(nx.g,gantry))<0.4){ gantry=nx.g; stopMotion();
+    gantry=(((cur+step)%360)+360)%360;
+    if(Math.abs(lin(nx.g)-lin(gantry))<0.4){ gantry=nx.g; stopMotion();
       msg('Gantry at '+gantry.toFixed(0)+'° — acquire '+nx.label+' (A).',''); }
     renderGantry(); renderViz(); renderButtons(); renderPips();
   }
@@ -2788,6 +2797,10 @@ const CONSOLE=(()=>{
       match:(phase==='APPLIED'||phase==='TREAT'||phase==='DONE'),
       aligned:(phase==='APPLIED'||phase==='TREAT'||phase==='DONE'),beam:phase==='TREAT'}),
     matchable, acquiring, hidesPortal, plans:CONSOLE_PLANS, views:()=>views.slice(),
+    lin, GANTRY_LIMIT,
+    // simulate a full rotation from->to in lin-space; returns the swept gantry samples (to assert it never hits the limit)
+    sweep:(from,to)=>{const out=[];const a=lin(from),b=lin(to);const n=Math.max(2,Math.ceil(Math.abs(b-a)));
+      for(let i=0;i<=n;i++){out.push((((a+(b-a)*i/n)%360)+360)%360);} return out;},
   };
   return {refresh,exit,rotate,acquire,applyShifts,reinterlock,beam,
           active:isActive,phase:()=>phase,acquiring,matchable,hidesPortal,motionEnable,_dbg};
