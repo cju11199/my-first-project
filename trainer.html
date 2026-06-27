@@ -4118,15 +4118,15 @@ document.addEventListener('keydown',e=>{
     const acq = CONSOLE.acquiring && CONSOLE.acquiring();
     // SPACE (hold) = motion enable: drive the gantry toward the selected view while held (deadman). Acquire phase only.
     if((e.key===' '||e.code==='Space') && acq){ e.preventDefault(); CONSOLE.motionEnable(true,true); return; }
-    // ENTER owns the console acquire/match flow — ONE action per physical press. Auto-repeat is swallowed so a
-    // held Enter (from the ~1 s hold-to-expose) can't cascade 2D/2D Match -> Apply Shifts the instant the 2nd
-    // image lands. Parked at a valid angle -> hold-to-expose; otherwise (both taken) -> checkMatch, which enters
-    // MATCH; a later deliberate Enter (or Apply Shifts button) then applies the shifts.
+    // ENTER is ACQUIRE-ONLY (hold-to-expose), never match/apply. Entering the match (2D/2D MATCH) and moving
+    // the couch (APPLY SHIFTS) are DELIBERATE on-screen buttons — so no held / extra / repeated Enter around the
+    // 2nd capture can ever auto-enter match or auto-apply a shift (the reported "it applies on its own"). Parked
+    // at a valid angle -> hold to expose; anywhere else Enter does nothing. This also matches the original
+    // "Enter = beam on" intent: you don't move the couch by holding the imaging-beam key.
     if(e.key==='Enter'){
       e.preventDefault();
-      if(e.repeat) return;                                              // swallow auto-repeat: no match->apply cascade
+      if(e.repeat) return;
       if(CONSOLE.canAcquire && CONSOLE.canAcquire()) CONSOLE.acquireHoldStart();
-      else checkMatch();
       return;
     }
   }
