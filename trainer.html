@@ -740,7 +740,7 @@ html:not(.auth-pending) #authGate{display:none}
       <span class="mode-chip">CBCT</span>
 <span class="case-label">CASE:&nbsp;</span>
       <select class="case-select" id="cbCaseSelect" onchange="CBCT.applyCase(this.value)">
-        <option value="pelvis">Pelvis &middot; CBCT (CT)</option>
+        <option value="cervix">Gynae / Uterus &middot; CBCT (CT)</option>
         <option value="brain">Acoustic neuroma &middot; CBCT (CT)</option>
         <option value="breast">Breast &middot; CBCT (CT)</option>
         <option value="spine">Spine SBRT &middot; CBCT (CT)</option>
@@ -3489,7 +3489,10 @@ const CASE_LISTS={
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
   ]},
   'cbct':{label:'CBCT', icon:'☰', cases:[
-    {v:'pelvis', t:'Pelvis',          d:'CBCT &middot; 6DOF'},
+    // CERVIX: CPTAC-UCEC (CC BY 4.0). Contrast pelvic CT, real UTERUS tumour annotation as the
+    // soft-tissue target. Gynae 6DOF match — register the uterus, not the bony pelvis. Data built
+    // by generate_cervix_cbct.py. This is the free/demo CBCT case.
+    {v:'cervix', t:'Gynae / Uterus',  d:'CBCT &middot; uterine target'},
     {v:'brain',  t:'Acoustic neuroma', d:'CBCT &middot; IAC SRS'},
     {v:'breast', t:'Breast',          d:'CBCT &middot; 6DOF'},
     {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
@@ -3527,7 +3530,7 @@ function pickMode(mode){
     const el=document.createElement('div');
     const cid=mode+':'+c.v;
     const micCase=(mode==='2d2d' && c.v==='breastDIBH');               // voice-coached, mic-gated
-    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:pelvis');      // playable without a subscription
+    const isFreeCase=(cid==='2d2d:breast' || cid==='cbct:cervix');      // playable without a subscription
     const paidLocked=freeMode && !isFreeCase;                          // locked behind the paywall
     const locked=(micCase && !(window.DIBHVoice && DIBHVoice._possible)) || paidLocked;
     const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
@@ -3550,7 +3553,7 @@ function launchCase(mode, key){
   // FREE TIER (authoritative client gate): without a subscription, only the Breast (2D) and
   // Spine (CBCT) cases are playable. Paid cases never reach applyCase / CBCT.applyCase here.
   if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode()
-     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='pelvis'))){
+     && !((mode==='2d2d'&&key==='breast')||(mode==='cbct'&&key==='cervix'))){
     const note=document.getElementById('startNote');
     if(note){ note.innerHTML='This case needs a subscription. <a href="'+((window.RTAuth&&RTAuth.SUBSCRIBE_URL)||'/subscribe')+'">Start your free trial &rarr;</a>'; note.classList.add('warn'); }
     return;
@@ -3641,7 +3644,7 @@ const CASE_TOL={
   '2d2d:breast':    {t1:5, t2:12,  r1:3, r2:4},    // breast SCV + tangent (loosest)
   '2d2d:breastDIBH':{t1:5, t2:12,  r1:3, r2:4},    // same match, breath-hold
   '2d2d:prostate':  {t1:3, t2:5.4, r1:3, r2:5.4},  // kV fiducial triad (FID2D); t2/r2 = accept*1.8
-  'cbct:pelvis':    {t1:3, t2:7,   r1:2, r2:4},    // conventional pelvis
+  'cbct:cervix':    {t1:4, t2:8,   r1:3, r2:5},    // gynae/uterus — conventional pelvic soft-tissue match (uterus moves off the bony pelvis)
   'cbct:brain':     {t1:1, t2:2,   r1:1, r2:2},    // acoustic neuroma IAC SRS — tightest
   'cbct:breast':    {t1:3, t2:7,   r1:3, r2:4},    // conventional breast
   'cbct:spine':     {t1:1, t2:2.5, r1:1, r2:2},    // spine SBRT (cord-avoiding)
@@ -3859,7 +3862,7 @@ const CBCT=(function(){
   let targetDrift=null;
   let curFill=null;        // active rectum/bladder filling scenario (prostate); drives the visible rectum density + the seed drift
   let pendingFill=null;    // Filling picker selection: a scenario key to force, or null = random each New Offset
-  let active='axial', fusion=false, caseKey='pelvis', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
+  let active='axial', fusion=false, caseKey='cervix', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
     axial:   {cv:'cbAxial',    pane:'cbPaneAxial',    sl:'cbBlendAxial',    sx:'x', sy:'z', rot:'roll',  fx:1, fy:-1},
@@ -3923,9 +3926,9 @@ const CBCT=(function(){
   // CBCT cases backed by a real 3D CT volume (reslice MPR). file/var must match the data .js;
   // win = per-case default CT window (HU level/width); contours = ships a label volume.
   // get() reads the data file's global by bare identifier (top-level `const` globals are NOT
-  // window properties, so window['PELVIS3D_VOL'] would never resolve).
+  // window properties, so window['CERVIX3D_VOL'] would never resolve).
   const VOLCASE={
-    pelvis:{file:'pelvis3d_data.js', get:()=>typeof PELVIS3D_VOL!=='undefined'?PELVIS3D_VOL:null, win:{l:40,w:460},   contours:true},   // soft-tissue + crisp pelvic cortex (auto-tuned to this volume's HU range)
+    cervix:{file:'cervix3d_data.js', get:()=>typeof CERVIX3D_VOL!=='undefined'?CERVIX3D_VOL:null, win:{l:40,w:400},   contours:true},   // gynae/uterus (CPTAC-UCEC): contrast pelvic CT, soft-tissue pelvis window. Real UTERUS tumour target — rigid 6DOF soft-tissue match (register the uterus, not the bony pelvis). The free/demo CBCT case. Data built by generate_cervix_cbct.py.
     brain :{file:'brain3d_data.js',  get:()=>typeof BRAIN3D_VOL!=='undefined'?BRAIN3D_VOL:null,   win:{l:500,w:1500}, contours:true,   // skull-base bone window for the IAC bony match (trims wasted air range vs 400/1800)
             // Left vestibular schwannoma (acoustic neuroma) SRS: GTV is an "ice-cream-cone" at the
             // IAC/CPA (cistern ball + intracanalicular tail), PTV = GTV + 1 mm; cochlea + brainstem OARs.
@@ -4204,18 +4207,14 @@ const CBCT=(function(){
   }
 
   /* ---- anatomical contour overlay (REAL segmented structures + isocentre) ----
-     Structures live in a bitfield label volume (PELVIS3D_LABELS, one bit each) on the SAME
-     grid as the CT. Each plane reslices the labels in REFERENCE space (so the CBCT slides
-     under them, like a real plan) and marching-squares traces each structure from its
-     trilinear occupancy. Pelvis structures: body, bladder, prostate, PTV, rectum and seminal
-     vesicles (bladder/prostate/PTV from TotalSegmentator; rectum & SV hand-drawn to the anatomy). */
-  const CB_STRUCTS=[                                  // draw order: base -> target on top (pelvis)
-    {key:'body',    color:'#36e06a', lw:1.3},
-    {key:'bladder', color:'#ffd23f', lw:1.7},
-    {key:'rectum',  color:'#7bc043', lw:1.7},
-    {key:'sv',      color:'#d36cff', lw:1.6},
-    {key:'prostate',color:'#e8a13a', lw:2.0},
-    {key:'ptv',     color:'#ff3b4e', lw:2.3},
+     Structures live in a bitfield label volume (one bit each; the default branch's is
+     CERVIX3D_LABELS) on the SAME grid as the CT. Each plane reslices the labels in REFERENCE
+     space (so the CBCT slides under them, like a real plan) and marching-squares traces each
+     structure from its trilinear occupancy. Default-branch (gynae/uterus) structures: body +
+     the uterine tumour target (real UTERUS annotation from CPTAC-UCEC). */
+  const CB_STRUCTS=[                                  // default branch = gynae/uterus (cervix): body + uterine tumour target
+    {key:'body',  color:'#36e06a', lw:1.3},
+    {key:'tumor', color:'#ff3b4e', lw:2.3},
   ];
   CB_STRUCTS.forEach(S=>S.visible=true);
   const BRAIN_STRUCTS=[                               // vestibular schwannoma (IAC) SRS: brain/body + GTV/PTV
@@ -4300,7 +4299,7 @@ const CBCT=(function(){
   let isoVisible=true;
   // *_ISO_IDX below are just pre-load fallbacks; each _decode*Labels() overwrites them from the label
   // file's isoIdx (the source of truth), so keep these in sync with the data to avoid confusion.
-  let LBL=null, CB_ISO_IDX=[99,76,32];                // pelvis: prostate centroid -> isocentre
+  let LBL=null, CB_ISO_IDX=[86,81,50];                // cervix: uterine target centroid -> isocentre (overwritten from the label file's isoIdx)
   let BRAIN_LBL=null, BRAIN_ISO_IDX=[95,104,36];      // brain:  VS GTV centroid (left IAC/CPA) -> isocentre
   let BREAST_LBL=null, BREAST_ISO_IDX=[162,16,126];   // breast: lumpectomy-cavity (boost) centre -> isocentre
   let SPINE_LBL=null, SPINE_ISO_IDX=[101,110,64];     // spine:  target vertebra centroid -> isocentre
@@ -4350,14 +4349,14 @@ const CBCT=(function(){
     if(caseKey==='brain'){_loadBrainLabelMPR();return;}
     if(caseKey==='breast'){_loadBreastLabelMPR();return;}
     if(caseKey==='spine'){_loadSpineLabelMPR();return;}
-    if(typeof PELVIS3D_LABELS==='undefined'){
+    if(typeof CERVIX3D_LABELS==='undefined'){
       if(loadLabelMPR._t)return; loadLabelMPR._t=1;
-      const s=document.createElement('script'); s.src=rtAssetUrl('pelvis3d_labels_data.js');
+      const s=document.createElement('script'); s.src=rtAssetUrl('cervix3d_labels_data.js');
       s.onload=()=>{loadLabelMPR._t=0;loadLabelMPR();}; s.onerror=()=>{loadLabelMPR._t=0;};
       document.head.appendChild(s); return;
     }
     if(LBL)return;
-    const img=new Image(); img.onload=()=>decodeLabels(img); img.src=PELVIS3D_LABELS.atlas;
+    const img=new Image(); img.onload=()=>decodeLabels(img); img.src=CERVIX3D_LABELS.atlas;
   }
   function _loadBrainLabelMPR(){
     if(typeof BRAIN3D_LABELS==='undefined'){
@@ -4370,7 +4369,7 @@ const CBCT=(function(){
     const img=new Image(); img.onload=()=>_decodeBrainLabels(img); img.src=BRAIN3D_LABELS.atlas;
   }
   function decodeLabels(img){
-    const V=PELVIS3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
+    const V=CERVIX3D_LABELS,X=V.dims[0],Y=V.dims[1],Z=V.dims[2],tpr=V.tilesPerRow;
     const oc=document.createElement('canvas');oc.width=img.width;oc.height=img.height;
     const cc=oc.getContext('2d',{willReadFrequently:true});cc.drawImage(img,0,0);
     const px=cc.getImageData(0,0,img.width,img.height).data,data=new Uint8Array(X*Y*Z);
@@ -4724,7 +4723,8 @@ const CBCT=(function(){
   // legend and dropdown rows differ per case
   function applyCaseLegend(){
     const brain=caseKey==='brain';
-    const pelvis=caseKey==='pelvis'||caseKey==='prostate';
+    const pelvis=caseKey==='prostate';                 // prostate IGRT structure set (bladder/rectum/SV/prostate/PTV)
+    const cervix=caseKey==='cervix';                   // gynae/uterus: body + tumour target only
     const breast=caseKey==='breast';
     const spine=caseKey==='spine';
     const lung=caseKey==='lung';
@@ -4737,7 +4737,7 @@ const CBCT=(function(){
     const show=(id,on)=>{const e=gid(id);if(e)e.style.display=on?'':'none';};
     // legend
     show('cbLG_stomach',pancreas);show('cbLG_bowel',pancreas);   // pancreas adds these; PTV (cbLG_ptv) stays on (it has a real contour)
-    show('cbLG_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma);show('cbLG_tumor',acousticmr||liver||gbm||sarcoma);show('cbLG_cochlea',acousticmr);show('cbLG_liver',liver);show('cbLG_edema',gbm);   // MR VS / liver / GBM / sarcoma: tumour target, no PTV; GBM adds edema
+    show('cbLG_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma&&!cervix);show('cbLG_tumor',acousticmr||liver||gbm||sarcoma||cervix);show('cbLG_cochlea',acousticmr);show('cbLG_liver',liver);show('cbLG_edema',gbm);   // MR VS / liver / GBM / sarcoma / cervix: tumour target, no PTV; GBM adds edema
     show('cbLG_gtv',brain||lung);
     show('cbLG_brain',brain);
     show('cbLG_prostate',pelvis);show('cbLG_bladder',pelvis);
@@ -4747,7 +4747,7 @@ const CBCT=(function(){
     show('cbLG_body',true);
     // per-structure dropdown items
     show('cbCM_stomach',pancreas);show('cbCM_bowel',pancreas);
-    show('cbCM_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma);show('cbCM_tumor',acousticmr||liver||gbm||sarcoma);show('cbCM_cochlea',acousticmr);show('cbCM_liver',liver);show('cbCM_edema',gbm);
+    show('cbCM_ptv',!acousticmr&&!liver&&!gbm&&!sarcoma&&!cervix);show('cbCM_tumor',acousticmr||liver||gbm||sarcoma||cervix);show('cbCM_cochlea',acousticmr);show('cbCM_liver',liver);show('cbCM_edema',gbm);
     show('cbCM_gtv',brain||lung);show('cbCM_brain',brain);
     show('cbCM_prostate',pelvis);show('cbCM_bladder',pelvis);
     show('cbCM_rectum',pelvis);show('cbCM_sv',pelvis);show('cbCM_fidctv',prostate);
@@ -5291,9 +5291,9 @@ const CBCT=(function(){
 
   /* ---- case build / lifecycle ---- */
   function applyCase(key){
-    // Defense-in-depth: a free-tier user can only ever load the Spine volume (the public one),
+    // Defense-in-depth: a free-tier user can only ever load the free CBCT case (Gynae/Uterus),
     // so a paid CBCT case can never trigger a lazy rtAssetUrl fetch of protected data.
-    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='pelvis') return;
+    if(window.RTAuth && RTAuth.isFreeMode && RTAuth.isFreeMode() && key!=='cervix') return;
     caseKey=key;const sel=gid('cbCaseSelect');if(sel)sel.value=key;
     const vc=VOLCASE[key];
     // Filling picker: only for off-bone cases that carry filling scenarios (prostate). Reset to random.
@@ -5312,7 +5312,7 @@ const CBCT=(function(){
     const ccaret=gid('cbContoursCaret');if(ccaret)ccaret.style.display=(vc&&vc.contours)?'':'none';
     applyCaseLegend();
     const lg=gid('cbContourLegend');if(lg)lg.classList.remove('show');
-    if(key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'||key==='liver'||key==='gbm'||key==='sarcoma'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
+    if(key==='cervix'||key==='brain'||key==='breast'||key==='spine'||key==='lung'||key==='pancreas'||key==='acousticMR'||key==='liver'||key==='gbm'||key==='sarcoma'){contoursOn=true;if(cbtn)cbtn.classList.add('active');if(lg)lg.classList.add('show');
       if(vc&&vc.contours){loadLabelMPR();if(curLBL())centerOnIso();}}   // contours ON by default
     Object.keys(PLANES).forEach(name=>{
       const st=ST[name],truth=makeTruth(key,name);
@@ -5320,10 +5320,7 @@ const CBCT=(function(){
       st.refT=tint(st.ref,CT_COL);st.movT=tint(st.mov,CBCT_COL);
       st.blend=50;const sl=gid(PLANES[name].sl);if(sl)sl.value=50;
     });
-    if(key==='pelvis'&&typeof PELVIS_AX_STACK!=='undefined'&&PELVIS_AX_STACK.length){
-      if(!stacksLoaded)loadStacks();
-    }
-    if(hasVol(key))loadVolumeMPR();   // reslice the 3D CT volume (replaces any stacks once ready)
+    if(hasVol(key))loadVolumeMPR();   // reslice the 3D CT volume
     if(typeof CBCT3D!=='undefined'&&CBCT3D.isVisible&&CBCT3D.isVisible())CBCT3D.refresh();  // keep 3D view on the current case
     randomize();
   }
@@ -5332,7 +5329,7 @@ const CBCT=(function(){
     window.addEventListener('resize',()=>{if(currentMode==='cbct'){resize();render();}});
     select('axial');applyCase(caseKey);refreshReadouts();applyLayout();toggleContours();
   }
-  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='pelvis';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
+  function enter(){if(!started){if(window.RTAuth&&RTAuth.isFreeMode&&RTAuth.isFreeMode())caseKey='cervix';build();started=true;}requestAnimationFrame(()=>{resize();Object.keys(PLANES).forEach(name=>{const st=ST[name];if(!st.spy.x){st.spy.x=st.W/2;st.spy.y=st.H/2;st.spy.r=Math.min(st.W,st.H)*0.18;}});render();});}
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
@@ -5341,8 +5338,9 @@ const CBCT=(function(){
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
-   Free-rotate volume render of the prostate-centered pelvis planning CT, shown as an
-   overlay inside the CBCT mode. Volume data (PELVIS3D_VOL) is lazy-loaded on first open.
+   Free-rotate volume render of the active CBCT case's planning CT (case-aware via
+   CBCT.cur3DVol()), shown as an overlay inside the CBCT mode. The case's volume data
+   (e.g. CERVIX3D_VOL) is lazy-loaded on first open.
    World axes: X=+patient-Left, Y=+Posterior, Z=+Superior. Tex: x0=right, y0=anterior, z0=inferior. */
 const CBCT3D=(function(){
   let gl=null,prog=null,U=null,started=false,visible=false,ready=false;

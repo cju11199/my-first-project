@@ -23,10 +23,10 @@ if (!process.env.BLOB_READ_WRITE_TOKEN) {
 // Must match the DATASETS allowlist in api/asset.mjs.
 const DATASETS = [
   'image_data.js', 'breast_drr_data.js', 'prostate2d_data.js',
-  'brain3d_data.js', 'pelvis3d_data.js', 'breast3d_data.js',
+  'brain3d_data.js', 'pelvis3d_data.js', 'cervix3d_data.js', 'breast3d_data.js',
   'spine3d_data.js', 'lung3d_data.js', 'prostate3d_data.js', 'pancreas3d_data.js',
   'acousticmr3d_data.js', 'liver3d_data.js', 'gbm3d_data.js', 'sarcoma3d_data.js',
-  'brain3d_labels_data.js', 'pelvis3d_labels_data.js', 'breast3d_labels_data.js',
+  'brain3d_labels_data.js', 'pelvis3d_labels_data.js', 'cervix3d_labels_data.js', 'breast3d_labels_data.js',
   'spine3d_labels_data.js', 'lung3d_labels_data.js', 'prostate3d_labels_data.js',
   'pancreas3d_labels_data.js', 'acousticmr3d_labels_data.js', 'liver3d_labels_data.js',
   'gbm3d_labels_data.js', 'sarcoma3d_labels_data.js',

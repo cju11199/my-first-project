@@ -29,6 +29,7 @@ breast_drr_data.js
 prostate2d_data.js
 brain3d_data.js
 pelvis3d_data.js
+cervix3d_data.js
 breast3d_data.js
 spine3d_data.js
 lung3d_data.js
@@ -40,6 +41,7 @@ gbm3d_data.js
 sarcoma3d_data.js
 brain3d_labels_data.js
 pelvis3d_labels_data.js
+cervix3d_labels_data.js
 breast3d_labels_data.js
 spine3d_labels_data.js
 lung3d_labels_data.js
