@@ -76,6 +76,7 @@
         { "@type": "Question", "name": "What is RT image matching?", "acceptedAnswer": { "@type": "Answer", "text": "RT image matching (image-guided radiation therapy, or IGRT) is lining up a patient's daily setup image with the reference from their planning CT, then reading off the couch correction that puts them in the planned position. It is how therapists verify position before each treatment." } },
         { "@type": "Question", "name": "What is the difference between 2D/2D and CBCT matching?", "acceptedAnswer": { "@type": "Answer", "text": "2D/2D matches a pair of orthogonal planar setup images to DRRs — fast, low-dose, and great for bony verification (a 5DOF correction). CBCT reconstructs a full 3D volume for soft-tissue matching and full 6DOF rotational assessment, at the cost of more dose and time. The trainer includes both." } },
         { "@type": "Question", "name": "What are the six degrees of freedom (6DOF)?", "acceptedAnswer": { "@type": "Answer", "text": "Three translations (lateral, longitudinal, vertical) and three rotations (pitch, roll, yaw) that together describe any rigid displacement of the patient on the couch. A 6DOF couch can correct all six." } },
+        { "@type": "Question", "name": "Does the trainer simulate the full treatment-setup workflow?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. On the standard 2D cases, a Varian/TrueBeam-style setup console runs the complete image-guided loop: it shows the plan's starting couch coordinates, you acquire two orthogonal setup images at the correct gantry angles (kV OBI, or MV/EPID for the breast tangents), rotate the gantry with a MOTION ENABLE deadman that auto-stops at the imaging angle, hold-to-expose each image, then 2D/2D match and press APPLY SHIFTS to move the couch — re-acquiring and correcting until you're within tolerance." } },
         { "@type": "Question", "name": "Who is the RT Image Matching Trainer for?", "acceptedAnswer": { "@type": "Answer", "text": "Radiation therapy students, training programs and faculty, and clinical educators — anyone learning or teaching IGRT image matching who wants console-like practice without a treatment machine." } },
         { "@type": "Question", "name": "Do I need to install anything?", "acceptedAnswer": { "@type": "Answer", "text": "No. It runs entirely in your browser on any device — desktop, laptop, or tablet. There is nothing to download and a 14-day free trial to start, with no credit card required." } },
         { "@type": "Question", "name": "Is this used for real clinical treatment?", "acceptedAnswer": { "@type": "Answer", "text": "No. It is an educational training simulator only. It is not a medical device and not for clinical decision-making; all imaging, patient offsets, and values are fictional." } }
@@ -487,7 +488,7 @@ footer .links a{margin-right:18px}
   <section class="block" id="see"><div class="wrap">
     <div class="eyebrow reveal">See it in action</div>
     <h2 class="reveal d1">The actual trainer &mdash; not a mockup</h2>
-    <p class="lead reveal d2">Real CT volumes, clinical-style tools and live error grading. Here's what you'll be working in.</p>
+    <p class="lead reveal d2">Real CT volumes, clinical-style tools and live error grading. The 2D cases run the authentic setup-console loop — acquire your setup images at the gantry, match, APPLY SHIFTS, and iterate to tolerance. Here's what you'll be working in.</p>
     <figure class="viewport reveal d2">
       <div class="vp-bar"><span class="vp-dot"></span><span class="vp-dot"></span><span class="vp-dot"></span><span class="vp-tag">CBCT &middot; 6DOF Fusion</span></div>
       <img src="/assets/shots/trainer-cbct.gif" width="540" height="369" loading="lazy" alt="A CBCT 6DOF match converging — the orange CBCT slides into alignment with the teal planning CT across all three planes">
@@ -517,9 +518,10 @@ footer .links a{margin-right:18px}
       <div class="card reveal d1"><h3><span class="ico">▦</span>2D / 2D matching</h3><p>Orthogonal AP + Lateral portal-to-DRR alignment with 5DOF correction (Lat / Lng / Vrt / Roll / Pitch).</p></div>
       <div class="card reveal d2"><h3><span class="ico o">◖</span>CBCT 6DOF fusion</h3><p>Three-plane volumetric registration with full 6DOF couch correction and teal/orange fusion overlay.</p></div>
       <div class="card reveal d3"><h3><span class="ico g">⊹</span>Real 3D CT (MPR)</h3><p>True multiplanar reslice through real CT volumes — axial, coronal, sagittal — with structure contours.</p></div>
-      <div class="card reveal d1"><h3><span class="ico">◉</span>Pro tools</h3><p>Color Wash, Spyglass lens, contrast windowing, blend sliders, isocenter reticle, and fusion color.</p></div>
-      <div class="card reveal d2"><h3><span class="ico g">±</span>Live error grading</h3><p>Real-time residual-error readout graded against tolerance, so you know when the match is good enough.</p></div>
-      <div class="card reveal d3"><h3><span class="ico o">⌨</span>Console-like control</h3><p>Drag to translate/rotate, scroll to browse slices, undo, generate fresh setup errors, keyboard shortcuts.</p></div>
+      <div class="card reveal d1"><h3><span class="ico o">⟳</span>Treatment-console setup</h3><p>Run the full IGRT loop on the 2D cases: acquire orthogonal setup images at the gantry, rotate with a MOTION ENABLE deadman that auto-stops at the imaging angle, then 2D/2D match and APPLY SHIFTS to move the couch — re-acquiring until you're in tolerance.</p></div>
+      <div class="card reveal d2"><h3><span class="ico">◉</span>Pro tools</h3><p>Color Wash, Spyglass lens, contrast windowing, blend sliders, isocenter reticle, and fusion color.</p></div>
+      <div class="card reveal d3"><h3><span class="ico g">±</span>Live error grading</h3><p>Real-time residual-error readout graded against tolerance, so you know when the match is good enough.</p></div>
+      <div class="card reveal d1"><h3><span class="ico o">⌨</span>Console-like control</h3><p>kV (OBI) and MV (EPID) imaging, hold-to-expose beam-on, couch coordinates, drag to translate/rotate, scroll slices, undo, and keyboard shortcuts.</p></div>
     </div>
   </div></section>
 
@@ -530,6 +532,7 @@ footer .links a{margin-right:18px}
       <li><b>Brain</b> · CT DRR</li>
       <li><b>Pelvis</b> · CT DRR + CBCT</li>
       <li><b>Thorax</b> · CT DRR</li>
+      <li><b>Femur</b> · CT DRR orthogonal pair</li>
       <li><b>Breast L</b> · SCV + medial tangent</li>
       <li><b>Breast</b> · real 3D CT + contours</li>
       <li><b>Acoustic neuroma</b> · IAC SRS (CBCT)</li>
@@ -601,6 +604,10 @@ footer .links a{margin-right:18px}
       <details>
         <summary>What are the six degrees of freedom (6DOF)?</summary>
         <p>Three translations (lateral, longitudinal, vertical) and three rotations (pitch, roll, yaw) that together describe any rigid displacement of the patient on the couch. A 6DOF couch can correct all six. <a href="/guides/couch-shifts-6dof-corrections">See couch shifts &amp; 6DOF &rarr;</a></p>
+      </details>
+      <details>
+        <summary>Does the trainer simulate the full treatment-setup workflow?</summary>
+        <p>Yes. On the standard 2D cases, a Varian/TrueBeam-style setup console runs the complete image-guided loop: it shows the plan's starting couch coordinates, you acquire two orthogonal setup images at the correct gantry angles (kV OBI, or MV/EPID for the breast tangents), rotate the gantry with a MOTION ENABLE deadman that auto-stops at the imaging angle, hold-to-expose each image, then 2D/2D match and press APPLY SHIFTS to move the couch — re-acquiring and correcting until you're within tolerance.</p>
       </details>
       <details>
         <summary>Who is the RT Image Matching Trainer for?</summary>
