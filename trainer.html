@@ -658,40 +658,59 @@ html:not(.auth-pending) #authGate{display:none}
 .console-strip.ph-acquire .con-banner{color:var(--accent2)}
 .console-strip.ph-match   .con-banner{color:var(--accent)}
 .console-strip.ph-aligned .con-banner{color:var(--green)}
-.con-btns{display:grid;grid-template-columns:1fr;gap:7px}
-.con-act{padding:9px 8px;font:inherit;font-family:var(--mono),monospace;font-size:12px;font-weight:700;letter-spacing:.04em;border-radius:8px;cursor:pointer;border:1px solid var(--border2);background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--text)}
-.con-act .kbd{font-family:var(--mono),monospace;font-size:8px;opacity:.8;border:1px solid currentColor;border-radius:3px;padding:0 3px;margin-left:6px;vertical-align:middle}
-.con-act:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-.con-act:active:not(:disabled){transform:translateY(1px)}
-.con-act:disabled{opacity:.4;cursor:not-allowed;transform:none;color:var(--muted)}
-#conAcqBtn{position:relative;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none}
-#conAcqBtn.exposing{border-color:var(--accent);color:var(--accent)}
-.con-acqprog{position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--accent);box-shadow:0 0 6px 1px rgba(45,212,238,.7);border-radius:0 0 8px 8px}
+/* ── Treatment-console PENDANT: a brushed-metal box (right cluster) evoking a linac hand pendant ── */
+.con-pendant{flex:0 0 336px;display:flex;flex-direction:column;gap:9px;justify-content:flex-start;padding:11px;border-radius:12px;
+  background:linear-gradient(157deg,#6c7278,#474c52 60%,#3d4147);border:1px solid #2a2d31;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 7px rgba(0,0,0,.4),0 5px 16px rgba(0,0,0,.5)}
+.con-pendant-hd{display:flex;align-items:center;justify-content:space-between;background:#181b1f;border:1px solid #0d0f12;border-radius:5px;padding:3px 9px}
+.con-pendant-ttl{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.14em;color:#cdd2d8}
+.con-pendant-sn{font-family:var(--mono),monospace;font-size:9px;letter-spacing:.08em;color:#828990}
+.con-pendant-screen{display:flex;gap:9px;align-items:stretch}
+/* gantry movement gauge (recessed) */
+.con-gauge{flex:0 0 auto;width:66px;height:66px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 40%,#0c1118,#05080c);border:1px solid #20242a;box-shadow:inset 0 1px 5px rgba(0,0,0,.65)}
+.con-gauge .con-headsvg{width:60px;height:60px}
+.con-gauge-ring{fill:none;stroke:rgba(255,255,255,.12);stroke-width:2}
+.con-gauge-tick{stroke:rgba(255,255,255,.28);stroke-width:1.5;stroke-linecap:round}
+.con-headarm{stroke:#607690;stroke-width:2;stroke-linecap:round}
+.con-headblk{fill:#3a4d68;stroke:#607690;stroke-width:.5}
+.con-gauge-pt{fill:rgba(45,212,238,.16);stroke:rgba(45,212,238,.5);stroke-width:1}
+.con-gauge.ok .con-headblk{fill:var(--green);stroke:var(--green)}.con-gauge.ok .con-headarm{stroke:var(--green)}
+.con-gauge.off .con-headblk{fill:var(--accent2);stroke:var(--accent2)}.con-gauge.off .con-headarm{stroke:var(--accent2)}
+.con-gauge.moving .con-headblk{fill:var(--gold);stroke:var(--gold)}.con-gauge.moving .con-headarm{stroke:var(--gold)}
+.con-gauge.moving{animation:conHeadPulse 1s ease-in-out infinite}
+@keyframes conHeadPulse{0%,100%{box-shadow:inset 0 1px 5px rgba(0,0,0,.65)}50%{box-shadow:inset 0 1px 5px rgba(0,0,0,.65),0 0 9px 1px rgba(230,194,90,.55)}}
+/* LCD message screen */
+.con-lcd{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:6px 9px;border-radius:7px;font-family:var(--mono),monospace;
+  background:linear-gradient(180deg,#04122e,#06224a);border:1px solid #0a1a3a;box-shadow:inset 0 1px 7px rgba(0,0,0,.5)}
+.con-lcd-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.con-lcd-row .lk{font-size:9px;letter-spacing:.1em;color:#5a86c8}
+.con-lcd-row b{font-size:14px;color:#7fd6ff;font-variant-numeric:tabular-nums}
+.con-lcd-st{font-size:10px;letter-spacing:.03em;color:#7fffc0}
+.con-lcd-st.off{color:#ffb38a}.con-lcd-st.moving{color:#ffe08a}.con-lcd-st.ok{color:#7fffc0}
+.con-lcd-leds{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px}
+.con-lcd-leds .con-lamp{font-size:8px;gap:3px;color:#3f6098}
+.con-lcd-leds .con-lamp i{width:7px;height:7px}
+.con-lcd-leds .con-lamp.on{color:#9fe9ff}
+/* physical buttons */
+.con-pendant-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pbtn{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:46px;padding:8px 6px;border-radius:7px;cursor:pointer;
+  font-family:var(--mono),monospace;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#1a1d22;border:1px solid #20242a;touch-action:none;user-select:none;-webkit-user-select:none;
+  background:linear-gradient(180deg,#f1f3f5,#c7ccd2);box-shadow:0 2px 0 #6f757c,0 3px 5px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.85)}
+.pbtn-lbl{font-size:12px;line-height:1.05;text-align:center}
+.pbtn-key{font-size:8px;font-weight:600;opacity:.55}
+.pbtn:active:not(:disabled){transform:translateY(2px);box-shadow:0 0 0 #6f757c,inset 0 2px 4px rgba(0,0,0,.3)}
+.pbtn:disabled{opacity:.42;cursor:not-allowed;color:#565b62;box-shadow:0 1px 0 #6f757c,inset 0 1px 0 rgba(255,255,255,.4)}
+.pbtn.motion{background:linear-gradient(180deg,#e9ecef,#a9afb6)}
+.pbtn.motion::after{content:'';position:absolute;left:18%;right:18%;top:50%;height:1px;background:rgba(0,0,0,.25)}   /* paddle seam */
+.pbtn.kvbeam{grid-column:auto}
+#conAcqBtn.exposing{box-shadow:0 0 0 2px var(--accent),0 2px 0 #6f757c,0 3px 7px rgba(45,212,238,.5)}
+.con-acqprog{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--accent);box-shadow:0 0 6px 1px rgba(45,212,238,.8)}
 .con-beamfan.firing{opacity:.85}   /* kV beam stays on while you hold the exposure */
-#conApplyBtn{background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#04140d;border-color:transparent}
-#conApplyBtn:disabled{background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2)}
-/* gantry-head indicator (replaces ROTATE): mini head + status, recolours by whether you're on a valid angle */
-.con-headind{display:flex;align-items:center;gap:8px;padding:5px 9px;border:1px solid var(--border2);border-radius:8px;background:rgba(8,11,16,.5)}
-.con-headsvg{width:26px;height:26px;flex:0 0 auto}
-.con-headbore{fill:none;stroke:rgba(255,255,255,.14);stroke-width:2}
-.con-headarm{stroke:#5a6b80;stroke-width:1.5;stroke-linecap:round}
-.con-headblk{fill:#3a4d68;stroke:#5a6b80;stroke-width:.5}
-.con-headlbl{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.04em;color:var(--muted)}
-.con-headind.ok{border-color:rgba(61,220,151,.5)}
-.con-headind.ok .con-headlbl{color:var(--green)}
-.con-headind.ok .con-headblk{fill:var(--green);stroke:var(--green)}
-.con-headind.ok .con-headarm{stroke:var(--green)}
-.con-headind.off .con-headlbl{color:var(--accent2)}
-.con-headind.off .con-headblk{fill:var(--accent2);stroke:var(--accent2)}
-.con-headind.moving .con-headlbl{color:var(--gold)}
-.con-headind.moving .con-headblk{fill:var(--gold);stroke:var(--gold)}
-.con-headind.moving{animation:conHeadPulse 1s ease-in-out infinite}
-@keyframes conHeadPulse{0%,100%{border-color:var(--border2)}50%{border-color:rgba(230,194,90,.6)}}
-/* 2D/2D MATCH — the deliberate image-first -> match commit; full-width, accent2 (image/orange) family */
-#conMatchBtn{background:linear-gradient(135deg,var(--panel2),var(--panel));border-color:var(--border2)}
-#conMatchBtn.ready{background:linear-gradient(135deg,var(--accent2),#d65a2f);color:#1a0d06;border-color:transparent;animation:conMatchPulse 1.4s ease-in-out infinite}
-#conMatchBtn:disabled{opacity:.4;background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2);animation:none}
-@keyframes conMatchPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 0 10px 1px rgba(255,122,69,.55)}}
+#conMatchBtn,#conApplyBtn{grid-column:1/3}
+.pbtn.match.ready{background:linear-gradient(180deg,#ffc49e,#ff7a45);color:#3a1c0a;animation:conMatchPulse 1.4s ease-in-out infinite}
+.pbtn.apply:not(:disabled){background:linear-gradient(180deg,#8fe9f7,#2dd4ee);color:#04222a}
+@keyframes conMatchPulse{0%,100%{box-shadow:0 2px 0 #6f757c,0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 2px 0 #6f757c,0 0 12px 1px rgba(255,122,69,.6)}}
 .con-lamps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 12px}
 .con-lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono),monospace;font-size:10px;letter-spacing:.05em;color:var(--muted)}
 .con-lamp i{width:10px;height:10px;border-radius:50%;background:#1a2230;border:1px solid var(--border2);flex:0 0 auto}
@@ -704,16 +723,12 @@ html:not(.auth-pending) #authGate{display:none}
 .con-lamp.block{color:#ff7a72}
 .con-lamp.block i{background:#ff5147;box-shadow:0 0 8px 1px rgba(255,81,71,.8);border-color:transparent}
 @keyframes conBeamPulse{0%,100%{opacity:1}50%{opacity:.35}}
-.con-beam{grid-column:1/3;padding:14px 12px;font:inherit;font-size:15px;font-weight:700;letter-spacing:.03em;border-radius:9px;cursor:pointer;border:1px solid transparent;background:linear-gradient(135deg,var(--green),#1f9d6b);color:#04140d}
-.con-beam .kbd{font-family:var(--mono),monospace;font-size:9px;font-weight:600;opacity:.85;border:1px solid currentColor;border-radius:4px;padding:1px 4px;margin-left:8px;vertical-align:middle}
-.con-beam:active{transform:translateY(1px)}
-.con-beam:disabled{opacity:.4;cursor:not-allowed;transform:none;background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2)}
 .con-msg{font-size:12px;color:var(--label);min-height:16px;line-height:1.3}
 .con-msg.ok{color:var(--green)}
 .con-msg.bad{color:var(--accent2)}
 /* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
-@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}#conMatchBtn.ready{animation:none}.con-headind.moving{animation:none}}
+@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-couch{flex-wrap:wrap}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
@@ -1183,34 +1198,50 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
       <div class="con-banner" id="conBanner">SETUP &mdash; ACQUIRE BOTH IMAGES</div>
     </div>
-    <div class="con-side">
-      <div class="con-lamps" id="conLamps">
-        <span class="con-lamp" id="lampImg1"><i></i>IMG 1</span>
-        <span class="con-lamp" id="lampImg2"><i></i>IMG 2</span>
-        <span class="con-lamp" id="lampMotion"><i></i>MOTION</span>
-        <span class="con-lamp" id="lampMatch"><i></i>MATCH</span>
-        <span class="con-lamp" id="lampAligned"><i></i>ALIGNED</span>
+    <!-- Treatment-console pendant: brushed-metal box with a gantry gauge + LCD + status LEDs and the physical
+         Motion Enable / kV Beam On (hold) + 2D/2D Match / Apply Shifts buttons, evoking a linac hand pendant. -->
+    <div class="con-side con-pendant">
+      <div class="con-pendant-hd"><span class="con-pendant-ttl">kV IMAGING CONSOLE</span><span class="con-pendant-sn" id="conPlan2">&mdash;</span></div>
+      <div class="con-pendant-screen">
+        <!-- gantry movement indicator (gauge): head points at the live gantry angle; ticks mark the valid stops -->
+        <div class="con-gauge off" id="conHeadInd">
+          <svg viewBox="0 0 46 46" class="con-headsvg" aria-hidden="true">
+            <circle class="con-gauge-ring" cx="23" cy="23" r="19"/>
+            <line class="con-gauge-tick" x1="23" y1="2" x2="23" y2="7"/>
+            <line class="con-gauge-tick" x1="44" y1="23" x2="39" y2="23"/>
+            <line class="con-gauge-tick" x1="23" y1="44" x2="23" y2="39"/>
+            <line class="con-gauge-tick" x1="2" y1="23" x2="7" y2="23"/>
+            <g id="conHeadRig" transform="rotate(90 23 23)">
+              <line class="con-headarm" x1="23" y1="23" x2="23" y2="9"/>
+              <rect class="con-headblk" x="18" y="4" width="10" height="6" rx="1.5"/>
+            </g>
+            <circle class="con-gauge-pt" cx="23" cy="23" r="3.4"/>
+          </svg>
+        </div>
+        <!-- LCD message screen -->
+        <div class="con-lcd">
+          <div class="con-lcd-row"><span class="lk">GANTRY</span><b id="conLcdG">090.0&deg;</b></div>
+          <div class="con-lcd-row"><b class="con-lcd-st" id="conHeadLbl">AT G90 · ACQUIRE</b></div>
+          <div class="con-lcd-leds" id="conLamps">
+            <span class="con-lamp" id="lampImg1"><i></i>IMG1</span>
+            <span class="con-lamp" id="lampImg2"><i></i>IMG2</span>
+            <span class="con-lamp" id="lampMotion"><i></i>MOT</span>
+            <span class="con-lamp" id="lampMatch"><i></i>MTCH</span>
+            <span class="con-lamp" id="lampAligned"><i></i>ALGN</span>
+          </div>
+        </div>
       </div>
-      <!-- gantry-head indicator (replaces ROTATE): tells you whether you're at a valid acquire angle or must
-           hold SPACE to motion-enable. The mini head points at the live gantry angle. -->
-      <div class="con-headind off" id="conHeadInd">
-        <svg viewBox="0 0 26 26" class="con-headsvg" aria-hidden="true">
-          <circle class="con-headbore" cx="13" cy="13" r="10"/>
-          <g id="conHeadRig" transform="rotate(90 13 13)">
-            <line class="con-headarm" x1="13" y1="13" x2="13" y2="4"/>
-            <rect class="con-headblk" x="9" y="2" width="8" height="5" rx="1"/>
-          </g>
-        </svg>
-        <span class="con-headlbl" id="conHeadLbl">OFF ANGLE · HOLD SPACE</span>
-      </div>
-      <div class="con-btns">
-        <button class="con-act" id="conAcqBtn" type="button" disabled
+      <div class="con-pendant-btns">
+        <button class="pbtn motion" id="conMotionBtn" type="button" disabled
+          onpointerdown="CONSOLE.motionEnable(true,true)" onpointerup="CONSOLE.motionEnable(false,true)" onpointerleave="CONSOLE.motionEnable(false,true)"
+          title="HOLD to drive the gantry toward the selected view (deadman) — or hold SPACE"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
+        <button class="pbtn kvbeam" id="conAcqBtn" type="button" disabled
           onpointerdown="CONSOLE.acquireHoldStart()" onpointerup="CONSOLE.acquireHoldCancel()" onpointerleave="CONSOLE.acquireHoldCancel()"
-          title="HOLD to take the kV exposure (~1 s) — hold this button or press and hold Enter">ACQUIRE<span class="kbd">&crarr; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
-        <button class="con-act con-match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match">2D/2D&nbsp;MATCH</button>
-        <button class="con-act" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)">APPLY SHIFTS</button>
+          title="HOLD ~1 s to take the kV exposure — or hold Enter"><span class="pbtn-lbl">kV BEAM ON</span><span class="pbtn-key">&crarr; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
+        <button class="pbtn match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match"><span class="pbtn-lbl">2D / 2D MATCH</span></button>
+        <button class="pbtn apply" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
       </div>
-      <div class="con-msg" id="conMsg">Click an image to select it, hold SPACE to drive the gantry to the kV angle (AP = G90/270, Lateral = G0/180), then hold Enter to Acquire. Retake freely; press 2D/2D MATCH when ready.</div>
+      <div class="con-msg" id="conMsg">Click an image to select it. HOLD Motion Enable (or SPACE) to drive the gantry to the kV angle, then HOLD kV Beam On (or Enter ~1 s) to expose. AP = G90/270, Lateral = G0/180.</div>
     </div>
   </div>
   </div><!-- /.match-col -->
@@ -2618,6 +2649,7 @@ const CONSOLE=(()=>{
     const s=el('consoleStrip'); if(s)s.classList.remove('hidden');
     document.body.classList.add('console-mode');
     if(el('conPlan'))el('conPlan').textContent=plan.plan;
+    if(el('conPlan2'))el('conPlan2').textContent=plan.plan;
     updateBadges();
     setPhase('ACQUIRE');
     msg('Acquire both setup images: click an image (or it is pre-selected), hold SPACE to drive the gantry to the right angle, then hold Enter to Acquire.','');
@@ -2649,6 +2681,8 @@ const CONSOLE=(()=>{
   }
   function renderGantry(){
     if(el('conGantry'))el('conGantry').textContent=gantry.toFixed(1)+'°';
+    const g3=(gantry<10?'00':gantry<100?'0':'')+gantry.toFixed(1);   // zero-padded for the LCD (e.g. 090.0)
+    if(el('conLcdG'))el('conLcdG').textContent=g3+'°';
     const t=el('conGantryTgt'); if(!t)return;
     const at=viewAtGantry();
     if(at){ t.textContent='at '+at.label+' — hold Enter to Acquire'; }
@@ -2672,9 +2706,9 @@ const CONSOLE=(()=>{
     const at=!!viewAtGantry();
     const needMove = motTarget!=null && Math.abs(angDiff(motTarget,gantry))>=0.5;   // selected a view we're not parked at
     const state = motOn?'moving' : needMove?'off' : at?'ok' : 'off';
-    const wrap=el('conHeadInd'); if(wrap)wrap.className='con-headind '+state;
-    const h=el('conHeadRig'); if(h&&h.setAttribute)h.setAttribute('transform','rotate('+gantry+' 13 13)');
-    const lbl=el('conHeadLbl');
+    const wrap=el('conHeadInd'); if(wrap)wrap.className='con-gauge '+state;
+    const h=el('conHeadRig'); if(h&&h.setAttribute)h.setAttribute('transform','rotate('+gantry+' 23 23)');
+    const lbl=el('conHeadLbl'); if(lbl)lbl.className='con-lcd-st '+state;
     if(lbl)lbl.textContent = motOn?('MOVING · G'+Math.round(gantry))
       : needMove?('HOLD SPACE → G'+Math.round(motTarget))
       : at?('AT G'+Math.round(gantry)+' · ACQUIRE')
@@ -2705,8 +2739,9 @@ const CONSOLE=(()=>{
     :                    'COUCH CORRECTED — WITHIN TOLERANCE · RESETTING';
   }
   function renderButtons(){
-    const acq=el('conAcqBtn'), mt=el('conMatchBtn'), ap=el('conApplyBtn');
+    const acq=el('conAcqBtn'), mt=el('conMatchBtn'), ap=el('conApplyBtn'), mo=el('conMotionBtn');
     const inAcq=active&&phase==='ACQUIRE', ready=bothAcquired();
+    if(mo)mo.disabled=!inAcq;                        // Motion Enable: hold to drive the gantry (ACQUIRE phase)
     if(acq)acq.disabled=!canAcquire();
     if(mt){ mt.disabled=!(inAcq&&ready); mt.classList.toggle('ready', inAcq&&ready);
             mt.style.display=(active&&(phase==='ACQUIRE'||phase==='MATCH'))?'':'none'; }
