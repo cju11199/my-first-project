@@ -641,7 +641,7 @@ html:not(.auth-pending) #authGate{display:none}
 .con-couch .con-cell b{font-size:17px;color:var(--text);font-variant-numeric:tabular-nums;transition:color .4s ease}
 .con-couch .con-cell .u{font-size:9px;color:var(--muted)}
 .con-couch .dchip{grid-column:1/3;font-size:9px;color:var(--green);font-style:normal;min-height:11px;font-variant-numeric:tabular-nums}
-.console-strip.ph-applied .con-couch .con-cell b,.console-strip.ph-treat .con-couch .con-cell b,.console-strip.ph-done .con-couch .con-cell b{color:var(--green)}
+.console-strip.ph-aligned .con-couch .con-cell b{color:var(--green)}
 .con-couch .con-cell.flash b{animation:conCouchFlash 1s ease}
 @keyframes conCouchFlash{0%{color:var(--accent);text-shadow:0 0 9px rgba(45,212,238,.7)}100%{text-shadow:none}}
 .con-row2{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
@@ -649,27 +649,42 @@ html:not(.auth-pending) #authGate{display:none}
 .con-gantry .cl{font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .con-gantry b{font-size:16px;color:var(--gold);font-variant-numeric:tabular-nums}
 .con-gtgt{font-size:10px;color:var(--accent2);letter-spacing:.04em}
-.console-strip.ph-match .con-gtgt,.console-strip.ph-applied .con-gtgt,.console-strip.ph-treat .con-gtgt,.console-strip.ph-done .con-gtgt{color:var(--muted)}
+.console-strip.ph-match .con-gtgt,.console-strip.ph-aligned .con-gtgt{color:var(--muted)}
 .con-pending{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
 .con-pending .cl{font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
 .con-pending .ps{font-family:var(--mono),monospace;font-size:11px;color:var(--label);font-variant-numeric:tabular-nums}
-.console-strip.ph-applied .con-pending .ps,.console-strip.ph-treat .con-pending .ps,.console-strip.ph-done .con-pending .ps{color:var(--green)}
+.console-strip.ph-aligned .con-pending .ps{color:var(--green)}
 .con-banner{font-size:11px;letter-spacing:.08em;color:var(--label);background:rgba(8,11,16,.6);border:1px solid var(--border2);border-radius:8px;padding:5px 9px}
 .console-strip.ph-acquire .con-banner{color:var(--accent2)}
 .console-strip.ph-match   .con-banner{color:var(--accent)}
-.console-strip.ph-applied .con-banner{color:var(--green)}
-.console-strip.ph-treat   .con-banner{color:var(--gold)}
-.console-strip.ph-done    .con-banner{color:var(--green)}
-.con-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.console-strip.ph-aligned .con-banner{color:var(--green)}
+.con-btns{display:grid;grid-template-columns:1fr;gap:7px}
 .con-act{padding:9px 8px;font:inherit;font-family:var(--mono),monospace;font-size:12px;font-weight:700;letter-spacing:.04em;border-radius:8px;cursor:pointer;border:1px solid var(--border2);background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--text)}
 .con-act .kbd{font-family:var(--mono),monospace;font-size:8px;opacity:.8;border:1px solid currentColor;border-radius:3px;padding:0 3px;margin-left:6px;vertical-align:middle}
 .con-act:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .con-act:active:not(:disabled){transform:translateY(1px)}
 .con-act:disabled{opacity:.4;cursor:not-allowed;transform:none;color:var(--muted)}
-#conApplyBtn{grid-column:1/3;background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#04140d;border-color:transparent}
+#conApplyBtn{background:linear-gradient(135deg,var(--accent),#1ba9c4);color:#04140d;border-color:transparent}
 #conApplyBtn:disabled{background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2)}
+/* gantry-head indicator (replaces ROTATE): mini head + status, recolours by whether you're on a valid angle */
+.con-headind{display:flex;align-items:center;gap:8px;padding:5px 9px;border:1px solid var(--border2);border-radius:8px;background:rgba(8,11,16,.5)}
+.con-headsvg{width:26px;height:26px;flex:0 0 auto}
+.con-headbore{fill:none;stroke:rgba(255,255,255,.14);stroke-width:2}
+.con-headarm{stroke:#5a6b80;stroke-width:1.5;stroke-linecap:round}
+.con-headblk{fill:#3a4d68;stroke:#5a6b80;stroke-width:.5}
+.con-headlbl{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.04em;color:var(--muted)}
+.con-headind.ok{border-color:rgba(61,220,151,.5)}
+.con-headind.ok .con-headlbl{color:var(--green)}
+.con-headind.ok .con-headblk{fill:var(--green);stroke:var(--green)}
+.con-headind.ok .con-headarm{stroke:var(--green)}
+.con-headind.off .con-headlbl{color:var(--accent2)}
+.con-headind.off .con-headblk{fill:var(--accent2);stroke:var(--accent2)}
+.con-headind.moving .con-headlbl{color:var(--gold)}
+.con-headind.moving .con-headblk{fill:var(--gold);stroke:var(--gold)}
+.con-headind.moving{animation:conHeadPulse 1s ease-in-out infinite}
+@keyframes conHeadPulse{0%,100%{border-color:var(--border2)}50%{border-color:rgba(230,194,90,.6)}}
 /* 2D/2D MATCH — the deliberate image-first -> match commit; full-width, accent2 (image/orange) family */
-#conMatchBtn{grid-column:1/3;background:linear-gradient(135deg,var(--panel2),var(--panel));border-color:var(--border2)}
+#conMatchBtn{background:linear-gradient(135deg,var(--panel2),var(--panel));border-color:var(--border2)}
 #conMatchBtn.ready{background:linear-gradient(135deg,var(--accent2),#d65a2f);color:#1a0d06;border-color:transparent;animation:conMatchPulse 1.4s ease-in-out infinite}
 #conMatchBtn:disabled{opacity:.4;background:linear-gradient(135deg,var(--panel2),var(--panel));color:var(--muted);border-color:var(--border2);animation:none}
 @keyframes conMatchPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 0 10px 1px rgba(255,122,69,.55)}}
@@ -694,7 +709,7 @@ html:not(.auth-pending) #authGate{display:none}
 .con-msg.bad{color:var(--accent2)}
 /* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
-@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}#conMatchBtn.ready{animation:none}}
+@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}#conMatchBtn.ready{animation:none}.con-headind.moving{animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-couch{flex-wrap:wrap}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
@@ -1171,16 +1186,25 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <span class="con-lamp" id="lampMotion"><i></i>MOTION</span>
         <span class="con-lamp" id="lampMatch"><i></i>MATCH</span>
         <span class="con-lamp" id="lampAligned"><i></i>ALIGNED</span>
-        <span class="con-lamp" id="lampBeam"><i></i>BEAM</span>
+      </div>
+      <!-- gantry-head indicator (replaces ROTATE): tells you whether you're at a valid acquire angle or must
+           hold SPACE to motion-enable. The mini head points at the live gantry angle. -->
+      <div class="con-headind off" id="conHeadInd">
+        <svg viewBox="0 0 26 26" class="con-headsvg" aria-hidden="true">
+          <circle class="con-headbore" cx="13" cy="13" r="10"/>
+          <g id="conHeadRig" transform="rotate(90 13 13)">
+            <line class="con-headarm" x1="13" y1="13" x2="13" y2="4"/>
+            <rect class="con-headblk" x="9" y="2" width="8" height="5" rx="1"/>
+          </g>
+        </svg>
+        <span class="con-headlbl" id="conHeadLbl">OFF ANGLE · HOLD SPACE</span>
       </div>
       <div class="con-btns">
-        <button class="con-act" id="conAcqBtn"    type="button" onclick="CONSOLE.acquire()"    disabled title="Acquire the kV image at the current gantry angle — retake anytime (A)">ACQUIRE<span class="kbd">A</span></button>
-        <button class="con-act" id="conRotateBtn" type="button" onclick="CONSOLE.rotate()"     disabled title="Rotate the gantry to a view — hold SPACE, or click that image pane (motion enable)">ROTATE<span class="kbd">␣</span></button>
+        <button class="con-act" id="conAcqBtn" type="button" onclick="CONSOLE.acquire()" disabled title="Acquire the kV image at the current gantry angle — retake anytime (A)">ACQUIRE<span class="kbd">A</span></button>
         <button class="con-act con-match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match">2D/2D&nbsp;MATCH</button>
-        <button class="con-act" id="conApplyBtn"  type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction">APPLY SHIFTS</button>
-        <button class="con-beam" id="conBeamBtn"  type="button" onclick="CONSOLE.beam()"        disabled title="Deliver once aligned — Enter or B"><span id="conBeamLbl">BEAM ON</span><span class="kbd">&crarr;</span></button>
+        <button class="con-act" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)">APPLY SHIFTS</button>
       </div>
-      <div class="con-msg" id="conMsg">Acquire both setup images: click a pane (or hold SPACE) to drive the gantry to a view, then Acquire (A). Retake freely; press 2D/2D MATCH when ready.</div>
+      <div class="con-msg" id="conMsg">Click an image to select it, hold SPACE to drive the gantry to the kV angle (AP = G90/270, Lateral = G0/180), then Acquire (A). Retake freely; press 2D/2D MATCH when ready.</div>
     </div>
   </div>
   </div><!-- /.match-col -->
@@ -2510,29 +2534,24 @@ window.DIBH=DIBH;
    within tolerance = aligned/treat, otherwise re-acquire with the residual until in
    tolerance. See the per-case data + module just below.
    ============================================================================ */
-// Per-case treatment plans (clinically-plausible, IEC scale, symmetric jaws). Keyed by 2D case key.
-// breastDIBH + prostate are intentionally ABSENT -> CONSOLE_PLANS[key] is the visibility test.
 // Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
 // (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
 // couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
-//         Fictional but realistic in magnitude. views = the orthogonal acquisition pair the trainee shoots:
-//         slot ('ap'|'lat') drives hidesPortal + the awaiting badge; g = gantry angle to park at; label = badge text.
+// views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
+// angles + hidesPortal + the awaiting badge. Because the OBI kV source sits 90° off the gantry head, an AP kV
+// image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
+const VIEW_ANGLES={ap:[90,270], lat:[0,180]};
 const CONSOLE_PLANS={
   brain:{plan:'BRAIN_SRT', couch:{vrt:-1.42, lng: 6.18, lat: 0.35, rtn:0}, views:[
-    {slot:'ap',  g:0,   label:'kV AP · G0'},
-    {slot:'lat', g:270, label:'kV L LAT · G270'} ]},
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   pelvis:{plan:'PELVIS_IMRT', couch:{vrt: 2.05, lng:-4.30, lat:-0.60, rtn:0}, views:[
-    {slot:'ap',  g:0,   label:'kV AP · G0'},
-    {slot:'lat', g:90,  label:'kV R LAT · G90'} ]},
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   thorax:{plan:'THORAX_3DC', couch:{vrt: 0.88, lng: 1.55, lat: 0.20, rtn:0}, views:[
-    {slot:'ap',  g:0,   label:'kV AP · G0'},
-    {slot:'lat', g:90,  label:'kV R LAT · G90'} ]},
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   femur:{plan:'FEMUR_3DC', couch:{vrt:-0.65, lng:12.40, lat: 3.10, rtn:0}, views:[
-    {slot:'ap',  g:0,   label:'kV AP · G0'},
-    {slot:'lat', g:90,  label:'kV LAT · G90'} ]},
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   breast:{plan:'BREAST_L_MONO', couch:{vrt: 1.20, lng:-2.75, lat:-1.05, rtn:0}, views:[
-    {slot:'ap',  g:0,   label:'kV SCV · G0'},
-    {slot:'lat', g:305, label:'kV Med Tan · G305'} ]}
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]}
 };
 /* IGRT SETUP console: starting couch coords -> ACQUIRE image 1 (gantry parked at its angle) -> ROTATE gantry
    (SPACE = motion-enable deadman) -> ACQUIRE image 2 -> [match-drag + Apply Shifts BLOCKED until BOTH acquired]
@@ -2545,29 +2564,35 @@ const CONSOLE=(()=>{
   const el=id=>document.getElementById(id);
   const ROT_SPEED=9;    // gantry deg/sec. Real Varian/IEC max is 1 RPM = 6°/s; 9 = 1.5× clinical so the
                         // longest transit (≤90°) is ~10 s — clearly mechanical (not instant), retake-friendly.
-  // Hard cable-wrap limit: a real linac gantry cannot transit through this point, so it can never do a full
-  // 360°. lin() maps an angle onto a continuous (LIMIT, LIMIT+360] line whose seam is the forbidden point, so
-  // motion takes the shortest path that does NOT cross the limit (the long way round when the short way would).
+  // Hard cable-wrap limit: a real linac gantry cannot transit through GANTRY_LIMIT (180°), so it can never do a
+  // full 360°. Motion takes the shortest arc that does NOT pass strictly through the limit (the long way round
+  // otherwise); the limit angle itself is a reachable endpoint (you can stop at it, you just can't drive through).
   const GANTRY_LIMIT=180;
-  const lin=a=>{a=((a%360)+360)%360; return a>GANTRY_LIMIT ? a : a+360;};
+  const angDiff=(a,b)=>((a-b)%360+540)%360-180;                 // shortest signed a-b in (-180,180]
+  function crossesLimit(C,d){ const lo=Math.min(C,C+d), hi=Math.max(C,C+d);   // does C..C+d pass THROUGH the limit?
+    for(let k=-2;k<=2;k++){ const L=GANTRY_LIMIT+360*k; if(L>lo+1e-6 && L<hi-1e-6) return true; } return false; }
+  const gantryDelta=(C,T)=>{ let d=angDiff(T,C); if(crossesLimit(C,d)) d=d>0?d-360:d+360; return d; };   // shortest legal arc
   let active=false, caseKey=null, plan=null, views=[],
       couch={vrt:0,lng:0,lat:0,rtn:0}, couch0={vrt:0,lng:0,lat:0,rtn:0},
-      gantry=0, acquired=[false,false], applied=null, phase='ACQUIRE',
-      beamProg=0, beamRaf=0, motOn=false, motDead=false, motRaf=0, motTs=0, motTarget=null, fireTmr=0;
+      gantry=90, acquired=[false,false], applied=null, phase='ACQUIRE',
+      motOn=false, motDead=false, motRaf=0, motTs=0, motTarget=null, fireTmr=0, resetTmr=0;
 
   const bothAcquired=()=>acquired[0]&&acquired[1];
-  const angDiff=(a,b)=>((a-b)%360+540)%360-180;                 // shortest signed a-b in (-180,180]
-  const viewAtGantry=()=>views.find(v=>Math.abs(angDiff(v.g,gantry))<0.5)||null;
+  const slotAngles=slot=>VIEW_ANGLES[slot]||[];                 // the valid gantry angles to acquire that view
+  // the view whose valid-angle set contains the current gantry (±0.5°): AP at 90/270, lateral at 0/180
+  const viewAtGantry=()=>views.find(v=>slotAngles(v.slot).some(a=>Math.abs(angDiff(a,gantry))<0.5))||null;
   const nextUnacquired=()=>views.find((v,i)=>!acquired[i])||null;
   // where the gantry should drive to: the next un-acquired view, else (both taken) the one we're NOT parked at (retake)
   const rotateTarget=()=>{ const nx=nextUnacquired(); if(nx)return nx; const here=viewAtGantry(); return views.find(v=>v!==here)||null; };
+  // nearest valid angle of a view, reachable without crossing the limit (smallest legal arc)
+  const nearestAngle=v=>{ if(!v)return null; let best=null,bd=1e9;
+    slotAngles(v.slot).forEach(a=>{const d=Math.abs(gantryDelta(gantry,a)); if(d<bd){bd=d;best=a;}}); return best; };
   const canAcquire=()=>!!(active&&phase==='ACQUIRE'&&viewAtGantry());   // retakes: any parked view, regardless of prior acquire
   const isActive=()=>active;
 
   // ---- gating hooks consumed by the core (mousedown / drawPor / checkMatch) ----
-  // Block match-drag + checkMatch in EVERY phase except MATCH and the post-match delivery phases, i.e. until the
-  // trainee deliberately presses 2D/2D MATCH (which flips phase ACQUIRE -> MATCH).
-  const MATCHPHASES={MATCH:1,APPLIED:1,TREAT:1,DONE:1};
+  // Block match-drag + checkMatch in EVERY phase except MATCH/ALIGNED, i.e. until the trainee presses 2D/2D MATCH.
+  const MATCHPHASES={MATCH:1,ALIGNED:1};
   function acquiring(){ return active && !MATCHPHASES[phase]; }
   function matchable(){ return !active || !!MATCHPHASES[phase]; }
   function hidesPortal(key){ if(!active)return false;
@@ -2579,19 +2604,19 @@ const CONSOLE=(()=>{
        document.body.classList.contains('fid-mode')||!CONSOLE_PLANS[key]){ exit(); return; }
     caseKey=key; plan=CONSOLE_PLANS[key]; views=plan.views.slice();
     couch={...plan.couch}; couch0={...plan.couch};
-    gantry=views[0].g; acquired=[false,false]; applied=null; phase='ACQUIRE';
-    stopBeam(); stopMotion(); beamProg=0;
+    gantry=slotAngles(views[0].slot)[0]; acquired=[false,false]; applied=null; phase='ACQUIRE'; motTarget=null;
+    stopMotion(); clearTimeout(resetTmr);
     active=true;
     const s=el('consoleStrip'); if(s)s.classList.remove('hidden');
     document.body.classList.add('console-mode');
     if(el('conPlan'))el('conPlan').textContent=plan.plan;
     updateBadges();
     setPhase('ACQUIRE');
-    msg('Acquire both setup images: hold SPACE to drive the gantry to a view, then Acquire (A). Repeat for the other.','');
+    msg('Acquire both setup images: click an image (or it is pre-selected), hold SPACE to drive the gantry to the right angle, then Acquire (A).','');
     if(typeof render==='function')render();   // hide both portals immediately
   }
   function exit(){
-    stopBeam(); stopMotion(); active=false; phase='ACQUIRE';
+    stopMotion(); clearTimeout(resetTmr); active=false; phase='ACQUIRE';
     const s=el('consoleStrip'); if(s)s.classList.add('hidden');
     document.body.classList.remove('console-mode');
     ['apArea','latArea'].forEach(id=>{const a=el(id);if(a)a.classList.remove('awaiting');});
@@ -2616,17 +2641,36 @@ const CONSOLE=(()=>{
   }
   function renderGantry(){
     if(el('conGantry'))el('conGantry').textContent=gantry.toFixed(1)+'°';
-    const nx=nextUnacquired(), t=el('conGantryTgt');
-    if(t)t.textContent = bothAcquired()?'both views acquired' : nx?('hold SPACE → G'+nx.g):'—';
+    const t=el('conGantryTgt'); if(!t)return;
+    const at=viewAtGantry();
+    if(at){ t.textContent='at '+at.label+' — Acquire (A)'; }
+    else { const tgt=motTarget!=null?motTarget:nearestAngle(rotateTarget());
+      t.textContent='hold SPACE → G'+(tgt==null?'—':Math.round(tgt)); }
   }
-  // SVG linac: rotate the rig group to the live gantry angle; mark the two view angles; light the active lamp.
+  // SVG linac: rotate the rig group to the live gantry angle; mark each view's primary acquire angle; light MOTION.
   function renderViz(){
     const rig=el('conRig'); if(rig&&rig.setAttribute)rig.setAttribute('transform','rotate('+gantry+' 64 58)');
     const at=viewAtGantry();
-    views.forEach((v,i)=>{const m=el('conMark'+i);
-      if(m&&m.setAttribute){ m.setAttribute('transform','rotate('+v.g+' 64 58)');
-        m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':''))); }});
+    views.forEach((v,i)=>{const m=el('conMark'+i); if(!m||!m.setAttribute)return;
+      const a=slotAngles(v.slot)[0];                          // primary acquire angle for this view (90=AP, 0=LAT)
+      m.setAttribute('transform','rotate('+a+' 64 58)');
+      m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':'')));});
     const mv=el('lampMotion'); if(mv)mv.className='con-lamp'+(motOn?' warn':'');
+    renderGantryHead();
+  }
+  // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
+  // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
+  function renderGantryHead(){
+    const at=!!viewAtGantry();
+    const needMove = motTarget!=null && Math.abs(angDiff(motTarget,gantry))>=0.5;   // selected a view we're not parked at
+    const state = motOn?'moving' : needMove?'off' : at?'ok' : 'off';
+    const wrap=el('conHeadInd'); if(wrap)wrap.className='con-headind '+state;
+    const h=el('conHeadRig'); if(h&&h.setAttribute)h.setAttribute('transform','rotate('+gantry+' 13 13)');
+    const lbl=el('conHeadLbl');
+    if(lbl)lbl.textContent = motOn?('MOVING · G'+Math.round(gantry))
+      : needMove?('HOLD SPACE → G'+Math.round(motTarget))
+      : at?('AT G'+Math.round(gantry)+' · ACQUIRE')
+      : 'OFF ANGLE · HOLD SPACE';
   }
   function renderPending(){
     const set=(id,lbl,v,unit,dp)=>{const e=el(id);if(e)e.textContent=applied?(lbl+' '+(v>=0?'+':'')+v.toFixed(dp)+unit):(lbl+' —');};
@@ -2645,37 +2689,30 @@ const CONSOLE=(()=>{
     const sl=el('conSeqLbl'); if(sl)sl.textContent =
       phase==='ACQUIRE'? (ready?'SETUP · READY TO MATCH':'SETUP · ACQUIRE BOTH VIEWS')
     : phase==='MATCH'?   'SETUP · MATCH BOTH VIEWS'
-    : phase==='APPLIED'? 'SETUP · ALIGNED'
-    : phase==='TREAT'?   'TREATING'
-    :                    'SETUP · DELIVERED';
+    :                    'SETUP · ALIGNED';
     const b=el('conBanner'); if(!b)return;
     b.textContent =
-      phase==='ACQUIRE'? (ready?'BOTH IMAGES ACQUIRED — PRESS 2D/2D MATCH TO ALIGN (OR RETAKE)':'SETUP — ACQUIRE BOTH IMAGES')
+      phase==='ACQUIRE'? (ready?'BOTH IMAGES ACQUIRED — PRESS 2D/2D MATCH (OR RETAKE)':'SETUP — ACQUIRE BOTH IMAGES')
     : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN APPLY SHIFTS'
-    : phase==='APPLIED'? 'COUCH CORRECTED — SETUP ALIGNED · BEAM ON (ENTER) TO TREAT'
-    : phase==='TREAT'?   'BEAM ON — DELIVERING'
-    :                    'TREATMENT DELIVERED';
+    :                    'COUCH CORRECTED — WITHIN TOLERANCE · RESETTING';
   }
   function renderButtons(){
-    const acq=el('conAcqBtn'), rot=el('conRotateBtn'), mt=el('conMatchBtn'), ap=el('conApplyBtn'), bm=el('conBeamBtn');
+    const acq=el('conAcqBtn'), mt=el('conMatchBtn'), ap=el('conApplyBtn');
     const inAcq=active&&phase==='ACQUIRE', ready=bothAcquired();
     if(acq)acq.disabled=!canAcquire();
-    if(rot){const t=rotateTarget(); rot.disabled=!(inAcq&&t&&Math.abs(angDiff(t.g,gantry))>=0.5);}   // drives to the other view (retake)
     if(mt){ mt.disabled=!(inAcq&&ready); mt.classList.toggle('ready', inAcq&&ready);
             mt.style.display=(active&&(phase==='ACQUIRE'||phase==='MATCH'))?'':'none'; }
     if(ap)ap.disabled=!(phase==='MATCH');
-    if(bm){bm.disabled=!(phase==='APPLIED'); if(el('conBeamLbl'))el('conBeamLbl').textContent=(phase==='TREAT'||phase==='DONE')?'DELIVERED':'BEAM ON';}
     // mirror the action label onto the sidebar Check Match button while the console drives the case
     const cm=el('checkMatchBtn');
-    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):phase==='APPLIED'?'Aligned':'Delivered') : 'Check Match';
+    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
   }
   function renderLamps(){
     const set=(id,c)=>{const e=el(id);if(e)e.className='con-lamp'+(c?' '+c:'');};
     set('lampImg1', acquired[0]?'on':'block');
     set('lampImg2', acquired[1]?'on':'block');
-    set('lampMatch', (phase==='APPLIED'||phase==='TREAT'||phase==='DONE')?'on':'');
-    set('lampAligned', (phase==='APPLIED'||phase==='TREAT'||phase==='DONE')?'on':'');
-    set('lampBeam', (phase==='TREAT')?'beam':'');
+    set('lampMatch', (phase==='MATCH'||phase==='ALIGNED')?'on':'');
+    set('lampAligned', (phase==='ALIGNED')?'on':'');
   }
   function updateBadges(){
     const ap=el('apArea'), lat=el('latArea');
@@ -2688,40 +2725,40 @@ const CONSOLE=(()=>{
   }
   function msg(t,c){const m=el('conMsg');if(m){m.textContent=t;m.className='con-msg'+(c?' '+c:'');}}
 
-  // ---- gantry motion: one motTarget angle shared by SPACE (deadman), ROTATE button, and click-an-image ----
-  function setTarget(g, deadman){          // record the destination + start the rAF drive (snaps + stops if already there)
-    if(!active||phase!=='ACQUIRE'||g==null){ stopMotion(); return; }
-    if(Math.abs(angDiff(g,gantry))<0.5){ gantry=g; stopMotion(); renderAll(); return; }
-    motTarget=g; motOn=true; motDead=!!deadman; startMotion(); renderViz();
-  }
-  function rotateToView(slot){             // CLICK path: drive to a specific view's angle (auto-drive, no hold)
+  // ---- gantry motion: CLICK an image selects the destination (motTarget); HOLD SPACE drives the gantry there ----
+  function selectView(slot){               // CLICK path: pick a view's nearest valid angle as the destination (NO move)
     if(!active||phase!=='ACQUIRE')return;
     const v=views.find(x=>x.slot===slot); if(!v)return;
-    if(Math.abs(angDiff(v.g,gantry))<0.5){ msg('Gantry already at '+v.label+' — Acquire (A).',''); return; }
-    setTarget(v.g,false);
+    const a=nearestAngle(v); if(a==null)return;
+    motTarget=a;
+    if(Math.abs(angDiff(a,gantry))<0.5) msg('Gantry already at '+v.label+' (G'+Math.round(a)+') — Acquire (A).','');
+    else msg('Selected '+v.label+' (G'+Math.round(a)+'). Hold SPACE to drive the gantry there.','');
+    renderGantry(); renderViz(); renderButtons();
   }
-  function motionEnable(on, deadman){      // SPACE/ROTATE entry: drive toward the next view to shoot
-    if(!active||phase!=='ACQUIRE'){ stopMotion(); return; }
-    if(on){ const t=rotateTarget(); setTarget(t?t.g:null, deadman); }
-    else { if(deadman&&!motDead)return; stopMotion(); }   // deadman release pauses where it is; ignores auto-drives
+  function motionEnable(on, deadman){      // SPACE deadman: drive toward the selected motTarget while held
+    if(!active||phase!=='ACQUIRE'){ pauseMotion(); return; }
+    if(on){
+      if(motTarget==null){ const t=rotateTarget(); motTarget=t?nearestAngle(t):null; }   // default: next view to shoot
+      if(motTarget==null||Math.abs(angDiff(motTarget,gantry))<0.5){ renderViz(); return; }   // nothing to drive to
+      motOn=true; motDead=!!deadman; startMotion();
+    } else { if(deadman&&!motDead)return; pauseMotion(); }   // deadman release pauses where it is (motTarget kept)
     renderViz();
   }
   function motionStep(dt){
-    if(motTarget==null){ stopMotion(); return; }
-    const cur=lin(gantry), tgt=lin(motTarget);
-    let d=tgt-cur;                                   // linear distance: never crosses the hard limit (no full 360)
+    if(motTarget==null){ pauseMotion(); return; }
+    const d=gantryDelta(gantry,motTarget);          // shortest legal arc (never transits the 180° limit, no full 360)
     const step=Math.sign(d)*Math.min(Math.abs(d),ROT_SPEED*dt);
-    gantry=(((cur+step)%360)+360)%360;
-    if(Math.abs(lin(motTarget)-lin(gantry))<0.4){ gantry=motTarget; stopMotion();
-      const at=viewAtGantry(); if(at)msg('Gantry at '+gantry.toFixed(0)+'° — acquire '+at.label+' (A).',''); }
+    gantry=(((gantry+step)%360)+360)%360;
+    if(Math.abs(gantryDelta(gantry,motTarget))<0.4){ gantry=motTarget; pauseMotion(); motTarget=null;
+      const at=viewAtGantry(); if(at)msg('Gantry at G'+gantry.toFixed(0)+' — acquire '+at.label+' (A).',''); }
     renderGantry(); renderViz(); renderButtons(); renderPips();
   }
   function motFrame(ts){ if(!motOn)return; if(!motTs)motTs=ts;
     let dt=(ts-motTs)/1000; motTs=ts; if(dt>0.1)dt=0.1; motionStep(dt);
     if(motOn)motRaf=requestAnimationFrame(motFrame); }
   function startMotion(){ motTs=0; cancelAnimationFrame(motRaf); motRaf=requestAnimationFrame(motFrame); }
-  function stopMotion(){ motOn=false; motDead=false; motTarget=null; cancelAnimationFrame(motRaf); motRaf=0; const mv=el('lampMotion'); if(mv)mv.className='con-lamp'; }
-  function rotate(){ motionEnable(true,false); }   // ROTATE button: auto-drive to the next/other view (no hold)
+  function pauseMotion(){ motOn=false; motDead=false; cancelAnimationFrame(motRaf); motRaf=0; const mv=el('lampMotion'); if(mv)mv.className='con-lamp'; }   // keep motTarget
+  function stopMotion(){ pauseMotion(); motTarget=null; }   // full stop (refresh/exit/commit)
 
   // ---- acquire (with a kV beam-fan flash) ----
   function fireBeam(kind){   // kind: 'kv' (acquire) | 'mv' (treat). Flash the fan; browser-only cosmetic.
@@ -2771,10 +2808,11 @@ const CONSOLE=(()=>{
     if(typeof clearErrors==='function')clearErrors();
     if(typeof render==='function')render();
     if(within){
-      setPhase('APPLIED'); renderCouch(true);
-      msg('Couch moved ('+fmtDelta(applied)+') — setup ALIGNED within tolerance. Beam On / Enter to treat.','ok');
+      setPhase('ALIGNED'); renderCouch(true);
+      msg('Couch moved ('+fmtDelta(applied)+') — setup ALIGNED within tolerance. Resetting…','ok');
+      scheduleReset();                                    // success -> auto-reset to a fresh rep
     } else {
-      acquired=[false,false]; gantry=views[0].g; updateBadges();
+      acquired=[false,false]; gantry=slotAngles(views[0].slot)[0]; motTarget=null; updateBadges();
       if(typeof render==='function')render();
       setPhase('ACQUIRE'); renderCouch(true);
       msg('Shift applied ('+fmtDelta(applied)+') — residual exceeds tolerance. Re-acquire both views and correct again.','bad');
@@ -2783,35 +2821,33 @@ const CONSOLE=(()=>{
   function fmtDelta(a){const f=(n,d)=>(n>=0?'+':'')+n.toFixed(d);
     return 'Lat '+f(a.lat,2)+' · Lng '+f(a.lng,2)+' · Vrt '+f(a.vrt,2)+' · Rtn '+f(a.rtn,1)+'°';}
 
-  // ---- New Offset: re-image at the SAME couch position (a fresh setup error) ----
+  // ---- New Offset / re-image: fresh setup error, re-acquire from scratch (couch unchanged here) ----
   function reinterlock(){
     if(!active)return;
-    acquired=[false,false]; applied=null; gantry=views[0].g; stopBeam(); stopMotion(); beamProg=0;
+    acquired=[false,false]; applied=null; gantry=slotAngles(views[0].slot)[0]; motTarget=null; stopMotion(); clearTimeout(resetTmr);
     updateBadges(); if(typeof render==='function')render();
-    setPhase('ACQUIRE'); msg('New offset — re-acquire both images, match, and apply.','');
+    setPhase('ACQUIRE'); msg('New offset — re-acquire both images, then match.','');
   }
 
-  // ---- deliver (post-apply; ENTER or B; no re-imaging) ----
-  function beam(){
-    if(!active||phase!=='APPLIED')return;
-    fireBeam('mv'); setPhase('TREAT'); startBeam();
+  // ---- auto-reset after a within-tolerance match: brief ALIGNED, then a fresh rep (new offset, couch back to start) ----
+  function scheduleReset(){ clearTimeout(resetTmr);
+    if(typeof setTimeout==='function')resetTmr=setTimeout(resetExercise,1800); }
+  function resetExercise(){
+    if(!active)return;
+    couch={...couch0};                                    // couch returns to the plan start for the next rep
+    if(typeof randomizeShift==='function') randomizeShift();   // -> applyNewOffset2d -> reinterlock() (resets acquire state)
+    else reinterlock();
+    renderCouch(false);
+    msg('Setup aligned & reset — new offset loaded. Acquire both images.','');
   }
-  function deliverStep(dt){ beamProg=Math.min(1,beamProg+dt/2.0);   // ~2 s delivery
-    if(beamProg>=1){ stopBeam(); setPhase('DONE'); msg('Field(s) delivered — treatment complete.','ok'); } }
-  function beamFrame(ts){ if(phase!=='TREAT')return; if(!beamFrame._t)beamFrame._t=ts;
-    let dt=(ts-beamFrame._t)/1000; beamFrame._t=ts; if(dt>0.1)dt=0.1; deliverStep(dt);
-    if(phase==='TREAT')beamRaf=requestAnimationFrame(beamFrame); }
-  function startBeam(){ beamFrame._t=0; cancelAnimationFrame(beamRaf); beamRaf=requestAnimationFrame(beamFrame); }
-  function stopBeam(){ cancelAnimationFrame(beamRaf); beamRaf=0; }
 
   // ---- _dbg: deterministic headless hooks (no rAF / no setTimeout for state) ----
   const _dbg={
-    refresh, exit, acquire, enterMatch, applyShifts, reinterlock, beam, rotateToView,
-    rotate:()=>{const t=rotateTarget(); if(t){gantry=t.g; motTarget=null; renderAll();}},   // snap (test): jump to the rotate target
-    rotateTo:(g)=>{gantry=g; renderAll();},
-    snapToView:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=v.g; motTarget=null; renderAll();}},   // snap, no rAF
-    driveTo:(g,secs=30,d=0.05)=>{setTarget(g,false); for(let t=0;t<secs&&motOn;t+=d)motionStep(d); return +gantry.toFixed(1);},   // synchronous realistic-speed drive
-    retake:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=v.g; motTarget=null; acquire();} return acquired.slice();},   // park + (re)acquire
+    refresh, exit, acquire, enterMatch, applyShifts, reinterlock, resetExercise, selectView,
+    rotateTo:(g)=>{gantry=g; motTarget=null; renderAll();},                       // snap to an angle (no rAF)
+    snapToView:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=slotAngles(slot)[0]; motTarget=null; renderAll();}},   // snap to a view's primary angle
+    driveTo:(g,secs=60,d=0.05)=>{motTarget=g; motOn=true; for(let t=0;t<secs&&motOn;t+=d)motionStep(d); return +gantry.toFixed(1);},   // synchronous realistic-speed drive
+    retake:(slot)=>{gantry=slotAngles(slot)[0]; motTarget=null; acquire(); return acquired.slice();},   // park + (re)acquire
     motion:(on)=>motionEnable(on,true),                                          // simulate SPACE hold/release
     set:(o)=>{o=o||{};
       if(o.gantry!=null)gantry=o.gantry; if(o.acquired)acquired=o.acquired.slice();
@@ -2819,28 +2855,24 @@ const CONSOLE=(()=>{
       if(o.couch)couch={...couch,...o.couch}; if(o.active!=null)active=o.active;
       if(o.motTarget!==undefined)motTarget=o.motTarget;
       renderAll();},
-    advance:(secs,d=0.05)=>{for(let t=0;t<secs&&phase==='TREAT';t+=d)deliverStep(d);},   // synchronous deliver
     state:()=>({caseKey,plan:plan&&plan.plan,phase,gantry:+gantry.toFixed(1),
       acquired:acquired.slice(),bothAcquired:bothAcquired(),couch:{...couch},couch0:{...couch0},
       applied:applied?{...applied}:null,canAcquire:canAcquire(),acquiring:acquiring(),matchable:matchable(),
-      readyToMatch:(active&&phase==='ACQUIRE'&&bothAcquired()),nextG:(nextUnacquired()||{}).g,
-      rotateTargetG:(rotateTarget()||{}).g,motTarget,motOn,
-      beamProg:+beamProg.toFixed(2),active,done:phase==='DONE'}),
+      readyToMatch:(active&&phase==='ACQUIRE'&&bothAcquired()),atView:!!viewAtGantry(),
+      motTarget,motOn,active,aligned:phase==='ALIGNED'}),
     buttons:()=>({acquire:el('conAcqBtn')?!el('conAcqBtn').disabled:false,
-      rotate:el('conRotateBtn')?!el('conRotateBtn').disabled:false,
       match:el('conMatchBtn')?!el('conMatchBtn').disabled:false,
-      apply:el('conApplyBtn')?!el('conApplyBtn').disabled:false,
-      beam:el('conBeamBtn')?!el('conBeamBtn').disabled:false}),
+      apply:el('conApplyBtn')?!el('conApplyBtn').disabled:false}),
     lamps:()=>({img1:acquired[0],img2:acquired[1],
-      match:(phase==='APPLIED'||phase==='TREAT'||phase==='DONE'),
-      aligned:(phase==='APPLIED'||phase==='TREAT'||phase==='DONE'),beam:phase==='TREAT'}),
-    matchable, acquiring, hidesPortal, plans:CONSOLE_PLANS, views:()=>views.slice(),
-    lin, GANTRY_LIMIT, ROT_SPEED,
-    // simulate a full rotation from->to in lin-space; returns the swept gantry samples (to assert it never hits the limit)
-    sweep:(from,to)=>{const out=[];const a=lin(from),b=lin(to);const n=Math.max(2,Math.ceil(Math.abs(b-a)));
-      for(let i=0;i<=n;i++){out.push((((a+(b-a)*i/n)%360)+360)%360);} return out;},
+      match:(phase==='MATCH'||phase==='ALIGNED'),aligned:(phase==='ALIGNED')}),
+    matchable, acquiring, hidesPortal, viewAtGantry:()=>{const v=viewAtGantry();return v?v.slot:null;},
+    plans:CONSOLE_PLANS, viewAngles:VIEW_ANGLES, views:()=>views.slice(),
+    GANTRY_LIMIT, ROT_SPEED, gantryDelta, crossesLimit,
+    // sample the swept gantry angles driving from->to (to assert the path never transits the 180° limit)
+    sweep:(from,to)=>{const out=[from];let g=from;const d=gantryDelta(from,to),n=Math.max(2,Math.ceil(Math.abs(d)));
+      for(let i=1;i<=n;i++){g=(((from+d*i/n)%360)+360)%360;out.push(g);} return out;},
   };
-  return {refresh,exit,rotate,rotateToView,acquire,enterMatch,applyShifts,reinterlock,beam,
+  return {refresh,exit,selectView,acquire,enterMatch,applyShifts,reinterlock,
           active:isActive,phase:()=>phase,readyToMatch:()=>active&&phase==='ACQUIRE'&&bothAcquired(),
           acquiring,matchable,hidesPortal,motionEnable,_dbg};
 })();
@@ -3395,11 +3427,11 @@ function attachInteractions(key){
       mode='pan'; area.style.cursor='grabbing';
     } else if(e.button===0){
       if(window.DIBH && DIBH.acquiring && DIBH.acquiring()) return;   // DIBH: no matching until both fields are acquired
-      // IGRT console, pre-MATCH: a left-click on a pane is NOT a match drag — it drives the gantry to THAT view's
-      // angle (realistic speed, limit-aware). Never starts a drag. Once 2D/2D MATCH is pressed, acquiring() is
-      // false and this is skipped so the normal match-drag below runs.
+      // IGRT console, pre-MATCH: a left-click on a pane is NOT a match drag — it SELECTS that view as the gantry
+      // destination (then hold SPACE to drive there). Never starts a drag. Once 2D/2D MATCH is pressed, acquiring()
+      // is false and this is skipped so the normal match-drag below runs.
       if(window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring()){
-        if(CONSOLE.rotateToView) CONSOLE.rotateToView(key);
+        if(CONSOLE.selectView) CONSOLE.selectView(key);
         e.preventDefault();
         return;
       }
@@ -3813,15 +3845,11 @@ document.addEventListener('keydown',e=>{
   const conOn = window.CONSOLE && CONSOLE.active && CONSOLE.active() && !document.body.classList.contains('dibh-mode');
   if(conOn && !e.ctrlKey && !e.metaKey && !e.altKey){
     const acq = CONSOLE.acquiring && CONSOLE.acquiring();
-    const applied = CONSOLE.phase && CONSOLE.phase()==='APPLIED';
-    // SPACE (hold) = motion enable: drive the gantry toward the next view while held (deadman). Acquire phase only.
+    // SPACE (hold) = motion enable: drive the gantry toward the selected view while held (deadman). Acquire phase only.
     if((e.key===' '||e.code==='Space') && acq){ e.preventDefault(); CONSOLE.motionEnable(true,true); return; }
     // A = acquire the kV image at the current gantry angle (acquire phase only; else falls through to pitch nudge).
     if((e.key==='a'||e.key==='A') && !e.repeat && acq){ e.preventDefault(); CONSOLE.acquire(); return; }
-    // B = Beam On (no-op until aligned). ENTER = Beam On once APPLIED; before that it falls through to
-    // checkMatch (= Apply Shifts in MATCH / "acquire both first" in ACQUIRE) so the whole loop is keyboard-drivable.
-    if((e.key==='b'||e.key==='B') && !e.repeat){ e.preventDefault(); CONSOLE.beam(); return; }
-    if(e.key==='Enter' && !e.repeat && applied){ e.preventDefault(); CONSOLE.beam(); return; }
+    // ENTER falls through to checkMatch -> 2D/2D Match (ACQUIRE+both) / Apply Shifts (MATCH), so the loop is keyboard-drivable.
   }
   // Flicker (flip the active view's blend to its mirror): Ctrl/⌘+A, or ⌥(Option)+A on Mac.
   //   Option rewrites e.key to 'å', so the Option case matches the physical key via e.code.
