@@ -801,13 +801,12 @@ html:not(.auth-pending) #authGate{display:none}
         <div class="cbct-dof-row"><div class="ctrl-row"><span class="ctrl-label">Roll</span><div class="ctrl-val" id="cbValRoll">0.0</div><span class="ctrl-unit">&deg;</span></div></div>
         <div class="cbct-dof-row"><div class="ctrl-row"><span class="ctrl-label">RTN</span><div class="ctrl-val" id="cbValYaw">0.0</div><span class="ctrl-unit">&deg;</span></div></div>
         <div class="cbct-dof-row" id="cbFillRow" style="display:none"><div class="ctrl-row">
-          <span class="ctrl-label" title="Daily rectum / bladder filling — drives the prostate's off-bone shift; the rectal gas / filling is shown in the moving CBCT">Filling</span>
+          <span class="ctrl-label" title="Daily bladder filling — the bladder is rendered at a different size in the moving CBCT and drives the prostate's off-bone shift">Bladder</span>
           <select class="case-select" id="cbFillSelect" style="font-size:11px;padding:2px 4px;flex:1" onchange="CBCT.setFill(this.value)">
             <option value="random">Random each offset</option>
-            <option value="gas">Rectal gas</option>
-            <option value="stool">Full rectum</option>
-            <option value="bladder">Full bladder</option>
-            <option value="mixed">Gas + full bladder</option>
+            <option value="empty">Empty</option>
+            <option value="full">Full</option>
+            <option value="veryfull">Very full</option>
           </select>
         </div></div>
         <div class="ctrl-actions">
@@ -3948,28 +3947,27 @@ const CBCT=(function(){
             // density 70) and redraws them at bone+drift through the residual net-drift transform at gold density 255.
             // Drift dominant in AP (y>=3mm so it clearly clears the t1=2mm fiducial tolerance); total capped at 5mm
             // in randomize(). check() grades translation onto the seeds (rotations shown, not graded).
-            // fill: daily rectum/bladder filling SCENARIOS. Each new offset rolls one (or the Filling
-            // picker forces one): the moving CBCT overwrites the rectum (and optionally bladder) label
-            // region's density so the filling is VISIBLE (rectal gas = dark pocket, full rectum = denser,
-            // full bladder = tinted), and the seeds drift in the matching direction (rectal gas/distension
-            // push the prostate anterior = -y; a full bladder pushes it posterior = +y). |drift.y|>=3 keeps
-            // it clearly off-bone (> t1=2mm). dens are on the 0..255 atlas scale (HU=dens*2000/255-500;
-            // ~6 = air/gas, 44 = distended bladder/urine, 70 = soft tissue, 95 = stool). Synthetic forward
-            // model on the single planning CT (no bladder geometry change — the full bladder reads as a
-            // darker/fuller fluid region, not a larger one), so the cause of the off-bone shift is shown.
+            // fill: daily BLADDER-filling scenarios. Each new offset rolls one (or the Filling picker forces
+            // it): the moving CBCT renders the bladder at a different SIZE (fuller = larger, emptier = smaller)
+            // at its OWN CONSTANT urine density — NOT a density tint. The bladder label region is scaled about
+            // the prostate/iso anchor (`bladderScale`) so it grows superiorly/anteriorly away from the gland
+            // (a real bladder fills upward), the prostate gland (bit 1) is never painted so the seeds are
+            // untouched, and for an emptied bladder the receded part of the planning bladder is repainted as
+            // soft tissue (`erase`). The seed drift matches: a fuller bladder pushes the prostate posterior/
+            // inferior (+y/-z), an emptier one anterior/superior (-y/+z). |drift.y|>=3 keeps it clearly off-bone
+            // (> t1=2mm). Densities are on the 0..255 atlas scale (urine ~64 = this volume's bladder, erase 55
+            // = peri-bladder soft tissue). Synthetic forward model on the single planning CT.
             offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3], y:[3,5], z:[2,4]},
                      okMsg:'✓ Fiducials aligned — gold seeds within tolerance',
                      hint:'✗ Pelvis bones aligned, but the seeds are off — match the gold fiducials, not the bone',
                      setup:'New setup — the prostate has drifted off the bony pelvis; match the gold fiducials, not the bone',
-                     fill:{rectumBit:8, bladderBit:4, scenarios:[
-                       {key:'gas',     label:'Rectal gas',         rect:6,  bladder:null, drift:{x:1, y:-3, z:2},
-                        setup:'Daily CBCT — rectal gas: the prostate is pushed anterior. Match the gold fiducials, not the bone.'},
-                       {key:'stool',   label:'Full rectum',        rect:95, bladder:null, drift:{x:-1, y:-4, z:1},
-                        setup:'Daily CBCT — distended rectum: the prostate is pushed anterior. Match the gold fiducials.'},
-                       {key:'bladder', label:'Full bladder',       rect:null, bladder:44, drift:{x:1, y:3, z:-2},
-                        setup:'Daily CBCT — full bladder: the prostate is pushed posterior/inferior. Match the gold fiducials.'},
-                       {key:'mixed',   label:'Rectal gas + full bladder', rect:6, bladder:44, drift:{x:-1, y:-3, z:-2},
-                        setup:'Daily CBCT — rectal gas + full bladder: the prostate has shifted off the pelvis. Match the gold fiducials.'},
+                     fill:{bladderBit:4, prostateBit:1, urine:64, erase:55, scenarios:[
+                       {key:'empty',    label:'Empty bladder',     bladderScale:0.62, drift:{x:-1, y:-3, z:2},
+                        setup:'Daily CBCT — empty bladder (smaller than plan): the prostate sits anterior/superior. Match the gold fiducials, not the bone.'},
+                       {key:'full',     label:'Full bladder',      bladderScale:1.30, drift:{x:1, y:3, z:-2},
+                        setup:'Daily CBCT — full bladder (larger than plan): the prostate is pushed posterior/inferior. Match the gold fiducials, not the bone.'},
+                       {key:'veryfull', label:'Very full bladder', bladderScale:1.55, drift:{x:1, y:4, z:-2},
+                        setup:'Daily CBCT — very full bladder: the prostate is pushed posterior/inferior. Match the gold fiducials, not the bone.'},
                      ]}}},
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
     acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
@@ -4166,6 +4164,20 @@ const CBCT=(function(){
         const gx=w[0]/sp+cxv,gy=w[1]/sp+cyv,gz=w[2]/sp+czv;
         let dens=sampleVol(gx,gy,gz);
         if(_ob){
+          // Daily BLADDER filling (prostate), drawn UNDER the seeds: render the bladder at a different SIZE
+          // (not density). Scale the bladder label region about the prostate/iso anchor so it grows
+          // superiorly/anteriorly away from the gland; paint the scaled region at the bladder's own constant
+          // urine density, and for an emptied bladder repaint the receded part of the planning bladder as soft
+          // tissue. The prostate gland (bit 1) is skipped so the gold seeds are never covered.
+          if(_ob.fill&&curFill&&curFill.bladderScale){
+            const F=_ob.fill,s=curFill.bladderScale,an=curIsoIdx();
+            if(gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
+              const qx=an[0]+(gx-an[0])/s,qy=an[1]+(gy-an[1])/s,qz=an[2]+(gz-an[2])/s;
+              let oS=gtvOcc(_lbl,qx,qy,qz,F.bladderBit);              // inside the resized bladder?
+              if(oS>0){oS=oS<0.7?oS*1.4:1; if(oS>1)oS=1; dens=dens+(F.urine-dens)*oS;}
+              else if(s<1){let oO=gtvOcc(_lbl,gx,gy,gz,F.bladderBit); if(oO>0){oO=oO<0.7?oO*1.4:1; if(oO>1)oO=1; dens=dens+(F.erase-dens)*oO;}}   // empty: erase the receded planning bladder
+            }
+          }
           // soft (trilinear) occupancy -> blend density by coverage, so the feature has smooth edges
           // and moves fluidly with the couch instead of popping voxel-by-voxel.
           // Over-cover the HIDE: the lesion is hard-baked into the CT (read trilinearly by sampleVol)
@@ -4179,14 +4191,6 @@ const CBCT=(function(){
           const wL=_invL(w0);                                        // and redraw it drifted (residual net-drift)
           let oD=gtvOcc(_lbl,wL[0]/sp+cxv,wL[1]/sp+cyv,wL[2]/sp+czv,_ob.driftBit);
           if(oD>0){oD=oD<0.77?oD*1.3:1; dens=dens+(_ob.drawDens-dens)*oD;}
-          // Daily rectum/bladder filling (prostate): paint the moving CBCT's rectum (and bladder) label
-          // region with the scenario density so the filling is VISIBLE — rectal gas as a dark pocket, a
-          // distended rectum/full bladder as a denser region. Sampled at the bone-fixed planning position
-          // (gx,gy,gz): the filling rides with the pelvis as the couch moves, and is the cause of the drift.
-          if(_ob.fill&&curFill){
-            if(curFill.rect!=null){let oR=gtvOcc(_lbl,gx,gy,gz,_ob.fill.rectumBit); if(oR>0){oR=oR<0.7?oR*1.4:1; if(oR>1)oR=1; dens=dens+(curFill.rect-dens)*oR;}}
-            if(curFill.bladder!=null){let oBl=gtvOcc(_lbl,gx,gy,gz,_ob.fill.bladderBit); if(oBl>0){oBl=oBl<0.7?oBl*1.4:1; if(oBl>1)oBl=1; dens=dens+(curFill.bladder-dens)*oBl;}}
-          }
         }
         let val;
         if(dens<=0.5)val=0;                                  // air / outside the scan -> stays black (window only affects tissue)
