@@ -634,13 +634,16 @@ html:not(.auth-pending) #authGate{display:none}
 .con-beamfan.fire{animation:conFan .85s ease-out}
 @keyframes conFan{0%{opacity:0}15%{opacity:.9}100%{opacity:0}}
 /* ── couch encoder readout ── */
-.con-couch{display:flex;align-items:flex-end;gap:14px;background:rgba(8,11,16,.5);border:1px solid var(--border2);border-radius:8px;padding:6px 10px}
-.con-couch-ttl{font-family:var(--mono),monospace;font-size:9px;letter-spacing:.12em;color:var(--accent);align-self:center}
-.con-couch .con-cell{display:grid;grid-template-columns:auto auto;align-items:baseline;column-gap:4px}
-.con-couch .con-cell .cl{grid-column:1/3;font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
-.con-couch .con-cell b{font-size:17px;color:var(--text);font-variant-numeric:tabular-nums;transition:color .4s ease}
-.con-couch .con-cell .u{font-size:9px;color:var(--muted)}
-.con-couch .dchip{grid-column:1/3;font-size:9px;color:var(--green);font-style:normal;min-height:11px;font-variant-numeric:tabular-nums}
+/* ── COUCH encoder readout — vertical stack, one axis per row (Varian-style), compact + left-docked ── */
+.con-couch{display:grid;grid-template-columns:auto;gap:2px;align-content:start;align-self:flex-start;background:rgba(8,11,16,.5);border:1px solid var(--border2);border-radius:8px;padding:6px 11px}
+.con-couch-ttl{font-family:var(--mono),monospace;font-size:9px;letter-spacing:.12em;color:var(--accent);margin-bottom:2px}
+/* fixed columns so every row's numbers right-align in the same mono column: LABEL | VALUE(right) | UNIT | delta chip.
+   DOM order is value,chip,unit; grid-column places them so it reads "VRT   +97.40 cm  [chip]". */
+.con-couch .con-cell{display:grid;grid-template-columns:32px 78px 16px auto;align-items:baseline;column-gap:6px;line-height:1.1}
+.con-couch .con-cell .cl{grid-column:1;align-self:center;font-size:9px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.con-couch .con-cell b{grid-column:2;font-family:var(--mono),monospace;font-size:16px;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;transition:color .4s ease}
+.con-couch .con-cell .u{grid-column:3;align-self:center;font-size:9px;color:var(--muted)}
+.con-couch .dchip{grid-column:4;justify-self:start;min-width:42px;font-size:9px;color:var(--green);font-style:normal;font-variant-numeric:tabular-nums}
 .console-strip.ph-aligned .con-couch .con-cell b{color:var(--green)}
 .con-couch .con-cell.flash b{animation:conCouchFlash 1s ease}
 @keyframes conCouchFlash{0%{color:var(--accent);text-shadow:0 0 9px rgba(45,212,238,.7)}100%{text-shadow:none}}
@@ -729,7 +732,7 @@ html:not(.auth-pending) #authGate{display:none}
 /* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}}
-@media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-couch{flex-wrap:wrap}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
 <body data-require-auth>
@@ -2579,15 +2582,17 @@ window.DIBH=DIBH;
 // image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
 const VIEW_ANGLES={ap:[90,270], lat:[0,180]};
 const CONSOLE_PLANS={
-  brain:{plan:'BRAIN_SRT', couch:{vrt:-1.42, lng: 6.18, lat: 0.35, rtn:0}, views:[
+  // couch = realistic Varian/IEC 61217 HFS-supine absolute encoder readout: large Lng (table driven into the
+  // bore, deepest for the head ~97, shallowest for an extremity ~73), small Vrt couch height, near-0 Lat, Rtn 0.
+  brain:{plan:'BRAIN_SRT', couch:{vrt:-3.85, lng:97.40, lat: 0.35, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
-  pelvis:{plan:'PELVIS_IMRT', couch:{vrt: 2.05, lng:-4.30, lat:-0.60, rtn:0}, views:[
+  pelvis:{plan:'PELVIS_IMRT', couch:{vrt: 6.20, lng:89.20, lat:-0.60, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
-  thorax:{plan:'THORAX_3DC', couch:{vrt: 0.88, lng: 1.55, lat: 0.20, rtn:0}, views:[
+  thorax:{plan:'THORAX_3DC', couch:{vrt: 4.10, lng:90.30, lat: 0.20, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
-  femur:{plan:'FEMUR_3DC', couch:{vrt:-0.65, lng:12.40, lat: 3.10, rtn:0}, views:[
+  femur:{plan:'FEMUR_3DC', couch:{vrt: 1.55, lng:72.80, lat: 2.85, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
-  breast:{plan:'BREAST_L_MONO', couch:{vrt: 1.20, lng:-2.75, lat:-1.05, rtn:0}, views:[
+  breast:{plan:'BREAST_L_MONO', couch:{vrt: 5.35, lng:84.75, lat:-1.20, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]}
 };
 /* IGRT SETUP console: starting couch coords -> ACQUIRE image 1 (gantry parked at its angle) -> ROTATE gantry
