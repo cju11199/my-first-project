@@ -2860,7 +2860,13 @@ const CONSOLE=(()=>{
   function motionEnable(on, deadman){      // SPACE deadman: drive toward the selected motTarget while held
     if(!active||phase!=='ACQUIRE'){ pauseMotion(); return; }
     if(on){
-      if(motTarget==null){ const t=rotateTarget(); motTarget=t?nearestAngle(t):null; }   // default: next view to shoot
+      if(motTarget==null){
+        // Parked at a valid imaging angle with no explicit target -> STAY (acquire here). Without this the
+        // held deadman re-picked nextUnacquired (the AP view) and drove the gantry BACK to 90 right after it
+        // auto-stopped at the lateral. Only auto-pick a target when we're between views (not parked at one).
+        if(viewAtGantry()){ renderViz(); return; }
+        const t=rotateTarget(); motTarget=t?nearestAngle(t):null;   // between views -> drive to the next one
+      }
       if(motTarget==null||Math.abs(angDiff(motTarget,gantry))<0.5){ renderViz(); return; }   // nothing to drive to
       motOn=true; motDead=!!deadman; startMotion();
     } else { if(deadman&&!motDead)return; pauseMotion(); }   // deadman release pauses where it is (motTarget kept)
@@ -4112,10 +4118,16 @@ document.addEventListener('keydown',e=>{
     const acq = CONSOLE.acquiring && CONSOLE.acquiring();
     // SPACE (hold) = motion enable: drive the gantry toward the selected view while held (deadman). Acquire phase only.
     if((e.key===' '||e.code==='Space') && acq){ e.preventDefault(); CONSOLE.motionEnable(true,true); return; }
-    // ENTER held for ~1 s = take the kV exposure, but ONLY when parked at a valid angle. The keyup (below) ends
-    // the hold. When NOT at a valid angle it falls through to checkMatch -> 2D/2D Match (both taken) / Apply Shifts.
-    if(e.key==='Enter' && !e.repeat && CONSOLE.canAcquire && CONSOLE.canAcquire()){
-      e.preventDefault(); CONSOLE.acquireHoldStart(); return;
+    // ENTER owns the console acquire/match flow — ONE action per physical press. Auto-repeat is swallowed so a
+    // held Enter (from the ~1 s hold-to-expose) can't cascade 2D/2D Match -> Apply Shifts the instant the 2nd
+    // image lands. Parked at a valid angle -> hold-to-expose; otherwise (both taken) -> checkMatch, which enters
+    // MATCH; a later deliberate Enter (or Apply Shifts button) then applies the shifts.
+    if(e.key==='Enter'){
+      e.preventDefault();
+      if(e.repeat) return;                                              // swallow auto-repeat: no match->apply cascade
+      if(CONSOLE.canAcquire && CONSOLE.canAcquire()) CONSOLE.acquireHoldStart();
+      else checkMatch();
+      return;
     }
   }
   // Flicker (flip the active view's blend to its mirror): Ctrl/⌘+A, or ⌥(Option)+A on Mac.
