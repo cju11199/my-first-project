@@ -32,7 +32,7 @@
       "description": "A guide to deep inspiration breath-hold (DIBH) in radiation therapy: cardiac sparing for left-breast treatment, gating windows, surface and RPM monitoring, the coaching workflow, and common pitfalls.",
       "image": "https://rtimagematch.com/og-image.png",
       "datePublished": "2026-06-24",
-      "dateModified": "2026-06-24",
+      "dateModified": "2026-06-27",
       "author": { "@type": "Organization", "name": "RT Image Matching Trainer", "url": "https://rtimagematch.com/" },
       "publisher": { "@type": "Organization", "name": "RT Image Matching Trainer", "logo": { "@type": "ImageObject", "url": "https://rtimagematch.com/favicon.svg" } },
       "mainEntityOfPage": "https://rtimagematch.com/guides/dibh-deep-inspiration-breath-hold"
@@ -50,7 +50,8 @@
       "mainEntity": [
         { "@type": "Question", "name": "What is DIBH in radiation therapy?", "acceptedAnswer": { "@type": "Answer", "text": "DIBH (deep inspiration breath-hold) is a technique where the patient takes a deep breath and holds it while the treatment beam is on. The inflated lungs push the heart down and away from the chest wall, which in left-breast treatment can substantially reduce the dose delivered to the heart and the left anterior descending coronary artery." } },
         { "@type": "Question", "name": "Why is DIBH used for left-breast cancer?", "acceptedAnswer": { "@type": "Answer", "text": "In left-sided breast treatment the heart sits close to the chest wall and tangent fields. Holding a deep breath inflates the lungs, increasing the distance between the heart and the treated breast tissue, which lowers cardiac and coronary-artery dose and the associated long-term risk. It is also used for some lung and mediastinal treatments to reduce tumour motion." } },
-        { "@type": "Question", "name": "How is the breath-hold monitored during treatment?", "acceptedAnswer": { "@type": "Answer", "text": "The chest wall or abdomen position is tracked in real time, commonly with an optical surface-guidance system or a marker block monitored by an infrared camera (such as the RPM system). The amplitude is displayed as a moving trace, and the beam is only allowed on while the level sits inside a predefined gating window, confirming the patient is reproducing the planned breath-hold." } }
+        { "@type": "Question", "name": "How is the breath-hold monitored during treatment?", "acceptedAnswer": { "@type": "Answer", "text": "The chest wall or abdomen position is tracked in real time, commonly with an optical surface-guidance system or a marker block monitored by an infrared camera (such as the RPM system). The amplitude is displayed as a moving trace, and the beam is only allowed on while the level sits inside a predefined gating window, confirming the patient is reproducing the planned breath-hold." } },
+        { "@type": "Question", "name": "Do students need a microphone for the DIBH coaching case?", "acceptedAnswer": { "@type": "Answer", "text": "The Breast L · DIBH case is voice-coached, so it needs a working microphone in Google Chrome or Microsoft Edge. The browser asks for microphone permission once and remembers it for the site. On managed computer-lab machines, IT can remove the prompt by pre-authorising https://rtimagematch.com in the browser's enterprise policy (AudioCaptureAllowedUrls with AudioCaptureAllowed). If a microphone isn't available, the case falls back to on-screen coaching buttons." } }
       ]
     }
   ]
@@ -151,6 +152,7 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,syst
       <a href="#uses">Where else DIBH is used</a>
       <a href="#pitfalls">Common pitfalls</a>
       <a href="#practice">How to practice DIBH coaching</a>
+      <a href="#mic">Microphone setup for voice coaching</a>
       <a href="#faq">FAQ</a>
     </div>
 
@@ -234,6 +236,20 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,syst
       <a class="btn" href="/subscribe">Open the trainer</a>
     </div>
 
+    <h2 id="mic">Microphone setup for voice coaching</h2>
+    <p>The trainer's <strong>Breast L · DIBH</strong> case is <strong>voice-coached</strong>: you speak the breath-hold cues — &ldquo;take a deep breath in&rdquo;, &ldquo;a little more in&rdquo;, &ldquo;hold it&rdquo;, &ldquo;breathe normally&rdquo; — and the trainer recognises them, the way a therapist coaches a real patient over the room intercom. That needs a working microphone, so the case checks for one before it starts. What students need:</p>
+    <ul>
+      <li><strong>A supported browser</strong> — Google Chrome or Microsoft Edge on a desktop or laptop. (Speech recognition isn't available in Firefox or in iOS home-screen web apps.)</li>
+      <li><strong>A secure connection</strong> — the trainer runs over HTTPS at rtimagematch.com, which is what browsers require before granting microphone access; there is nothing extra to configure.</li>
+      <li><strong>A one-time &ldquo;Allow&rdquo;</strong> — the first time the case opens, the browser asks for microphone permission. Choosing <em>Allow</em> (rather than &ldquo;Allow this time&rdquo;) is remembered for the site, so it won't ask again on that device.</li>
+    </ul>
+    <p>When the case opens it runs a quick <strong>microphone check</strong> — pick an input and watch the level bar move while you talk — so you can confirm the mic is heard before coaching begins. If access is ever blocked or unavailable, the trainer falls back to on-screen buttons for the same cues, so a session is never stuck.</p>
+
+    <h3>For IT and computer labs</h3>
+    <p>On managed lab machines you can remove the per-student permission prompt entirely by <strong>pre-authorising the microphone</strong> for the trainer's address in the browser's enterprise policy:</p>
+    <div class="tip"><p>In Chrome or Edge policy, add <strong>https://rtimagematch.com</strong> to <strong>AudioCaptureAllowedUrls</strong> (with <strong>AudioCaptureAllowed</strong> enabled). The browser then grants microphone access to the trainer automatically, with no prompt — set once on the managed image, it applies to every student on that machine.</p></div>
+    <p>This is a browser / device-management setting controlled by your institution, not something the website can grant itself — the per-site prompt is a browser security boundary by design. One caveat: voice recognition always uses the browser's <em>default</em> microphone, so if a station has more than one input, set the intended one as the system default.</p>
+
     <h2 id="faq" class="faq">Frequently asked questions</h2>
     <div class="faq">
       <h3>What is DIBH in radiation therapy?</h3>
@@ -242,6 +258,8 @@ body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,syst
       <p>In left-sided treatment the heart sits close to the chest wall and tangent fields. Holding a deep breath increases the distance between the heart and the treated breast tissue, lowering cardiac and coronary-artery dose and the associated long-term risk. It is also used for some lung and mediastinal treatments to reduce tumour motion.</p>
       <h3>How is the breath-hold monitored during treatment?</h3>
       <p>The chest or abdomen position is tracked in real time, commonly with optical surface guidance or a reflective marker block followed by an infrared camera (such as the RPM system). The amplitude is shown as a moving trace, and the beam is only allowed on while the level sits inside a predefined gating window.</p>
+      <h3>Do students need a microphone, and can IT pre-approve it?</h3>
+      <p>The Breast L · DIBH case is voice-coached, so it needs a microphone in Google Chrome or Microsoft Edge; the browser asks for permission once and remembers it for the site. On managed lab computers, IT can skip the prompt by pre-authorising the trainer in the browser's enterprise policy — adding https://rtimagematch.com to AudioCaptureAllowedUrls. If a microphone is ever unavailable, the case falls back to on-screen coaching buttons.</p>
     </div>
 
     <div class="next">
