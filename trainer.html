@@ -5511,8 +5511,11 @@ const CBCT=(function(){
   function reset(){pushUndo();cbTimer.reset();shift={x:0,y:0,z:0,pitch:0,roll:0,yaw:0};clearErrors();refreshReadouts();const m=gid('cbStatusMsg');m.textContent='Fuse all three planes to the reference';m.style.color='var(--label)';render();}
   function randomize(keepResult){
     const ri=(a,b)=>Math.round(Math.random()*(b-a)+a),rh=(a,b)=>Math.round((Math.random()*(b-a)+a)*2)/2,sg=()=>Math.random()<0.5?-1:1;
-    hidden.x=ri(6,28)*sg();hidden.y=ri(6,24)*sg();hidden.z=ri(6,24)*sg();
-    hidden.pitch=rh(0,4)*sg();hidden.roll=rh(0,4)*sg();hidden.yaw=rh(0,4)*sg();
+    // Realistic pre-correction CBCT setup error: a few mm up to ~1.5 cm. Larger than this (the old
+    // 6-28 mm) flung the whole moving volume so far that anatomy — the prominent bladder especially —
+    // appeared to slide outside the body / over the bones at zoom. Rotations kept small (real couch/patient).
+    hidden.x=ri(6,15)*sg();hidden.y=ri(6,13)*sg();hidden.z=ri(6,13)*sg();
+    hidden.pitch=rh(0,3)*sg();hidden.roll=rh(0,3)*sg();hidden.yaw=rh(0,3)*sg();
     // Off-bone cases (lung GTV / prostate seeds): the target has also drifted relative to bone, so a
     // bony match leaves it off — the student must match the soft-tissue target / fiducials. Per-case
     // drift ranges (mm) live in the VOLCASE offBone config.
