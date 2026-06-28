@@ -77,7 +77,7 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 .views.solo-ap,.views.solo-lat{grid-template-columns:1fr}
 .views.solo-ap #latArea,.views.solo-lat #apArea{display:none}
 .views.solo-ap #apArea,.views.solo-lat #latArea{grid-column:1}
-.viewer-area{position:relative;background:#000;overflow:hidden;cursor:crosshair;min-height:0;transition:box-shadow .2s var(--ease)}
+.viewer-area{position:relative;background:#000;overflow:hidden;cursor:crosshair;min-height:0;transition:box-shadow .2s var(--ease);touch-action:none}
 .viewer-area:focus{outline:none}
 .viewer-area.selected{box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 40px -8px rgba(230,194,90,.28)}
 .viewer-area.selected .view-tag{color:var(--gold);border-color:rgba(230,194,90,.55);box-shadow:0 0 0 1px rgba(230,194,90,.2)}
@@ -101,9 +101,32 @@ main{flex:1;display:flex;flex-direction:row;min-height:0;position:relative}
 /* per-view toolbar (zoom + fullscreen) */
 .view-tools{position:absolute;z-index:12;top:34px;left:50%;transform:translateX(-50%);display:flex;gap:6px;opacity:0;transition:opacity .18s var(--ease);background:rgba(8,11,16,.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border2);border-radius:var(--radius-pill);padding:4px;box-shadow:var(--shadow-soft)}
 .viewer-area:hover .view-tools{opacity:1}
+@media (hover:none){.view-tools{opacity:1}}
 .vt-btn{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text);background:transparent;border:1px solid transparent;border-radius:50%;cursor:pointer;line-height:1;user-select:none;transition:all .15s var(--ease)}
 .vt-btn:hover{background:var(--accent-dim);border-color:rgba(45,212,238,.45);color:var(--accent-hi)}
 .vt-zoom{position:absolute;z-index:11;bottom:12px;left:14px;font-family:var(--mono);font-size:10px;font-weight:600;font-variant-numeric:var(--num);color:var(--accent-hi);background:rgba(8,11,16,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);padding:4px 9px;border-radius:var(--radius-sm);pointer-events:none;border:1px solid var(--border2)}
+
+/* Touch gameplay toolbar — on-screen equivalents of the keyboard-only actions. Hidden by default;
+   revealed only on coarse / hover-less pointers (touch). Buttons call the SAME functions the keys do. */
+.touch-tools{display:none}
+.cb-touch-tools{position:absolute;z-index:18;left:50%;bottom:8px;transform:translateX(-50%)}
+@media (pointer:coarse),(hover:none){
+  .touch-tools{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px;
+    padding:7px 10px;background:rgba(10,14,20,.78);backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);border-top:1px solid var(--border2);touch-action:manipulation}
+  .cb-touch-tools{border:1px solid var(--border2);border-radius:var(--radius-pill);box-shadow:var(--shadow)}
+  body.fid-mode #touchTools2d,body.dibh-mode #touchTools2d{display:none}
+  .tt-group{display:flex;align-items:center;gap:5px}
+  .tt-group+.tt-group{padding-left:8px;border-left:1px solid var(--border2)}
+  .tt-pad{gap:3px}
+  .tt-chip,.tt-btn{min-width:42px;height:38px;padding:0 11px;display:inline-flex;align-items:center;
+    justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.06em;
+    color:var(--text);background:rgba(255,255,255,.04);border:1px solid var(--border2);
+    border-radius:var(--radius-sm);cursor:pointer;line-height:1;user-select:none;transition:all .12s var(--ease)}
+  .tt-pad .tt-btn{min-width:38px;font-size:16px}
+  .tt-chip:active,.tt-btn:active{background:var(--accent-dim);border-color:rgba(45,212,238,.5)}
+  .tt-chip.active{background:rgba(230,194,90,.18);border-color:rgba(230,194,90,.6);color:var(--gold)}
+}
 
 .view-blend{position:absolute;z-index:12;bottom:13px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:11px;background:rgba(10,14,20,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--border2);border-radius:var(--radius-pill);padding:8px 15px;pointer-events:auto;white-space:nowrap;user-select:none;box-shadow:var(--shadow)}
 /* blend slider shows on every CBCT pane; setBlendAll keeps all three conjoined to the same value */
@@ -211,7 +234,8 @@ main.shifts-collapsed .shift-tab{left:0}
 .tool-tray .tool-sep{height:18px;margin:0 2px}
 
 /* spyglass lens drawn over a view (square) */
-.spy-ring{position:absolute;z-index:9;border:2px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.7),0 0 22px rgba(255,122,69,.5);pointer-events:none;display:none}
+.spy-ring{position:absolute;z-index:9;border:2px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.7),0 0 22px rgba(255,122,69,.5);pointer-events:none;display:none;touch-action:none}
+.spy-handle{touch-action:none}
 .spy-ring::after{content:'';position:absolute;inset:0;border:1px solid rgba(45,212,238,.55)}
 .spy-handle{position:absolute;width:15px;height:15px;right:-7px;bottom:-7px;background:var(--accent2);border:2px solid #000;border-radius:4px;pointer-events:auto;cursor:nwse-resize;box-shadow:0 2px 6px rgba(0,0,0,.6)}
 
@@ -358,7 +382,7 @@ main.shifts-collapsed .shift-tab{left:0}
 .cbct-pane.cb-primary{grid-row:1/3;grid-column:1}
 .cbct-pane.cb-sec1{grid-row:1;grid-column:2}
 .cbct-pane.cb-sec2{grid-row:2;grid-column:2}
-.cbct-pane{position:relative;min-width:0;background:#000;overflow:hidden;cursor:crosshair;outline:none;transition:box-shadow .15s var(--ease)}
+.cbct-pane{position:relative;min-width:0;background:#000;overflow:hidden;cursor:crosshair;outline:none;transition:box-shadow .15s var(--ease);touch-action:none}
 .cbct-pane.selected{box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 40px -8px rgba(230,194,90,.28)}
 .cbct-pane.selected .view-tag{color:var(--gold);border-color:rgba(230,194,90,.55);box-shadow:0 0 0 1px rgba(230,194,90,.2)}
 .cbct-pane canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -1107,6 +1131,29 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <div class="cb-zoom-bar" onpointerdown="event.stopPropagation()"><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',-1)" title="Zoom out">&minus;</button><span class="cb-zoom-lbl" id="cbZoomSagittal">100%</span><button class="cb-zoom-btn" onclick="CBCT.cbZoom('sagittal',1)" title="Zoom in">+</button><button class="cb-zoom-btn" onclick="CBCT.cbZoomReset('sagittal')" title="Reset zoom" style="font-size:10px">&#9906;</button><button class="cb-zoom-btn" onclick="CBCT.cbSolo('sagittal')" title="Fullscreen this view (F · double-click)" style="font-size:12px">&#9974;</button></div>
         <div class="cb-view-bar" onpointerdown="event.stopPropagation()"><button class="cb-view-btn" onclick="CBCT.cyclePrimary()" title="Rotate the main view (Axial &rarr; Coronal &rarr; Sagittal) &middot; press V or Ctrl+R">&#10227;</button></div>
       </div>
+      <!-- CBCT touch gameplay toolbar (coarse-pointer only): nudge the SELECTED plane, cycle the
+           primary view, undo. Same paths the CBCT keys use. onpointerdown stopPropagation keeps
+           taps out of the pane drag handler. -->
+      <div class="touch-tools cb-touch-tools" id="touchToolsCbct" onpointerdown="event.stopPropagation()">
+        <div class="tt-group tt-pad">
+          <button class="tt-btn" onclick="CBCT.cbNudge('x',-1)" title="Left">&#8592;</button>
+          <button class="tt-btn" onclick="CBCT.cbNudge('y',-1)" title="Up">&#8593;</button>
+          <button class="tt-btn" onclick="CBCT.cbNudge('y',1)" title="Down">&#8595;</button>
+          <button class="tt-btn" onclick="CBCT.cbNudge('x',1)" title="Right">&#8594;</button>
+        </div>
+        <div class="tt-group">
+          <button class="tt-btn" onclick="CBCT.cbNudge('z',-1)" title="Vrt &minus;">Vrt&minus;</button>
+          <button class="tt-btn" onclick="CBCT.cbNudge('z',1)" title="Vrt +">Vrt+</button>
+        </div>
+        <div class="tt-group">
+          <button class="tt-btn" onclick="CBCT.cbNudge('rot',-1)" title="Rotate &minus;">&#8634;</button>
+          <button class="tt-btn" onclick="CBCT.cbNudge('rot',1)" title="Rotate +">&#8635;</button>
+        </div>
+        <div class="tt-group">
+          <button class="tt-btn" onclick="CBCT.cyclePrimary()" title="Cycle primary view">&#10227;</button>
+          <button class="tt-btn" onclick="CBCT.undo()" title="Undo">&#8630;</button>
+        </div>
+      </div>
     </div>
     <div class="shift-tab" onclick="toggleCbShifts()" title="Show / hide the couch-correction panel (the views go full-width when hidden)"><span class="chev" id="cbShiftChev">&#10094;</span>SHIFTS</div>
   </main>
@@ -1181,6 +1228,34 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <div class="spy-ring" id="latSpy"><div class="spy-handle"></div></div>
       <div class="view-blend"><span class="vb-lbl ref">0%</span><input type="range" class="vb-slider" id="blendLat" min="0" max="100" value="50" oninput="updateBlend('lat',this.value)"><span class="vb-lbl por">100%</span></div>
       <div class="view-contrast" id="contrastLat"><select class="vc-preset" onchange="applyContrastPreset(this.value)"><option value="default">Default</option><option value="bone">Bone</option><option value="soft">Soft Tissue</option><option value="lung">Lung</option></select><span class="vc-lbl">CON</span><input type="range" class="vc-slider" min="20" max="300" value="100" oninput="updateContrast(this.value)"><span class="vc-val" id="conValLat">100%</span></div>
+    </div>
+  </div>
+  <!-- Touch gameplay toolbar: on-screen equivalents of the keyboard-only actions (axis-lock,
+       undo, fine-nudge / rotate). Shown only on coarse / hover-less pointers (touch devices);
+       every button calls the SAME function the matching key does. onpointerdown stopPropagation
+       so taps don't leak into the converted image-drag handler. -->
+  <div class="touch-tools" id="touchTools2d" onpointerdown="event.stopPropagation()">
+    <div class="tt-group tt-locks">
+      <button class="tt-chip" id="touchLockAP" onclick="touchLock('AP','1')" title="Lock drag to A&ndash;P (Vrt)">AP</button>
+      <button class="tt-chip" id="touchLockSI" onclick="touchLock('SI','2')" title="Lock drag to S&ndash;I (Lng)">SI</button>
+      <button class="tt-chip" id="touchLockLR" onclick="touchLock('LR','3')" title="Lock drag to L&ndash;R (Lat)">LR</button>
+    </div>
+    <div class="tt-group tt-pad">
+      <button class="tt-btn" onclick="arrowMove(activeView==='ap'?'x':'z',-1)" title="Left">&#8592;</button>
+      <button class="tt-btn" onclick="arrowMove('y',-1)" title="Up (Sup)">&#8593;</button>
+      <button class="tt-btn" onclick="arrowMove('y',1)" title="Down (Inf)">&#8595;</button>
+      <button class="tt-btn" onclick="arrowMove(activeView==='ap'?'x':'z',1)" title="Right">&#8594;</button>
+    </div>
+    <div class="tt-group">
+      <button class="tt-btn" onclick="arrowMove('z',-1)" title="Vrt &minus;">Vrt&minus;</button>
+      <button class="tt-btn" onclick="arrowMove('z',1)" title="Vrt +">Vrt+</button>
+    </div>
+    <div class="tt-group">
+      <button class="tt-btn" onclick="adjust(activeView==='ap'?'roll':'pitch',-1)" title="Rotate &minus;">&#8634;</button>
+      <button class="tt-btn" onclick="adjust(activeView==='ap'?'roll':'pitch',1)" title="Rotate +">&#8635;</button>
+    </div>
+    <div class="tt-group">
+      <button class="tt-btn" onclick="undo()" title="Undo">&#8630; Undo</button>
     </div>
   </div>
   <!-- DIBH breath-hold coaching strip: breathing trace + coaching buttons, docked at the bottom
@@ -3688,22 +3763,24 @@ function attachSpy(key){
   }
   // Grab the lens ONLY when pressing inside it; pressing elsewhere falls through to the
   // image match drag, so you can still move/match the image while the spyglass is on.
-  area.addEventListener('mousedown',e=>{
+  area.addEventListener('pointerdown',e=>{
     if(tool!=='spy') return;
     if(e.target===handle) return;
     const p=localPt(e);
     const inside=Math.abs(p.x-v.spy.x)<=v.spy.r && Math.abs(p.y-v.spy.y)<=v.spy.r;
     if(!inside) return;                 // outside the lens -> the match handler drives the image
     mode='move'; ox=p.x-v.spy.x; oy=p.y-v.spy.y;
+    try{area.setPointerCapture(e.pointerId);}catch(_){}
     e.preventDefault(); e.stopPropagation();
   });
-  handle.addEventListener('mousedown',e=>{
+  handle.addEventListener('pointerdown',e=>{
     if(tool!=='spy') return;
     const p=localPt(e); mode='resize'; sr=v.spy.r;
     sx=p.x; sy=p.y;
+    try{handle.setPointerCapture(e.pointerId);}catch(_){}
     e.preventDefault(); e.stopPropagation();
   });
-  window.addEventListener('mousemove',e=>{
+  window.addEventListener('pointermove',e=>{
     if(!mode||tool!=='spy') return;
     const p=localPt(e);
     if(mode==='move'){
@@ -3715,7 +3792,7 @@ function attachSpy(key){
     }
     render();
   });
-  window.addEventListener('mouseup',()=>{ mode=null; });
+  window.addEventListener('pointerup',()=>{ mode=null; });
   // scroll wheel over lens resizes it (when spy active)
   area.addEventListener('wheel',e=>{
     if(tool!=='spy') return;
@@ -3807,6 +3884,21 @@ let hoverDragView=null;
 // to one couch axis (all by vertical drag; for 3 = L-R, up moves right & down moves left).
 // Works in both 2D/2D views.
 let axisLock=null, axisLockKey=null;
+// Touch axis-lock: the on-screen AP/SI/LR chips set a STICKY lock (no keyup), cleared on drag-end
+// (pointerup) or chip re-tap. touchAxisLock tracks that the active lock came from a chip (so the
+// keyboard keyup release path leaves it alone, and the drag-end path knows to clear it).
+let touchAxisLock=false;
+// Sticky-toggle an axis-lock from the touch toolbar. Re-tap (or tapping another chip) swaps/clears.
+function touchLock(axis,keyNo){
+  if(axisLock===axis && touchAxisLock){ axisLock=null; axisLockKey=null; touchAxisLock=false; hideAxisCue(); }
+  else { axisLock=axis; axisLockKey=keyNo; touchAxisLock=true; showAxisCue(axis); }
+  syncTouchChips();
+}
+// Reflect the current sticky touch lock onto the chip .active states.
+function syncTouchChips(){
+  ['AP','SI','LR'].forEach(a=>{ const b=document.getElementById('touchLock'+a);
+    if(b) b.classList.toggle('active', touchAxisLock && axisLock===a); });
+}
 let _axisBadge=null;
 function axisBadgeEl(){
   if(!_axisBadge){
@@ -3870,7 +3962,7 @@ function attachInteractions(key){
   let mode=null, lastX=0, lastY=0, accX=0, accY=0, lastAng=0, accAng=0;
   function localPt(e){ const r=area.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
   function angleFromCenter(pt){ return Math.atan2(pt.y-isoScreenY(v), pt.x-isoScreenX(v)); }
-  area.addEventListener('mousedown',e=>{
+  area.addEventListener('pointerdown',e=>{
     if(FID2D.active()) return;          // fiducial case: FID2D's pointer handlers drive the markers
     const pt=localPt(e);
     // Spyglass on: a press ON the lens is owned by the spyglass; press elsewhere drags the image.
@@ -3901,10 +3993,11 @@ function attachInteractions(key){
       }
     } else return;
     hoverDragView=key;
+    try{area.setPointerCapture(e.pointerId);}catch(_){}
     lastX=e.clientX; lastY=e.clientY;
     e.preventDefault();
   });
-  window.addEventListener('mousemove',e=>{
+  window.addEventListener('pointermove',e=>{
     if(!mode || hoverDragView!==key) return;
     const ddx=e.clientX-lastX, ddy=e.clientY-lastY;
     lastX=e.clientX; lastY=e.clientY;
@@ -3953,7 +4046,10 @@ function attachInteractions(key){
       }
     }
   });
-  window.addEventListener('mouseup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor=(tool==='pan')?'grab':'crosshair'; hideCue(); render(); } });
+  window.addEventListener('pointerup',()=>{ if(mode){ mode=null; v.rotating=false; area.style.cursor=(tool==='pan')?'grab':'crosshair'; hideCue();
+    // Clear any sticky touch axis-lock set by the on-screen chips so a forgotten lock can't trap the next free drag.
+    if(touchAxisLock){ touchAxisLock=false; axisLock=null; axisLockKey=null; hideAxisCue(); syncTouchChips(); }
+    render(); } });
 }
 
 // Translation is stored internally in mm but DISPLAYED in cm (1 mm = 0.1 cm).
@@ -4018,8 +4114,8 @@ function selectView(key){
   updateArrowHints();
 }
 // ensure selection also works while the spyglass tool is active
-document.getElementById('apArea').addEventListener('mousedown',()=>selectView('ap'));
-document.getElementById('latArea').addEventListener('mousedown',()=>selectView('lat'));
+document.getElementById('apArea').addEventListener('pointerdown',()=>selectView('ap'));
+document.getElementById('latArea').addEventListener('pointerdown',()=>selectView('lat'));
 
 // keep slider drags from reaching the image pan/rotate/zoom handlers
 document.querySelectorAll('.view-blend,.view-contrast').forEach(vb=>{
@@ -4360,13 +4456,13 @@ document.addEventListener('keydown',e=>{
 });
 // Release the couch-axis lock when 1/2/3 is let go (or focus is lost mid-hold).
 document.addEventListener('keyup',e=>{
-  if(axisLockKey && e.key===axisLockKey){ axisLock=null; axisLockKey=null; hideAxisCue(); }
+  if(axisLockKey && e.key===axisLockKey){ axisLock=null; axisLockKey=null; touchAxisLock=false; hideAxisCue(); syncTouchChips(); }
   // SPACE up releases the IGRT gantry motion-enable deadman (pauses rotation where it is).
   if((e.key===' '||e.code==='Space') && window.CONSOLE && CONSOLE.motionEnable){ CONSOLE.motionEnable(false,true); }
   // ENTER up ends the kV hold-to-expose (cancels if the second wasn't reached; no-op once captured).
   if(e.key==='Enter' && window.CONSOLE && CONSOLE.acquireHoldCancel){ CONSOLE.acquireHoldCancel(); }
 });
-window.addEventListener('blur',()=>{ if(axisLock){ axisLock=null; axisLockKey=null; hideAxisCue(); }
+window.addEventListener('blur',()=>{ if(axisLock){ axisLock=null; axisLockKey=null; touchAxisLock=false; hideAxisCue(); syncTouchChips(); }
   if(window.CONSOLE && CONSOLE.motionEnable) CONSOLE.motionEnable(false,true); });
 
 // Load screen: pick an imaging workflow before the matcher is shown.
@@ -6289,7 +6385,16 @@ const CBCT=(function(){
 
   // expose the active case's 3D volume config so the raycaster (CBCT3D) is case-aware
   function cur3DVol(){return {key:caseKey, get:(VOLCASE[caseKey]&&VOLCASE[caseKey].get)||(()=>null), file:(VOLCASE[caseKey]&&VOLCASE[caseKey].file)||null};}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
+  // Touch nudge pad: drive the SELECTED plane's in-plane axes / Vrt / rotation, same path the CBCT
+  // arrow/Q-E keys use (0.5 mm or 0.5° per tap). axis: 'x'|'y'|'z'|'rot'.
+  function cbNudge(axis,dir){
+    const P=PLANES[active];
+    if(axis==='rot'){ adj(P.rot, (P.rot==='pitch'?-1:1)*dir*0.5); return; }
+    if(axis==='z'){ adj('z', dir*0.5); return; }
+    if(axis==='x'){ const fxe=(mprReady&&active==='sagittal')?-P.fx:P.fx; adj(P.sx, dir*0.5*fxe); return; }
+    if(axis==='y'){ adj(P.sy, dir*0.5*P.fy); return; }
+  }
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
 
