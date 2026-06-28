@@ -326,6 +326,11 @@
   window.RTAuth = {
     ready: ready,
     hasActiveSub: hasActiveSub,
+    // True when the signed-in user has free access via the comp allowlists (owner / tester email /
+    // institution domain) rather than a paid subscription. Exposed so /subscribe can keep comped
+    // users away from the pricing table — comping is an access grant only, it does NOT cancel or
+    // prevent a Clerk Billing subscription, so a comped user who checks out would still be charged.
+    isComped: isComped,
     // True when the visitor is NOT entitled to full access (signed out, or signed in without a
     // subscription). Folds in isComped() via hasActiveSub(), so subscribers/comped -> false.
     isFreeMode: function () { return !hasActiveSub(); },
