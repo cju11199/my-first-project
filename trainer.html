@@ -4763,7 +4763,7 @@ const CBCT=(function(){
             // c = boost centre in world mm from volume centre (Wx=+Left, Wy=+Posterior, Wz=+Superior).
             ptv:{c:[20,16,-41], gtvR:7, ptvR:8}},
     breast:{file:'breast3d_data.js', get:()=>typeof BREAST3D_VOL!=='undefined'?BREAST3D_VOL:null, win:{l:40,w:400},  contours:true},   // chest: soft-tissue/mediastinum window
-    spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:80,w:700},  contours:true},   // thoracic-spine SBRT: vertebral cortex vs soft tissue — this volume's bone tops ~370 HU, so a 1800-wide bone window crushed it flat
+    spine :{file:'spine3d_data.js',  get:()=>typeof SPINE3D_VOL!=='undefined'?SPINE3D_VOL:null,  win:{l:400,w:1800}, contours:true},   // thoracic-spine SBRT: re-sourced from a full-res diagnostic chest CT (real HU, cortical bone), so a standard bone window now shows the vertebral cortex/trabeculae for the bony match
     lung  :{file:'lung3d_data.js',   get:()=>typeof LUNG3D_VOL!=='undefined'?LUNG3D_VOL:null,    win:{l:-150,w:800}, contours:true,   // lung SBRT: window tuned to this atlas's lung HU so the lungs go dark and the peripheral RLL nodule pops (match the soft-tissue target, not bone)
             // off-bone differential motion: the GTV(bit 1) drifts vs the skeleton. Moving reslice hides the
             // planning-position lesion (overwrite with lung air dens 4) and redraws it at net-drift (lesion HU 74).
