@@ -1117,6 +1117,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <option value="pelvis">Pelvis &middot; CT DRR (3D)</option>
       <option value="thorax">Thorax &middot; CT DRR (3D)</option>
       <option value="femur">Femur &middot; CT DRR (3D)</option>
+      <option value="spine">Spine SBRT &middot; CT DRR (3D)</option>
       <option value="breast">Breast L &middot; SCV + Tangent</option>
       <option value="prostate">Prostate &middot; Fiducial Match</option>
     </select>
@@ -1681,6 +1682,12 @@ const CASES = {
   // shaft is the bony landmark. iso sits at the bone centroid (mid-shaft). Data in image_data.js.
   femur:{ name:'Femur · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
           iso:{ ap:{x:0.588,y:0.475}, lat:{x:0.454,y:0.475} }, tilt:null },
+  // Spine SBRT: orthogonal-pair (AP + Lateral) bone-emphasised DRRs of the thoracic spine,
+  // ray-summed from the SAME thoracic planning CT as the CBCT Spine case (spine3d_data.js).
+  // Flat (tilt:null) — the vertebral column is the bony landmark; iso sits at the T7 target.
+  // Tight SBRT tolerance (1 mm / 1°). Data in image_data.js (SPINE_AP_SRC / SPINE_LAT_SRC).
+  spine:{ name:'Spine SBRT · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
+          iso:{ ap:{x:0.502,y:0.515}, lat:{x:0.78,y:0.515} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
   // orthogonal pair -> 'ap' slot = SCV (gantry 0), 'lat' slot = Medial tangent (g~305).
   // Reference = full MLC DRR; the moving "acquired" image (por) is a clean anatomy
@@ -1763,6 +1770,7 @@ function hydrate2DCases(){
     CASES.pelvis.ap=PELVIS_AP_SRC; CASES.pelvis.lat=PELVIS_LAT_SRC;
     CASES.thorax.ap=THORAX_AP_SRC; CASES.thorax.lat=THORAX_LAT_SRC;
     if(typeof FEMUR_AP_SRC!=='undefined'){ CASES.femur.ap=FEMUR_AP_SRC; CASES.femur.lat=FEMUR_LAT_SRC; }
+    if(typeof SPINE_AP_SRC!=='undefined'){ CASES.spine.ap=SPINE_AP_SRC; CASES.spine.lat=SPINE_LAT_SRC; }
   }
   if(typeof BREAST_SCV_REF_SRC!=='undefined' && typeof BREAST_META!=='undefined'){
     const b=CASES.breast;
@@ -2694,6 +2702,8 @@ const CONSOLE_PLANS={
   thorax:{plan:'THORAX_3DC', couch:{vrt: 4.10, lng:90.30, lat: 0.20, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   femur:{plan:'FEMUR_3DC', couch:{vrt: 1.55, lng:72.80, lat: 2.85, rtn:0}, views:[
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
+  spine:{plan:'SPINE_SBRT', couch:{vrt: 3.40, lng:88.60, lat:-0.45, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   // Breast tangents are verified with MV (the gantry head / EPID), NOT kV: image each tangent field at its own
   // treatment gantry angle (medial ~G305, lateral ~G125 — parallel-opposed). mv:true + per-view angles override
@@ -4246,6 +4256,7 @@ const CASE_LISTS={
     {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair', b:'Match AP + lateral portal images to the pelvic bony anatomy.'},
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair', b:'Register a chest orthogonal pair to the planning DRRs.'},
     {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair', b:'Line up the femoral shaft on AP + lateral DRRs of the thigh.'},
+    {v:'spine',  t:'Spine SBRT', d:'CT DRR &middot; orthogonal pair', b:'Align the thoracic vertebral column on AP + lateral DRRs — tight SBRT tolerance.'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent', b:'Set up a left-breast medial tangent + supraclavicular field, Varian-style.'},
     {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match', b:'Voice-coach the patient into a breath-hold, then match both breast fields.'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match', b:'Drag a 3-marker triad onto the implanted gold seeds in both kV views.'},
@@ -4429,6 +4440,7 @@ const CASE_TOL={
   '2d2d:pelvis':    {t1:3, t2:7,   r1:2, r2:4},    // conventional pelvis
   '2d2d:thorax':    {t1:3, t2:7,   r1:2, r2:4},    // conventional thorax
   '2d2d:femur':     {t1:3, t2:7,   r1:2, r2:4},    // extremity / femur orthogonal pair
+  '2d2d:spine':     {t1:1, t2:2.5, r1:1, r2:2},    // spine SBRT — tight vertebral-level match
   '2d2d:breast':    {t1:5, t2:12,  r1:3, r2:4},    // breast SCV + tangent (loosest)
   '2d2d:breastDIBH':{t1:5, t2:12,  r1:3, r2:4},    // same match, breath-hold
   '2d2d:prostate':  {t1:3, t2:5.4, r1:3, r2:5.4},  // kV fiducial triad (FID2D); t2/r2 = accept*1.8

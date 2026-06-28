@@ -92,6 +92,18 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `image_data.js` reaches the blob, or the femur DRRs 404). **Licence CC BY 3.0** — attribute
   `doi:10.7937/K9/TCIA.2015.7GO2GSKS`, baked into the appended header. Visual rendering verified
   headlessly (QC stills); live-trainer look needs a real-browser check.
+- `generate_spine_2d.py` — offline helper for the **2D/2D Spine SBRT** case: **reuses the already
+  committed CBCT spine volume** (`spine3d_data.js`, TotalSegmentator thoracic planning CT) — no
+  network/DICOM. Decodes that tiled 0..255 density atlas (mirrors the trainer's `decodeVol`), converts
+  density→HU (`HU=density*(2000/255)-500`) → μ, and ray-sums bone-emphasised AP + Lateral DRRs via the
+  same Beer–Lambert path integral as the femur case, with a per-view **percentile contrast stretch**
+  (p38→p99.6) so the ~30 cm of overlapping thoracic soft tissue doesn't wash out the vertebral column
+  (the bony landmark). iso = the **T7 target** from `spine3d_labels_data.js` `isoIdx`. **Appends**
+  `SPINE_AP_SRC` + `SPINE_LAT_SRC` to `image_data.js` (rides the existing 2D infra — already in the
+  Phase-2 allowlists; **re-run the "Upload data to Blob" Action** after merge or the spine DRRs 404).
+  Tight SBRT tolerance (`2d2d:spine` `CASE_TOL` 1 mm / 1°). Re-run is idempotent only against a fresh
+  `image_data.js` (it appends), so restore the file before regenerating. Visual rendering verified
+  headlessly (QC stills); live-trainer look needs a real-browser check.
 - `generate_breast_clips.py` — re-runnable in-place editor for the Breast CBCT surgical clips: reads
   `breast3d_data.js` + `breast3d_labels_data.js`, erases the old large hard-edged density-255 clip blobs
   and re-stamps small (~3–4 mm) feathered bright cores at the same centroids, then rewrites label bit 64
@@ -238,8 +250,10 @@ Two workflows, picked on the start screen:
 
 ### Cases
 
-- **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style)
-  · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
+- **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Femur (extremity DRR; femoral-shaft landmark) ·
+  **Spine SBRT** (thoracic vertebral-column bony match, AP+Lat DRRs ray-summed from the CBCT spine
+  volume — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · Breast L (monoisocentric SCV +
+  medial-tangent, Varian-style) · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
   - **Breast DIBH (`DIBH` module):** button-driven deep-inspiration breath-hold coach docked as a **strip
     at the bottom of the 2D/2D match screen** (`#dibhStrip`, inside the `.match-col` wrapper that now holds
     `.views` + the strip), *not* a separate overlay — the RPM-style amplitude trace (cm) animates beside the
