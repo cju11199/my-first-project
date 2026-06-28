@@ -77,6 +77,23 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 - `generate_brain_contours.py` — offline helper that generated brain contour data.
 - `generate_lung_contours.py` — offline helper that injects the synthetic RLL nodule into the
   thoracic CT and writes `lung3d_data.js` + `lung3d_labels_data.js` (needs numpy/scipy/pillow).
+- `generate_spine_cbct.py` — offline helper that **rebuilds the CBCT Spine SBRT case**
+  (`spine3d_data.js` + `spine3d_labels_data.js`) from the **same full-res chest CT as the 2D Spine
+  case** (TCIA NSCLC-Radiogenomics R01-076, 0.8 mm), replacing the older 2.2 mm atlas. Structures
+  come from **TotalSegmentator** run on this exact CT (spinal_cord / esophagus / aorta / lung lobes /
+  thoracic vertebrae); the **PTV** is synthesised as the T7 vertebra + 4 mm carved 2 mm around the
+  cord (cord-avoiding SBRT PTV), and **body** is the largest thresholded blob. The volume is rebuilt at
+  a **moderate 1.6 mm** (NOT the source 0.8 mm — the trainer reslices it live in-browser; full-res
+  would be ~30 MB and janky). CT + masks are resampled onto a common 1.6 mm atlas grid in **world
+  (patient) coordinates** via affines (LPS↔RAS handled), so any orientation/flip between the pydicom
+  CT stack and the nibabel masks is correct; output matches the tiled-atlas format `decodeVol` /
+  `_decodeSpineLabels` expect (z-major tiles, X=LR cols, Y=AP rows; bits vertebra1/ptv2/cord4/esoph8/
+  aorta16/lung32/body64; `isoIdx` at the T7 centroid). Bumped `VOLCASE.spine` `win` to a real bone
+  window (400/1800) now that HU is genuine. **This makes the CBCT Spine case the same patient as the 2D
+  Spine case** (and a different patient than the old CBCT spine atlas). `spine3d_*` files were already
+  in the three Phase-2 allowlists; **re-run the "Upload data to Blob" Action** after merge. Needs
+  pydicom/nibabel/numpy/scipy/pillow + TotalSegmentator. Visual rendering verified headlessly (QC
+  stills); live-trainer look needs a real-browser check.
 - `generate_prostate_fiducials.py` — offline helper that implants 3 gold fiducials in the pelvis
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
 - `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
@@ -92,6 +109,24 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `image_data.js` reaches the blob, or the femur DRRs 404). **Licence CC BY 3.0** — attribute
   `doi:10.7937/K9/TCIA.2015.7GO2GSKS`, baked into the appended header. Visual rendering verified
   headlessly (QC stills); live-trainer look needs a real-browser check.
+- `generate_spine_2d.py` — offline helper for the **2D/2D Spine SBRT** case: ray-sums AP + Lateral
+  bone-emphasised DRRs of the thoracic spine from a **full-resolution diagnostic chest CT** (TCIA
+  **NSCLC-Radiogenomics** patient `R01-076`, the 0.8 mm "THINS" axial series). It masks to the body
+  (drops couch/arms), crops in-plane to the torso and z to a thoracic window on the spine, converts
+  HU→μ (two-segment, bone-emphasised) and ray-sums via the same Beer–Lambert path integral as the femur
+  case. DRR quality is wrung from the **rendering** (`project()`/`render()`): the float path-integral is
+  LANCZOS-upscaled in 32-bit **before** quantising (no posterisation of the soft-tissue→bone ramp), a
+  per-view **percentile contrast stretch** (p45→p99.7) windows the overlapping thoracic soft tissue
+  toward black so the vertebral column reads as the bright bony landmark, an **unsharp mask** crisps the
+  end-plate/pedicle edges, and it renders at **768 px**. iso sits at a **mid-thoracic vertebra** (bone
+  centroid in the posterior-central region). Writes `SPINE_AP_SRC` + `SPINE_LAT_SRC` to `image_data.js`
+  (rides the existing 2D infra — already in the Phase-2 allowlists; **re-run the "Upload data to Blob"
+  Action** after merge or the spine DRRs 404). Tight SBRT tolerance (`2d2d:spine` `CASE_TOL` 1 mm / 1°).
+  Re-run is **idempotent** (strips its own prior block before re-appending); needs the DICOM re-downloaded
+  from IDC (`s3://idc-open-data`, `idc-index`) into the scratchpad path. **Licence CC BY 3.0** — attribute
+  `doi:10.7937/k9/tcia.2017.7hs46erv`, baked into the appended header. **NOTE:** this re-sourced the case
+  off the original 2.2 mm CBCT spine atlas, so the 2D Spine case is now a **different patient** than the
+  CBCT Spine case. Visual rendering verified headlessly (QC stills); live-trainer look needs a real-browser check.
 - `generate_breast_clips.py` — re-runnable in-place editor for the Breast CBCT surgical clips: reads
   `breast3d_data.js` + `breast3d_labels_data.js`, erases the old large hard-edged density-255 clip blobs
   and re-stamps small (~3–4 mm) feathered bright cores at the same centroids, then rewrites label bit 64
@@ -222,8 +257,8 @@ Two workflows, picked on the start screen:
     Abdomen, Lung, Cerebellum); affects only the CT, not the background. Each case opens at a
     per-case default `win:{l,w}` in `VOLCASE` (applied in `applyCase()`), tuned to that volume's
     actual HU histogram for best viewing on open: pelvis 40/460, brain 500/1500 (skull-base bone
-    for the IAC match), breast 40/400, spine 80/700 (this volume's bone only reaches ~370 HU, so
-    the old 400/1800 bone window crushed it flat). HU model: `HU = density*(2000/255) - 500`,
+    for the IAC match), breast 40/400, spine 400/1800 (standard bone window — the spine case was
+    re-sourced from a full-res diagnostic chest CT with real cortical-bone HU). HU model: `HU = density*(2000/255) - 500`,
     `density<=0.5` = air → black.
   - **Contours**: per-structure show/hide; real label-volume contours.
   - **Pan** tool + middle-mouse drag; **Ctrl+R** cycles the primary view (Axial→Coronal→Sagittal);
@@ -238,8 +273,10 @@ Two workflows, picked on the start screen:
 
 ### Cases
 
-- **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Breast L (monoisocentric SCV + medial-tangent, Varian-style)
-  · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
+- **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Femur (extremity DRR; femoral-shaft landmark) ·
+  **Spine SBRT** (thoracic vertebral-column bony match, AP+Lat DRRs ray-summed from a full-resolution
+  diagnostic chest CT — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · Breast L (monoisocentric SCV +
+  medial-tangent, Varian-style) · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
   - **Breast DIBH (`DIBH` module):** button-driven deep-inspiration breath-hold coach docked as a **strip
     at the bottom of the 2D/2D match screen** (`#dibhStrip`, inside the `.match-col` wrapper that now holds
     `.views` + the strip), *not* a separate overlay — the RPM-style amplitude trace (cm) animates beside the
