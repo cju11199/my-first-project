@@ -192,7 +192,23 @@ main.shifts-collapsed .shift-tab{left:0}
 .btn-tool{background:transparent;color:var(--label);display:inline-flex;align-items:center;gap:7px;box-shadow:none;border-color:var(--border)}
 .btn-tool:hover{background:var(--panel2);color:var(--text);border-color:var(--border2)}
 .btn-tool.active{background:var(--accent-dim);color:var(--accent-hi);border-color:rgba(45,212,238,.5);box-shadow:0 0 0 3px var(--accent-dim),inset 0 0 12px -6px rgba(45,212,238,.6)}
-.btn-tool .glyph{font-size:13px;line-height:1}
+/* fixed icon slot: every tool glyph renders in a 16px box so labels line up
+   across both the 2D/2D and CBCT toolbars regardless of the unicode advance */
+.btn-tool .glyph{flex:none;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;font-size:14px;line-height:1;opacity:.82;transition:opacity .16s var(--ease)}
+.btn-tool:hover .glyph,.btn-tool.active .glyph{opacity:1}
+/* tame the Spyglass emoji so it sits at the same optical weight as the line glyphs */
+.btn-tool .glyph.icon-emoji{font-size:12px;filter:grayscale(1) brightness(1.4);opacity:.78}
+.btn-tool:hover .glyph.icon-emoji,.btn-tool.active .glyph.icon-emoji{opacity:.96;filter:grayscale(1) brightness(1.6)}
+/* unified tool tray: wraps the tools (not Menu) so both toolbars read as one
+   instrument panel at the same density. overflow MUST stay visible — the CBCT
+   contours dropdown (.cb-dd-menu) is absolutely positioned inside it. */
+.tool-tray{display:inline-flex;align-items:center;gap:4px;padding:4px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);background:linear-gradient(180deg,rgba(7,10,15,.55),rgba(11,15,21,.32));box-shadow:inset 0 1px 0 var(--hairline),inset 0 0 22px -16px #000;overflow:visible}
+.tool-tray .btn-tool{border-color:transparent;background:transparent;box-shadow:none;padding:7px 12px}
+.tool-tray .btn-tool:hover{background:var(--panel2);color:var(--text);border-color:var(--border)}
+/* keep the contours split-button seam visible now that resting borders are transparent */
+.tool-tray .cb-dd-main{border-color:transparent}
+.tool-tray .cb-dd-caret{border-color:transparent;border-left:1px solid var(--border2)}
+.tool-tray .tool-sep{height:18px;margin:0 2px}
 
 /* spyglass lens drawn over a view (square) */
 .spy-ring{position:absolute;z-index:9;border:2px solid var(--accent2);box-shadow:0 0 0 1px rgba(0,0,0,.7),0 0 22px rgba(255,122,69,.5);pointer-events:none;display:none}
@@ -899,10 +915,11 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </select>
     </div>
     <div class="header-controls">
+      <div class="tool-tray">
       <button class="btn-tool" id="cbWinBtn" onclick="CBCT.toggleWindowing()" title="Window / Level &mdash; sliders appear beside the image; right-click a slider for presets"><span class="glyph">&#9680;</span>Windowing</button>
       <button class="btn-tool" id="cbFusionBtn" onclick="CBCT.toggleFusion()"><span class="glyph">&#9681;</span>Fusion Color</button>
       <button class="btn-tool" id="cbPanBtn" onclick="CBCT.togglePan()" title="Pan the view &mdash; drag to slide the image (or hold the mouse wheel and drag)"><span class="glyph">&#10021;</span>Pan</button>
-      <button class="btn-tool" id="cbSpyBtn" onclick="CBCT.toggleSpy()" title="Spyglass — lens reveals the CT reference inside the CBCT"><span class="glyph">&#128269;</span>Spyglass</button>
+      <button class="btn-tool" id="cbSpyBtn" onclick="CBCT.toggleSpy()" title="Spyglass — lens reveals the CT reference inside the CBCT"><span class="glyph icon-emoji">&#128269;</span>Spyglass</button>
       <button class="btn-tool" id="cbCrossBtn" onclick="CBCT.toggleCross()" title="Crosshair match — splits the pane into 4 quadrants (CT &harr; CBCT diagonal); drag the centre"><span class="glyph">&#10010;</span>Crosshair</button>
       <div class="cb-dd">
         <button class="btn-tool cb-dd-main" id="cbContoursBtn" onclick="CBCT.toggleContours()"><span class="glyph">&#9711;</span>Contours</button>
@@ -935,6 +952,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           <div class="cb-dd-row on" id="cbCM_body"      onclick="CBCT.toggleStruct('body')"><span class="cb-dd-chk"></span><span class="cl-sw" style="background:#36e06a;color:#36e06a"></span>Body</div>
           <div class="cb-dd-row on" id="cbCM_iso"       onclick="CBCT.toggleStruct('iso')"><span class="cb-dd-chk"></span><span class="cl-sw iso"></span>Isocenter</div>
         </div>
+      </div>
       </div>
       <div class="tool-sep"></div>
       <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
@@ -1103,11 +1121,13 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     </select>
   </div>
   <div class="header-controls">
+    <div class="tool-tray">
     <button class="btn-tool" id="washBtn" onclick="toggleWash()"><span class="glyph">&#9681;</span>Color Wash</button>
     <button class="btn-tool" id="panBtn" onclick="togglePan()" title="Pan the view &mdash; drag to slide the image (or hold the mouse wheel / Shift+drag while zoomed)"><span class="glyph">&#10021;</span>Pan</button>
-    <button class="btn-tool" id="spyBtn" onclick="toggleSpy()"><span class="glyph">&#128269;</span>Spyglass</button>
+    <button class="btn-tool" id="spyBtn" onclick="toggleSpy()"><span class="glyph icon-emoji">&#128269;</span>Spyglass</button>
     <button class="btn-tool" id="contrastBtn" onclick="toggleContrast()"><span class="glyph">&#9728;</span>Contrast</button>
     <button class="btn-tool active" id="gridBtn" onclick="toggleGrid()"><span class="glyph">&#8853;</span>Iso/Grid</button>
+    </div>
     <div class="tool-sep"></div>
     <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
   </div>
