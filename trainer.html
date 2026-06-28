@@ -284,7 +284,8 @@ main.shifts-collapsed .shift-tab{left:0}
 .case-card .sc-icon{width:44px;height:44px;font-size:22px;margin-bottom:13px}
 .case-card .sc-icon svg{width:26px;height:26px}
 .case-card .sc-title{font-size:16px;margin-bottom:5px}
-.case-card .sc-desc{font-size:11.5px;line-height:1.45}
+.case-card .sc-desc{font-size:12px;line-height:1.5;flex:1}
+.case-card .sc-meta{margin-top:9px;font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .sc-stat{margin-top:12px;font-family:var(--mono);font-size:10.5px;color:var(--label);border-top:1px solid var(--hairline);padding-top:10px;letter-spacing:.02em}
 .sc-stat-done{color:var(--green)}
 .sc-stat-try{color:var(--accent2-hi)}
@@ -4221,40 +4222,40 @@ let currentMode=null;
 // case dropdowns). Clicking a mode reveals these; clicking one launches it.
 const CASE_LISTS={
   '2d2d':{label:'2D / 2D', icon:'◉', cases:[
-    {v:'brain',  t:'Brain',   d:'CT DRR &middot; orthogonal pair'},
-    {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair'},
-    {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair'},
-    {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair'},
-    {v:'breast', t:'Breast L', d:'SCV + medial tangent'},
-    {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match'},
-    {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match'},
+    {v:'brain',  t:'Brain',   d:'CT DRR &middot; orthogonal pair', b:'Align an orthogonal kV pair to the planning DRRs for a cranial setup.'},
+    {v:'pelvis', t:'Pelvis',  d:'CT DRR &middot; orthogonal pair', b:'Match AP + lateral portal images to the pelvic bony anatomy.'},
+    {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair', b:'Register a chest orthogonal pair to the planning DRRs.'},
+    {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair', b:'Line up the femoral shaft on AP + lateral DRRs of the thigh.'},
+    {v:'breast', t:'Breast L', d:'SCV + medial tangent', b:'Set up a left-breast medial tangent + supraclavicular field, Varian-style.'},
+    {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match', b:'Voice-coach the patient into a breath-hold, then match both breast fields.'},
+    {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match', b:'Drag a 3-marker triad onto the implanted gold seeds in both kV views.'},
   ]},
   'cbct':{label:'CBCT', icon:'☰', cases:[
     // CERVIX: CPTAC-UCEC (CC BY 4.0). Contrast pelvic CT, real UTERUS tumour annotation as the
     // soft-tissue target. Gynae 6DOF match — register the uterus, not the bony pelvis. Data built
     // by generate_cervix_cbct.py. This is the free/demo CBCT case.
-    {v:'cervix', t:'Gynae / Uterus',  d:'CBCT &middot; uterine target'},
-    {v:'brain',  t:'Acoustic neuroma', d:'CBCT &middot; IAC SRS'},
-    {v:'breast', t:'Breast',          d:'CBCT &middot; 6DOF'},
-    {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra'},
-    {v:'lung',   t:'Lung SBRT',       d:'CBCT &middot; RLL nodule'},
-    {v:'prostate',t:'Prostate',       d:'CBCT &middot; gold fiducials'},
+    {v:'cervix', t:'Gynae / Uterus',  d:'CBCT &middot; uterine target', b:'Register the uterus on cone-beam CT &mdash; soft tissue, not the bony pelvis.'},
+    {v:'brain',  t:'Acoustic neuroma', d:'CBCT &middot; IAC SRS', b:'Tight SRS match at the internal auditory canal, sparing the cochlea.'},
+    {v:'breast', t:'Breast',          d:'CBCT &middot; 6DOF', b:'Full 6DOF cone-beam match of a left-breast volume with contours.'},
+    {v:'spine',  t:'Spine SBRT',      d:'CBCT &middot; T7 vertebra', b:'Sub-millimetre SBRT match on the T7 vertebra beside the spinal cord.'},
+    {v:'lung',   t:'Lung SBRT',       d:'CBCT &middot; RLL nodule', b:'Register a small peripheral lung nodule that sits off the ribs.'},
+    {v:'prostate',t:'Prostate',       d:'CBCT &middot; gold fiducials', b:'Match three gold fiducials as bladder filling shifts the gland off bone.'},
     // PANCREAS: TCIA Pancreatic-CT-CBCT-SEG (CC BY 4.0). Breath-hold abdominal soft-tissue match;
     // stomach/duodenum + small-bowel OAR contours (no dedicated target ROI in this collection, so
     // the iso sits at the GI/pancreatic centroid). Data built by generate_pancreas_cbct.py.
-    {v:'pancreas',t:'Pancreas',       d:'CBCT &middot; breath-hold abdomen'},
+    {v:'pancreas',t:'Pancreas',       d:'CBCT &middot; breath-hold abdomen', b:'Breath-hold abdominal soft-tissue match around the pancreas and GI organs.'},
     // ACOUSTICMR: TCIA Vestibular-Schwannoma-SEG (CC BY 4.0). Contrast-T1 planning MR (not CT) —
     // tight SRS match on the enhancing tumour (TV) sparing the cochlea. Data built by generate_vs_mr.py.
-    {v:'acousticMR',t:'Acoustic neuroma · MR', d:'MR &middot; SRS &middot; cochlea-sparing'},
+    {v:'acousticMR',t:'Acoustic neuroma · MR', d:'MR &middot; SRS &middot; cochlea-sparing', b:'MR-guided SRS match on the schwannoma, protecting the nearby cochlea.'},
     // LIVER: TCIA Colorectal-Liver-Metastases (CC BY 4.0). Contrast CT, real liver + tumour (Mass)
     // DICOM-SEG contours. Soft-tissue liver-lesion match. Data built by generate_liver_sbrt.py.
-    {v:'liver',  t:'Liver SBRT',      d:'CBCT &middot; liver metastasis'},
+    {v:'liver',  t:'Liver SBRT',      d:'CBCT &middot; liver metastasis', b:'Soft-tissue SBRT match of a liver metastasis on contrast imaging.'},
     // GBM: TCIA UPenn-GBM (CC BY 4.0). Post-contrast T1 planning MR (not CT), real BraTS tumour SEG —
     // cranial match on the enhancing GTV + necrotic core, with peritumoral edema. Data by generate_gbm_mr.py.
-    {v:'gbm',    t:'Glioblastoma · MR', d:'MR &middot; cranial &middot; enhancing tumour'},
+    {v:'gbm',    t:'Glioblastoma · MR', d:'MR &middot; cranial &middot; enhancing tumour', b:'Cranial MR match on the enhancing tumour and necrotic core.'},
     // SARCOMA: TCIA Soft-tissue-Sarcoma (CC BY 3.0). Extremity CT (thigh), real GTV_Mass tumour.
     // Unusual limb anatomy; femur is the bony landmark. Data built by generate_sarcoma.py.
-    {v:'sarcoma',t:'Soft-tissue sarcoma', d:'CBCT &middot; thigh &middot; GTV match'},
+    {v:'sarcoma',t:'Soft-tissue sarcoma', d:'CBCT &middot; thigh &middot; GTV match', b:'Match a thigh soft-tissue tumour, using the femur as the bony landmark.'},
   ]},
 };
 function pickMode(mode){
@@ -4276,7 +4277,9 @@ function pickMode(mode){
     const locked=(micCase && !(window.DIBHVoice && DIBHVoice._possible)) || paidLocked;
     const title=c.t+(micCase?' <span class="mic-req" title="Voice-coached — requires a microphone (Chrome/Edge)">&#127908;</span>':'');
     el.className='start-card case-card'+(rtCardCleared(cid)?' cleared':'')+(locked?' locked':'')+(paidLocked?' paid-locked':'')+(freeMode&&isFreeCase?' free-case':'');
-    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+title+'</div><div class="sc-desc">'+c.d+'</div>'
+    el.innerHTML='<div class="sc-icon">'+list.icon+'</div><div class="sc-title">'+title+'</div>'
+      +'<div class="sc-desc">'+(c.b||c.d)+'</div>'
+      +(c.b?'<div class="sc-meta">'+c.d+'</div>':'')
       +(paidLocked?'<div class="lock-badge">&#128274; Subscribe to unlock</div>':(freeMode&&isFreeCase?'<div class="free-badge">Free to try</div>':''))
       +rtCardStat(cid);
     el.onclick=function(){ launchCase(mode,c.v); };
