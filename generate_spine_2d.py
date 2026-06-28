@@ -24,7 +24,7 @@ Needs numpy / pillow only.
 """
 import re, io, base64, json
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageFilter
 
 # ── Load the committed spine atlas (no network) ───────────────────────────────
 with open('spine3d_data.js') as f:
@@ -53,29 +53,32 @@ mu = np.where(hu < 0.0, MU_W * (1.0 + hu/1000.0),
                         MU_W * (1.0 + (hu/1000.0) * BONE_GAIN))
 mu = np.clip(mu, 0.0, None)
 
-# The thoracic projection integrates ~30 cm of overlapping soft tissue, so the raw Beer–Lambert
-# line integral is heavily DC-biased (lungs/mediastinum sit mid-grey, vertebrae barely separate).
-# A per-view PERCENTILE contrast stretch pushes the soft-tissue baseline toward black and lets the
-# vertebral column read as the bright bony landmark a tight SBRT match needs.
 def project(axis, dl_mm):
     A = mu.sum(axis=axis) * (dl_mm/10.0)            # ∫μ dl (cm) — Beer–Lambert line integral
-    lo, hi = np.percentile(A, 38), np.percentile(A, 99.6)
-    d = np.clip((A - lo) / (hi - lo + 1e-6), 0, 1)  # window out the soft-tissue baseline
-    d = d ** 0.85                                   # gentle gamma for radiographic contrast
-    img = (d * 255).astype(np.uint8)
-    return img[::-1]                                # flip z → superior at TOP
+    return A[::-1].astype(np.float32)               # flip z → superior at TOP (native res, unquantised)
 
-ap  = project(1, sp)    # sum over y(AP) → rows=z(SI), cols=x(LR)
-lat = project(2, sp)    # sum over x(LR) → rows=z(SI), cols=y(AP)
-
-def to_png_dataurl(arr, target_h=560):
-    h, w = arr.shape
-    im = Image.fromarray(arr, 'L').resize((max(1, round(w*target_h/h)), target_h), Image.LANCZOS)
+# The 2.2 mm / 8-bit source caps true detail, so quality comes from how the line integral is
+# rendered, not from inventing detail:
+#  • upscale the FLOAT path-integral first (LANCZOS in 32-bit 'F'), so the soft-tissue→bone ramp
+#    isn't posterised by the source's 8-bit density before we stretch it;
+#  • the thoracic projection integrates ~30 cm of overlapping soft tissue (lungs/mediastinum sit
+#    mid-grey, vertebrae barely separate), so a per-view PERCENTILE stretch windows the soft-tissue
+#    baseline toward black and lets the vertebral column read as the bright bony landmark;
+#  • an UNSHARP mask crisps the vertebral end-plates / pedicle edges the SBRT match keys on;
+#  • render at a higher target height so the browser isn't re-upscaling a small image.
+def render(A, target_h=768):
+    h, w = A.shape
+    tw = max(1, round(w * target_h / h))
+    U = np.asarray(Image.fromarray(A, 'F').resize((tw, target_h), Image.LANCZOS), np.float32)
+    lo, hi = np.percentile(U, 38), np.percentile(U, 99.6)
+    d = np.clip((U - lo) / (hi - lo + 1e-6), 0, 1) ** 0.85
+    im = Image.fromarray((d * 255).astype(np.uint8), 'L')
+    im = im.filter(ImageFilter.UnsharpMask(radius=2.4, percent=135, threshold=1))
     buf = io.BytesIO(); im.save(buf, 'PNG', compress_level=9)
     return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii'), im.size
 
-ap_url, ap_sz   = to_png_dataurl(ap)
-lat_url, lat_sz = to_png_dataurl(lat)
+ap_url, ap_sz   = render(project(1, sp))   # sum over y(AP) → rows=z(SI), cols=x(LR)
+lat_url, lat_sz = render(project(2, sp))   # sum over x(LR) → rows=z(SI), cols=y(AP)
 print(f'AP png {ap_sz}  LAT png {lat_sz}')
 
 # ── Isocenter = the T7 vertebral target (isoIdx from the spine LABEL volume) ──
@@ -88,15 +91,22 @@ iso = {
 }
 print(f'target {LMETA.get("target")}  isoIdx {LMETA["isoIdx"]}  → CASES.spine iso: {iso}')
 
-# ── Append to image_data.js ───────────────────────────────────────────────────
-with open('image_data.js', 'a') as f:
-    f.write('\n// ── Spine SBRT 2D/2D case ─────────────────────────────────────────────────\n')
-    f.write('// AP + Lateral bone-emphasised DRRs ray-summed from the thoracic-spine planning CT\n')
-    f.write('// (the same volume as the CBCT Spine SBRT case, spine3d_data.js). Vertebral-body\n')
-    f.write('// bony match; iso sits at the T7 target. Built by generate_spine_2d.py.\n')
-    f.write(f'const SPINE_AP_SRC="{ap_url}";\n')
-    f.write(f'const SPINE_LAT_SRC="{lat_url}";\n')
-print('appended SPINE_AP_SRC / SPINE_LAT_SRC to image_data.js')
+# ── Append to image_data.js (idempotent: strip any prior spine block first) ──
+with open('image_data.js') as f:
+    cur = f.read()
+cur = re.sub(r'\n// ── Spine SBRT 2D/2D case .*?const SPINE_LAT_SRC="[^"]*";\n',
+             '', cur, flags=re.S)
+block = (
+    '\n// ── Spine SBRT 2D/2D case ─────────────────────────────────────────────────\n'
+    '// AP + Lateral bone-emphasised DRRs ray-summed from the thoracic-spine planning CT\n'
+    '// (the same volume as the CBCT Spine SBRT case, spine3d_data.js). Vertebral-body\n'
+    '// bony match; iso sits at the T7 target. Built by generate_spine_2d.py.\n'
+    f'const SPINE_AP_SRC="{ap_url}";\n'
+    f'const SPINE_LAT_SRC="{lat_url}";\n'
+)
+with open('image_data.js', 'w') as f:
+    f.write(cur + block)
+print('wrote SPINE_AP_SRC / SPINE_LAT_SRC to image_data.js (idempotent)')
 
 # QC stills for review
 Image.open(io.BytesIO(base64.b64decode(ap_url.split(',')[1]))).save('/tmp/spine_ap_qc.png')
