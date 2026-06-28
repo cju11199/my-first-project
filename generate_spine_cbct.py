@@ -113,9 +113,37 @@ esoph= grid_mask(masks['esophagus'])
 aorta= grid_mask(masks['aorta'])
 lung = np.zeros((GX,GY,GZ),np.uint8)
 for L in LUNGS: lung |= grid_mask(masks[L])
-bm = ndimage.binary_fill_holes(hu>-350)                      # body = largest filled blob (drops any couch)
-lb,nn = ndimage.label(bm)
-if nn: bm = lb==(1+int(np.argmax(ndimage.sum(np.ones_like(lb),lb,range(1,nn+1)))))
+
+# Anti-alias the NN-resampled masks: gaussian-smooth + re-binarize at 0.5 rounds off the order-0
+# stair-steps so marching-squares draws smooth polylines; keep the largest CC to drop stray
+# fragments. Sigma 0.7/0.5-threshold is centroid-preserving (<0.15mm shift) so nothing moves.
+# Done BEFORE the PTV synth so PTV (dilate-vertebra / carve-cord) inherits the clean edges.
+def clean(m, sigma=0.7):
+    m = ndimage.gaussian_filter(m.astype(np.float32),sigma)>0.5
+    l,n = ndimage.label(m)
+    if n: m = l==(1+int(np.argmax(ndimage.sum(np.ones_like(l),l,range(1,n+1)))))
+    return m.astype(np.uint8)
+vert  = clean(vert)
+cord  = clean(cord)
+esoph = clean(esoph)
+aorta = clean(aorta)
+# LUNG is multi-lobe: smooth WITHOUT the largest-CC keep, or a lobe would be deleted.
+lung = (ndimage.gaussian_filter(lung.astype(np.float32),0.8)>0.5).astype(np.uint8)
+def _largest_cc(mask):                                       # keep the single largest connected component
+    l,nn = ndimage.label(mask)
+    if not nn: return mask
+    return l==(1+int(np.argmax(ndimage.sum(np.ones_like(l),l,range(1,nn+1)))))
+# Body: smooth+close the threshold, drop the couch (largest 3D CC), then fill PER AXIAL SLICE.
+# A 3D fill cannot close lung/airway/bowel air (it leaks to the outside via the trachea/apertures),
+# so those cavities reappear as interior holes in every 2D reslice -> stray green body speckle.
+# Filling each axial slice (SI axis = last grid axis Z) makes a solid torso silhouette per plane.
+bm = ndimage.gaussian_filter((hu>-350).astype(np.float32),0.8)>0.5
+bm = ndimage.binary_closing(bm, iterations=2)
+bm = _largest_cc(bm)
+for k in range(bm.shape[2]):                                 # SI axis = Z = last axis
+    sl = ndimage.binary_fill_holes(bm[:,:,k])
+    sl = _largest_cc(sl)
+    bm[:,:,k] = sl
 bodyg = bm.astype(np.uint8)
 
 # PTV = target vertebra + 4 mm, carved 2 mm around the cord (cord-avoiding SBRT PTV)
