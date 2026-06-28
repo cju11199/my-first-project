@@ -122,6 +122,16 @@ h1 .grad{background:linear-gradient(110deg,var(--accent-hi),var(--accent) 45%,va
   RTAuth.ready.then(function (Clerk) {
     var msg = document.getElementById('msg');
 
+    // Comped (owner / tester / institution domain)? They already have free access — never show
+    // them the pricing table. Comping is an access grant only; it does NOT stop Clerk Billing, so
+    // a comped user who checked out here would still be charged. Steer them to the trainer instead.
+    if (RTAuth.isComped()) {
+      msg.innerHTML = 'Your account already has free access — no subscription needed. ' +
+        '<a href="' + RTAuth.TRAINER_URL + '" style="color:var(--accent)">Open the trainer &rarr;</a>';
+      window.location.href = RTAuth.TRAINER_URL;
+      return;
+    }
+
     // Already subscribed? Go straight to the trainer.
     if (RTAuth.hasActiveSub()) { window.location.href = RTAuth.TRAINER_URL; return; }
 
