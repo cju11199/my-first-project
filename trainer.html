@@ -1683,11 +1683,12 @@ const CASES = {
   femur:{ name:'Femur · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
           iso:{ ap:{x:0.588,y:0.475}, lat:{x:0.454,y:0.475} }, tilt:null },
   // Spine SBRT: orthogonal-pair (AP + Lateral) bone-emphasised DRRs of the thoracic spine,
-  // ray-summed from the SAME thoracic planning CT as the CBCT Spine case (spine3d_data.js).
-  // Flat (tilt:null) — the vertebral column is the bony landmark; iso sits at the T7 target.
-  // Tight SBRT tolerance (1 mm / 1°). Data in image_data.js (SPINE_AP_SRC / SPINE_LAT_SRC).
+  // ray-summed from a full-resolution diagnostic chest CT (TCIA NSCLC-Radiogenomics R01-076,
+  // 0.8 mm). Flat (tilt:null) — the vertebral column is the bony landmark; iso sits at a
+  // mid-thoracic vertebra. Tight SBRT tolerance (1 mm / 1°). Data in image_data.js
+  // (SPINE_AP_SRC / SPINE_LAT_SRC). A different patient than the CBCT Spine case.
   spine:{ name:'Spine SBRT · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
-          iso:{ ap:{x:0.502,y:0.515}, lat:{x:0.78,y:0.515} }, tilt:null },
+          iso:{ ap:{x:0.501,y:0.5}, lat:{x:0.738,y:0.5} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
   // orthogonal pair -> 'ap' slot = SCV (gantry 0), 'lat' slot = Medial tangent (g~305).
   // Reference = full MLC DRR; the moving "acquired" image (por) is a clean anatomy

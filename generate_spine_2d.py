@@ -2,53 +2,77 @@
 """
 generate_spine_2d.py
 Build the 2D/2D **Spine SBRT** case: orthogonal-pair (AP + Lateral) bone-emphasised DRRs of the
-thoracic spine, ray-summed from the SAME thoracic-spine planning CT the CBCT Spine SBRT case uses
-(`spine3d_data.js`). The vertebral column is the bony landmark the student aligns; this is a plain
-flat (tilt:null) orthogonal-pair match, so it rides the existing 2D/2D DRR infrastructure (no
-parallax frames) exactly like the Femur case.
+thoracic spine, ray-summed from a **full-resolution diagnostic chest CT** (TCIA NSCLC-Radiogenomics
+patient R01-076, the "THINS" series — 423 axial slices, 0.8 mm isotropic, Siemens B31f). The
+vertebral column is the bony landmark the student aligns; this is a plain flat (tilt:null)
+orthogonal-pair match, so it rides the existing 2D/2D DRR infrastructure (no parallax frames)
+exactly like the Femur case.
 
-Unlike the femur/prostate 2D generators this needs **no network / DICOM** — it reuses the already
-committed CBCT spine atlas. The atlas is a tiled PNG of a 0..255 density volume (same format the
-trainer decodes in `decodeVol`): for z in 0..Z-1 the tile sits at column (z % tilesPerRow), row
-(z // tilesPerRow), each tile is X(cols=LR) by Y(rows=AP). Axes: x = LR (x0 = patient-right),
-y = AP (y0 = anterior), z = SI (z0 = inferior). Density→HU uses the trainer's model
-`HU = density*(2000/255) - 500`.
+History: this case originally reused the 2.2 mm / 8-bit CBCT spine atlas (spine3d_data.js); the
+DRRs were soft because of that source. It was re-sourced to this ~0.8 mm chest CT for crisp,
+diagnostic-quality vertebral detail. The 2D Spine case is therefore a DIFFERENT patient than the
+CBCT Spine case — fine, they are independent cases.
 
-Output: appended to image_data.js as
+Patient axes (HFS, IOP = identity): x = LR in column order, y = AP down the rows, z = SI up the
+stack. We mask to the body (drop couch/air), crop in-plane to the torso bbox and z to a thoracic
+window centred on the spine, then ray-sum AP (sum over y) and Lateral (sum over x).
+
+Rendering (where DRR quality actually comes from): a true Beer–Lambert path integral (∫μ·dl,
+two-segment HU→μ, bone-emphasised), then the float line-integral is LANCZOS-upscaled in 32-bit
+BEFORE quantising, a per-view percentile contrast stretch windows the overlapping soft tissue
+toward black so the vertebral column reads as the bright landmark, and an unsharp mask crisps the
+end-plate/pedicle edges. Renders at 768 px.
+
+Output: appended to image_data.js (idempotent — strips any prior spine block first) as
   const SPINE_AP_SRC  = "data:image/png;base64,...";   // rows=z(SI,sup at top), cols=x(LR)
   const SPINE_LAT_SRC = "data:image/png;base64,...";   // rows=z(SI,sup at top), cols=y(AP)
-plus prints the iso fractional positions (T7 target) for CASES.spine.
+plus prints the iso fractional positions (mid-thoracic vertebra) for CASES.spine.
 
-Source: thoracic-spine planning CT in spine3d_data.js (the CBCT Spine SBRT case volume).
-Needs numpy / pillow only.
+Licence: TCIA NSCLC-Radiogenomics, CC BY 3.0 — attribute doi:10.7937/k9/tcia.2017.7hs46erv.
+Needs pydicom / numpy / scipy / pillow.
 """
-import re, io, base64, json
+import os, glob, io, base64
 import numpy as np
+import pydicom
+from scipy import ndimage
 from PIL import Image, ImageFilter
 
-# ── Load the committed spine atlas (no network) ───────────────────────────────
-with open('spine3d_data.js') as f:
-    src = f.read()
-META = json.loads(re.search(r'const SPINE3D_VOL=(\{.*?\});', src).group(1))
-B64  = re.search(r"SPINE3D_VOL\.atlas='data:image/png;base64,([^']+)'", src).group(1)
-X, Y, Z = META['dims']                              # x=LR, y=AP, z=SI
-tpr = META['tilesPerRow']
-sp = META['spacingMm'][0]                           # 2.2 mm isotropic
-print(f'spine atlas {X}x{Y}x{Z}  iso spacing {sp} mm  zRange {META["zRange"]}')
+CTDIR = ('scratchpad/nsclc_spine/nsclc_radiogenomics/R01-076/'
+         '1.3.6.1.4.1.14519.5.2.1.4334.1501.137912259338324725690543803674/'
+         'CT_1.3.6.1.4.1.14519.5.2.1.4334.1501.201809319317668346803592237989')
 
-# Decode the tiled atlas → density volume vol[z,y,x] (mirror trainer decodeVol exactly)
-atlas = np.asarray(Image.open(io.BytesIO(base64.b64decode(B64))).convert('L'))
-vol = np.empty((Z, Y, X), np.float32)
-for z in range(Z):
-    tc, tr = z % tpr, z // tpr
-    vol[z] = atlas[tr*Y:tr*Y+Y, tc*X:tc*X+X]
+# ── Load the CT volume (z,y,x) in HU ──────────────────────────────────────────
+sl = [pydicom.dcmread(f) for f in glob.glob(os.path.join(CTDIR, '*.dcm'))]
+sl.sort(key=lambda d: float(d.ImagePositionPatient[2]))           # inferior → superior
+vol = np.stack([s.pixel_array.astype(np.float32) * float(s.RescaleSlope) + float(s.RescaleIntercept)
+                for s in sl])
+DZ, DY, DX = vol.shape
+psy, psx = [float(v) for v in sl[0].PixelSpacing]                 # row(y), col(x) spacing mm
+dz = abs(float(sl[1].ImagePositionPatient[2]) - float(sl[0].ImagePositionPatient[2]))
+print(f'CT {DX}x{DY}x{DZ}  spacing x={psx:.3f} y={psy:.3f} z={dz:.3f} mm  HU[{vol.min():.0f},{vol.max():.0f}]')
 
-# Density (0..255) → HU with the trainer's model, then HU → linear attenuation μ.
-hu = vol * (2000.0/255.0) - 500.0
+# ── Body mask: drop the couch + air so the lateral isn't summed through the table ──
+body = vol > -350
+body = ndimage.binary_fill_holes(body)
+lab, n = ndimage.label(body)
+sizes = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+body = lab == (1 + int(np.argmax(sizes)))                         # largest blob = patient
+vol = np.where(body, vol, -1000.0)
 
-# ── Beer–Lambert DRR: integrate μ along each ray (same two-segment bone-emphasis as femur) ──
+# ── Crop: in-plane to the torso bbox (+margin); z to a thoracic window on the spine ──
+zz, yy, xx = np.where(body)
+MARGIN = 8
+x0, x1 = max(0, xx.min()-MARGIN), min(DX, xx.max()+MARGIN)
+y0, y1 = max(0, yy.min()-MARGIN), min(DY, yy.max()+MARGIN)
+# Thoracic window: trim the lowest/highest ~12% (shoulders/upper-abdomen) to centre on the T-spine.
+z0 = int(DZ*0.10); z1 = int(DZ*0.90)
+ct = vol[z0:z1, y0:y1, x0:x1].astype(np.float32)
+print(f'crop x[{x0}:{x1}] y[{y0}:{y1}] z[{z0}:{z1}] → {ct.shape[::-1]}')
+
+# ── Beer–Lambert DRR: integrate linear attenuation along each ray (two-segment HU→μ, bone-bright) ──
 MU_W = 0.206            # water linear attenuation ~50 keV (1/cm)
-BONE_GAIN = 3.2         # steepen HU→μ slope above 0 HU to emphasise cortical bone (spine is the landmark)
+BONE_GAIN = 3.0         # steepen HU→μ slope above 0 HU to emphasise cortical bone (the spine landmark)
+hu = ct
 mu = np.where(hu < 0.0, MU_W * (1.0 + hu/1000.0),
                         MU_W * (1.0 + (hu/1000.0) * BONE_GAIN))
 mu = np.clip(mu, 0.0, None)
@@ -57,50 +81,49 @@ def project(axis, dl_mm):
     A = mu.sum(axis=axis) * (dl_mm/10.0)            # ∫μ dl (cm) — Beer–Lambert line integral
     return A[::-1].astype(np.float32)               # flip z → superior at TOP (native res, unquantised)
 
-# The 2.2 mm / 8-bit source caps true detail, so quality comes from how the line integral is
-# rendered, not from inventing detail:
-#  • upscale the FLOAT path-integral first (LANCZOS in 32-bit 'F'), so the soft-tissue→bone ramp
-#    isn't posterised by the source's 8-bit density before we stretch it;
-#  • the thoracic projection integrates ~30 cm of overlapping soft tissue (lungs/mediastinum sit
-#    mid-grey, vertebrae barely separate), so a per-view PERCENTILE stretch windows the soft-tissue
-#    baseline toward black and lets the vertebral column read as the bright bony landmark;
-#  • an UNSHARP mask crisps the vertebral end-plates / pedicle edges the SBRT match keys on;
-#  • render at a higher target height so the browser isn't re-upscaling a small image.
+# Quality is wrung from the render, not invented: float-domain LANCZOS upscale (no posterisation),
+# per-view percentile stretch (window soft tissue toward black), unsharp edge crisping, 768 px.
 def render(A, target_h=768):
     h, w = A.shape
     tw = max(1, round(w * target_h / h))
     U = np.asarray(Image.fromarray(A, 'F').resize((tw, target_h), Image.LANCZOS), np.float32)
-    lo, hi = np.percentile(U, 38), np.percentile(U, 99.6)
-    d = np.clip((U - lo) / (hi - lo + 1e-6), 0, 1) ** 0.85
+    lo, hi = np.percentile(U, 45), np.percentile(U, 99.7)
+    d = np.clip((U - lo) / (hi - lo + 1e-6), 0, 1) ** 0.9
     im = Image.fromarray((d * 255).astype(np.uint8), 'L')
-    im = im.filter(ImageFilter.UnsharpMask(radius=2.4, percent=135, threshold=1))
+    im = im.filter(ImageFilter.UnsharpMask(radius=2.0, percent=120, threshold=1))
     buf = io.BytesIO(); im.save(buf, 'PNG', compress_level=9)
     return 'data:image/png;base64,' + base64.b64encode(buf.getvalue()).decode('ascii'), im.size
 
-ap_url, ap_sz   = render(project(1, sp))   # sum over y(AP) → rows=z(SI), cols=x(LR)
-lat_url, lat_sz = render(project(2, sp))   # sum over x(LR) → rows=z(SI), cols=y(AP)
+ap_url, ap_sz   = render(project(1, psy))   # sum over y(AP) → rows=z(SI), cols=x(LR)
+lat_url, lat_sz = render(project(2, psx))   # sum over x(LR) → rows=z(SI), cols=y(AP)
 print(f'AP png {ap_sz}  LAT png {lat_sz}')
 
-# ── Isocenter = the T7 vertebral target (isoIdx from the spine LABEL volume) ──
-with open('spine3d_labels_data.js') as f:
-    LMETA = json.loads(re.search(r'const SPINE3D_LABELS=(\{.*?\});', f.read()).group(1))
-ix, iy, iz = LMETA['isoIdx']                        # [x,y,z] voxel index of the T7 target
+# ── Isocenter = a mid-thoracic vertebral body (bone centroid in the posterior-central region) ──
+CH, CY, CX = ct.shape
+bone = ct > 250
+# Restrict to the vertebral column: central 40% in x (LR), posterior 45% in y (AP).
+col = np.zeros_like(bone)
+col[:, int(CY*0.55):, int(CX*0.30):int(CX*0.70)] = bone[:, int(CY*0.55):, int(CX*0.30):int(CX*0.70)]
+bz, by, bx = np.where(col)
+iso_x, iso_y, iso_z = bx.mean(), by.mean(), CH/2.0               # mid-z = mid-thoracic level
 iso = {
-  'ap':  {'x': round(ix/X, 3), 'y': round((Z - iz)/Z, 3)},   # AP: cols=x, rows=z(flipped, sup top)
-  'lat': {'x': round(iy/Y, 3), 'y': round((Z - iz)/Z, 3)},   # LAT: cols=y, rows=z(flipped)
+  'ap':  {'x': round(iso_x/CX, 3), 'y': round((CH - iso_z)/CH, 3)},   # AP: cols=x, rows=z(flipped, sup top)
+  'lat': {'x': round(iso_y/CY, 3), 'y': round((CH - iso_z)/CH, 3)},   # LAT: cols=y, rows=z(flipped)
 }
-print(f'target {LMETA.get("target")}  isoIdx {LMETA["isoIdx"]}  → CASES.spine iso: {iso}')
+print(f'iso (mid-thoracic vertebra) → CASES.spine iso: {iso}')
 
 # ── Append to image_data.js (idempotent: strip any prior spine block first) ──
+import re
 with open('image_data.js') as f:
     cur = f.read()
 cur = re.sub(r'\n// ── Spine SBRT 2D/2D case .*?const SPINE_LAT_SRC="[^"]*";\n',
              '', cur, flags=re.S)
 block = (
     '\n// ── Spine SBRT 2D/2D case ─────────────────────────────────────────────────\n'
-    '// AP + Lateral bone-emphasised DRRs ray-summed from the thoracic-spine planning CT\n'
-    '// (the same volume as the CBCT Spine SBRT case, spine3d_data.js). Vertebral-body\n'
-    '// bony match; iso sits at the T7 target. Built by generate_spine_2d.py.\n'
+    '// AP + Lateral bone-emphasised DRRs ray-summed from a full-resolution diagnostic chest CT\n'
+    '// (TCIA NSCLC-Radiogenomics R01-076, 0.8 mm THINS series). Vertebral-body bony match; iso\n'
+    '// sits at a mid-thoracic vertebra. Licence CC BY 3.0 — doi:10.7937/k9/tcia.2017.7hs46erv.\n'
+    '// Built by generate_spine_2d.py.\n'
     f'const SPINE_AP_SRC="{ap_url}";\n'
     f'const SPINE_LAT_SRC="{lat_url}";\n'
 )

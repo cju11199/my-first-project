@@ -92,22 +92,24 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `image_data.js` reaches the blob, or the femur DRRs 404). **Licence CC BY 3.0** — attribute
   `doi:10.7937/K9/TCIA.2015.7GO2GSKS`, baked into the appended header. Visual rendering verified
   headlessly (QC stills); live-trainer look needs a real-browser check.
-- `generate_spine_2d.py` — offline helper for the **2D/2D Spine SBRT** case: **reuses the already
-  committed CBCT spine volume** (`spine3d_data.js`, TotalSegmentator thoracic planning CT) — no
-  network/DICOM. Decodes that tiled 0..255 density atlas (mirrors the trainer's `decodeVol`), converts
-  density→HU (`HU=density*(2000/255)-500`) → μ, and ray-sums bone-emphasised AP + Lateral DRRs via the
-  same Beer–Lambert path integral as the femur case. The 2.2 mm / 8-bit source caps true detail, so DRR
-  quality is wrung from the **rendering** (`project()`/`render()`): the float path-integral is LANCZOS-
-  upscaled in 32-bit **before** quantising (no 8-bit posterisation of the soft-tissue→bone ramp), then a
-  per-view **percentile contrast stretch** (p38→p99.6) windows the ~30 cm of overlapping thoracic soft
-  tissue toward black so the vertebral column reads as the bright bony landmark, an **unsharp mask**
-  crisps the end-plate/pedicle edges, and it renders at **768 px**. iso = the **T7 target** from
-  `spine3d_labels_data.js` `isoIdx`. Writes `SPINE_AP_SRC` + `SPINE_LAT_SRC` to `image_data.js` (rides the
-  existing 2D infra — already in the Phase-2 allowlists; **re-run the "Upload data to Blob" Action** after
-  merge or the spine DRRs 404). Tight SBRT tolerance (`2d2d:spine` `CASE_TOL` 1 mm / 1°). Re-run is
-  **idempotent** (strips its own prior block before re-appending). For a genuinely sharper DRR the only
-  real lever is re-sourcing the original full-res DICOM (a different patient than the CBCT spine atlas).
-  Visual rendering verified headlessly (QC stills); live-trainer look needs a real-browser check.
+- `generate_spine_2d.py` — offline helper for the **2D/2D Spine SBRT** case: ray-sums AP + Lateral
+  bone-emphasised DRRs of the thoracic spine from a **full-resolution diagnostic chest CT** (TCIA
+  **NSCLC-Radiogenomics** patient `R01-076`, the 0.8 mm "THINS" axial series). It masks to the body
+  (drops couch/arms), crops in-plane to the torso and z to a thoracic window on the spine, converts
+  HU→μ (two-segment, bone-emphasised) and ray-sums via the same Beer–Lambert path integral as the femur
+  case. DRR quality is wrung from the **rendering** (`project()`/`render()`): the float path-integral is
+  LANCZOS-upscaled in 32-bit **before** quantising (no posterisation of the soft-tissue→bone ramp), a
+  per-view **percentile contrast stretch** (p45→p99.7) windows the overlapping thoracic soft tissue
+  toward black so the vertebral column reads as the bright bony landmark, an **unsharp mask** crisps the
+  end-plate/pedicle edges, and it renders at **768 px**. iso sits at a **mid-thoracic vertebra** (bone
+  centroid in the posterior-central region). Writes `SPINE_AP_SRC` + `SPINE_LAT_SRC` to `image_data.js`
+  (rides the existing 2D infra — already in the Phase-2 allowlists; **re-run the "Upload data to Blob"
+  Action** after merge or the spine DRRs 404). Tight SBRT tolerance (`2d2d:spine` `CASE_TOL` 1 mm / 1°).
+  Re-run is **idempotent** (strips its own prior block before re-appending); needs the DICOM re-downloaded
+  from IDC (`s3://idc-open-data`, `idc-index`) into the scratchpad path. **Licence CC BY 3.0** — attribute
+  `doi:10.7937/k9/tcia.2017.7hs46erv`, baked into the appended header. **NOTE:** this re-sourced the case
+  off the original 2.2 mm CBCT spine atlas, so the 2D Spine case is now a **different patient** than the
+  CBCT Spine case. Visual rendering verified headlessly (QC stills); live-trainer look needs a real-browser check.
 - `generate_breast_clips.py` — re-runnable in-place editor for the Breast CBCT surgical clips: reads
   `breast3d_data.js` + `breast3d_labels_data.js`, erases the old large hard-edged density-255 clip blobs
   and re-stamps small (~3–4 mm) feathered bright cores at the same centroids, then rewrites label bit 64
@@ -255,8 +257,8 @@ Two workflows, picked on the start screen:
 ### Cases
 
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Femur (extremity DRR; femoral-shaft landmark) ·
-  **Spine SBRT** (thoracic vertebral-column bony match, AP+Lat DRRs ray-summed from the CBCT spine
-  volume — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · Breast L (monoisocentric SCV +
+  **Spine SBRT** (thoracic vertebral-column bony match, AP+Lat DRRs ray-summed from a full-resolution
+  diagnostic chest CT — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · Breast L (monoisocentric SCV +
   medial-tangent, Varian-style) · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
   - **Breast DIBH (`DIBH` module):** button-driven deep-inspiration breath-hold coach docked as a **strip
     at the bottom of the 2D/2D match screen** (`#dibhStrip`, inside the `.match-col` wrapper that now holds
