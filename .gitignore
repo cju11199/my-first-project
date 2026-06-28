@@ -37,3 +37,4 @@ node_modules/
 # Local minified build artifacts (Vercel produces these at deploy time; never commit them)
 trainer.min.html
 clerk-auth.min.js
+trainer_test.html
