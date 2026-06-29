@@ -827,7 +827,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
    exactly like the 2D/2D .console-strip), NOT a full-screen overlay. Used by CBCT + kV fiducial. */
 .cbct-pane-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 .cbct-pane-col .cbct-panes{flex:1;min-height:0}
-.cb-acq{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:9px 14px;flex:0 0 auto;color:#eaf1f8}
+.cb-acq{display:flex;align-items:stretch;gap:12px;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:10px 12px;flex:0 0 auto;color:#eaf1f8}
 .cb-acq.hidden{display:none}
 .cb-acq-viz{flex:0 0 96px;display:flex;flex-direction:column;align-items:center;gap:2px;background:#04070b;border:1px solid var(--border2);border-radius:10px;padding:6px 4px}
 .cb-acq-svg{width:78px;height:78px;display:block}
@@ -1257,7 +1257,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
     </div><!-- /.cbct-panes -->
     <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()">
-      <div class="cb-acq-viz">
+      <div class="con-viz">
         <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
           <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
           <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
@@ -1270,16 +1270,46 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
             <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
           </g>
         </svg>
-        <div class="cb-acq-ang" id="cbAcqAng">Gantry 90&deg;</div>
       </div>
-      <div class="cb-acq-side">
-        <div class="cb-acq-head"><span class="cb-acq-title">Cone-Beam CT &middot; Acquisition</span><span class="cb-acq-lamp" id="cbAcqLamp">ROTATE &rarr; 180&deg;</span></div>
-        <div class="cb-acq-sub" id="cbAcqMsg">Hold Motion Enable to rotate the gantry to the 180&deg; cone-beam start position.</div>
-        <div class="cb-acq-bar" id="cbAcqBarWrap" style="display:none"><i id="cbAcqBar"></i></div>
-        <div class="cb-acq-btns">
-          <button class="cb-acq-btn motion" id="cbAcqMotion" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
-          <button class="cb-acq-btn primary" id="cbAcqGo" style="display:none" onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()">&#9673;&nbsp;Cone-beam on (hold)</button>
+      <div class="con-couch" aria-label="Couch coordinates">
+        <span class="con-couch-ttl">COUCH</span>
+        <div class="con-cell"><span class="cl">VRT</span><b>-3.20</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LNG</span><b>24.50</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LAT</span><b>0.10</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">RTN</span><b>0.0</b><span class="u">&deg;</span></div>
+      </div>
+      <div class="con-side con-pendant">
+        <div class="con-pendant-hd"><span class="con-pendant-ttl">CONE-BEAM CT CONSOLE</span><span class="con-pendant-sn">OBI &middot; CBCT</span></div>
+        <div class="con-pendant-screen">
+          <div class="con-gauge off" id="cbaGauge">
+            <svg viewBox="0 0 46 46" class="con-headsvg" aria-hidden="true">
+              <circle class="con-gauge-ring" cx="23" cy="23" r="19"/>
+              <line class="con-gauge-tick" x1="23" y1="2" x2="23" y2="7"/>
+              <line class="con-gauge-tick" x1="44" y1="23" x2="39" y2="23"/>
+              <line class="con-gauge-tick" x1="23" y1="44" x2="23" y2="39"/>
+              <line class="con-gauge-tick" x1="2" y1="23" x2="7" y2="23"/>
+              <g id="cbaGaugeRig" transform="rotate(90 23 23)">
+                <line class="con-headarm" x1="23" y1="23" x2="23" y2="9"/>
+                <rect class="con-headblk" x="18" y="4" width="10" height="6" rx="1.5"/>
+              </g>
+              <circle class="con-gauge-pt" cx="23" cy="23" r="3.4"/>
+            </svg>
+          </div>
+          <div class="con-lcd">
+            <div class="con-lcd-row"><span class="lk">GANTRY</span><b id="cbaLcdG">090.0&deg;</b></div>
+            <div class="con-lcd-row"><b class="con-lcd-st off" id="cbaLcdSt">ROTATE &rarr; G180</b></div>
+            <div class="con-lcd-leds">
+              <span class="con-lamp" id="cbaLampRot"><i></i>ROT</span>
+              <span class="con-lamp" id="cbaLampAcq"><i></i>ACQ</span>
+              <span class="con-lamp" id="cbaLampReady"><i></i>READY</span>
+            </div>
+          </div>
         </div>
+        <div class="con-pendant-btns">
+          <button class="pbtn motion" id="cbAcqMotion" type="button" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()" title="HOLD to drive the gantry to the 180&deg; cone-beam start"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">hold</span></button>
+          <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="HOLD to scan the 360&deg; cone-beam acquisition"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">hold</span><i class="con-acqprog" id="cbAcqBar"></i></button>
+        </div>
+        <div class="con-msg" id="cbAcqMsg">Hold MOTION ENABLE to rotate the gantry to the 180&deg; cone-beam start position.</div>
       </div>
     </div>
     </div><!-- /.cbct-pane-col -->
@@ -1469,7 +1499,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
        (panes stay visible, like the 2D console-strip). Rotate to AP/Lat kV positions and hold-expose
        each radiograph before the marker match unlocks. -->
   <div class="cb-acq hidden" id="fidAcq" onpointerdown="event.stopPropagation()">
-    <div class="cb-acq-viz">
+    <div class="con-viz">
       <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
         <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
         <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
@@ -1482,16 +1512,46 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
         </g>
       </svg>
-      <div class="cb-acq-ang" id="fidAcqAng">Gantry 90&deg;</div>
     </div>
-    <div class="cb-acq-side">
-      <div class="cb-acq-head"><span class="cb-acq-title">kV Fiducial Imaging &middot; Acquisition</span><span class="cb-acq-lamp" id="fidAcqLamp">ROTATE &rarr; 0&deg;</span><span class="fid-cap"><span class="cap-dot" id="fidCapAP"></span>AP&nbsp;&nbsp;<span class="cap-dot" id="fidCapLAT"></span>Lateral</span></div>
-      <div class="cb-acq-sub" id="fidAcqMsg">Hold Motion Enable to rotate the gantry to the AP kV imaging position.</div>
-      <div class="cb-acq-bar" id="fidAcqBarWrap" style="display:none"><i id="fidAcqBar"></i></div>
-      <div class="cb-acq-btns">
-        <button class="cb-acq-btn motion" id="fidAcqMotion" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
-        <button class="cb-acq-btn primary" id="fidAcqGo" style="display:none" onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()">&#9673;&nbsp;kV beam on (hold)</button>
+    <div class="con-couch" aria-label="Couch coordinates">
+      <span class="con-couch-ttl">COUCH</span>
+      <div class="con-cell"><span class="cl">VRT</span><b>-3.20</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">LNG</span><b>24.50</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">LAT</span><b>0.10</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">RTN</span><b>0.0</b><span class="u">&deg;</span></div>
+    </div>
+    <div class="con-side con-pendant">
+      <div class="con-pendant-hd"><span class="con-pendant-ttl">kV FIDUCIAL CONSOLE</span><span class="con-pendant-sn">OBI &middot; kV/kV</span></div>
+      <div class="con-pendant-screen">
+        <div class="con-gauge off" id="fdaGauge">
+          <svg viewBox="0 0 46 46" class="con-headsvg" aria-hidden="true">
+            <circle class="con-gauge-ring" cx="23" cy="23" r="19"/>
+            <line class="con-gauge-tick" x1="23" y1="2" x2="23" y2="7"/>
+            <line class="con-gauge-tick" x1="44" y1="23" x2="39" y2="23"/>
+            <line class="con-gauge-tick" x1="23" y1="44" x2="23" y2="39"/>
+            <line class="con-gauge-tick" x1="2" y1="23" x2="7" y2="23"/>
+            <g id="fdaGaugeRig" transform="rotate(90 23 23)">
+              <line class="con-headarm" x1="23" y1="23" x2="23" y2="9"/>
+              <rect class="con-headblk" x="18" y="4" width="10" height="6" rx="1.5"/>
+            </g>
+            <circle class="con-gauge-pt" cx="23" cy="23" r="3.4"/>
+          </svg>
+        </div>
+        <div class="con-lcd">
+          <div class="con-lcd-row"><span class="lk">GANTRY</span><b id="fdaLcdG">090.0&deg;</b></div>
+          <div class="con-lcd-row"><b class="con-lcd-st off" id="fdaLcdSt">ROTATE &rarr; G0 (AP)</b></div>
+          <div class="con-lcd-leds">
+            <span class="con-lamp" id="fdaLampAP"><i></i>AP</span>
+            <span class="con-lamp" id="fdaLampLat"><i></i>LAT</span>
+            <span class="con-lamp" id="fdaLampReady"><i></i>READY</span>
+          </div>
+        </div>
       </div>
+      <div class="con-pendant-btns">
+        <button class="pbtn motion" id="fidAcqMotion" type="button" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()" title="HOLD to drive the gantry to the kV imaging position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">hold</span></button>
+        <button class="pbtn kvbeam" id="fidAcqGo" type="button" disabled onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()" title="HOLD to take the kV exposure"><span class="pbtn-lbl">kV BEAM ON</span><span class="pbtn-key">hold</span><i class="con-acqprog" id="fidAcqBar"></i></button>
+      </div>
+      <div class="con-msg" id="fidAcqMsg">Hold MOTION ENABLE to rotate the gantry to the AP kV imaging position.</div>
     </div>
   </div>
   <!-- DIBH breath-hold coaching strip: breathing trace + coaching buttons, docked at the bottom
@@ -2831,24 +2891,30 @@ const FID2D=(function(){
   /* ---- kV acquisition console (rotate to AP/Lat, hold-expose each, then unlock the match) ---- */
   function fAcqStopRaf(){if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fMot=false;fExpoHold=false;}
   function fAcqArm(){fAcqStopRaf();fExpoP=0;fCap={ap:false,lat:false};if(fAcqUses()){fAcqPhase='rotAP';fGantry=90;}else{fAcqPhase='ready';}fAcqRender();}
+  function fAcqLamp(id,on,kind){const e=document.getElementById(id);if(e)e.className='con-lamp'+(on?' '+(kind||'on'):'');}
+  function fAcqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
   function fAcqRender(){
     const wrap=document.getElementById('fidAcq');if(!wrap)return;
     if(!fAcqUses()){wrap.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',fAcqPhase==='ready');
-    const rig=document.getElementById('fidAcqRig');if(rig)rig.setAttribute('transform','rotate('+(fGantry-90)+' 100 100)');
-    const ang=document.getElementById('fidAcqAng');if(ang)ang.textContent='Gantry '+Math.round(((fGantry%360)+360)%360)+'°';
+    const rig=document.getElementById('fidAcqRig');if(rig)rig.setAttribute('transform','rotate('+(fGantry-90)+' 100 100)');   // linac viz
+    const a=((fGantry%360)+360)%360;
+    const grig=document.getElementById('fdaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
+    const lg=document.getElementById('fdaLcdG');if(lg)lg.textContent=fAcqFmtG(fGantry);
     const rot=(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'),arm=(fAcqPhase==='armAP'||fAcqPhase==='armLAT');
-    const mot=document.getElementById('fidAcqMotion');if(mot)mot.style.display=rot?'':'none';
-    const go=document.getElementById('fidAcqGo');if(go)go.style.display=arm?'':'none';
-    const barW=document.getElementById('fidAcqBarWrap');if(barW)barW.style.display=arm?'':'none';
+    const gauge=document.getElementById('fdaGauge');if(gauge)gauge.className='con-gauge '+(fExpoHold?'moving':arm?'ok':'off');
+    const mot=document.getElementById('fidAcqMotion');if(mot){mot.disabled=!rot;mot.classList.toggle('needmove',rot&&!fMot);mot.classList.toggle('moving',fMot);}
+    const go=document.getElementById('fidAcqGo');if(go)go.disabled=!arm;
     const bar=document.getElementById('fidAcqBar');if(bar)bar.style.width=Math.round(fExpoP*100)+'%';
-    const dap=document.getElementById('fidCapAP');if(dap)dap.className='cap-dot'+(fCap.ap?' on':'');
-    const dlat=document.getElementById('fidCapLAT');if(dlat)dlat.className='cap-dot'+(fCap.lat?' on':'');
+    fAcqLamp('fdaLampAP',fCap.ap,'on');
+    fAcqLamp('fdaLampLat',fCap.lat,'on');
+    fAcqLamp('fdaLampReady',fAcqPhase==='ready','on');
     const which=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?'AP':'Lateral',tgt=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?0:90;
-    const msg=document.getElementById('fidAcqMsg');let lamp='STANDBY';
-    if(rot){if(msg)msg.textContent='Hold Motion Enable to rotate the gantry to the '+which+' kV imaging position ('+tgt+'°).';lamp='ROTATE → '+tgt+'°';}
-    else if(arm){if(msg)msg.textContent='Gantry at '+tgt+'°. Hold kV Beam On to acquire the '+which+' radiograph.';lamp=fExpoHold?'EXPOSING':'READY';}
-    const L=document.getElementById('fidAcqLamp');if(L){L.textContent=lamp;L.className='cb-acq-lamp'+(arm&&fExpoHold?' live':'')+(arm&&!fExpoHold?' ready':'');}
+    const st=document.getElementById('fdaLcdSt');
+    if(st){let t,c;if(rot){t='ROTATE → G'+tgt+' ('+which+')';c='off';}else{t=fExpoHold?('EXPOSING '+which+'…'):('AT G'+tgt+' · EXPOSE '+which);c=fExpoHold?'moving':'ok';}st.textContent=t;st.className='con-lcd-st '+c;}
+    const msg=document.getElementById('fidAcqMsg');
+    if(msg)msg.textContent=rot?('Hold MOTION ENABLE to rotate the gantry to the '+which+' kV imaging position (G'+tgt+').')
+      :fExpoHold?('Exposing the '+which+' radiograph — keep holding…'):('Gantry at G'+tgt+'. Hold kV BEAM ON to acquire the '+which+' radiograph.');
   }
   function fMotStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();const tgt=fAcqPhase==='rotAP'?0:fAcqPhase==='rotLAT'?90:null;if(tgt===null)return;fAcqStopRaf();fMot=true;let last=performance.now();
     const step=(t)=>{if(!fMot){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;let d=tgt-fGantry;if(d>180)d-=360;if(d<-180)d+=360;const s=F_ROT*dt*(d>=0?1:-1);
@@ -7237,21 +7303,29 @@ const CBCT=(function(){
   }
   /* ---- acquisition console rendering + control ---- */
   function acqStopRaf(){if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqMotion=false;acqSweepHold=false;}
+  function acqLamp(id,on,kind){const e=gid(id);if(e)e.className='con-lamp'+(on?' '+(kind||'on'):'');}
+  function acqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
   function acqRender(){
     const wrap=gid('cbAcq');if(!wrap)return;
     if(!acqUses()){wrap.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',acqPhase==='ready');
-    const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');
-    const ang=gid('cbAcqAng');if(ang)ang.textContent='Gantry '+Math.round(((acqAngle%360)+360)%360)+'°';
-    const motion=gid('cbAcqMotion');if(motion)motion.style.display=(acqPhase==='park')?'':'none';
-    const go=gid('cbAcqGo');if(go)go.style.display=(acqPhase==='armed'||acqPhase==='acquiring')?'':'none';
-    const barW=gid('cbAcqBarWrap');if(barW)barW.style.display=(acqPhase==='acquiring')?'':'none';
+    const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');   // linac viz
+    const a=((acqAngle%360)+360)%360;
+    const grig=gid('cbaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
+    const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
+    const gauge=gid('cbaGauge');if(gauge)gauge.className='con-gauge '+(acqPhase==='acquiring'?'moving':acqPhase==='armed'?'ok':'off');
+    const mot=gid('cbAcqMotion');if(mot){mot.disabled=(acqPhase!=='park');mot.classList.toggle('needmove',acqPhase==='park'&&!acqMotion);mot.classList.toggle('moving',acqMotion);}
+    const go=gid('cbAcqGo');if(go)go.disabled=!(acqPhase==='armed'||acqPhase==='acquiring');
     const bar=gid('cbAcqBar');if(bar)bar.style.width=Math.round(acqSweepP*100)+'%';
-    const msg=gid('cbAcqMsg');let lampTxt='STANDBY';
-    if(acqPhase==='park'){if(msg)msg.textContent='Hold Motion Enable to rotate the gantry to the 180° cone-beam start position.';lampTxt='ROTATE → 180°';}
-    else if(acqPhase==='armed'){if(msg)msg.textContent='Gantry at 180°. Hold Cone-Beam On to scan a full rotation around the patient.';lampTxt='READY';}
-    else if(acqPhase==='acquiring'){if(msg)msg.textContent=acqSweepHold?'Acquiring cone-beam projections — keep holding…':'Paused — hold Cone-Beam On to finish the acquisition.';lampTxt=acqSweepHold?'ACQUIRING':'PAUSED';}
-    const lamp=gid('cbAcqLamp');if(lamp){lamp.textContent=lampTxt;lamp.className='cb-acq-lamp'+((acqPhase==='acquiring'&&acqSweepHold)?' live':'')+(acqPhase==='armed'?' ready':'');}
+    acqLamp('cbaLampRot',acqPhase==='park'||acqPhase==='armed','warn');
+    acqLamp('cbaLampAcq',acqPhase==='acquiring','beam');
+    acqLamp('cbaLampReady',acqPhase==='ready','on');
+    const st=gid('cbaLcdSt');
+    if(st){let t,c;if(acqPhase==='park'){t='ROTATE → G180';c='off';}else if(acqPhase==='armed'){t='AT G180 · ACQUIRE';c='ok';}else{t=acqSweepHold?'ACQUIRING…':'PAUSED';c='moving';}st.textContent=t;st.className='con-lcd-st '+c;}
+    const msg=gid('cbAcqMsg');
+    if(msg)msg.textContent=acqPhase==='park'?'Hold MOTION ENABLE to rotate the gantry to the 180° cone-beam start position.'
+      :acqPhase==='armed'?'Gantry at 180°. Hold CONE-BEAM ON to scan a full rotation around the patient.'
+      :acqSweepHold?'Acquiring cone-beam projections — keep holding…':'Paused — hold CONE-BEAM ON to finish the acquisition.';
   }
   function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
   function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqStopRaf();acqMotion=true;let last=performance.now();
