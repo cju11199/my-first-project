@@ -2691,10 +2691,11 @@ const DIBH=(function(){
   /* ---- coach commands (buttons today; voice maps to these in Phase 2) ---- */
   function cmd(c){
     if(!acq||done)return;
-    if(awaitingRotate){                          // between fields: the only way forward is to breathe the patient out
-      if(c==='relax'){ awaitingRotate=false; phase='free'; holdSince=null; stableSince=null; advanceField(); }
+    if(awaitingRotate){                          // after a capture: breathe the patient out before rotating / matching
+      if(c==='relax'){ awaitingRotate=false; phase='free'; holdSince=null; stableSince=null;
+        if(fieldIdx<FIELDS.length-1) advanceField(); else finishAcq(); }   // rotate to the next field, or finish -> enable matching
       else if(c==='abort'){ onAbort(); }
-      else setMsg('Tell the patient to BREATHE NORMALLY first — then we rotate to the next field.','');
+      else setMsg('Tell the patient to BREATHE NORMALLY first.','');
       updateButtons(); return;
     }
     if(c==='in'){ phase='inhaling'; inhaleSince=(inhaleSince==null?simNow:inhaleSince); setMsg('Take a deep breath in…',''); }
@@ -2738,15 +2739,15 @@ const DIBH=(function(){
     perField.push({field:FIELDS[fieldIdx].key, amp:+amp.toFixed(2), t:+simNow.toFixed(1)});
     try{ if(typeof render==='function') render(); }catch(e){}   // reveal this view's portal
     updateExposeBar(); updateBadges();
+    // the patient is STILL holding their breath after the exposure — you must coach "breathe normally"
+    // before rotating to the next field (or, after the last field, before matching).
+    awaitingRotate=true;
     if(fieldIdx<FIELDS.length-1){
-      // the patient is STILL holding their breath — you must coach "breathe normally" before rotating to the next field
-      awaitingRotate=true;
       setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm. Now tell the patient to BREATHE NORMALLY before rotating to '+FIELDS[fieldIdx+1].label.split(' · ')[1]+'.','ok');
-      updateButtons();
     } else {
-      setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm.','ok');
-      finishAcq();
+      setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm. Both fields in — tell the patient to BREATHE NORMALLY before matching.','ok');
     }
+    updateButtons();
   }
   function advanceField(){
     if(fieldIdx<FIELDS.length-1){
