@@ -246,7 +246,8 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   full-head patient as the 2D/2D H&N case — so the two H&N cases are now one patient, the FOV spans the
   full cranial vault through the neck, and there is no de-ID box. Clean uniform axial HFS, so the old
   non-uniform-Z resample + clean-run clipping is gone; the generator just body-masks, builds the target,
-  crops a neck slab + body in-plane, and isotropically resamples to the tiled-atlas format
+  crops a **generous head+neck slab** (`CROP_MARGIN_MM` 62 → near the full vault-to-thorax FOV so you can
+  scroll higher/lower for context) + body in-plane, and isotropically resamples to the tiled-atlas format
   (`_decodeHNLabels`, bits body=1 / tumor=2 — unchanged). TCGA-THCA carries **no tumour RTSTRUCT/SEG**, so
   the soft-tissue target is **SYNTHETIC**: a **BILATERAL cervical-nodal PTV** (`synth_target`) — an
   anterior-convex **horseshoe/U** of two jugular-chain lobes (levels **II–IV** both sides) joined by a thin

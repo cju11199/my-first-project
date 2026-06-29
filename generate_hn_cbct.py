@@ -46,10 +46,12 @@ except ImportError:
     raise SystemExit("pydicom is required:  pip install pydicom numpy scipy pillow")
 
 # --- output sizing (keep the atlas ~1.5-2 MB like the other *3d_data.js files) ---
-TARGET_XY      = 192    # longest-axis resample size (px).
+TARGET_XY      = 224    # longest-axis resample size (px). Bumped with the wider FOV below to hold resolution.
 TILES_PER_ROW  = 10     # atlas tiling (10 cols x ceil(Z/10) rows), matches the others.
-CROP_MARGIN_MM = 22     # superior-inferior half-slab of context above/below the (neck-spanning) target
-                        # -> a realistic daily H&N CBCT longitudinal FOV (skull base + upper thorax).
+CROP_MARGIN_MM = 62     # superior-inferior half-slab of context above/below the (neck-spanning) target.
+                        # Generous so the FOV reaches HIGHER (skull / cranial base) and LOWER (low neck,
+                        # shoulders, upper thorax) — a large daily H&N CBCT longitudinal FOV. Clamped to
+                        # the available volume, so this effectively shows most of the head + neck.
 BODY_MARGIN_MM = 8      # in-plane (LR/AP) skin margin around the BODY mask.
 
 # Synthetic BILATERAL cervical-nodal PTV (no tumour ROI in TCGA-THCA): an anterior-convex horseshoe/U
