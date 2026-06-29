@@ -829,6 +829,9 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .cb-acq-sub{font-size:12.5px;color:#9fb3c4;max-width:380px;text-align:center;line-height:1.5;min-height:1.5em}
 .cb-acq-svg{width:280px;height:280px}
 .cb-acq-ang{font-variant-numeric:tabular-nums;font-size:13px;color:#8ef0c2;letter-spacing:.04em}
+.cb-acq-lamp{font-size:11px;letter-spacing:.1em;font-weight:700;padding:3px 12px;border-radius:20px;background:rgba(255,255,255,.08);color:#9fb3c4;border:1px solid rgba(255,255,255,.12)}
+.cb-acq-lamp.ready{background:#1d3a30;color:#8ef0c2;border-color:transparent}
+.cb-acq-lamp.live{background:#3a2a14;color:#ffba6b;border-color:transparent;animation:txBlink 1s steps(2) infinite}
 .cb-acq-btns{display:flex;gap:12px;align-items:center}
 .cb-acq-bar{width:280px;height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
 .cb-acq-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#46affc,#8ef0c2)}
@@ -836,6 +839,9 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .cb-acq-btn:disabled{opacity:.4;cursor:default}
 .cb-acq-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
 .cb-acq-btn.motion{background:#1d3346}
+.fid-cap{display:flex;align-items:center;gap:6px;font-size:12px;color:#9fb3c4}
+.cap-dot{width:11px;height:11px;border-radius:50%;border:1.5px solid #5a6b7c;display:inline-block}
+.cap-dot.on{background:#8ef0c2;border-color:#8ef0c2}
 .cb-acq-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--label)}
 .cb-acq-row input{margin:0}
 @media(prefers-reduced-motion:reduce){.cb-acq-bar i{transition:none}}
@@ -1129,11 +1135,12 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           </g>
         </svg>
         <div class="cb-acq-ang" id="cbAcqAng">Gantry 90&deg;</div>
-        <div class="cb-acq-sub" id="cbAcqMsg">Rotate the gantry to 180&deg; to begin the cone-beam acquisition.</div>
+        <div class="cb-acq-lamp" id="cbAcqLamp">ROTATE &rarr; 180&deg;</div>
+        <div class="cb-acq-sub" id="cbAcqMsg">Hold Motion Enable to rotate the gantry to the 180&deg; cone-beam start position.</div>
         <div class="cb-acq-bar" id="cbAcqBarWrap" style="display:none"><i id="cbAcqBar"></i></div>
         <div class="cb-acq-btns">
-          <button class="cb-acq-btn motion" id="cbAcqMotion" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()">&#10227;&nbsp;Hold to rotate</button>
-          <button class="cb-acq-btn primary" id="cbAcqGo" disabled onclick="CBCT.acqStart()">Acquire CBCT</button>
+          <button class="cb-acq-btn motion" id="cbAcqMotion" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
+          <button class="cb-acq-btn primary" id="cbAcqGo" style="display:none" onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()">&#9673;&nbsp;Cone-beam on (hold)</button>
         </div>
       </div>
       <div class="cb-wl left" id="cbWLleft" onpointerdown="event.stopPropagation()">
@@ -1376,6 +1383,33 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 </header>
 <main>
   <div class="match-col">
+  <!-- kV fiducial acquisition console (prostate fiducial match): rotate to AP/Lat kV positions and
+       hold-expose each radiograph before the marker match unlocks. Covers the image panes while up. -->
+  <div class="cb-acq hidden" id="fidAcq" onpointerdown="event.stopPropagation()" onwheel="event.preventDefault();event.stopPropagation()">
+    <div class="cb-acq-title">kV Fiducial Imaging &middot; Acquisition</div>
+    <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
+      <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+      <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
+      <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+      <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+      <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+      <g id="fidAcqRig">
+        <polygon id="fidAcqBeam" points="100,32 84,168 116,168" fill="rgba(120,200,255,.16)"/>
+        <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
+        <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
+        <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+      </g>
+    </svg>
+    <div class="cb-acq-ang" id="fidAcqAng">Gantry 90&deg;</div>
+    <div class="cb-acq-lamp" id="fidAcqLamp">ROTATE &rarr; 0&deg;</div>
+    <div class="cb-acq-sub" id="fidAcqMsg">Hold Motion Enable to rotate the gantry to the AP kV imaging position.</div>
+    <div class="fid-cap"><span class="cap-dot" id="fidCapAP"></span>AP&nbsp;&nbsp;&nbsp;<span class="cap-dot" id="fidCapLAT"></span>Lateral</div>
+    <div class="cb-acq-bar" id="fidAcqBarWrap" style="display:none"><i id="fidAcqBar"></i></div>
+    <div class="cb-acq-btns">
+      <button class="cb-acq-btn motion" id="fidAcqMotion" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
+      <button class="cb-acq-btn primary" id="fidAcqGo" style="display:none" onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()">&#9673;&nbsp;kV beam on (hold)</button>
+    </div>
+  </div>
   <div class="views">
     <div class="viewer-area" id="apArea" tabindex="0">
       <canvas id="apRef" class="refCanvas"></canvas>
@@ -2240,6 +2274,7 @@ function applyCase(key){
   }
   document.body.classList.remove('fid-mode');
   FID2D.fidPanel(false);   // restore the 5DOF panel labels when leaving a fid case
+  {const _fa=document.getElementById('fidAcq');if(_fa)_fa.classList.add('hidden');}   // hide the kV acquisition console when leaving the fiducial case
   views.ap.iso={...c.iso.ap};
   views.lat.iso={...c.iso.lat};
   loadTiltStacks(c);   // 3D-tilt cases load re-projected frame stacks; others clear v.tilt
@@ -2560,6 +2595,13 @@ const FID2D=(function(){
   // hands the result to ext.onCheck instead of the normal record+new-offset loop.
   let ext=null;
   function active(){return ext?true:(currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch);}
+  // kV fiducial acquisition console: rotate to the AP kV position, hold to expose, rotate to Lateral,
+  // hold to expose — THEN the markers/match unlock. Mirrors the CBCT acquisition console. Skipped for
+  // the external re-match (that already represents taking a kV–MV pair). Forced ON in Full Treatment.
+  let fAcqEnabled=true, fAcqForce=false, fAcqPhase='ready', fGantry=90, fRaf=0, fMot=false, fExpoP=0, fExpoHold=false, fCap={ap:false,lat:false};
+  const F_ROT=80, F_EXPO_MS=1100;   // rotate °/s; hold-to-expose duration per kV image
+  function fAcqUses(){return !ext && currentMode==='2d2d' && CASES[currentCase] && CASES[currentCase].fidMatch && (fAcqForce||fAcqEnabled);}
+  function fAcqReady(){return !fAcqUses() || fAcqPhase==='ready';}
   function setMsg(t,c){const m=document.getElementById('statusMsg');if(m){m.textContent=t;m.style.color=c==='ok'?'var(--accent)':c==='bad'?'var(--accent2)':'var(--label)';}}
 
   /* ---- linear algebra: rigid fit P->M via Horn's quaternion (3 point pairs) ---- */
@@ -2652,7 +2694,7 @@ const FID2D=(function(){
     if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
-    if(!keepResult)setMsg('Drag the markers onto the seeds in both views — '+KMOD+'+drag a single marker to rotate the triad','label');
+    if(!keepResult){setMsg('Drag the markers onto the seeds in both views — '+KMOD+'+drag a single marker to rotate the triad','label');fAcqArm();}
     solve();render();}
   function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
 
@@ -2682,6 +2724,7 @@ const FID2D=(function(){
       if(ext.onCheck)ext.onCheck({rotErr,transErr,correction:f,residual:r});
       return;
     }
+    if(!fAcqReady()){setMsg('Acquire the kV pair first — rotate to each imaging position and expose.','bad');return;}
     const f=fit(P,M);                      // recovered couch correction (shown in the readout)
     const r=fit(M,Qtrue);                  // residual misregistration: placed markers -> true seeds
     const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]);   // residual rotation (deg)
@@ -2771,6 +2814,43 @@ const FID2D=(function(){
   }
   function render(){if(!active())return false;drawView('ap');drawView('lat');return true;}
 
+  /* ---- kV acquisition console (rotate to AP/Lat, hold-expose each, then unlock the match) ---- */
+  function fAcqStopRaf(){if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fMot=false;fExpoHold=false;}
+  function fAcqArm(){fAcqStopRaf();fExpoP=0;fCap={ap:false,lat:false};if(fAcqUses()){fAcqPhase='rotAP';fGantry=90;}else{fAcqPhase='ready';}fAcqRender();}
+  function fAcqRender(){
+    const wrap=document.getElementById('fidAcq');if(!wrap)return;
+    if(!fAcqUses()){wrap.classList.add('hidden');return;}
+    wrap.classList.toggle('hidden',fAcqPhase==='ready');
+    const rig=document.getElementById('fidAcqRig');if(rig)rig.setAttribute('transform','rotate('+(fGantry-90)+' 100 100)');
+    const ang=document.getElementById('fidAcqAng');if(ang)ang.textContent='Gantry '+Math.round(((fGantry%360)+360)%360)+'°';
+    const rot=(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'),arm=(fAcqPhase==='armAP'||fAcqPhase==='armLAT');
+    const mot=document.getElementById('fidAcqMotion');if(mot)mot.style.display=rot?'':'none';
+    const go=document.getElementById('fidAcqGo');if(go)go.style.display=arm?'':'none';
+    const barW=document.getElementById('fidAcqBarWrap');if(barW)barW.style.display=arm?'':'none';
+    const bar=document.getElementById('fidAcqBar');if(bar)bar.style.width=Math.round(fExpoP*100)+'%';
+    const dap=document.getElementById('fidCapAP');if(dap)dap.className='cap-dot'+(fCap.ap?' on':'');
+    const dlat=document.getElementById('fidCapLAT');if(dlat)dlat.className='cap-dot'+(fCap.lat?' on':'');
+    const which=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?'AP':'Lateral',tgt=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?0:90;
+    const msg=document.getElementById('fidAcqMsg');let lamp='STANDBY';
+    if(rot){if(msg)msg.textContent='Hold Motion Enable to rotate the gantry to the '+which+' kV imaging position ('+tgt+'°).';lamp='ROTATE → '+tgt+'°';}
+    else if(arm){if(msg)msg.textContent='Gantry at '+tgt+'°. Hold kV Beam On to acquire the '+which+' radiograph.';lamp=fExpoHold?'EXPOSING':'READY';}
+    const L=document.getElementById('fidAcqLamp');if(L){L.textContent=lamp;L.className='cb-acq-lamp'+(arm&&fExpoHold?' live':'')+(arm&&!fExpoHold?' ready':'');}
+  }
+  function fMotStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();const tgt=fAcqPhase==='rotAP'?0:fAcqPhase==='rotLAT'?90:null;if(tgt===null)return;fMot=true;let last=performance.now();
+    const step=(t)=>{if(!fMot){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;let d=tgt-fGantry;if(d>180)d-=360;if(d<-180)d+=360;const s=F_ROT*dt*(d>=0?1:-1);
+      if(Math.abs(s)>=Math.abs(d)){fGantry=tgt;fMot=false;fRaf=0;fAcqPhase=(fAcqPhase==='rotAP')?'armAP':'armLAT';fAcqRender();return;}
+      fGantry+=s;fAcqRender();fRaf=requestAnimationFrame(step);};
+    fRaf=requestAnimationFrame(step);}
+  function fMotStop(){if(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'){fMot=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}}}
+  function fExpoStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(fAcqPhase!=='armAP'&&fAcqPhase!=='armLAT')return;fExpoHold=true;let last=performance.now();
+    const step=(t)=>{if(!fExpoHold){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;fExpoP=Math.min(1,fExpoP+dt*1000/F_EXPO_MS);fAcqRender();
+      if(fExpoP>=1){fExpoHold=false;fRaf=0;fExpoP=0;if(fAcqPhase==='armAP'){fCap.ap=true;fAcqPhase='rotLAT';}else{fCap.lat=true;fAcqPhase='ready';render();}fAcqRender();return;}
+      fRaf=requestAnimationFrame(step);};
+    fRaf=requestAnimationFrame(step);fAcqRender();}
+  function fExpoStop(){if(fExpoHold){fExpoHold=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fAcqRender();}}
+  function fToggleAcq(on){fAcqEnabled=!!on;if(fAcqUses()){if(fAcqPhase==='ready')fAcqArm();}else{fAcqPhase='ready';fAcqStopRaf();}fAcqRender();}
+  function fSetAcqForce(on){fAcqForce=!!on;}
+
   /* ---- interaction ---- */
   function vKey(area){return area==='apArea'?'ap':area==='latArea'?'lat':null;}
   function localXY(v,ev){const r=document.getElementById(v.area).getBoundingClientRect();return [ev.clientX-r.left,ev.clientY-r.top];}
@@ -2784,6 +2864,7 @@ const FID2D=(function(){
     const el=document.getElementById(area);if(!el)return;
     el.addEventListener('pointerdown',ev=>{
       if(!active())return;
+      if(!fAcqReady())return;   // acquisition console up: no marker drag until the kV pair is acquired
       const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
       let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
       // Middle-mouse, Shift+drag while zoomed, or the Pan tool: PAN the view (instead of moving markers).
@@ -2811,8 +2892,11 @@ const FID2D=(function(){
     err:()=>{let d=0;for(let i=0;i<3;i++)d+=Math.hypot(M[i][0]-Qtrue[i][0],M[i][1]-Qtrue[i][1],M[i][2]-Qtrue[i][2]);return d/3;},
     hiddenDeg:()=>fit(P,Qtrue).r.map(x=>+x.toFixed(2)),                              // per-axis hidden rotation
     residDeg:()=>{const r=fit(M,Qtrue);return +Math.hypot(r.r[0],r.r[1],r.r[2]).toFixed(2);},
-    rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext};
-  return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,resize:()=>{if(active())render();},_dbg};
+    rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext,
+    acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady};
+  return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,
+    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,
+    resize:()=>{if(active())render();},_dbg};
 })();
 window.FID2D=FID2D;
 
@@ -2870,11 +2954,13 @@ const TXFLOW=(function(){
     gid('cbctScreen').classList.add('hidden');
     gid('txScreen').classList.add('hidden');
     currentMode='2d2d';
+    if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(true);   // force the kV acquisition console for the fraction
     applyCase('prostate');   // global 2D applyCase routes to FID2D.enter() (fidMatch) + sets fid-mode
     requestAnimationFrame(()=>resizeAll());
   }
   function goTreat(){
     stage='treat'; updateStepper();
+    if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);   // kV stage done — release the forced console
     document.body.classList.remove('fid-mode');
     gid('cbctScreen').classList.add('hidden');
     currentMode='tx';
@@ -2891,6 +2977,7 @@ const TXFLOW=(function(){
     running=false; stage=null; beamPhase='idle';
     if(raf){cancelAnimationFrame(raf);raf=0;}
     if(window.FID2D&&FID2D.isExternal&&FID2D.isExternal())FID2D.exitExternal();
+    if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);
     showStepper(false);
     const sc=gid('txScreen'); if(sc)sc.classList.add('hidden');
   }
@@ -5560,9 +5647,10 @@ const CBCT=(function(){
   /* ---- acquisition console (prostate only): a gantry sweep gates the match ----
      Standalone CBCT: optional (skip toggle, default on). Full Treatment Stage 1: forced on.
      phase: park (drive to 180°) -> armed (at 180°) -> acquiring (360° sweep) -> ready (match unlocked). */
-  let acqEnabled=true, acqForce=false, acqPhase='ready', acqAngle=90, acqRaf=0, acqMotion=false, acqSweepT0=0;
-  const ACQ_ROT=80;          // deg/sec while holding the rotate button
-  const ACQ_SWEEP_MS=3600;   // full 360° acquisition duration
+  let acqEnabled=true, acqForce=false, acqPhase='ready', acqAngle=90, acqRaf=0, acqMotion=false, acqSweepP=0, acqSweepHold=false;
+  const ACQ_ROT=80;          // deg/sec while holding the Motion Enable button (rotate to 180° start)
+  const ACQ_SWEEP_MS=3800;   // full 360° acquisition duration (only advances while Cone-Beam On is held)
+  const ACQ_START=180;       // cone-beam acquisition start angle (gantry 180°)
   function acqUses(){return caseKey==='prostate' && (acqForce||acqEnabled);}
   function acqReady(){return !acqUses() || acqPhase==='ready';}
   const PLANE_ORDER=['axial','coronal','sagittal'];
@@ -7141,15 +7229,17 @@ const CBCT=(function(){
     wrap.classList.toggle('hidden',acqPhase==='ready');
     const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');
     const ang=gid('cbAcqAng');if(ang)ang.textContent='Gantry '+Math.round(((acqAngle%360)+360)%360)+'°';
-    const go=gid('cbAcqGo');if(go)go.disabled=(acqPhase!=='armed');
     const motion=gid('cbAcqMotion');if(motion)motion.style.display=(acqPhase==='park')?'':'none';
+    const go=gid('cbAcqGo');if(go)go.style.display=(acqPhase==='armed'||acqPhase==='acquiring')?'':'none';
     const barW=gid('cbAcqBarWrap');if(barW)barW.style.display=(acqPhase==='acquiring')?'':'none';
-    const msg=gid('cbAcqMsg');
-    if(msg)msg.textContent=acqPhase==='park'?'Rotate the gantry to 180° to begin the cone-beam acquisition.'
-      :acqPhase==='armed'?'Gantry at 180° — press Acquire CBCT to scan around the patient.'
-      :acqPhase==='acquiring'?'Acquiring cone-beam projections — gantry rotating around the patient…':'';
+    const bar=gid('cbAcqBar');if(bar)bar.style.width=Math.round(acqSweepP*100)+'%';
+    const msg=gid('cbAcqMsg');let lampTxt='STANDBY';
+    if(acqPhase==='park'){if(msg)msg.textContent='Hold Motion Enable to rotate the gantry to the 180° cone-beam start position.';lampTxt='ROTATE → 180°';}
+    else if(acqPhase==='armed'){if(msg)msg.textContent='Gantry at 180°. Hold Cone-Beam On to scan a full rotation around the patient.';lampTxt='READY';}
+    else if(acqPhase==='acquiring'){if(msg)msg.textContent=acqSweepHold?'Acquiring cone-beam projections — keep holding…':'Paused — hold Cone-Beam On to finish the acquisition.';lampTxt=acqSweepHold?'ACQUIRING':'PAUSED';}
+    const lamp=gid('cbAcqLamp');if(lamp){lamp.textContent=lampTxt;lamp.className='cb-acq-lamp'+((acqPhase==='acquiring'&&acqSweepHold)?' live':'')+(acqPhase==='armed'?' ready':'');}
   }
-  function acqArm(){acqStopRaf();if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
+  function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
   function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqMotion=true;let last=performance.now();
     const step=(t)=>{if(!acqMotion){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
       let d=180-acqAngle;if(d>180)d-=360;if(d<-180)d+=360;
@@ -7158,16 +7248,22 @@ const CBCT=(function(){
       acqAngle+=stepDeg;acqRender();acqRaf=requestAnimationFrame(step);};
     acqRaf=requestAnimationFrame(step);}
   function acqMotionStop(){if(acqPhase==='park'){acqMotion=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}}}
-  function acqStart(){if(acqPhase!=='armed')return;acqPhase='acquiring';acqSweepT0=performance.now();acqRender();
-    const bar=gid('cbAcqBar');
-    const step=(t)=>{const p=Math.min(1,(t-acqSweepT0)/ACQ_SWEEP_MS);acqAngle=180+p*360;if(bar)bar.style.width=Math.round(p*100)+'%';acqRender();
-      if(p<1){acqRaf=requestAnimationFrame(step);}else{acqRaf=0;acqAngle=180;acqPhase='ready';acqRender();if(window.TXFLOW&&TXFLOW.onCbctAcquired)TXFLOW.onCbctAcquired();}};
-    acqRaf=requestAnimationFrame(step);}
+  // Cone-beam acquisition: HOLD-driven (like the 2D console's beam-on). The 360° sweep only advances
+  // while the button is held; releasing pauses it. Reaching 100% reconstructs and unlocks the match.
+  function acqSweepStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();
+    if(acqPhase!=='armed'&&acqPhase!=='acquiring')return;
+    acqPhase='acquiring';acqSweepHold=true;let last=performance.now();
+    const step=(t)=>{if(!acqSweepHold){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
+      acqSweepP=Math.min(1,acqSweepP+dt*1000/ACQ_SWEEP_MS);acqAngle=ACQ_START+acqSweepP*360;acqRender();
+      if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='ready';acqRender();if(window.TXFLOW&&TXFLOW.onCbctAcquired)TXFLOW.onCbctAcquired();return;}
+      acqRaf=requestAnimationFrame(step);};
+    acqRaf=requestAnimationFrame(step);acqRender();}
+  function acqSweepStop(){if(acqSweepHold){acqSweepHold=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqRender();}}
   function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
   function setAcqForce(on){acqForce=!!on;}
-  function acqForceReady(){acqStopRaf();acqPhase='ready';acqRender();}
+  function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
-    toggleAcq,acqMotionStart,acqMotionStop,acqStart,setAcqForce,acqReady,
+    toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,setAcqForce,acqReady,
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
 })();
 window.CBCT=CBCT;
