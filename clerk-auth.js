@@ -64,6 +64,9 @@
     : 'clerk.rtimagematch.com';
   var PLAN_KEY = 'full_access';
   var TRAINER_URL = '/trainer';
+  // enforceGate() bounces blocked free accounts here. subscribe.html MUST stay un-gated
+  // (no <body data-require-auth>) — adding the auth gate to it would loop a blocked user
+  // infinitely between /trainer and /subscribe.
   var SUBSCRIBE_URL = '/subscribe';
 
   // Comped accounts: full access WITHOUT a paid subscription (owner, testers).
@@ -202,13 +205,43 @@
     });
   }
 
+  // A signed-in account that is CONCLUSIVELY not entitled — i.e. it is a registered
+  // ("hidden") free account with no active `full_access` subscription and is not comped.
+  // Returns true ONLY when we are certain (the Clerk plan check ran and said "no"); a
+  // signed-out visitor, a comped user, a subscriber, or an INDETERMINATE check (Clerk not
+  // ready / checkAuthorization threw) all return false — we never hard-bounce on uncertainty,
+  // so a transient Clerk hiccup can't lock a paying subscriber out. (Paid case DATA is
+  // independently protected server-side by /api/asset, so falling through to free-mode in the
+  // indeterminate case cannot expose anything paid.)
+  function isBlockedFreeAccount() {
+    var u = window.Clerk && window.Clerk.user;
+    if (!u) return false;            // signed out -> keep the 'Try free' demo (unaffected)
+    if (isComped()) return false;    // comped owner / tester / institution -> allowed
+    var s = window.Clerk && window.Clerk.session;
+    if (s && typeof s.checkAuthorization === 'function') {
+      try {
+        // Conclusive: authorized === entitled. Block only when it definitively returns false.
+        return !s.checkAuthorization({ plan: PLAN_KEY });
+      } catch (e) {
+        return false;                // indeterminate -> do NOT hard-block
+      }
+    }
+    return false;                    // session/check unavailable -> indeterminate -> do NOT hard-block
+  }
+
   function enforceGate() {
     if (!document.body.hasAttribute('data-require-auth')) return;
-    // Free-tier model: NEVER bounce. Subscribers/comped get full access; everyone else
-    // (signed out OR signed in without a subscription) is let into the trainer in "free mode"
-    // where only the free cases are playable (the data gate at /api/asset still protects paid
-    // case data server-side, so letting them in cannot expose anything paid).
     var de = document.documentElement;
+    // SECURITY: a signed-in free account that is not comped and has no active subscription is
+    // BLOCKED from the trainer — bounce to /subscribe. Redirect BEFORE clearing 'auth-pending'
+    // so no trainer content flashes pre-navigation. (Signed-out visitors are NOT blocked here:
+    // they fall through to free-mode and keep the 'Try free' demo of the free cases.)
+    if (isBlockedFreeAccount()) {
+      window.location.replace(SUBSCRIBE_URL);
+      return;
+    }
+    // Subscribers/comped get full access; signed-out visitors get the free-mode demo (only the
+    // free cases are playable; paid case data stays protected server-side at /api/asset).
     de.classList.remove('auth-pending');
     if (window.Clerk && window.Clerk.user && hasActiveSub()) {
       de.classList.remove('free-mode');
@@ -313,7 +346,11 @@
         wireCtas();
         enforceGate();
         if (window.Clerk.user) _loadProfile();
-        window.Clerk.addListener(function () { renderHeader(); });
+        // Re-evaluate on every auth-state change, not just the initial load: if a
+        // subscription lapses (or an account signs in) WHILE sitting on the trainer, the gate
+        // re-runs and bounces / drops to free-mode without needing a reload. enforceGate is
+        // idempotent and fail-open on indeterminate, so this can't wrongly bounce a subscriber.
+        window.Clerk.addListener(function () { renderHeader(); enforceGate(); });
         readyResolve(window.Clerk);
       })
       .catch(function (err) {
