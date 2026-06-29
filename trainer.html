@@ -821,6 +821,70 @@ html:not(.auth-pending) #authGate{display:none}
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}.pbtn.room.needroom:not(:disabled){animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
+/* ---- CBCT acquisition console (prostate): rotate gantry to 180 + sweep 360 before the match unlocks ---- */
+.cbct-panes{position:relative}
+.cb-acq{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at center,#0d1722 0%,#060c12 100%);color:#eaf1f8}
+.cb-acq.hidden{display:none}
+.cb-acq-title{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#9fb3c4}
+.cb-acq-sub{font-size:12.5px;color:#9fb3c4;max-width:380px;text-align:center;line-height:1.5;min-height:1.5em}
+.cb-acq-svg{width:280px;height:280px}
+.cb-acq-ang{font-variant-numeric:tabular-nums;font-size:13px;color:#8ef0c2;letter-spacing:.04em}
+.cb-acq-btns{display:flex;gap:12px;align-items:center}
+.cb-acq-bar{width:280px;height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
+.cb-acq-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#46affc,#8ef0c2)}
+.cb-acq-btn{font:inherit;font-size:13px;padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer;touch-action:none;user-select:none}
+.cb-acq-btn:disabled{opacity:.4;cursor:default}
+.cb-acq-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
+.cb-acq-btn.motion{background:#1d3346}
+.cb-acq-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--label)}
+.cb-acq-row input{margin:0}
+@media(prefers-reduced-motion:reduce){.cb-acq-bar i{transition:none}}
+/* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
+.tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
+.tx-stepper.hidden{display:none}
+.tx-step{display:flex;align-items:center;gap:6px;opacity:.5}
+.tx-step .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.12);font-size:11px;font-weight:600}
+.tx-step.active{opacity:1;color:#eaf1f8}
+.tx-step.active .n{background:#8ef0c2;color:#06241a}
+.tx-step.done{opacity:.85;color:#8ef0c2}
+.tx-step.done .n{background:#1d3a30;color:#8ef0c2}
+.tx-step-sep{opacity:.4}
+.tx-screen{position:fixed;inset:0;z-index:60;background:#070d14;color:#eaf1f8;display:flex;flex-direction:column}
+.tx-screen.hidden{display:none}
+.tx-main{flex:1;display:flex;gap:16px;padding:16px;min-height:0}
+.tx-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.tx-col.left{flex:0 0 360px}
+.tx-col.right{flex:1}
+.tx-card{background:#0d1722;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px}
+.tx-card h3{margin:0 0 10px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:#9fb3c4;font-weight:600}
+.tx-gantry-svg{width:100%;max-width:300px;display:block;margin:0 auto}
+.tx-ang{text-align:center;font-variant-numeric:tabular-nums;font-size:13px;color:#8ef0c2;margin-top:4px}
+.tx-field{font-size:14px;font-weight:600;margin-bottom:6px}
+.tx-mu-row{display:flex;justify-content:space-between;font-size:12px;color:#9fb3c4;margin-bottom:5px}
+.tx-mu-bar{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.tx-mu-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd23f,#ff8a3a)}
+.tx-beamline{display:flex;align-items:center;gap:10px;margin-top:12px}
+.tx-beam-state{font-size:13px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:6px}
+.tx-beam-state.on{background:#1d3a30;color:#8ef0c2}
+.tx-beam-state.hold{background:#3a2a14;color:#ffba6b}
+.tx-beam-state.alarm{background:#3a1620;color:#ff6b8a;animation:txBlink 1s steps(2) infinite}
+@keyframes txBlink{50%{opacity:.4}}
+.tx-btn{font:inherit;font-size:13px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer}
+.tx-btn:disabled{opacity:.4;cursor:default}
+.tx-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
+.tx-btn.alarm{background:#ff6b8a;color:#2a0710;border-color:transparent;font-weight:600;animation:txBlink 1s steps(2) infinite}
+.tx-trace-wrap{position:relative}
+#txTrace{width:100%;height:200px;display:block;background:#08111a;border-radius:8px}
+.tx-drift{display:flex;gap:18px;margin-top:10px;font-size:13px;font-variant-numeric:tabular-nums}
+.tx-drift b{color:#eaf1f8}
+.tx-drift .lbl{color:#9fb3c4;font-size:11px;display:block}
+.tx-status{margin-top:10px;font-size:13px;color:#9fb3c4;min-height:1.4em}
+.tx-summary{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(7,13,20,.96);text-align:center;padding:24px}
+.tx-summary.hidden{display:none}
+.tx-summary h2{margin:0;font-size:20px;color:#8ef0c2}
+.tx-summary .tx-stats{display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
+.tx-summary .tx-stat b{display:block;font-size:22px;color:#eaf1f8}
+.tx-summary .tx-stat span{font-size:11px;color:#9fb3c4;text-transform:uppercase;letter-spacing:.05em}
 </style>
 </head>
 <body data-require-auth>
@@ -886,6 +950,19 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
       <div class="sc-title">CBCT</div>
       <div class="sc-desc">Cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction.</div>
+    </div>
+    <div class="start-card" id="modeTx" onclick="pickMode('tx')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickMode('tx');}">
+      <span class="sc-badge ready">New</span>
+      <div class="sc-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7">
+          <circle cx="16" cy="16" r="12"/>
+          <path d="M16 4v6M16 22v6M4 16h6M22 16h6" opacity=".55"/>
+          <circle cx="16" cy="16" r="3.2"/>
+          <path d="M16 4a12 12 0 0 1 10.4 6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="sc-title">Full Treatment</div>
+      <div class="sc-desc">A whole fraction start to finish &mdash; CBCT setup &rarr; kV fiducial verify &rarr; treat with intrafraction monitoring.</div>
     </div>
     <div class="start-card guide-card" id="modeGuide" onclick="openGuide()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGuide();}">
       <span class="sc-badge guide-badge">Guide</span>
@@ -1015,6 +1092,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
             <option value="veryfull">Very full</option>
           </select>
         </div></div>
+        <div class="cbct-dof-row" id="cbAcqRow" style="display:none"><label class="cb-acq-row" title="Simulate the cone-beam acquisition (rotate to 180° and scan) before each match. Turn off for quick match-only practice."><input type="checkbox" id="cbAcqToggle" checked onchange="CBCT.toggleAcq(this.checked)">Acquisition console</label></div>
         <div class="ctrl-actions">
           <button class="btn-warn" onclick="CBCT.reset()">Reset</button>
           <button class="btn-primary" onclick="CBCT.randomize()">New Offset</button>
@@ -1035,6 +1113,29 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
     </div>
     <div class="cbct-panes">
+      <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()" onwheel="event.preventDefault();event.stopPropagation()">
+        <div class="cb-acq-title">Cone-Beam CT &middot; Acquisition</div>
+        <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
+          <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+          <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+          <circle id="cbAcqIso" cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+          <g id="cbAcqRig">
+            <polygon id="cbAcqBeam" points="100,32 82,168 118,168" fill="rgba(120,200,255,.16)"/>
+            <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
+            <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
+            <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+          </g>
+        </svg>
+        <div class="cb-acq-ang" id="cbAcqAng">Gantry 90&deg;</div>
+        <div class="cb-acq-sub" id="cbAcqMsg">Rotate the gantry to 180&deg; to begin the cone-beam acquisition.</div>
+        <div class="cb-acq-bar" id="cbAcqBarWrap" style="display:none"><i id="cbAcqBar"></i></div>
+        <div class="cb-acq-btns">
+          <button class="cb-acq-btn motion" id="cbAcqMotion" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()">&#10227;&nbsp;Hold to rotate</button>
+          <button class="cb-acq-btn primary" id="cbAcqGo" disabled onclick="CBCT.acqStart()">Acquire CBCT</button>
+        </div>
+      </div>
       <div class="cb-wl left" id="cbWLleft" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-col">
           <div class="cb-wl-lbl">LEVEL</div>
@@ -1164,6 +1265,84 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
     </div>
     <div class="shift-tab" onclick="toggleCbShifts()" title="Show / hide the couch-correction panel (the views go full-width when hidden)"><span class="chev" id="cbShiftChev">&#10094;</span>SHIFTS</div>
+  </main>
+</div>
+<!-- Full Treatment mode: stage stepper (floats above whichever stage screen is active) -->
+<div class="tx-stepper hidden" id="txStepper">
+  <div class="tx-step" id="txStepCbct"><span class="n">1</span>CBCT</div>
+  <span class="tx-step-sep">&rsaquo;</span>
+  <div class="tx-step" id="txStepKv"><span class="n">2</span>kV Fiducial</div>
+  <span class="tx-step-sep">&rsaquo;</span>
+  <div class="tx-step" id="txStepTreat"><span class="n">3</span>Treat</div>
+</div>
+<!-- Full Treatment mode: treatment-delivery screen (Stage 3) -->
+<div class="tx-screen hidden" id="txScreen">
+  <header>
+    <div class="header-left">
+      <div class="logo">RT Image Match</div>
+      <div class="divider-v"></div>
+      <span class="mode-chip">Treatment</span>
+      <span class="case-label" id="txCaseLbl">Prostate &middot; VMAT</span>
+    </div>
+    <div class="header-controls">
+      <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
+    </div>
+  </header>
+  <main class="tx-main">
+    <div class="tx-col left">
+      <div class="tx-card">
+        <h3>Linac &middot; Gantry</h3>
+        <svg class="tx-gantry-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+          <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+          <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+          <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+          <g id="txGantryRig">
+            <polygon id="txBeam" points="100,32 86,168 114,168" fill="rgba(255,210,63,.18)"/>
+            <rect x="84" y="13" width="32" height="22" rx="3" fill="#cfe2f0"/>
+            <text x="100" y="29" text-anchor="middle" font-size="10" fill="#0b1a26">MV</text>
+            <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+          </g>
+        </svg>
+        <div class="tx-ang" id="txGantryAng">Gantry 180&deg;</div>
+      </div>
+      <div class="tx-card">
+        <h3>Delivery</h3>
+        <div class="tx-field" id="txFieldLbl">Arc 1 &middot; CW</div>
+        <div class="tx-mu-row"><span>Monitor units</span><span id="txMuTxt">0 / 600 MU</span></div>
+        <div class="tx-mu-bar"><i id="txMuBar"></i></div>
+        <div class="tx-beamline">
+          <span class="tx-beam-state hold" id="txBeamState">READY</span>
+          <button class="tx-btn primary" id="txBeamBtn" onclick="TXFLOW.beamBtn()">Beam On</button>
+          <button class="tx-btn alarm" id="txRematchBtn" style="display:none" onclick="TXFLOW.startRematch()">kV&ndash;MV Re-match</button>
+        </div>
+      </div>
+    </div>
+    <div class="tx-col right">
+      <div class="tx-card tx-trace-wrap" style="flex:1;display:flex;flex-direction:column">
+        <h3>Intrafraction kV monitoring &middot; gold fiducials (gate &plusmn;0.5 cm)</h3>
+        <canvas id="txTrace" width="900" height="200"></canvas>
+        <div class="tx-drift">
+          <div><span class="lbl">Lat</span><b id="txDriftX">0.0</b> mm</div>
+          <div><span class="lbl">AP</span><b id="txDriftY">0.0</b> mm</div>
+          <div><span class="lbl">SI</span><b id="txDriftZ">0.0</b> mm</div>
+          <div><span class="lbl">|offset|</span><b id="txDriftMag">0.0</b> mm</div>
+        </div>
+        <div class="tx-status" id="txStatus">Press Beam On to start treatment. A triggered kV every 10 s checks the fiducials.</div>
+        <div class="tx-summary hidden" id="txSummary">
+          <h2 id="txSumTitle">Fraction complete</h2>
+          <div class="tx-stats">
+            <div class="tx-stat"><b id="txSumHolds">0</b><span>Beam holds</span></div>
+            <div class="tx-stat"><b id="txSumReimg">0</b><span>kV&ndash;MV re-matches</span></div>
+            <div class="tx-stat"><b id="txSumScore">100</b><span>Workflow score</span></div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <button class="tx-btn primary" onclick="TXFLOW.restart()">Treat another fraction</button>
+            <button class="tx-btn" onclick="backToMenu()">Back to menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 <header>
@@ -2373,7 +2552,14 @@ function renderView(v, key){
 const FID2D=(function(){
   let P=[],M=[],Qtrue=[],hiddenE=null,started=false,META=null;
   const apImg=new Image(),latImg=new Image(); let imgReady=false,imgN=0;
-  function active(){return currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch;}
+  // Per-view beam angle (gantry °, rotation about the SI/longitudinal axis). AP=0°, Lateral=90°
+  // is the standard fiducial case; an injected external session (the Full Treatment intrafraction
+  // kV–MV re-match) can set arbitrary orthogonal angles so the SAME projection math serves any pair.
+  let viewTheta={ap:0,lat:90};
+  // External session (Full Treatment re-match): when set, FID2D runs on injected images/geometry and
+  // hands the result to ext.onCheck instead of the normal record+new-offset loop.
+  let ext=null;
+  function active(){return ext?true:(currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch);}
   function setMsg(t,c){const m=document.getElementById('statusMsg');if(m){m.textContent=t;m.style.color=c==='ok'?'var(--accent)':c==='bad'?'var(--accent2)':'var(--label)';}}
 
   /* ---- linear algebra: rigid fit P->M via Horn's quaternion (3 point pairs) ---- */
@@ -2435,11 +2621,11 @@ const FID2D=(function(){
     const z=v.zoom||1,cx=v.W/2,cy=v.H/2,px=v.panX||0,py=v.panY||0;
     const ox=cx+px+z*(ox0-cx),oy=cy+py+z*(oy0-cy),dw=dw0*z,dh=dh0*z,s=s0*z;
     return {s,ox,oy,dw,dh,isx:ox+iso[0]*dw,isy:oy+iso[1]*dh};}
-  // AP: screen-x = +Lat (patient L to the right), screen-y = -SI (sup up).
-  // LAT: screen-x = +AP (posterior to the right, anterior left — matches the ray-sum backdrop),
-  //      screen-y = -SI. Markers and the drawn seeds both use this, so the match is self-consistent.
-  function proj(key,p){const g=geom(key);
-    return key==='ap'?[g.isx+p[0]*g.s,g.isy-p[2]*g.s]:[g.isx+p[1]*g.s,g.isy-p[2]*g.s];}
+  // Generalized projection at gantry angle θ (rotation about the SI axis): the detector's horizontal
+  // axis sees Lat·cos θ + AP·sin θ; vertical is always −SI (gantry spin doesn't change SI→vertical).
+  // θ=0  → screen-x = +Lat  (AP view); θ=90 → screen-x = +AP (Lateral view) — the standard case.
+  function proj(key,p){const g=geom(key),t=(viewTheta[key]||0)*Math.PI/180,c=Math.cos(t),sn=Math.sin(t);
+    return [g.isx+(p[0]*c+p[1]*sn)*g.s, g.isy-p[2]*g.s];}
 
   /* ---- state ---- */
   function loadImgs(){if(typeof PROSTATE2D==='undefined')return false;META=PROSTATE2D;
@@ -2456,7 +2642,7 @@ const FID2D=(function(){
   function fidTol(){return (typeof rtTol==='function')?rtTol('2d2d',currentCase):{t1:2,r1:3};}
   function fidRotTol(){return fidTol().r1;}     // rotation accept (deg)
   function fidTransTol(){return fidTol().t1;}   // translation accept (mm) — markers must be seated too
-  function randomize(keepResult){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
+  function randomize(keepResult){if(ext)return;const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
     const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
     // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
     // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
@@ -2471,7 +2657,31 @@ const FID2D=(function(){
   function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
 
   function solve(){const f=fit(P,M);writeReadout(f);return f;}
+  /* ---- external session: Full Treatment intrafraction kV–MV re-match at an arbitrary beam angle ----
+     cfg = {ap:{theta,physMm:[w,h],isoFrac:[fx,fy],img}, lat:{...}, fiducials:[[Lat,AP,SI]..],
+            hidden:{t:[x,y,z]mm, r:[rx,ry,rz]deg}, onCheck:fn({rotErr,transErr,correction}), msg } */
+  function enterExternal(cfg){
+    ext=cfg; META={physMm:{ap:cfg.ap.physMm,lat:cfg.lat.physMm},isoFrac:{ap:cfg.ap.isoFrac,lat:cfg.lat.isoFrac}};
+    viewTheta={ap:cfg.ap.theta,lat:cfg.lat.theta};
+    imgReady=false;imgN=0;
+    apImg.onload=()=>{if(++imgN>=2)imgReady=true;render();};apImg.src=cfg.ap.img;
+    latImg.onload=()=>{if(++imgN>=2)imgReady=true;render();};latImg.src=cfg.lat.img;
+    P=cfg.fiducials.map(p=>p.slice());
+    const R=eulerR(cfg.hidden.r[0],cfg.hidden.r[1],cfg.hidden.r[2]);
+    Qtrue=P.map(p=>applyR(R,cfg.hidden.t,p));
+    hiddenE={t:cfg.hidden.t.slice(),r:cfg.hidden.r.slice()};M=P.map(p=>p.slice());
+    ['ap','lat'].forEach(k=>{const v=views[k];if(v){v.ready=false;v.uzoom=1;v.fitZoom=1;v.zoom=1;v.panX=0;v.panY=0;updateZoomLabel(k);}});
+    fidPanel(true);solve();render();requestAnimationFrame(()=>{resizeAll();});
+    if(cfg.msg)setMsg(cfg.msg,'label');
+  }
+  function exitExternal(){ext=null;viewTheta={ap:0,lat:90};fidPanel(false);}
   function check(){
+    if(ext){                               // re-match: grade residual + hand the correction back to TXFLOW
+      const r=fit(M,Qtrue),f=fit(P,M);
+      const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]),transErr=Math.hypot(r.t[0],r.t[1],r.t[2]);
+      if(ext.onCheck)ext.onCheck({rotErr,transErr,correction:f,residual:r});
+      return;
+    }
     const f=fit(P,M);                      // recovered couch correction (shown in the readout)
     const r=fit(M,Qtrue);                  // residual misregistration: placed markers -> true seeds
     const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]);   // residual rotation (deg)
@@ -2484,6 +2694,8 @@ const FID2D=(function(){
     if(ok){msg='✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag;cls='ok';}
     else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; '+KMOD+'+drag to rotate'+tag;cls='label';}
     else{msg='✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag;cls='bad';}
+    // Full Treatment Stage 2: TXFLOW owns progression — advance only on accept, keep the same offset otherwise.
+    if(window.TXFLOW&&TXFLOW.active()){setMsg(msg,cls);TXFLOW.onStageResult('kv',{accepted:ok,mag:transErr});return;}
     if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:null});
     // Check Match resets the clock + loads a fresh offset for the next rep, then shows the verdict
     matchTimer2d.reset();
@@ -2563,9 +2775,10 @@ const FID2D=(function(){
   function vKey(area){return area==='apArea'?'ap':area==='latArea'?'lat':null;}
   function localXY(v,ev){const r=document.getElementById(v.area).getBoundingClientRect();return [ev.clientX-r.left,ev.clientY-r.top];}
   function nearestMarker(key,sx,sy){let best=-1,bd=1e9;for(let i=0;i<M.length;i++){const s=proj(key,M[i]),d=Math.hypot(s[0]-sx,s[1]-sy);if(d<bd){bd=d;best=i;}}return {i:best,d:bd};}
-  function applyDelta(key,one,dxpx,dypx){const g=geom(key);
-    const dA=dxpx/g.s,dB=-dypx/g.s;            // in-view mm deltas
-    const upd=(m)=>{if(key==='ap'){m[0]+=dA;m[2]+=dB;}else{m[1]+=dA;m[2]+=dB;}};  // ap: Lat,SI ; lat: AP,SI
+  function applyDelta(key,one,dxpx,dypx){const g=geom(key),t=(viewTheta[key]||0)*Math.PI/180,c=Math.cos(t),sn=Math.sin(t);
+    const dsx=dxpx/g.s,dB=-dypx/g.s;           // in-view horizontal + SI mm deltas
+    // back-project the horizontal drag onto patient Lat/AP for this beam angle (θ=0: Lat; θ=90: AP)
+    const upd=(m)=>{m[0]+=dsx*c;m[1]+=dsx*sn;m[2]+=dB;};
     if(one>=0)upd(M[one]); else M.forEach(upd);}
   function bind(area){
     const el=document.getElementById(area);if(!el)return;
@@ -2598,10 +2811,261 @@ const FID2D=(function(){
     err:()=>{let d=0;for(let i=0;i<3;i++)d+=Math.hypot(M[i][0]-Qtrue[i][0],M[i][1]-Qtrue[i][1],M[i][2]-Qtrue[i][2]);return d/3;},
     hiddenDeg:()=>fit(P,Qtrue).r.map(x=>+x.toFixed(2)),                              // per-axis hidden rotation
     residDeg:()=>{const r=fit(M,Qtrue);return +Math.hypot(r.r[0],r.r[1],r.r[2]).toFixed(2);},
-    rotTol:fidRotTol};
-  return {active,enter,reset,randomize,check,render,fidPanel,resize:()=>{if(active())render();},_dbg};
+    rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext};
+  return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,resize:()=>{if(active())render();},_dbg};
 })();
 window.FID2D=FID2D;
+
+/* ============================================================================
+   TXFLOW — "Full Treatment" mode: one complete prostate fraction, start to finish.
+   A self-driving stage machine that SEQUENCES the existing matchers (it does not
+   re-implement them):
+     Stage 1  CBCT     — CBCT.applyCase('prostate') with the acquisition console forced ON.
+     Stage 2  kV       — the FID2D gold-fiducial triad match (verification).
+     Stage 3  Treat    — multi-arc VMAT delivery (MU ramp + gantry rotation) with
+                         intrafraction kV monitoring: a triggered kV every 10 s; if the
+                         fiducials drift past a 0.5 cm gate the beam holds and the student
+                         re-matches a kV–MV pair at the current gantry angle (FID2D external).
+   CBCT.check / FID2D.check hand control back here via onStageResult() when TXFLOW.active().
+   ============================================================================ */
+const TXFLOW=(function(){
+  const TRIG_MS=10000;      // triggered kV cadence (intrafraction imaging)
+  const GATE_MM=5;          // 0.5 cm fiducial action margin
+  const MU_RATE=12;         // MU per second
+  const ARC_SPAN=358;       // degrees swept per arc
+  const REMATCH_TOL=2;      // re-match accept (residual translation, mm) — mirrors cbct:prostate t1
+  const TX_PLAN={name:'Prostate · VMAT', fields:[
+    {name:'Arc 1 · CW',  mu:300, g0:181, dir:1},
+    {name:'Arc 2 · CCW', mu:300, g0:179, dir:-1},
+  ]};
+  const totalMU=TX_PLAN.fields.reduce((a,f)=>a+f.mu,0);
+  let running=false, stage=null;
+  let beamPhase='idle';     // idle | on | hold | holdtrig | rematch | done
+  let raf=0, lastT=0, simBeamSec=0, lastTrigSec=-999;
+  let fieldIdx=0, muInField=0, muTotal=0, gantryAngle=180;
+  let truePos={x:0,y:0,z:0}, appliedCorr={x:0,y:0,z:0}, bias={x:0,y:0,z:0};
+  let holds=0, reimages=0, cbctRes=null, kvRes=null;
+  let trace=[];             // {mag, trig}
+  let backdrop=null;
+  const gid=id=>document.getElementById(id);
+
+  function active(){return running;}
+
+  /* ---- stage machine ---- */
+  function enter(){
+    running=true; holds=0; reimages=0; cbctRes=null; kvRes=null;
+    showStepper(true); goCbct();
+  }
+  function goCbct(){
+    stage='cbct'; updateStepper();
+    currentMode='cbct';
+    gid('startScreen').classList.add('hidden');
+    gid('txScreen').classList.add('hidden');
+    gid('cbctScreen').classList.remove('hidden');
+    CBCT.setAcqForce(true); CBCT.enter(); CBCT.applyCase('prostate');   // force the acquisition console ON for the treatment fraction
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  }
+  function goKv(){
+    stage='kv'; updateStepper();
+    gid('cbctScreen').classList.add('hidden');
+    gid('txScreen').classList.add('hidden');
+    currentMode='2d2d';
+    applyCase('prostate');   // global 2D applyCase routes to FID2D.enter() (fidMatch) + sets fid-mode
+    requestAnimationFrame(()=>resizeAll());
+  }
+  function goTreat(){
+    stage='treat'; updateStepper();
+    document.body.classList.remove('fid-mode');
+    gid('cbctScreen').classList.add('hidden');
+    currentMode='tx';
+    gid('txScreen').classList.remove('hidden');
+    startDelivery();
+    requestAnimationFrame(()=>{ const c=gid('txTrace'); if(c){c.width=c.clientWidth||900;} drawTrace(); });
+  }
+  function onStageResult(which,res){
+    if(!running) return;
+    if(which==='cbct'){ if(res.accepted){ cbctRes=res; goKv(); } }
+    else if(which==='kv'){ if(res.accepted){ kvRes=res; goTreat(); } }
+  }
+  function exit(){
+    running=false; stage=null; beamPhase='idle';
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+    if(window.FID2D&&FID2D.isExternal&&FID2D.isExternal())FID2D.exitExternal();
+    showStepper(false);
+    const sc=gid('txScreen'); if(sc)sc.classList.add('hidden');
+  }
+  function restart(){ const sm=gid('txSummary'); if(sm)sm.classList.add('hidden'); enter(); }
+
+  /* ---- stepper ---- */
+  function showStepper(on){const s=gid('txStepper');if(s)s.classList.toggle('hidden',!on);}
+  function updateStepper(){
+    const order=['cbct','kv','treat'],idx=order.indexOf(stage);
+    [['cbct','txStepCbct'],['kv','txStepKv'],['treat','txStepTreat']].forEach(([k,id],i)=>{
+      const el=gid(id);if(!el)return;el.classList.toggle('active',i===idx);el.classList.toggle('done',i<idx);
+    });
+  }
+
+  /* ---- Stage 3: delivery + intrafraction monitoring ---- */
+  function startDelivery(){
+    beamPhase='idle'; simBeamSec=0; lastTrigSec=-999;
+    fieldIdx=0; muInField=0; muTotal=0; gantryAngle=TX_PLAN.fields[0].g0;
+    truePos={x:0,y:0,z:0}; appliedCorr={x:0,y:0,z:0};
+    const sgn=()=>Math.random()<.5?-1:1;
+    // per-fraction systematic drift (mm/s): AP-dominant (rectal/bladder filling), crosses the 0.5 cm
+    // gate mid-treatment so the student always faces at least one intrafraction re-image.
+    bias={x:(0.03+Math.random()*0.05)*sgn(), y:(0.16+Math.random()*0.07)*sgn(), z:(0.05+Math.random()*0.05)*sgn()};
+    trace=[];
+    const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
+    const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
+    setBeamState('hold','READY'); setBtn('Beam On',false);
+    status('Press Beam On to start the VMAT delivery. A triggered kV every 10 s verifies the gold fiducials stay within 0.5 cm.');
+    drawGantry(); updateField(); updateReadouts();
+  }
+  function beamBtn(){
+    if(beamPhase==='done') return;
+    if(beamPhase==='holdtrig') return;             // must re-match first
+    if(beamPhase==='on'){ beamPhase='hold'; if(raf){cancelAnimationFrame(raf);raf=0;} setBeamState('hold','HOLD'); setBtn('Beam On',false); return; }
+    // idle / hold -> resume
+    beamPhase='on'; lastT=performance.now(); setBeamState('on','BEAM ON'); setBtn('Beam Hold',false);
+    if(!raf) raf=requestAnimationFrame(tick);
+  }
+  function tick(t){
+    if(beamPhase!=='on'){raf=0;return;}
+    const dt=Math.min(0.05,(t-lastT)/1000); lastT=t; simBeamSec+=dt;
+    // advance the (hidden) true fiducial position: systematic drift + small physiologic noise
+    truePos.x+=bias.x*dt+(Math.random()-0.5)*0.04;
+    truePos.y+=bias.y*dt+(Math.random()-0.5)*0.04;
+    truePos.z+=bias.z*dt+(Math.random()-0.5)*0.04;
+    // advance MU + gantry within the current arc
+    const f=TX_PLAN.fields[fieldIdx];
+    muInField+=MU_RATE*dt; muTotal+=MU_RATE*dt;
+    const p=Math.min(1,muInField/f.mu);
+    gantryAngle=f.g0+f.dir*ARC_SPAN*p;
+    // push trace sample (live measured offset magnitude)
+    const meas=measured(); trace.push({mag:Math.hypot(meas.x,meas.y,meas.z),trig:false});
+    if(trace.length>600)trace.shift();
+    // triggered kV every 10 s of beam-on
+    if(simBeamSec-lastTrigSec>=TRIG_MS/1000){ lastTrigSec=simBeamSec; doTrigger(); }
+    drawGantry(); updateField(); updateReadouts(); drawTrace();
+    if(beamPhase!=='on'){raf=0;return;}            // a trigger may have held the beam
+    if(p>=1){ fieldIdx++; muInField=0; if(fieldIdx>=TX_PLAN.fields.length){ finish(); return; } gantryAngle=TX_PLAN.fields[fieldIdx].g0; }
+    raf=requestAnimationFrame(tick);
+  }
+  function measured(){return {x:truePos.x-appliedCorr.x,y:truePos.y-appliedCorr.y,z:truePos.z-appliedCorr.z};}
+  function doTrigger(){
+    if(trace.length)trace[trace.length-1].trig=true;
+    const m=measured(),mag=Math.hypot(m.x,m.y,m.z);
+    const out=Math.abs(m.x)>GATE_MM||Math.abs(m.y)>GATE_MM||Math.abs(m.z)>GATE_MM;
+    if(out){
+      beamPhase='holdtrig'; holds++;
+      if(raf){cancelAnimationFrame(raf);raf=0;}
+      setBeamState('alarm','BEAM HOLD'); setBtn('Beam On',true);
+      const rb=gid('txRematchBtn'); if(rb)rb.style.display='';
+      status('⚠ Triggered kV: fiducials have drifted '+mag.toFixed(1)+' mm (> 5 mm gate). Beam held — take a kV–MV pair and re-match.');
+    } else {
+      status('✓ Triggered kV at '+Math.round(simBeamSec)+' s — fiducials within 0.5 cm ('+mag.toFixed(1)+' mm). Delivery continues.');
+    }
+  }
+
+  /* ---- intrafraction kV–MV re-match (reuses the 2D screen + FID2D external session) ---- */
+  function startRematch(){
+    if(beamPhase!=='holdtrig') return;
+    beamPhase='rematch';
+    gid('txScreen').classList.add('hidden');
+    currentMode='2d2d'; document.body.classList.add('fid-mode');
+    const gMV=((gantryAngle%360)+360)%360, m=measured(), sg=()=>Math.random()<.5?-1:1;
+    const bd=getBackdrop();
+    FID2D.enterExternal({
+      lat:{theta:gMV,            physMm:[110,110], isoFrac:[0.5,0.5], img:bd},   // MV beam's-eye-view at the beam angle
+      ap :{theta:(gMV+90)%360,   physMm:[110,110], isoFrac:[0.5,0.5], img:bd},   // orthogonal kV (OBI)
+      fiducials:PROSTATE2D.fiducials,
+      hidden:{t:[m.x,m.y,m.z], r:[(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg()]},
+      onCheck:onRematchCheck,
+      msg:'kV–MV pair at gantry '+Math.round(gMV)+'° — drag the triad onto the drifted seeds in both views, then Check Match.'
+    });
+    requestAnimationFrame(()=>resizeAll());
+  }
+  function onRematchCheck(r){
+    const sm=document.getElementById('statusMsg');
+    if(r.transErr<=REMATCH_TOL){
+      // apply the recovered couch correction → recentres the fiducials (measured offset → ~residual)
+      appliedCorr.x+=r.correction.t[0]; appliedCorr.y+=r.correction.t[1]; appliedCorr.z+=r.correction.t[2];
+      reimages++;
+      FID2D.exitExternal(); document.body.classList.remove('fid-mode');
+      currentMode='tx'; gid('txScreen').classList.remove('hidden');
+      beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
+      const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
+      status('✓ Re-matched — couch corrected ('+r.transErr.toFixed(1)+' mm residual). Press Beam On to resume.');
+      drawGantry(); updateReadouts(); drawTrace();
+    } else {
+      if(sm){sm.textContent='✗ Residual '+r.transErr.toFixed(1)+' mm / '+r.rotErr.toFixed(1)+'° — seat all three markers on the seeds, then Check Match.';sm.style.color='var(--accent2)';}
+    }
+  }
+
+  /* ---- completion ---- */
+  function finish(){
+    beamPhase='done'; if(raf){cancelAnimationFrame(raf);raf=0;}
+    setBeamState('on','COMPLETE'); setBtn('Beam On',true);
+    const m=measured(),finalMag=Math.hypot(m.x,m.y,m.z);
+    const score=Math.round(Math.max(40,100-holds*6-(cbctRes?cbctRes.mag*1.5:0)-(kvRes?kvRes.mag*1.5:0)));
+    if(gid('txSumHolds'))gid('txSumHolds').textContent=holds;
+    if(gid('txSumReimg'))gid('txSumReimg').textContent=reimages;
+    if(gid('txSumScore'))gid('txSumScore').textContent=score;
+    if(gid('txSumTitle'))gid('txSumTitle').textContent='Fraction complete — '+totalMU+' MU delivered';
+    const sm=gid('txSummary'); if(sm)sm.classList.remove('hidden');
+    if(typeof rtRecord==='function')rtRecord('tx','prostate',{accepted:true,mag:finalMag,timeMs:null});
+    stage='done'; updateStepper();
+  }
+
+  /* ---- rendering helpers ---- */
+  function setBeamState(cls,txt){const e=gid('txBeamState');if(e){e.className='tx-beam-state '+cls;e.textContent=txt;}const b=gid('txBeam');if(b)b.setAttribute('fill',cls==='on'?'rgba(255,210,63,.5)':'rgba(255,210,63,.15)');}
+  function setBtn(txt,dis){const b=gid('txBeamBtn');if(b){b.textContent=txt;b.disabled=!!dis;}}
+  function status(t){const e=gid('txStatus');if(e)e.textContent=t;}
+  function updateField(){const f=TX_PLAN.fields[fieldIdx]||TX_PLAN.fields[TX_PLAN.fields.length-1];
+    if(gid('txFieldLbl'))gid('txFieldLbl').textContent=f.name;
+    if(gid('txMuTxt'))gid('txMuTxt').textContent=Math.round(muTotal)+' / '+totalMU+' MU';
+    if(gid('txMuBar'))gid('txMuBar').style.width=Math.min(100,muTotal/totalMU*100)+'%';}
+  function drawGantry(){const rig=gid('txGantryRig');if(rig)rig.setAttribute('transform','rotate('+(gantryAngle-180)+' 100 100)');
+    if(gid('txGantryAng'))gid('txGantryAng').textContent='Gantry '+Math.round(((gantryAngle%360)+360)%360)+'°';}
+  function updateReadouts(){const m=measured();
+    if(gid('txDriftX'))gid('txDriftX').textContent=(m.x>=0?'+':'')+m.x.toFixed(1);
+    if(gid('txDriftY'))gid('txDriftY').textContent=(m.y>=0?'+':'')+m.y.toFixed(1);
+    if(gid('txDriftZ'))gid('txDriftZ').textContent=(m.z>=0?'+':'')+m.z.toFixed(1);
+    if(gid('txDriftMag'))gid('txDriftMag').textContent=Math.hypot(m.x,m.y,m.z).toFixed(1);}
+  function drawTrace(){
+    const c=gid('txTrace');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height;
+    ctx.clearRect(0,0,W,H);ctx.fillStyle='#08111a';ctx.fillRect(0,0,W,H);
+    const maxMM=12,y=mm=>H-(mm/maxMM)*H;
+    // gate band (±0.5 cm)
+    ctx.fillStyle='rgba(56,232,128,.08)';ctx.fillRect(0,y(GATE_MM),W,H-y(GATE_MM));
+    ctx.strokeStyle='rgba(255,186,107,.6)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(0,y(GATE_MM));ctx.lineTo(W,y(GATE_MM));ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(159,179,196,.8)';ctx.font='10px system-ui';ctx.fillText('0.5 cm gate',6,y(GATE_MM)-4);
+    if(!trace.length)return;
+    const n=trace.length,dx=W/Math.max(120,n);
+    ctx.beginPath();
+    for(let i=0;i<n;i++){const px=i*dx,py=y(Math.min(maxMM,trace[i].mag));if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}
+    ctx.strokeStyle='#46affc';ctx.lineWidth=1.8;ctx.stroke();
+    // trigger ticks
+    for(let i=0;i<n;i++){if(trace[i].trig){const px=i*dx,py=y(Math.min(maxMM,trace[i].mag));ctx.fillStyle=trace[i].mag>GATE_MM?'#ff6b8a':'#8ef0c2';ctx.beginPath();ctx.arc(px,py,3.2,0,7);ctx.fill();}}
+  }
+  function getBackdrop(){
+    if(backdrop)return backdrop;
+    const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
+    const g=x.createRadialGradient(128,128,20,128,128,150);g.addColorStop(0,'#1a232c');g.addColorStop(1,'#070b10');
+    x.fillStyle=g;x.fillRect(0,0,256,256);
+    // faint pelvic-ish silhouette so the kV–MV panel doesn't read as empty
+    x.fillStyle='rgba(120,140,160,.10)';x.beginPath();x.ellipse(128,140,86,70,0,0,7);x.fill();
+    x.strokeStyle='rgba(160,180,200,.07)';x.lineWidth=2;for(let r=30;r<120;r+=18){x.beginPath();x.ellipse(128,140,r,r*0.8,0,0,7);x.stroke();}
+    backdrop=c.toDataURL('image/png');return backdrop;
+  }
+
+  return {enter,exit,restart,active,onStageResult,beamBtn,startRematch,
+    _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();drawTrace();},
+      truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
+      forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx}};
+})();
+window.TXFLOW=TXFLOW;
 
 /* ============================================================================
    DIBH — deep-inspiration breath-hold coaching (Breast L · DIBH case).
@@ -4674,6 +5138,11 @@ const CASE_LISTS={
     // retroperitoneal fat. Off-bone: the mass drifts with respiration off the spine. Data by generate_adrenal_cbct.py.
     {v:'adrenal',t:'Adrenal &middot; off-bone', d:'CBCT &middot; abdomen &middot; mass drifts off spine', b:'Register a respiration-shifted adrenal mass &mdash; the bony spine match leaves the target off.'},
   ]},
+  'tx':{label:'Full Treatment', icon:'✛', cases:[
+    // Full Treatment: one complete prostate fraction — CBCT volumetric setup → kV gold-fiducial verify
+    // → VMAT delivery with intrafraction kV monitoring (re-match a kV–MV pair if the seeds drift off).
+    {v:'prostate', t:'Prostate · VMAT', d:'CBCT → kV fiducial → treat', b:'Run a whole prostate fraction: CBCT setup, kV fiducial verification, then treat with intrafraction monitoring.'},
+  ]},
 };
 function pickMode(mode){
   const list=CASE_LISTS[mode]; if(!list) return;
@@ -4740,6 +5209,8 @@ function launchCase(mode, key){
     });
     return;
   }
+  // Full Treatment: a self-driving stage machine (TXFLOW owns screen switching + case loading).
+  if(mode==='tx'){ chooseMode('tx'); return; }
   chooseMode(mode);
   if(mode==='cbct') CBCT.applyCase(key); else applyCase(key);
 }
@@ -4750,6 +5221,9 @@ function chooseMode(mode){
     document.getElementById('cbctScreen').classList.remove('hidden');
     CBCT.enter();
     setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  }else if(mode==='tx'){
+    document.getElementById('cbctScreen').classList.add('hidden');
+    if(window.TXFLOW) TXFLOW.enter();   // TXFLOW drives Stage 1 (CBCT) → 2 (kV) → 3 (treat)
   }else{
     document.getElementById('cbctScreen').classList.add('hidden');
     // canvases were laid out under the overlay; re-measure now that it is gone
@@ -4844,6 +5318,7 @@ const CASE_TOL={
   'cbct:sarcoma':   {t1:2, t2:5,   r1:2, r2:4},    // extremity soft-tissue sarcoma — soft-tissue limb match
   'cbct:hn':        {t1:3, t2:6,   r1:3, r2:5},    // head & neck — conventional daily-IGRT match (mask immobilisation; register the rigid head & neck)
   'cbct:adrenal':   {t1:3, t2:7,   r1:2, r2:4},    // adrenal — off-bone abdominal soft-tissue match (mass drifts vs spine; translation-graded)
+  'tx:prostate':    {t1:2, t2:5,   r1:3, r2:4},    // full-treatment prostate: re-match accept tolerance (mirrors cbct:prostate fiducial tol)
 };
 const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
 function rtTol(mode,caseKey){return CASE_TOL[mode+':'+caseKey]||RT_TOL_DEFAULT;}
@@ -5028,7 +5503,10 @@ function backToMenu(){
   currentMode=null;
   DIBH.exit();   // stop the breath-hold animation + hide its overlay if it was open
   if(window.CONSOLE) CONSOLE.exit();   // hide the delivery console + stop its MU ramp on return to the picker
+  if(window.TXFLOW) TXFLOW.exit();     // stop the Full Treatment stage machine + delivery loop
+  if(typeof CBCT!=='undefined' && CBCT.setAcqForce) CBCT.setAcqForce(false);   // release the forced CBCT acquisition console
   document.body.classList.remove('fid-mode');   // clear the fiducial-case UI state
+  document.getElementById('txScreen').classList.add('hidden');
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
   ss.classList.remove('hidden');
@@ -5079,6 +5557,14 @@ const CBCT=(function(){
   let curFill=null;        // active rectum/bladder filling scenario (prostate); drives the visible rectum density + the seed drift
   let pendingFill=null;    // Filling picker selection: a scenario key to force, or null = random each New Offset
   let active='axial', fusion=false, caseKey='cervix', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
+  /* ---- acquisition console (prostate only): a gantry sweep gates the match ----
+     Standalone CBCT: optional (skip toggle, default on). Full Treatment Stage 1: forced on.
+     phase: park (drive to 180°) -> armed (at 180°) -> acquiring (360° sweep) -> ready (match unlocked). */
+  let acqEnabled=true, acqForce=false, acqPhase='ready', acqAngle=90, acqRaf=0, acqMotion=false, acqSweepT0=0;
+  const ACQ_ROT=80;          // deg/sec while holding the rotate button
+  const ACQ_SWEEP_MS=3600;   // full 360° acquisition duration
+  function acqUses(){return caseKey==='prostate' && (acqForce||acqEnabled);}
+  function acqReady(){return !acqUses() || acqPhase==='ready';}
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
     axial:   {cv:'cbAxial',    pane:'cbPaneAxial',    sl:'cbBlendAxial',    sx:'x', sy:'z', rot:'roll',  fx:1, fy:-1},
@@ -6214,7 +6700,7 @@ const CBCT=(function(){
   function pushUndo(){undoStack.push(JSON.stringify(shift));if(undoStack.length>80)undoStack.shift();}
   function undo(){if(!undoStack.length)return;shift=JSON.parse(undoStack.pop());clearErrors();refreshReadouts();render();}
   const cbTimer=makeMatchTimer();   // hidden timer: first directional move -> Check Match
-  function adj(axis,delta){cbTimer.onMove();pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
+  function adj(axis,delta){if(!acqReady())return;cbTimer.onMove();pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
   function slStart(){pushUndo();}
   function slide(axis,val){cbTimer.onMove();shift[axis]=+parseFloat(val).toFixed(1);clearErrors();refreshReadouts();render();}
   function setBlend(name,val){ST[name].blend=+val;drawPlane(name);}
@@ -6345,10 +6831,12 @@ const CBCT=(function(){
       const m=gid('cbStatusMsg');
       m.textContent = setupMsg;
       m.style.color='var(--label)';
+      acqArm();   // a fresh fraction re-interlocks the acquisition console (prostate)
     }
     render();
   }
   function check(){
+    if(!acqReady()){const m=gid('cbStatusMsg');if(m){m.textContent='Acquire the cone-beam first — rotate to 180° and scan around the patient.';m.style.color='var(--accent2)';}return;}
     const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));   // bony residual
     // Grade against the TARGET: for the lung case the GTV sits at bone+drift, so the gradable
     // residual is the bony residual minus the drift on the translation axes.
@@ -6380,6 +6868,9 @@ const CBCT=(function(){
     else if(boneMatched&&!accepted){msg=(_ob?_ob.hint:'✗ Bones aligned, but the target is off')+tt;col='var(--accent2)';}
     else if(close){msg='⚡ Close — fine-tune the residual'+tt;col='var(--accent2-hi)';}
     else{msg='✗ Residual error — keep fusing the planes'+tt;col='var(--accent2)';}
+    // Full Treatment Stage 1: TXFLOW owns progression — show the verdict, advance only on accept,
+    // and DON'T roll a new offset (keep the same setup error so the student keeps trying).
+    if(window.TXFLOW&&TXFLOW.active()){const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;TXFLOW.onStageResult('cbct',{accepted:accepted,mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z)});return;}
     // record this attempt; only document a time when within tolerance
     rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:accepted?ms:null});
     // Check Match resets the clock + loads a fresh offset for the next rep; keep the verdict and the
@@ -6458,6 +6949,7 @@ const CBCT=(function(){
     });
     el.addEventListener('pointerdown',ev=>{
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
+      if(!acqReady())return;   // acquisition console up: panes are not interactable until the cone-beam is acquired
       select(name);
       if(crossMode){
         // Grab the split ONLY when pressing on a crosshair line; press elsewhere drags the image.
@@ -6596,6 +7088,8 @@ const CBCT=(function(){
     const hasFill=!!(vc&&vc.offBone&&vc.offBone.fill);
     pendingFill=null; const fr=gid('cbFillRow'); if(fr)fr.style.display=hasFill?'':'none';
     const fs=gid('cbFillSelect'); if(fs)fs.value='random';
+    const ar=gid('cbAcqRow'); if(ar)ar.style.display=(key==='prostate')?'':'none';   // acquisition-console toggle: prostate only
+    const at=gid('cbAcqToggle'); if(at)at.checked=acqEnabled;
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
     if(hasVol(key)&&mprCase!==key){V3=null;mprReady=false;_invCaches();_invContours();}
     // per-case default CT window
@@ -6632,15 +7126,51 @@ const CBCT=(function(){
   // Touch nudge pad: drive the SELECTED plane's in-plane axes / Vrt / rotation, same path the CBCT
   // arrow/Q-E keys use (0.5 mm or 0.5° per tap). axis: 'x'|'y'|'z'|'rot'.
   function cbNudge(axis,dir){
+    if(!acqReady())return;   // no couch nudges until the cone-beam is acquired
     const P=PLANES[active];
     if(axis==='rot'){ adj(P.rot, (P.rot==='pitch'?-1:1)*dir*0.5); return; }
     if(axis==='z'){ adj('z', dir*0.5); return; }
     if(axis==='x'){ const fxe=(mprReady&&active==='sagittal')?-P.fx:P.fx; adj(P.sx, dir*0.5*fxe); return; }
     if(axis==='y'){ adj(P.sy, dir*0.5*P.fy); return; }
   }
+  /* ---- acquisition console rendering + control ---- */
+  function acqStopRaf(){if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqMotion=false;}
+  function acqRender(){
+    const wrap=gid('cbAcq');if(!wrap)return;
+    if(!acqUses()){wrap.classList.add('hidden');return;}
+    wrap.classList.toggle('hidden',acqPhase==='ready');
+    const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');
+    const ang=gid('cbAcqAng');if(ang)ang.textContent='Gantry '+Math.round(((acqAngle%360)+360)%360)+'°';
+    const go=gid('cbAcqGo');if(go)go.disabled=(acqPhase!=='armed');
+    const motion=gid('cbAcqMotion');if(motion)motion.style.display=(acqPhase==='park')?'':'none';
+    const barW=gid('cbAcqBarWrap');if(barW)barW.style.display=(acqPhase==='acquiring')?'':'none';
+    const msg=gid('cbAcqMsg');
+    if(msg)msg.textContent=acqPhase==='park'?'Rotate the gantry to 180° to begin the cone-beam acquisition.'
+      :acqPhase==='armed'?'Gantry at 180° — press Acquire CBCT to scan around the patient.'
+      :acqPhase==='acquiring'?'Acquiring cone-beam projections — gantry rotating around the patient…':'';
+  }
+  function acqArm(){acqStopRaf();if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
+  function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqMotion=true;let last=performance.now();
+    const step=(t)=>{if(!acqMotion){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
+      let d=180-acqAngle;if(d>180)d-=360;if(d<-180)d+=360;
+      const stepDeg=ACQ_ROT*dt*(d>=0?1:-1);
+      if(Math.abs(stepDeg)>=Math.abs(d)){acqAngle=180;acqMotion=false;acqPhase='armed';acqRaf=0;acqRender();return;}
+      acqAngle+=stepDeg;acqRender();acqRaf=requestAnimationFrame(step);};
+    acqRaf=requestAnimationFrame(step);}
+  function acqMotionStop(){if(acqPhase==='park'){acqMotion=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}}}
+  function acqStart(){if(acqPhase!=='armed')return;acqPhase='acquiring';acqSweepT0=performance.now();acqRender();
+    const bar=gid('cbAcqBar');
+    const step=(t)=>{const p=Math.min(1,(t-acqSweepT0)/ACQ_SWEEP_MS);acqAngle=180+p*360;if(bar)bar.style.width=Math.round(p*100)+'%';acqRender();
+      if(p<1){acqRaf=requestAnimationFrame(step);}else{acqRaf=0;acqAngle=180;acqPhase='ready';acqRender();if(window.TXFLOW&&TXFLOW.onCbctAcquired)TXFLOW.onCbctAcquired();}};
+    acqRaf=requestAnimationFrame(step);}
+  function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
+  function setAcqForce(on){acqForce=!!on;}
+  function acqForceReady(){acqStopRaf();acqPhase='ready';acqRender();}
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
-    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
+    toggleAcq,acqMotionStart,acqMotionStop,acqStart,setAcqForce,acqReady,
+    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
 })();
+window.CBCT=CBCT;
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
    Free-rotate volume render of the active CBCT case's planning CT (case-aware via
