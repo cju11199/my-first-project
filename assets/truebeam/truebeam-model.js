@@ -216,57 +216,58 @@ export function build(THREE, opts = {}) {
     parts.BeamStopper = stop;
   }
 
-  // ── kV_Source_Arm (OBI) — 90° around the bore from the head (patient-left, +X at g0) ─
-  // 3-segment fold-out chain: root hinge on drum → mid link → tube head. deploy 0..1.
-  const kvSrc = grp(THREE, 'kV_Source_Arm');
-  kvSrc.position.set(0.9, 0, 0.1);           // root mount on +X side of drum
-  const kvRoot = grp(THREE, 'kV_Source_Root');
-  const kvRootLink = box(THREE, 0.5, 0.16, 0.16, M.cream, 'kV_Src_Link1');
-  kvRootLink.position.x = 0.25;
-  const kvMid = grp(THREE, 'kV_Source_Mid');
-  kvMid.position.x = 0.5;
-  const kvMidLink = box(THREE, 0.4, 0.14, 0.14, M.creamDk, 'kV_Src_Link2');
-  kvMidLink.position.x = 0.2;
-  const kvTube = box(THREE, 0.3, 0.3, 0.3, M.panelHs, 'kV_Tube_Head');
-  kvTube.position.x = 0.45;
-  kvMid.add(kvMidLink, kvTube);
-  kvRoot.add(kvRootLink, kvMid);
-  kvSrc.add(kvRoot);
-  gantry.add(kvSrc);
-  parts.kV_Source_Arm = kvSrc; parts._kvSrcRoot = kvRoot; parts._kvSrcMid = kvMid;
+  // ── Imaging arms — Varian "Exact arm" robotic booms ─────────────────────────
+  // Each is a base housing on the gantry + two NESTED rectangular blade stages that
+  // telescope outward along its axis (linear deploy 0..1), plus a fold so they stow
+  // flat against the gantry. Built mounted on the gantry so they orbit with it; the
+  // kV pair lies on the lateral (X) axis, 90° from the MV beam (the orthogonal imager).
+  function exactBoom(name, sign) {                  // sign +1 = +X side, -1 = -X side
+    const g = grp(THREE, name);
+    const base = box(THREE, 0.34, 0.24, 0.3, M.cream, name + '_Base');     base.position.x = sign * 0.06;
+    const s1 = grp(THREE, name + '_Stage1');         // first telescoping stage (nests in base when stowed)
+    const l1 = box(THREE, 0.4, 0.18, 0.22, M.creamDk, name + '_Link1');    // centred on the stage origin
+    const s2 = grp(THREE, name + '_Stage2');         // second stage (carries the payload)
+    const l2 = box(THREE, 0.4, 0.14, 0.16, M.cream, name + '_Link2');
+    s2.add(l2); s1.add(l1, s2); g.add(base, s1);
+    return { root: g, s1, s2 };
+  }
 
-  // ── kV_Detector_Arm — diametrically opposite the kV source (patient-right, -X at g0) ─
-  const kvDet = grp(THREE, 'kV_Detector_Arm');
-  kvDet.position.set(-0.9, 0, 0.1);
-  const kvDetRoot = grp(THREE, 'kV_Det_Root');
-  const kvDetLink = box(THREE, 0.5, 0.16, 0.16, M.cream, 'kV_Det_Link1');
-  kvDetLink.position.x = -0.25;
-  const kvDetMid = grp(THREE, 'kV_Det_Mid');
-  kvDetMid.position.x = -0.5;
-  const kvDetLink2 = box(THREE, 0.4, 0.14, 0.14, M.creamDk, 'kV_Det_Link2');
-  kvDetLink2.position.x = -0.2;
-  const kvPanelHs = box(THREE, 0.1, 0.48, 0.48, M.panelHs, 'kV_Panel_Housing');
-  kvPanelHs.position.x = -0.45;
-  const kvPanel = box(THREE, 0.04, 0.43, 0.43, M.panel, 'kV_Panel_Face');
-  kvPanel.position.x = -0.4;
-  kvDetMid.add(kvDetLink2, kvPanelHs, kvPanel);
-  kvDetRoot.add(kvDetLink, kvDetMid);
-  kvDet.add(kvDetRoot);
-  gantry.add(kvDet);
-  parts.kV_Detector_Arm = kvDet; parts._kvDetRoot = kvDetRoot; parts._kvDetMid = kvDetMid;
+  // kV Source (OBI X-ray tube) — patient-left (+X). Payload = a tube housing + collimator.
+  const kvSrcBoom = exactBoom('kV_Source_Arm', +1);
+  kvSrcBoom.root.position.set(0.58, 0, 0.12);
+  const kvTubeMount = grp(THREE, 'kV_Tube'); kvTubeMount.position.x = 0.2;
+  const kvTubeHsg = cyl(THREE, 0.13, 0.13, 0.28, M.panelHs, 20, 'kV_Tube_Housing'); kvTubeHsg.rotation.z = Math.PI / 2;
+  const kvColl = box(THREE, 0.11, 0.14, 0.14, M.headGray, 'kV_Collimator'); kvColl.position.x = -0.18;  // beam port faces iso
+  kvTubeMount.add(kvTubeHsg, kvColl); kvSrcBoom.s2.add(kvTubeMount);
+  gantry.add(kvSrcBoom.root);
+  parts.kV_Source_Arm = kvSrcBoom.root;
 
-  // ── MV_Detector_Arm (EPID) — below iso, in line with the head (−Y at g0) ────
-  // telescoping deploy along the beam axis; panel at ~0.5 m beyond iso (SID 1.5).
-  const mvDet = grp(THREE, 'MV_Detector_Arm');
-  const mvCol = box(THREE, 0.14, 0.6, 0.14, M.cream, 'MV_Telescope');
-  const mvTele = grp(THREE, 'MV_Telescope_Slide');
-  const mvPanelHs = box(THREE, 0.46, 0.1, 0.46, M.panelHs, 'MV_Panel_Housing');
-  const mvPanel = box(THREE, 0.4, 0.05, 0.4, M.panel, 'MV_Panel_Face');
-  mvPanel.position.y = 0.06;
-  mvTele.add(mvPanelHs, mvPanel);
-  mvDet.add(mvCol, mvTele);
+  // kV Detector (flat-panel imager) — patient-right (-X), across iso from the source.
+  const kvDetBoom = exactBoom('kV_Detector_Arm', -1);
+  kvDetBoom.root.position.set(-0.58, 0, 0.12);
+  const kvPanMount = grp(THREE, 'kV_Panel'); kvPanMount.position.x = -0.2;
+  const kvPanHsg = box(THREE, 0.1, 0.52, 0.52, M.panelHs, 'kV_Panel_Housing');
+  const kvPanFace = box(THREE, 0.05, 0.46, 0.46, M.panel, 'kV_Panel_Face'); kvPanFace.position.x = 0.05; // active face → source
+  kvPanMount.add(kvPanHsg, kvPanFace); kvDetBoom.s2.add(kvPanMount);
+  gantry.add(kvDetBoom.root);
+  parts.kV_Detector_Arm = kvDetBoom.root;
+
+  // ── MV_Detector_Arm (EPID/portal imager) — below iso, in line with the head (−Y) ─
+  // a vertical telescoping boom (base + 2 nested stages) carrying a large flat panel.
+  const mvDet = grp(THREE, 'MV_Detector_Arm'); mvDet.position.y = -0.32;
+  const mvBase = box(THREE, 0.28, 0.26, 0.32, M.cream, 'MV_Base');
+  const mvS1 = grp(THREE, 'MV_Stage1');
+  const mvL1 = box(THREE, 0.22, 0.36, 0.24, M.creamDk, 'MV_Link1');
+  const mvS2 = grp(THREE, 'MV_Stage2');
+  const mvL2 = box(THREE, 0.18, 0.36, 0.18, M.cream, 'MV_Link2');
+  const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.y = -0.26;
+  const mvPanHsg = box(THREE, 0.56, 0.1, 0.56, M.panelHs, 'MV_Panel_Housing');
+  const mvPanFace = box(THREE, 0.5, 0.05, 0.5, M.panel, 'MV_Panel_Face'); mvPanFace.position.y = 0.06; // face → iso/head
+  mvPanMount.add(mvPanHsg, mvPanFace);
+  mvS2.add(mvL2, mvPanMount); mvS1.add(mvL1, mvS2); mvDet.add(mvBase, mvS1);
   gantry.add(mvDet);
-  parts.MV_Detector_Arm = mvDet; parts._mvTele = mvTele; parts._mvCol = mvCol;
+  parts.MV_Detector_Arm = mvDet; parts._mvS1 = mvS1; parts._mvS2 = mvS2;
+  parts._kvSrcBoom = kvSrcBoom; parts._kvDetBoom = kvDetBoom;
 
   // ── Couch chain (independent sibling of the gantry) ─────────────────────────
   const couchRoot = grp(THREE, 'Couch_6DOF_Group');
@@ -358,22 +359,20 @@ export function build(THREE, opts = {}) {
     collimatorAngle(deg) { collim.rotation.y =  deg * D2R; },        // about beam axis (local Y)
     kvDeploy(t) {                                                    // 0 stowed → 1 deployed
       t = clamp01(t);
-      kvRoot.rotation.z = -t * 0.35;        // small hinge unfold
-      kvMid.rotation.z  = -t * 0.45;
-      kvMid.position.x  = 0.5 + t * 0.4;    // telescope out toward SAD on the kV axis
+      kvSrcBoom.root.rotation.z = (1 - t) * 0.5;    // stowed: folded up against the gantry
+      kvSrcBoom.s1.position.x = t * 0.24;           // telescope stage 1 out (+X, toward the kV source pt)
+      kvSrcBoom.s2.position.x = t * 0.26;           // stage 2 further
     },
     kvDetDeploy(t) {
       t = clamp01(t);
-      kvDetRoot.rotation.z =  t * 0.35;
-      kvDetMid.rotation.z  =  t * 0.45;
-      kvDetMid.position.x  = -0.5 - t * 0.5;
+      kvDetBoom.root.rotation.z = -(1 - t) * 0.5;   // stowed: folded up (mirror of the source)
+      kvDetBoom.s1.position.x = -t * 0.24;          // telescope out (-X, across iso from the source)
+      kvDetBoom.s2.position.x = -t * 0.26;
     },
-    mvDeploy(t) {                                                    // telescope panel below iso
+    mvDeploy(t) {                                                    // telescope the EPID below iso
       t = clamp01(t);
-      const drop = -0.45 - t * 0.10;        // panel ~0.5 m beyond iso when deployed
-      mvTele.position.y = drop;
-      mvCol.position.y  = drop / 2;
-      mvCol.scale.y     = 0.2 + t * 0.9;    // column extends as it deploys
+      mvS1.position.y = -t * 0.26;          // stage 1 drops
+      mvS2.position.y = -t * 0.3;           // stage 2 drops further → panel ~0.5 m beyond iso
     },
     mlcField(w, h) {                                                 // metres at iso plane (cosmetic)
       const s = 0.5; // leaf bank half-separation scales with field width
