@@ -232,6 +232,24 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `doi:10.7937/c5ke-yx42`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three
   Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge or the case 404s live. Visual
   rendering still needs a real-browser check.
+- `generate_adrenal_cbct.py` — offline helper that ingests an **Adrenal-ACC-Ki67-Seg** patient (contrast
+  abdominal CT + a tumour **DICOM-SEG**) and writes `adrenal3d_data.js` + `adrenal3d_labels_data.js` for the
+  **Adrenal** CBCT case (`VOLCASE.adrenal`, `cbct:adrenal` `CASE_TOL` 3 mm/2°, `ADRENAL_STRUCTS`). The **third
+  off-bone case** (after lung + prostate) and the chosen way to teach "register the target, not the spine" in the
+  abdomen — a **liver-met** version was rejected because the met is **isodense** with liver (~23 HU, invisible),
+  so the off-bone hide/redraw had nothing to show; an **adrenal mass sits in retroperitoneal fat** (~40 HU vs
+  fat ~−80 HU), so the redraw reads with strong contrast, exactly like the lung-nodule-in-air case. SEG-sourced
+  like liver (body thresholded from CT, real **Mass** target → generic **`tumor`** slot, no new legend HTML).
+  **Off-bone** is config-driven in `VOLCASE.adrenal.offBone` (`driftBit:2`, `hideDens:50` fat, `drawDens:70`
+  mass, SI/`Lng`-dominant respiratory drift `y:[4,7]`, capped ~5 mm in `randomize()`); `check()` grades
+  translation against `e − targetDrift` (rotations shown, not graded). Its own non-default branch
+  (`ADRENAL_LBL`/`ADRENAL_ISO_IDX`/`_decodeAdrenalLabels`/`_adrenalCtrCache`, `cur*` switches), mirroring
+  sarcoma/hn. Patient **`Adrenal_Ki67_Seg_052`** was picked over patient 001's 5 mm venous series because its SEG
+  is drawn on a **thin 1.25 mm** series → sharp, smear-free coronal/sagittal reformats. Reachable only from the
+  **start-screen picker**. Via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 4.0** — attribute
+  `doi:10.7937/1fpg-vm46`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three
+  Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge or the case 404s live. Visual
+  rendering still needs a real-browser check.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -366,6 +384,8 @@ Two workflows, picked on the start screen:
   Prostate (gold fiducial markers, **off-bone**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
   Soft-tissue sarcoma · **Head & Neck** (EAY131/NCI-MATCH neck CT; daily-IGRT 6DOF match over the cervical
   spine/mandible/skull-base with a real pharynx/larynx soft-tissue target — see `generate_hn_cbct.py`) ·
+  **Adrenal · off-bone** (Adrenal-ACC-Ki67-Seg; an adrenal mass in retroperitoneal fat that drifts off the spine
+  with respiration — the third off-bone case, register the mass not the vertebrae — see `generate_adrenal_cbct.py`) ·
   **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,
   with peritumoral edema; smoothed external head contour as body — see `generate_gbm_mr.py`):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via

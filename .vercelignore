@@ -40,6 +40,7 @@ liver3d_data.js
 gbm3d_data.js
 sarcoma3d_data.js
 hn3d_data.js
+adrenal3d_data.js
 brain3d_labels_data.js
 pelvis3d_labels_data.js
 cervix3d_labels_data.js
@@ -53,6 +54,7 @@ liver3d_labels_data.js
 gbm3d_labels_data.js
 sarcoma3d_labels_data.js
 hn3d_labels_data.js
+adrenal3d_labels_data.js
 drr/
 
 # Upload helper (run via the GitHub Action / locally, never served)
