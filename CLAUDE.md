@@ -208,30 +208,6 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `doi:10.7937/k9/tcia.2018.3r3juisw`, baked into the data-file headers. Files committed, `.vercelignore`d, in
   the **three Phase-2 allowlists** (and `PUBLIC_KEYS` since it's the free case); re-run the **"Upload data to
   Blob" Action** after merge or the case 404s live. Visual rendering still needs a real-browser check.
-- `generate_hn_cbct.py` — offline helper that ingests an **EAY131 / NCI-MATCH** patient (contrast neck CT +
-  RTSTRUCT tumour annotations) and writes `hn3d_data.js` + `hn3d_labels_data.js` for the **Head & Neck** CBCT
-  case (`VOLCASE.hn`, `cbct:hn` `CASE_TOL` 3 mm/3°, `HN_STRUCTS`). The **first H&N case** — a daily-IGRT rigid
-  6DOF match over the **cervical spine / mandible / skull-base** bony anatomy with a real **pharynx/larynx
-  primary** soft-tissue target (folds into the generic **`tumor`** slot like cervix/liver/sarcoma, so no new
-  legend HTML; iso = the pharynx-primary centroid). Uses the trainer's default
-  CBCT struct pattern but its **own** non-default branch (`HN_LBL`/`HN_ISO_IDX`/`_decodeHNLabels`/`_hnCtrCache`,
-  `cur*` switches), mirroring sarcoma. Body is thresholded from the CT (the RECIST annotation RTSTRUCTs carry no
-  external/OAR ROIs). **Unlike the other CBCT generators, this neck CT has NON-UNIFORM native slice spacing** (a
-  clean ~0.7 mm run ~48 mm through the target, but scattered **large 12–51 mm gaps** elsewhere), so the generator
-  (1) **resamples the volume + masks onto a uniform world-Z grid** (linear interp per column) before the in-plane
-  crop / isotropic resample — `ndimage.zoom` assumes uniform spacing, so the raw stack would be geometrically
-  wrong — **and (2) clips the SI slab to the largest contiguous clean native run** (gaps ≤ `GAP_TOL_MM` 1.5)
-  containing the target. Step (2) is essential: a symmetric target ±30 mm slab pulled ~46% of its slices out of
-  the big gaps, which the uniform-Z interp smeared along the SI axis → **vertical streaking in the coronal/
-  sagittal reformats** (diagnosed via an ultracode workflow; the axial/target were always clean). The **`LEFT
-  NECK LYMPH NODE` annotation is intentionally dropped** — it sits ~13 mm superior of the clean run inside a
-  12.6 mm gap and can't be rendered cleanly from this series (primary-only target). Reachable only from the
-  **start-screen picker** (not the in-app dropdown, like the other recent CBCT cases). Built from patient
-  `EAY131-7978834` (the `Neck_1_0_I26s_3` 0.7 mm series; the `PHARYNX AND LARYNX`
-  annotation references that CT) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 4.0** — attribute
-  `doi:10.7937/c5ke-yx42`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three
-  Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge or the case 404s live. Visual
-  rendering still needs a real-browser check.
 - `generate_adrenal_cbct.py` — offline helper that ingests an **Adrenal-ACC-Ki67-Seg** patient (contrast
   abdominal CT + a tumour **DICOM-SEG**) and writes `adrenal3d_data.js` + `adrenal3d_labels_data.js` for the
   **Adrenal** CBCT case (`VOLCASE.adrenal`, `cbct:adrenal` `CASE_TOL` 3 mm/2°, `ADRENAL_STRUCTS`). The **third
@@ -250,6 +226,45 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `doi:10.7937/1fpg-vm46`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three
   Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge or the case 404s live. Visual
   rendering still needs a real-browser check.
+- `generate_hn_2d.py` — offline helper for the **2D/2D Head & Neck** case: ray-sums AP + Lateral
+  bone-emphasised DRRs of the **whole head + neck** from a clean diagnostic head-and-neck CT (TCIA
+  **TCGA-THCA** patient `TCGA-DE-A4MA`, "CT HeadNeck 3.0 B31s"; full cranial vault → cervical spine →
+  shoulders, clean axial HFS uniform 1.5 mm, **no de-ID redaction box**). Cervical-spine / mandible /
+  skull-base bony match (flat `tilt:null` orthogonal pair, rides the existing 2D infra like Femur /
+  Spine 2D). Same Beer–Lambert + float-LANCZOS-upscale + percentile-stretch + unsharp render at 768 px,
+  with an **anisotropic-spacing aspect correction** (z 1.5 mm vs in-plane 0.98 mm — render width is
+  scaled by physical mm, not pixel count, or the skull comes out ~1.5× too wide) and a small black
+  vertex margin so the head isn't flush to the top edge. **Appends** `HN_AP_SRC` + `HN_LAT_SRC` to
+  `image_data.js` (idempotent — already in the Phase-2 allowlists; **re-run the "Upload data to Blob"
+  Action** after merge or the DRRs 404). The source was picked by an **ultracode workflow** that swept
+  IDC + external CC-BY databases for a clean full-head+neck box-free CT (the earlier varepop-apollo
+  source had a de-ID box on the face). **Licence CC BY 3.0** — attribute `doi:10.7937/k9/tcia.2016.9zfrvf1b`.
+  Visual rendering verified headlessly; live-trainer look confirmed in headless Chromium.
+- `generate_hn_cbct.py` — offline helper for the **Head & Neck CBCT** case (`VOLCASE.hn`, `cbct:hn`
+  `CASE_TOL` 3 mm/3°, `HN_STRUCTS`). **RE-SOURCED** off the original EAY131 / NCI-MATCH neck CT (which had
+  non-uniform slice spacing + a partial-head FOV) onto **TCGA-THCA `TCGA-DE-A4MA`** — the SAME clean
+  full-head patient as the 2D/2D H&N case — so the two H&N cases are now one patient, the FOV spans the
+  full cranial vault through the neck, and there is no de-ID box. Clean uniform axial HFS, so the old
+  non-uniform-Z resample + clean-run clipping is gone; the generator just body-masks, builds the target,
+  crops a neck slab + body in-plane, and isotropically resamples to the tiled-atlas format
+  (`_decodeHNLabels`, bits body=1 / tumor=2 — unchanged). TCGA-THCA carries **no tumour RTSTRUCT/SEG**, so
+  the soft-tissue target is **SYNTHETIC**: a **BILATERAL cervical-nodal PTV** (`synth_target`) — an
+  anterior-convex **horseshoe/U** of two jugular-chain lobes (levels **II–IV** both sides) joined by a thin
+  anterior bridge, carving out the **central airway** (connected-component detection + dilate) and a
+  **posterior cord/vertebral-body keep-out** so the U opens posteriorly (cord-sparing). Level-aware (II
+  sup/narrow → III mid/widest → IV inf/anterior-supraclav-shelf, optional Ib/Va), bounded to the
+  **cervical SI window** `Z_FRAC` 0.30–0.72 (NOT the whole head — the CT is the full vault, so a whole-head
+  span would drape over the brain), tapered SI caps, body-relative outer standoff, slight L/R jitter, and
+  keep-outs re-applied **after** z-smoothing. ~110 cc (vs the old ~3 cc unilateral node). The whole
+  horseshoe is the single generic **`tumor`** slot (reuses the existing legend; iso = the PTV centroid).
+  The **bilateral-PTV geometry was designed by an ultracode workflow** (radonc + geometry proposals →
+  judge panel → synthesis). Rigid 6DOF daily-IGRT match over the real cervical-spine / mandible /
+  skull-base bony anatomy; the synthetic PTV defines the iso/contour. Reachable only from the
+  **start-screen picker**. Built from `TCGA-DE-A4MA` via the **IDC** bucket `s3://idc-open-data`.
+  **Licence CC BY 3.0** — attribute `doi:10.7937/k9/tcia.2016.9zfrvf1b`, baked into the data-file headers.
+  `hn3d_*` files were already `.vercelignore`d + in the **three Phase-2 allowlists**; **re-run the
+  "Upload data to Blob" Action** after merge or the case 404s live. CBCT MPR rendering + bilateral
+  contours verified in headless Chromium.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -317,8 +332,23 @@ Two workflows, picked on the start screen:
 
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Femur (extremity DRR; femoral-shaft landmark) ·
   **Spine SBRT** (thoracic vertebral-column bony match, AP+Lat DRRs ray-summed from a full-resolution
-  diagnostic chest CT — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · Breast L (monoisocentric SCV +
-  medial-tangent, Varian-style) · **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
+  diagnostic chest CT — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · **Head & Neck** (whole head +
+  cervical-spine bony match, AP+Lat DRRs from a clean full-head CT — `generate_hn_2d.py`; carries the
+  **enter-room / re-setup decision** below) · Breast L (monoisocentric SCV + medial-tangent, Varian-style) ·
+  **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
+  - **Enter-room / re-setup decision + directional guidance (Head & Neck case; CONSOLE):** some daily
+    setups roll a **GROSS** error (beyond the couch **action limit** — `CONSOLE_PLANS.hn.resetup`:
+    `actionLimitMm` 10 / `rotLimitDeg` 3 / `grossChance` 0.45; `applyNewOffset2d` rolls gross vs
+    correctable offsets when `CONSOLE.resetupCfg()` is set). A couch shift can't safely fix a gross/rotated
+    mask setup, so the correct action is to **ENTER ROOM** and reposition the patient — not Apply Shifts.
+    In the MATCH phase the console shows an **ENTER ROOM** button (glows when `trueErrGross()`); **APPLY
+    SHIFTS is blocked + dimmed** on a gross error (`applyShifts` gate). `CONSOLE.enterRoom()` on a gross
+    error repositions → ALIGNED (records a clear); on a within-limit error it's unnecessary → corrective
+    feedback + re-acquire. A live **"Move" line** in the control strip (`roomDirections()` →
+    `refreshReadouts`) translates the dialed correction into plain patient directions (e.g.
+    "RIGHT 0.4 cm · SUP 1.2 cm · POST 0.3 cm · ROLL CW 2°"), grounded in the file's Lat/Lng/Vrt sign
+    conventions, and the same helper labels the room repositioning. `CONSOLE._dbg` adds `enterRoom`,
+    `isGross`, `resetupCfg`, `setError` for headless tests (decision flow verified in headless Chromium).
   - **Breast DIBH (`DIBH` module):** button-driven deep-inspiration breath-hold coach docked as a **strip
     at the bottom of the 2D/2D match screen** (`#dibhStrip`, inside the `.match-col` wrapper that now holds
     `.views` + the strip), *not* a separate overlay — the RPM-style amplitude trace (cm) animates beside the
@@ -382,8 +412,9 @@ Two workflows, picked on the start screen:
   replaced the old Pelvis bony-match case) · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
   Prostate (gold fiducial markers, **off-bone**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
-  Soft-tissue sarcoma · **Head & Neck** (EAY131/NCI-MATCH neck CT; daily-IGRT 6DOF match over the cervical
-  spine/mandible/skull-base with a real pharynx/larynx soft-tissue target — see `generate_hn_cbct.py`) ·
+  Soft-tissue sarcoma · **Head & Neck** (TCGA-THCA `TCGA-DE-A4MA` clean full-head CT — SAME patient as the
+  2D H&N case; daily-IGRT 6DOF match over the cervical spine/mandible/skull-base with a **synthetic bilateral
+  cervical-nodal PTV** (levels II–IV horseshoe, cord/airway-sparing) — see `generate_hn_cbct.py`) ·
   **Adrenal · off-bone** (Adrenal-ACC-Ki67-Seg; an adrenal mass in retroperitoneal fat that drifts off the spine
   with respiration — the third off-bone case, register the mass not the vertebrae — see `generate_adrenal_cbct.py`) ·
   **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,

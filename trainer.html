@@ -164,6 +164,10 @@ main.shifts-collapsed .shift-tab{left:0}
 .ctrl-row{display:flex;align-items:center;gap:8px}
 .ctrl-actions{display:flex;gap:8px;margin-top:3px;padding-top:11px;border-top:1px solid var(--hairline)}
 .ctrl-actions>button{flex:1;font-size:11px;padding:6px 4px}
+/* plain-language "which way to correct the patient" for the dialed correction (also drives the room re-setup) */
+.ctrl-move-row{display:flex;align-items:flex-start;gap:8px;padding-top:9px;border-top:1px solid var(--hairline)}
+.ctrl-move-row .ctrl-label{padding-top:2px}
+.ctrl-move{flex:1;min-height:18px;font-family:var(--mono);font-size:11.5px;line-height:1.4;font-weight:600;color:var(--accent-hi);letter-spacing:.02em;word-break:break-word}
 .ctrl-label{font-family:var(--mono);font-size:14px;color:var(--label);width:42px;text-align:right}
 .ctrl-btn{width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;font-size:19px;background:linear-gradient(180deg,var(--elev),var(--panel2));color:var(--text);border:1px solid var(--border2);border-radius:var(--radius-sm);font-family:var(--mono);transition:all .15s var(--ease);box-shadow:var(--shadow-soft)}
 .ctrl-btn:hover{background:var(--accent-dim);border-color:rgba(45,212,238,.45);color:var(--accent-hi);box-shadow:0 0 0 3px var(--accent-dim)}
@@ -790,9 +794,13 @@ html:not(.auth-pending) #authGate{display:none}
 #conAcqBtn.exposing{box-shadow:0 0 0 2px var(--accent),0 2px 0 #6f757c,0 3px 7px rgba(45,212,238,.5)}
 .con-acqprog{position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--accent);box-shadow:0 0 6px 1px rgba(45,212,238,.8)}
 .con-beamfan.firing{opacity:.85}   /* kV beam stays on while you hold the exposure */
-#conMatchBtn,#conApplyBtn{grid-column:1/3}
+#conMatchBtn,#conApplyBtn,#conRoomBtn{grid-column:1/3}
 .pbtn.match.ready{background:linear-gradient(180deg,#ffc49e,#ff7a45);color:#3a1c0a;animation:conMatchPulse 1.4s ease-in-out infinite}
 .pbtn.apply:not(:disabled){background:linear-gradient(180deg,#8fe9f7,#2dd4ee);color:#04222a}
+/* ENTER ROOM (re-setup): amber action; pulses orange when the true setup error is gross, and APPLY dims as the wrong move */
+.pbtn.room:not(:disabled){background:linear-gradient(180deg,#ffd9a0,#f0a64e);color:#3a230a}
+.pbtn.room.needroom:not(:disabled){background:linear-gradient(180deg,#ffc49e,#ff7a45);color:#3a1c0a;animation:conMatchPulse 1.4s ease-in-out infinite}
+.pbtn.apply.wrong:not(:disabled){opacity:.5;filter:saturate(.45)}
 @keyframes conMatchPulse{0%,100%{box-shadow:0 2px 0 #6f757c,0 0 0 0 rgba(255,122,69,0)}50%{box-shadow:0 2px 0 #6f757c,0 0 12px 1px rgba(255,122,69,.6)}}
 .con-lamps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px 12px}
 .con-lamp{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono),monospace;font-size:10px;letter-spacing:.05em;color:var(--muted)}
@@ -811,7 +819,7 @@ html:not(.auth-pending) #authGate{display:none}
 .con-msg.bad{color:var(--accent2)}
 /* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
-@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}}
+@media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}.pbtn.room.needroom:not(:disabled){animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
@@ -1170,6 +1178,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <option value="thorax">Thorax &middot; CT DRR (3D)</option>
       <option value="femur">Femur &middot; CT DRR (3D)</option>
       <option value="spine">Spine SBRT &middot; CT DRR (3D)</option>
+      <option value="hn">Head &amp; Neck &middot; CT DRR (3D)</option>
       <option value="breast">Breast L &middot; SCV + Tangent</option>
       <option value="prostate">Prostate &middot; Fiducial Match</option>
     </select>
@@ -1532,6 +1541,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           title="HOLD ~1 s to take the exposure — or hold Enter"><span class="pbtn-lbl" id="conAcqLbl">kV BEAM ON</span><span class="pbtn-key">&crarr; Enter &middot; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
         <button class="pbtn match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match"><span class="pbtn-lbl">2D / 2D MATCH</span></button>
         <button class="pbtn apply" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+        <button class="pbtn room" id="conRoomBtn" type="button" onclick="CONSOLE.enterRoom()" disabled style="display:none" title="Go into the room and reposition the patient — the correct fix when a gross setup error exceeds the couch action limit"><span class="pbtn-lbl">ENTER ROOM</span><span class="pbtn-key">re-setup</span></button>
       </div>
       <div class="con-msg" id="conMsg">Click an image to select it. HOLD Motion Enable (or SPACE) to drive the gantry to the kV angle, then HOLD kV Beam On (or Enter ~1 s) to expose. AP = G90/270, Lateral = G0/180.</div>
     </div>
@@ -1545,6 +1555,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <div class="ctrl-row"><span class="ctrl-label">Lat</span><div class="ctrl-val" id="valX">0.00</div><span class="ctrl-unit">cm</span></div>
       <div class="ctrl-row"><span class="ctrl-label">RTN</span><div class="ctrl-val" id="valRoll">0.0</div><span class="ctrl-unit">&deg;</span></div>
       <div class="ctrl-row"><span class="ctrl-label">Pitch</span><div class="ctrl-val" id="valPitch">0.0</div><span class="ctrl-unit">&deg;</span></div>
+      <div class="ctrl-move-row" title="Plain-language patient/couch move for the dialed correction"><span class="ctrl-label">Move</span><div class="ctrl-move" id="moveDir">&mdash;</div></div>
       <div class="ctrl-actions">
         <button class="btn-warn" onclick="resetShift()">Reset</button>
         <button class="btn-primary" onclick="randomizeShift()">New Offset</button>
@@ -1889,6 +1900,15 @@ const CASES = {
   // (SPINE_AP_SRC / SPINE_LAT_SRC). A different patient than the CBCT Spine case.
   spine:{ name:'Spine SBRT · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
           iso:{ ap:{x:0.501,y:0.5}, lat:{x:0.738,y:0.5} }, tilt:null },
+  // Head & Neck: orthogonal-pair (AP + Lateral) bone-emphasised DRRs of the WHOLE head + neck,
+  // ray-summed from a clean diagnostic head-and-neck CT (TCIA TCGA-THCA TCGA-DE-A4MA; full cranial
+  // vault → cervical spine → shoulders, no de-ID box). Flat (tilt:null) — the cervical spine,
+  // mandible and skull base are the bony landmarks. Data in image_data.js (HN_AP_SRC / HN_LAT_SRC).
+  // This case adds the "enter room / re-setup" decision (CONSOLE_PLANS.hn.resetup): a gross setup
+  // error beyond the couch action limit must be fixed by repositioning the patient in the room,
+  // not a couch shift.
+  hn:{ name:'Head & Neck · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
+       iso:{ ap:{x:0.519,y:0.488}, lat:{x:0.641,y:0.488} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
   // orthogonal pair -> 'ap' slot = SCV (gantry 0), 'lat' slot = Medial tangent (g~305).
   // Reference = full MLC DRR; the moving "acquired" image (por) is a clean anatomy
@@ -1972,6 +1992,7 @@ function hydrate2DCases(){
     CASES.thorax.ap=THORAX_AP_SRC; CASES.thorax.lat=THORAX_LAT_SRC;
     if(typeof FEMUR_AP_SRC!=='undefined'){ CASES.femur.ap=FEMUR_AP_SRC; CASES.femur.lat=FEMUR_LAT_SRC; }
     if(typeof SPINE_AP_SRC!=='undefined'){ CASES.spine.ap=SPINE_AP_SRC; CASES.spine.lat=SPINE_LAT_SRC; }
+    if(typeof HN_AP_SRC!=='undefined'){ CASES.hn.ap=HN_AP_SRC; CASES.hn.lat=HN_LAT_SRC; }
   }
   if(typeof BREAST_SCV_REF_SRC!=='undefined' && typeof BREAST_META!=='undefined'){
     const b=CASES.breast;
@@ -2062,8 +2083,8 @@ function applyCase(key){
   if(latT) latT.textContent=(c.viewTags&&c.viewTags.lat)||'LATERAL';
   views.ap.img.src=c.ap;
   views.lat.img.src=c.lat;
-  randomizeShift();           // fresh random offset for the new case (also refreshes readouts)
-  if(window.CONSOLE) CONSOLE.refresh(key);   // show/hide + reset the delivery console for this case
+  if(window.CONSOLE) CONSOLE.refresh(key);   // configure the delivery console for this case FIRST, so a
+  randomizeShift();           // resetup case can roll a gross first offset (also refreshes readouts)
 }
 
 function toggleGrid(){
@@ -2927,6 +2948,14 @@ const CONSOLE_PLANS={
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   spine:{plan:'SPINE_SBRT', couch:{vrt: 3.40, lng:88.60, lat:-0.45, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
+  // Head & Neck: deep Lng (head driven into the bore). Carries the RE-SETUP decision: some daily
+  // setups are GROSS — beyond the couch action limit — and a couch shift can't safely correct a
+  // large/rotated mask setup, so the therapist must ENTER ROOM and reposition the patient.
+  // actionLimitMm = per-axis couch-shift action level (mm); rotLimitDeg = rotation action level;
+  // grossChance = how often applyNewOffset2d rolls a gross (re-setup-required) offset for this case.
+  hn:{plan:'HEAD_NECK_IMRT', couch:{vrt:-2.10, lng:96.80, lat: 0.40, rtn:0}, views:[
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ],
+    resetup:{ actionLimitMm:10, rotLimitDeg:3, grossChance:0.45 } },
   // Breast tangents are verified with MV (the gantry head / EPID), NOT kV: image each tangent field at its own
   // treatment gantry angle (medial ~G305, lateral ~G125 — parallel-opposed). mv:true + per-view angles override
   // the kV geometry; the acquire fires the MV head→EPID beam and the console reads "MV".
@@ -2985,6 +3014,18 @@ const CONSOLE=(()=>{
   function matchable(){ return !active || !!MATCHPHASES[phase]; }
   function hidesPortal(key){ if(!active)return false;
     const i=views.findIndex(v=>v.slot===key); return i>=0 ? !acquired[i] : false; }
+
+  // ---- RE-SETUP (room) decision: some daily setups are GROSS — beyond the couch action limit — and
+  // must be fixed by repositioning the patient in the room, not a couch shift. resetupCfg() exposes
+  // the active case's config (applyNewOffset2d reads it to roll gross offsets); trueErrGross() tests
+  // whether the CURRENT true setup error (the hidden offset) is beyond the per-axis action limit.
+  function resetupCfg(){ return (active && plan && plan.resetup) ? plan.resetup : null; }
+  function trueErrGross(){
+    const rs=resetupCfg(); if(!rs||typeof hidden==='undefined') return false;
+    const lim=rs.actionLimitMm||10, rl=rs.rotLimitDeg||3;
+    return Math.abs(hidden.x)>lim||Math.abs(hidden.y)>lim||Math.abs(hidden.z)>lim
+         ||Math.abs(hidden.roll)>rl||Math.abs(hidden.pitch)>rl;
+  }
 
   // ---- lifecycle ----
   function refresh(key){
@@ -3104,6 +3145,12 @@ const CONSOLE=(()=>{
     if(mt){ mt.disabled=!(inAcq&&ready); mt.classList.toggle('ready', inAcq&&ready);
             mt.style.display=(active&&(phase==='ACQUIRE'||phase==='MATCH'))?'':'none'; }
     if(ap)ap.disabled=!(phase==='MATCH');
+    // ENTER ROOM (re-setup cases only): available in MATCH; glows when the true error is gross and
+    // dims APPLY SHIFTS as the wrong action for a gross setup.
+    const rm=el('conRoomBtn'), rs=resetupCfg(), gross=!!rs&&trueErrGross();
+    if(rm){ rm.style.display=rs?'':'none'; rm.disabled=!(rs&&phase==='MATCH');
+            rm.classList.toggle('needroom', !!rs&&phase==='MATCH'&&gross); }
+    if(ap){ ap.classList.toggle('wrong', !!rs&&phase==='MATCH'&&gross); }
     // mirror the action label onto the sidebar Check Match button while the console drives the case
     const cm=el('checkMatchBtn');
     if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
@@ -3233,6 +3280,13 @@ const CONSOLE=(()=>{
   function applyShifts(){
     if(!active||phase!=='MATCH')return;
     if(typeof shift==='undefined'||typeof hidden==='undefined')return;
+    // RE-SETUP gate: if the TRUE setup error is gross (beyond the couch action limit), a couch shift is
+    // the wrong action — block it and direct the trainee into the room to reposition the patient.
+    if(trueErrGross()){
+      msg('Correction exceeds the '+(plan.resetup.actionLimitMm/10).toFixed(1)+' cm couch action limit — a couch shift can’t safely fix a gross or rotated setup. ENTER ROOM and reposition the patient.','bad');
+      renderButtons();
+      return;
+    }
     const e={x:shift.x-hidden.x,y:shift.y-hidden.y,z:shift.z-hidden.z,roll:shift.roll-hidden.roll,pitch:shift.pitch-hidden.pitch};
     const TOL=(typeof rtTol==='function')?rtTol('2d2d',caseKey):{t1:2,t2:4,r1:2,r2:4};
     const within=Math.abs(e.x)<=TOL.t1&&Math.abs(e.y)<=TOL.t1&&Math.abs(e.z)<=TOL.t1&&Math.abs(e.roll)<=TOL.r1&&Math.abs(e.pitch)<=TOL.r1;
@@ -3263,6 +3317,35 @@ const CONSOLE=(()=>{
   function fmtDelta(a){const f=(n,d)=>(n>=0?'+':'')+n.toFixed(d);
     return 'Lat '+f(a.lat,2)+' · Lng '+f(a.lng,2)+' · Vrt '+f(a.vrt,2)+' · Rtn '+f(a.rtn,1)+'°';}
 
+  // ---- ENTER ROOM: go into the room and physically reposition the patient. This is the CORRECT fix
+  // for a gross setup (beyond the couch action limit); on a within-limit setup it is unnecessary
+  // (a couch shift would have done it) and gives corrective feedback. ----
+  function enterRoom(){
+    if(!active||phase!=='MATCH'||!resetupCfg())return;
+    const gross=trueErrGross();
+    const dir=(typeof roomDirections==='function')?roomDirections(hidden):'';
+    if(gross){
+      // CORRECT: reposition per the room guidance → re-image lands within tolerance → ALIGNED.
+      if(typeof hidden!=='undefined') hidden={x:0,y:0,z:0,roll:0,pitch:0};
+      if(typeof shift!=='undefined')  shift={x:0,y:0,z:0,roll:0,pitch:0};
+      if(typeof undoStack!=='undefined') undoStack=[];
+      applied=null;
+      if(typeof refreshReadouts==='function') refreshReadouts();
+      if(typeof clearErrors==='function') clearErrors();
+      if(typeof render==='function') render();
+      if(typeof rtRecord==='function') rtRecord('2d2d',caseKey,{accepted:true,mag:null,timeMs:null});
+      setPhase('ALIGNED'); renderCouch(false);
+      msg('Entered room — repositioned the patient'+(dir?' ('+dir+')':'')+' and re-imaged. Gross error cleared — setup ALIGNED. Resetting…','ok');
+      scheduleReset();
+    } else {
+      // UNNECESSARY: this setup was within the couch action limit — a couch shift would have fixed it.
+      msg('This setup is WITHIN the couch action limit — a couch shift would have corrected it without re-entering the room. Reserve a room re-setup for gross errors. Re-acquiring…','bad');
+      acquired=[false,false]; gantry=startAngle(); motTarget=null; applied=null; updateBadges();
+      if(typeof render==='function')render();
+      setPhase('ACQUIRE');
+    }
+  }
+
   // ---- New Offset / re-image: fresh setup error, re-acquire from scratch (couch unchanged here) ----
   function reinterlock(){
     if(!active)return;
@@ -3285,7 +3368,10 @@ const CONSOLE=(()=>{
 
   // ---- _dbg: deterministic headless hooks (no rAF / no setTimeout for state) ----
   const _dbg={
-    refresh, exit, acquire, enterMatch, applyShifts, reinterlock, resetExercise, selectView,
+    refresh, exit, acquire, enterMatch, applyShifts, enterRoom, reinterlock, resetExercise, selectView,
+    resetupCfg, isGross:trueErrGross,
+    setError:(o)=>{ if(typeof hidden!=='undefined'){ hidden={...hidden,...(o||{})}; }
+      if(typeof refreshReadouts==='function')refreshReadouts(); renderAll(); },   // headless: inject a known setup error
     rotateTo:(g)=>{gantry=g; motTarget=null; renderAll();},                       // snap to an angle (no rAF)
     snapToView:(slot)=>{const v=views.find(x=>x.slot===slot); if(v){gantry=viewAngles(v)[0]; motTarget=null; renderAll();}},   // snap to a view's primary angle
     driveTo:(g,secs=60,d=0.05)=>{motTarget=g; motOn=true; for(let t=0;t<secs&&motOn;t+=d)motionStep(d); return +gantry.toFixed(1);},   // synchronous realistic-speed drive
@@ -3314,7 +3400,8 @@ const CONSOLE=(()=>{
     sweep:(from,to)=>{const out=[from];let g=from;const d=gantryDelta(from,to),n=Math.max(2,Math.ceil(Math.abs(d)));
       for(let i=1;i<=n;i++){g=(((from+d*i/n)%360)+360)%360;out.push(g);} return out;},
   };
-  return {refresh,exit,selectView,acquire,acquireHoldStart,acquireHoldCancel,enterMatch,applyShifts,reinterlock,
+  return {refresh,exit,selectView,acquire,acquireHoldStart,acquireHoldCancel,enterMatch,applyShifts,enterRoom,
+          resetupCfg,reinterlock,
           active:isActive,phase:()=>phase,readyToMatch:()=>active&&phase==='ACQUIRE'&&bothAcquired(),
           canAcquire,acquiring,matchable,hidesPortal,motionEnable,_dbg};
 })();
@@ -4099,6 +4186,23 @@ function refreshReadouts(){
   document.getElementById('valRoll').textContent=shift.roll.toFixed(1);
   document.getElementById('valPitch').textContent=shift.pitch.toFixed(1);
   shiftWarn('valRoll',shift.roll); shiftWarn('valPitch',shift.pitch);
+  const md=document.getElementById('moveDir'); if(md){ const d=roomDirections(shift); md.textContent=d||'—'; }
+}
+// Plain-language "which way to correct the patient": translate a shift/error object {x,y,z,roll,pitch}
+// (mm / deg) into room directions, using the file's sign conventions (refreshReadouts above + the
+// CASES comment): Lat = -x/10 (+ = patient RIGHT), Lng = +y/10 (+ = INFERIOR), Vrt = zSign*z/10
+// (anatomy ANT -> negative Vrt, so + = POSTERIOR). Used live for the dialed correction and by the
+// CONSOLE room re-setup to tell the student how to reposition the patient.
+function roomDirections(o){
+  if(!o) return '';
+  const zs=(typeof zSign!=='undefined')?zSign:1;
+  const lr=-o.x/10, si=o.y/10, ap=zs*o.z/10, parts=[];
+  if(Math.abs(lr)>=0.05) parts.push((lr>0?'RIGHT ':'LEFT ')+Math.abs(lr).toFixed(2)+' cm');
+  if(Math.abs(si)>=0.05) parts.push((si>0?'INF ':'SUP ')+Math.abs(si).toFixed(2)+' cm');
+  if(Math.abs(ap)>=0.05) parts.push((ap>0?'POST ':'ANT ')+Math.abs(ap).toFixed(2)+' cm');
+  if(o.roll && Math.abs(o.roll)>=0.1)  parts.push('ROLL '+(o.roll>0?'CW ':'CCW ')+Math.abs(o.roll).toFixed(1)+'°');
+  if(o.pitch && Math.abs(o.pitch)>=0.1) parts.push('PITCH '+(o.pitch>0?'+':'−')+Math.abs(o.pitch).toFixed(1)+'°');
+  return parts.join('  ·  ');
 }
 
 // Apply a drag delta (mm) to a shift axis and refresh the readouts (no re-render here;
@@ -4222,6 +4326,21 @@ function applyNewOffset2d(){   // pick a fresh hidden 5DOF setup error (used by 
   hidden.z=rnd(6,16)*sgn();
   hidden.roll=rnd(0,4)*sgn();
   hidden.pitch=rnd(0,4)*sgn();
+  // RE-SETUP cases (Head & Neck): sometimes roll a GROSS setup error — large translation beyond the
+  // couch action limit + a real rotation — that must be fixed by repositioning the patient in the
+  // room, not a couch shift. Otherwise keep it small enough to couch-correct (within the action limit
+  // but still outside accept tolerance, so the rep is never pre-solved).
+  const rs = window.CONSOLE && CONSOLE.resetupCfg && CONSOLE.resetupCfg();
+  if(rs){
+    if(Math.random() < rs.grossChance){
+      const big=()=>rnd(16,30)*sgn();
+      hidden.x=big(); hidden.y=big(); hidden.z=rnd(6,14)*sgn();
+      hidden.roll=rnd(3,6)*sgn(); hidden.pitch=rnd(2,5)*sgn();
+    } else {
+      hidden.x=rnd(4,9)*sgn(); hidden.y=rnd(4,9)*sgn(); hidden.z=rnd(4,9)*sgn();
+      hidden.roll=rnd(0,2)*sgn(); hidden.pitch=rnd(0,2)*sgn();
+    }
+  }
   if(window.CONSOLE) CONSOLE.reinterlock();   // IGRT console: a new offset means re-image (back to ACQUIRE; couch unchanged)
 }
 function randomizeShift(){
@@ -4516,6 +4635,7 @@ const CASE_LISTS={
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair', b:'Register a chest orthogonal pair to the planning DRRs.'},
     {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair', b:'Line up the femoral shaft on AP + lateral DRRs of the thigh.'},
     {v:'spine',  t:'Spine SBRT', d:'CT DRR &middot; orthogonal pair', b:'Align the thoracic vertebral column on AP + lateral DRRs — tight SBRT tolerance.'},
+    {v:'hn',     t:'Head &amp; Neck', d:'CT DRR &middot; orthogonal pair', b:'Align the head &amp; neck on AP + lateral DRRs — and decide when a gross error needs a room re-setup, not a couch shift.'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent', b:'Set up a left-breast medial tangent + supraclavicular field, Varian-style.'},
     {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match', b:'Voice-coach the patient into a breath-hold, then match both breast fields.'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match', b:'Drag a 3-marker triad onto the implanted gold seeds in both kV views.'},
@@ -4707,6 +4827,7 @@ const CASE_TOL={
   '2d2d:thorax':    {t1:3, t2:7,   r1:2, r2:4},    // conventional thorax
   '2d2d:femur':     {t1:3, t2:7,   r1:2, r2:4},    // extremity / femur orthogonal pair
   '2d2d:spine':     {t1:1, t2:2.5, r1:1, r2:2},    // spine SBRT — tight vertebral-level match
+  '2d2d:hn':        {t1:3, t2:6,   r1:2, r2:4},    // head & neck — conventional daily-IGRT mask setup (cervical spine / mandible / skull-base bony match)
   '2d2d:breast':    {t1:5, t2:12,  r1:3, r2:4},    // breast SCV + tangent (loosest)
   '2d2d:breastDIBH':{t1:5, t2:12,  r1:3, r2:4},    // same match, breath-hold
   '2d2d:prostate':  {t1:3, t2:5.4, r1:3, r2:5.4},  // kV fiducial triad (FID2D); t2/r2 = accept*1.8
@@ -5072,7 +5193,7 @@ const CBCT=(function(){
     liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
     gbm:{file:'gbm3d_data.js', get:()=>typeof GBM3D_VOL!=='undefined'?GBM3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},   // GBM cranial (TCIA UPenn-GBM): post-contrast T1 planning MR (not CT), percentile-normalised. Real GTV (enhancing lesion + necrotic core) + peritumoral edema + brain envelope. autoWin fits the window from the histogram on open (mirrors the acoustic-neuroma MR case). 6DOF cranial match. Data built by generate_gbm_mr.py.
     sarcoma:{file:'sarcoma3d_data.js', get:()=>typeof SARCOMA3D_VOL!=='undefined'?SARCOMA3D_VOL:null, win:{l:40,w:400}, contours:true},   // soft-tissue sarcoma (TCIA Soft-tissue-Sarcoma): extremity CT (thigh), real GTV_Mass tumour. Unusual limb anatomy — rigid 6DOF soft-tissue match with the femur as the bony landmark. Data built by generate_sarcoma.py.
-    hn:{file:'hn3d_data.js', get:()=>typeof HN3D_VOL!=='undefined'?HN3D_VOL:null, win:{l:40,w:400}, contours:true},   // head & neck (EAY131 / NCI-MATCH): contrast neck CT, neck soft-tissue window. Real pharynx/larynx primary target — rigid 6DOF daily-IGRT match over the cervical spine / mandible / skull-base bony anatomy. Data built by generate_hn_cbct.py (SI slab clipped to the clean native run to avoid reformat smear).
+    hn:{file:'hn3d_data.js', get:()=>typeof HN3D_VOL!=='undefined'?HN3D_VOL:null, win:{l:40,w:400}, contours:true},   // head & neck (TCGA-THCA TCGA-DE-A4MA): clean full-head CT, neck soft-tissue window. SAME patient as the 2D H&N case. Synthetic BILATERAL cervical-nodal PTV (levels II-IV, cord/airway-sparing horseshoe) — rigid 6DOF daily-IGRT match over the cervical spine / mandible / skull-base bony anatomy. Data built by generate_hn_cbct.py.
     adrenal:{file:'adrenal3d_data.js', get:()=>typeof ADRENAL3D_VOL!=='undefined'?ADRENAL3D_VOL:null, win:{l:40,w:400}, contours:true,   // adrenal (Adrenal-ACC-Ki67-Seg): contrast abdominal CT, abdomen soft-tissue window. Real adrenal-mass target in retroperitoneal fat. Data built by generate_adrenal_cbct.py.
             // off-bone differential motion: the adrenal mass (bit 2) drifts with respiration vs the skeleton, so a
             // bony (vertebral) match leaves the target off — register the soft-tissue mass. The mass sits in fat, so
