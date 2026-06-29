@@ -2930,6 +2930,8 @@ window.DIBH=DIBH;
 // Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
 // (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
 // couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// NOTE: couch is now ISO-DERIVED at runtime via seedCouchFromIso() (re-seeded on console enter + every New Offset);
+// the literals here are the per-case BASE at nominal iso 0.5 (and the breast iso:null fallback).
 // views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
 // angles + hidesPortal + the awaiting badge. Because the OBI kV source sits 90° off the gantry head, an AP kV
 // image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
@@ -3026,12 +3028,52 @@ const CONSOLE=(()=>{
          ||Math.abs(hidden.roll)>rl||Math.abs(hidden.pitch)>rl;
   }
 
+  // ---- iso-derived starting couch (2D console cases) ----
+  // BASE = per-case Varian TrueBeam couch readout at nominal iso 0.5, HFS supine.
+  // VERTICAL sign convention (per clinical use): RAISING the table moves the iso DOWN = a NEGATIVE
+  // change. So a SHALLOW iso (table high: brain/hn) reads NEGATIVE Vrt; a DEEP iso (table low:
+  // pelvis/breast/thorax) reads MORE POSITIVE Vrt. LONG is positive head-in (cranial driven deepest
+  // into the bore). LAT is offset off-midline for lateralized targets (left breast, a lung lesion).
+  // Signed delta from the planned iso offset honors the encoder sign rules:
+  //   superior iso (small ap.y)      => LOWER Lng  (couch retracted out of the bore)
+  //   POSTERIOR iso (large lat.x)    => LOWER Vrt  (iso sits nearer the tabletop -> table raised, and
+  //                                                 table-up = iso-down = the negative direction)
+  //   patient-RIGHT iso (small ap.x) => HIGHER Lat
+  // breast iso:null -> BASE literal verbatim (no NaN); non-console key -> null. rtn always 0.
+  const COUCH_ISO_BASE={
+    brain :{vrt:-3.85,lng:96.00,lat: 0.30}, pelvis:{vrt: 6.20,lng:84.00,lat:-0.40},
+    thorax:{vrt: 4.10,lng:88.00,lat: 4.00}, femur :{vrt: 1.55,lng:60.00,lat: 2.60},
+    spine :{vrt: 3.40,lng:86.00,lat:-0.30}, hn    :{vrt:-2.10,lng:94.00,lat: 0.30},
+    breast:{vrt: 5.35,lng:80.00,lat:-4.50} };          // BASE = value at nominal iso fraction 0.5
+  const COUCH_K={lat:4,vrt:4,lng:10};                   // cm per full-frame iso fraction (small, physical)
+  function seedCouchFromIso(key){
+    const b=COUCH_ISO_BASE[key]; if(!b) return null;
+    const c=(typeof CASES!=='undefined')&&CASES[key], iso=c&&c.iso;
+    if(!iso||!iso.ap||!iso.lat||iso.ap.x==null||iso.ap.y==null||iso.lat.x==null)
+      return {vrt:+b.vrt.toFixed(2),lng:+b.lng.toFixed(2),lat:+b.lat.toFixed(2),rtn:0};
+    const lat=b.lat - COUCH_K.lat*(iso.ap.x-0.5);   // patient-RIGHT (ap.x<0.5) => HIGHER Lat (table to patient-left)
+    const vrt=b.vrt - COUCH_K.vrt*(iso.lat.x-0.5);  // POSTERIOR (lat.x>0.5) => LOWER Vrt (table raised = iso down = negative)
+    const lng=b.lng + COUCH_K.lng*(iso.ap.y-0.5);   // SUPERIOR (ap.y<0.5) => LOWER Lng (couch out of bore)
+    return {vrt:+vrt.toFixed(2),lng:+lng.toFixed(2),lat:+lat.toFixed(2),rtn:0};
+  }
+  // STARTING couch for the current setup: the iso-derived PLAN couch shifted by THIS rep's daily setup
+  // error so the readout reflects how the patient actually lies, and driving the matched correction
+  // (Apply Shifts) converges the couch back onto plan. applyShifts adds {-shift.x/10, shift.y/10,
+  // zSign*shift.z/10, shift.roll}; at a clean match shift==hidden, so we pre-offset by the negative of
+  // that. hidden is in mm (x=lat,y=lng,z=vrt) + deg (roll); /10 -> cm. No hidden yet -> plan verbatim.
+  function couchForSetup(key){
+    const plan=seedCouchFromIso(key); if(!plan) return null;
+    if(typeof hidden==='undefined'||!hidden) return plan;
+    const zs=(typeof zSign!=='undefined')?zSign:1;
+    return { lat:+(plan.lat + hidden.x/10).toFixed(2), lng:+(plan.lng - hidden.y/10).toFixed(2),
+             vrt:+(plan.vrt - zs*hidden.z/10).toFixed(2), rtn:+(((plan.rtn||0) - (hidden.roll||0))).toFixed(1) };
+  }
   // ---- lifecycle ----
   function refresh(key){
     if(key==='breastDIBH'||document.body.classList.contains('dibh-mode')||
        document.body.classList.contains('fid-mode')||!CONSOLE_PLANS[key]){ exit(); return; }
     caseKey=key; plan=CONSOLE_PLANS[key]; views=plan.views.slice();
-    couch={...plan.couch}; couch0={...plan.couch};
+    couch0=couchForSetup(key)||{...plan.couch}; couch={...couch0};   // iso-derived plan couch + this setup's error
     gantry=startAngle(); acquired=[false,false]; applied=null; phase='ACQUIRE'; motTarget=null;
     stopMotion(); clearTimeout(resetTmr);
     active=true;
@@ -3345,9 +3387,13 @@ const CONSOLE=(()=>{
     }
   }
 
-  // ---- New Offset / re-image: fresh setup error, re-acquire from scratch (couch unchanged here) ----
+  // ---- New Offset / re-image: fresh setup error, re-acquire from scratch ----
+  // Re-seed the starting couch from the iso-derived plan + THIS rep's fresh setup error (hidden is set
+  // by applyNewOffset2d just before this call), so the readout changes every offset and converges to
+  // plan when the matched shift is applied.
   function reinterlock(){
     if(!active)return;
+    const seed=couchForSetup(caseKey); if(seed){ couch0={...seed}; couch={...seed}; }   // plan couch + this setup's error
     acquired=[false,false]; applied=null; gantry=startAngle(); motTarget=null; stopMotion(); clearTimeout(resetTmr);
     updateBadges(); if(typeof render==='function')render();
     setPhase('ACQUIRE'); msg('New offset — re-acquire both images, then match.','');
