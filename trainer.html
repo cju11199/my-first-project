@@ -823,19 +823,26 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 /* ---- CBCT acquisition console (prostate): rotate gantry to 180 + sweep 360 before the match unlocks ---- */
 .cbct-panes{position:relative}
-.cb-acq{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:radial-gradient(ellipse at center,#0d1722 0%,#060c12 100%);color:#eaf1f8}
+/* acquisition console — docked as a STRIP into the imaging layout (panes stay visible above it,
+   exactly like the 2D/2D .console-strip), NOT a full-screen overlay. Used by CBCT + kV fiducial. */
+.cbct-pane-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.cbct-pane-col .cbct-panes{flex:1;min-height:0}
+.cb-acq{display:flex;align-items:center;gap:14px;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:9px 14px;flex:0 0 auto;color:#eaf1f8}
 .cb-acq.hidden{display:none}
-.cb-acq-title{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:#9fb3c4}
-.cb-acq-sub{font-size:12.5px;color:#9fb3c4;max-width:380px;text-align:center;line-height:1.5;min-height:1.5em}
-.cb-acq-svg{width:280px;height:280px}
-.cb-acq-ang{font-variant-numeric:tabular-nums;font-size:13px;color:#8ef0c2;letter-spacing:.04em}
-.cb-acq-lamp{font-size:11px;letter-spacing:.1em;font-weight:700;padding:3px 12px;border-radius:20px;background:rgba(255,255,255,.08);color:#9fb3c4;border:1px solid rgba(255,255,255,.12)}
+.cb-acq-viz{flex:0 0 96px;display:flex;flex-direction:column;align-items:center;gap:2px;background:#04070b;border:1px solid var(--border2);border-radius:10px;padding:6px 4px}
+.cb-acq-svg{width:78px;height:78px;display:block}
+.cb-acq-side{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cb-acq-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cb-acq-title{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:#9fb3c4;font-weight:600}
+.cb-acq-ang{font-variant-numeric:tabular-nums;font-size:11px;color:#8ef0c2;letter-spacing:.03em}
+.cb-acq-lamp{font-size:10.5px;letter-spacing:.09em;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,.08);color:#9fb3c4;border:1px solid rgba(255,255,255,.12)}
 .cb-acq-lamp.ready{background:#1d3a30;color:#8ef0c2;border-color:transparent}
 .cb-acq-lamp.live{background:#3a2a14;color:#ffba6b;border-color:transparent;animation:txBlink 1s steps(2) infinite}
-.cb-acq-btns{display:flex;gap:12px;align-items:center}
-.cb-acq-bar{width:280px;height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
+.cb-acq-sub{font-size:12px;color:#9fb3c4;line-height:1.4;min-height:1.1em}
+.cb-acq-bar{width:100%;max-width:340px;height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
 .cb-acq-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#46affc,#8ef0c2)}
-.cb-acq-btn{font:inherit;font-size:13px;padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer;touch-action:none;user-select:none}
+.cb-acq-btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cb-acq-btn{font:inherit;font-size:12.5px;padding:7px 15px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer;touch-action:none;user-select:none}
 .cb-acq-btn:disabled{opacity:.4;cursor:default}
 .cb-acq-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
 .cb-acq-btn.motion{background:#1d3346}
@@ -845,6 +852,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .cb-acq-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--label)}
 .cb-acq-row input{margin:0}
 @media(prefers-reduced-motion:reduce){.cb-acq-bar i{transition:none}}
+@media(max-width:880px){.cb-acq{flex-wrap:wrap}.cb-acq-viz{flex-basis:auto;align-self:center}}
 /* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
 .tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
 .tx-stepper.hidden{display:none}
@@ -1118,31 +1126,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <button class="btn-primary" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
       </div>
     </div>
+    <div class="cbct-pane-col">
     <div class="cbct-panes">
-      <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()" onwheel="event.preventDefault();event.stopPropagation()">
-        <div class="cb-acq-title">Cone-Beam CT &middot; Acquisition</div>
-        <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
-          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
-          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
-          <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
-          <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
-          <circle id="cbAcqIso" cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
-          <g id="cbAcqRig">
-            <polygon id="cbAcqBeam" points="100,32 82,168 118,168" fill="rgba(120,200,255,.16)"/>
-            <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
-            <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
-            <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
-          </g>
-        </svg>
-        <div class="cb-acq-ang" id="cbAcqAng">Gantry 90&deg;</div>
-        <div class="cb-acq-lamp" id="cbAcqLamp">ROTATE &rarr; 180&deg;</div>
-        <div class="cb-acq-sub" id="cbAcqMsg">Hold Motion Enable to rotate the gantry to the 180&deg; cone-beam start position.</div>
-        <div class="cb-acq-bar" id="cbAcqBarWrap" style="display:none"><i id="cbAcqBar"></i></div>
-        <div class="cb-acq-btns">
-          <button class="cb-acq-btn motion" id="cbAcqMotion" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
-          <button class="cb-acq-btn primary" id="cbAcqGo" style="display:none" onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()">&#9673;&nbsp;Cone-beam on (hold)</button>
-        </div>
-      </div>
       <div class="cb-wl left" id="cbWLleft" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-col">
           <div class="cb-wl-lbl">LEVEL</div>
@@ -1270,7 +1255,34 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           <button class="tt-btn" onclick="CBCT.undo()" title="Undo">&#8630;</button>
         </div>
       </div>
+    </div><!-- /.cbct-panes -->
+    <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()">
+      <div class="cb-acq-viz">
+        <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+          <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+          <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+          <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+          <g id="cbAcqRig">
+            <polygon id="cbAcqBeam" points="100,32 82,168 118,168" fill="rgba(120,200,255,.16)"/>
+            <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
+            <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
+            <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+          </g>
+        </svg>
+        <div class="cb-acq-ang" id="cbAcqAng">Gantry 90&deg;</div>
+      </div>
+      <div class="cb-acq-side">
+        <div class="cb-acq-head"><span class="cb-acq-title">Cone-Beam CT &middot; Acquisition</span><span class="cb-acq-lamp" id="cbAcqLamp">ROTATE &rarr; 180&deg;</span></div>
+        <div class="cb-acq-sub" id="cbAcqMsg">Hold Motion Enable to rotate the gantry to the 180&deg; cone-beam start position.</div>
+        <div class="cb-acq-bar" id="cbAcqBarWrap" style="display:none"><i id="cbAcqBar"></i></div>
+        <div class="cb-acq-btns">
+          <button class="cb-acq-btn motion" id="cbAcqMotion" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
+          <button class="cb-acq-btn primary" id="cbAcqGo" style="display:none" onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()">&#9673;&nbsp;Cone-beam on (hold)</button>
+        </div>
+      </div>
     </div>
+    </div><!-- /.cbct-pane-col -->
     <div class="shift-tab" onclick="toggleCbShifts()" title="Show / hide the couch-correction panel (the views go full-width when hidden)"><span class="chev" id="cbShiftChev">&#10094;</span>SHIFTS</div>
   </main>
 </div>
@@ -1383,33 +1395,6 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 </header>
 <main>
   <div class="match-col">
-  <!-- kV fiducial acquisition console (prostate fiducial match): rotate to AP/Lat kV positions and
-       hold-expose each radiograph before the marker match unlocks. Covers the image panes while up. -->
-  <div class="cb-acq hidden" id="fidAcq" onpointerdown="event.stopPropagation()" onwheel="event.preventDefault();event.stopPropagation()">
-    <div class="cb-acq-title">kV Fiducial Imaging &middot; Acquisition</div>
-    <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
-      <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
-      <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="1"/>
-      <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
-      <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
-      <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
-      <g id="fidAcqRig">
-        <polygon id="fidAcqBeam" points="100,32 84,168 116,168" fill="rgba(120,200,255,.16)"/>
-        <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
-        <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
-        <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
-      </g>
-    </svg>
-    <div class="cb-acq-ang" id="fidAcqAng">Gantry 90&deg;</div>
-    <div class="cb-acq-lamp" id="fidAcqLamp">ROTATE &rarr; 0&deg;</div>
-    <div class="cb-acq-sub" id="fidAcqMsg">Hold Motion Enable to rotate the gantry to the AP kV imaging position.</div>
-    <div class="fid-cap"><span class="cap-dot" id="fidCapAP"></span>AP&nbsp;&nbsp;&nbsp;<span class="cap-dot" id="fidCapLAT"></span>Lateral</div>
-    <div class="cb-acq-bar" id="fidAcqBarWrap" style="display:none"><i id="fidAcqBar"></i></div>
-    <div class="cb-acq-btns">
-      <button class="cb-acq-btn motion" id="fidAcqMotion" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
-      <button class="cb-acq-btn primary" id="fidAcqGo" style="display:none" onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()">&#9673;&nbsp;kV beam on (hold)</button>
-    </div>
-  </div>
   <div class="views">
     <div class="viewer-area" id="apArea" tabindex="0">
       <canvas id="apRef" class="refCanvas"></canvas>
@@ -1478,6 +1463,35 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     </div>
     <div class="tt-group">
       <button class="tt-btn" onclick="undo()" title="Undo">&#8630; Undo</button>
+    </div>
+  </div>
+  <!-- kV fiducial acquisition console (prostate fiducial match): a strip docked below the kV panes
+       (panes stay visible, like the 2D console-strip). Rotate to AP/Lat kV positions and hold-expose
+       each radiograph before the marker match unlocks. -->
+  <div class="cb-acq hidden" id="fidAcq" onpointerdown="event.stopPropagation()">
+    <div class="cb-acq-viz">
+      <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+        <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+        <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+        <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+        <g id="fidAcqRig">
+          <polygon id="fidAcqBeam" points="100,32 84,168 116,168" fill="rgba(120,200,255,.16)"/>
+          <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
+          <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
+          <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+        </g>
+      </svg>
+      <div class="cb-acq-ang" id="fidAcqAng">Gantry 90&deg;</div>
+    </div>
+    <div class="cb-acq-side">
+      <div class="cb-acq-head"><span class="cb-acq-title">kV Fiducial Imaging &middot; Acquisition</span><span class="cb-acq-lamp" id="fidAcqLamp">ROTATE &rarr; 0&deg;</span><span class="fid-cap"><span class="cap-dot" id="fidCapAP"></span>AP&nbsp;&nbsp;<span class="cap-dot" id="fidCapLAT"></span>Lateral</span></div>
+      <div class="cb-acq-sub" id="fidAcqMsg">Hold Motion Enable to rotate the gantry to the AP kV imaging position.</div>
+      <div class="cb-acq-bar" id="fidAcqBarWrap" style="display:none"><i id="fidAcqBar"></i></div>
+      <div class="cb-acq-btns">
+        <button class="cb-acq-btn motion" id="fidAcqMotion" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()">&#10227;&nbsp;Motion enable (hold)</button>
+        <button class="cb-acq-btn primary" id="fidAcqGo" style="display:none" onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()">&#9673;&nbsp;kV beam on (hold)</button>
+      </div>
     </div>
   </div>
   <!-- DIBH breath-hold coaching strip: breathing trace + coaching buttons, docked at the bottom
