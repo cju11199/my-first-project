@@ -30,6 +30,25 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   via `window.DIBH._dbg` to a steady in-gate breath-hold; 1600×975).
 - `trainer.html` — the **trainer app** (`/trainer`). ~220 KB single file: markup + styles + all
   app logic. `<body data-require-auth>` so the auth gate protects it.
+- `assets/truebeam/` — **interactive 3D Varian TrueBeam** (WebGL/three.js), a procedural low-poly
+  (~2 k tri) model used by a standalone preview page **and** the trainer's **3D Machine View**.
+  An **open C-arm** linac (NOT a CT bore): compact rounded white gantry + yoke arm, large rounded
+  head with the beige collimator/accessory tray, kV source/imager + MV/EPID arms, and a stepped
+  metallic 6DOF couch — all named, hinged parts pivoting through isocenter (IEC 61217, iso at origin,
+  metres). `truebeam-model.js` is the framework-agnostic builder (pure-function `drivers` + `setPose`,
+  educational beam-line/axis/iso overlays + colour-coded `readout()`); `truebeam-viewer.js` is the
+  three.js runtime (OrbitControls, **pause-when-hidden**, render-on-demand) shared by `preview.html`
+  and the trainer. `export-glb.mjs` (+ `_three-resolve-hook.mjs` + `utils/`) bakes `truebeam.glb`
+  **browser-free** via GLTFExporter against the **vendored** three.js (`vendor/`, r160, MIT); the
+  committed `.glb` is valid glTF v2 (KHR_materials_unlit + emissive, named nodes). `kinematics.test.mjs`
+  is a committed regression (perpendicular SAD = 1.0000 m at all gantry angles, gantry sign, iso
+  invariant under full couch 6DOF). **Trainer wiring:** an inline importmap maps bare `three` →
+  vendored module (CSP-safe, `script-src 'self'`); a **3D Machine** start-screen card + a header **3D**
+  button (both 2D & CBCT screens) open a `.modal-bg` (`#tb3dModal`, z-index 280) that lazy-imports the
+  viewer. It **binds live to the active case** — 2D reads `CONSOLE._dbg.state()` (gantry + couch cm,
+  relative to the plan baseline); CBCT reads `CBCT._dbg.shift()` (6DOF mm/deg, so `window.CBCT=CBCT`
+  was exposed) — else free-orbits as an explorer with pose presets. Model + `.glb` render verified
+  headlessly; live in-trainer tracking still wants a real-browser check (like every 3D/canvas feature).
 - `subscribe.html` — Clerk pricing table / checkout (`/subscribe`); shows a trainer-screenshot strip above the table.
 - `account.html` — self-service **account & billing** page (`/account`). Mounts Clerk
   `mountUserProfile` (profile · security · **billing**: update card / cancel) themed dark via the

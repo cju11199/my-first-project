@@ -7,6 +7,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
+<!-- bare 'three' → vendored module (CSP-safe, same-origin) for the 3D Machine View (assets/truebeam) -->
+<script type="importmap">{"imports":{"three":"/assets/truebeam/vendor/three.module.js"}}</script>
 <meta name="theme-color" content="#070a0f">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/favicon.svg">
@@ -208,6 +210,27 @@ main.shifts-collapsed .shift-tab{left:0}
 @keyframes slideIn{from{opacity:0;top:50px}to{opacity:1;top:64px}}
 
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(4,7,11,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:100;align-items:center;justify-content:center}
+/* ── 3D Machine View modal (procedural TrueBeam) ── */
+.tb3d-bg{z-index:280}   /* above the start screen (200) + guide/progress modals (260/270) */
+.tb3d-card{display:flex;flex-direction:column;width:min(92vw,960px);height:min(86vh,720px);background:linear-gradient(180deg,#0e131b,#080b11);border:1px solid var(--border2,#1d2533);border-radius:14px;box-shadow:0 24px 70px -20px rgba(0,0,0,.8);overflow:hidden}
+.tb3d-head{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border2,#1d2533);flex:0 0 auto}
+.tb3d-title{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold,#e3b341)}
+.tb3d-mode{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.08em;color:#7b8798;border:1px solid var(--border2,#1d2533);border-radius:999px;padding:2px 9px}
+.tb3d-mode.live{color:#8ef0c2;border-color:rgba(142,240,194,.5)}
+.tb3d-x{margin-left:auto;background:none;border:none;color:#7b8798;font-size:22px;line-height:1;cursor:pointer;padding:0 4px}
+.tb3d-x:hover{color:#eaf1f8}
+.tb3d-stage{position:relative;flex:1 1 auto;min-height:0;background:radial-gradient(120% 120% at 50% 20%,#0c1118,#05080c)}
+.tb3d-stage canvas{width:100%;height:100%;display:block}
+.tb3d-hint{position:absolute;left:12px;top:10px;font-size:10px;letter-spacing:.04em;color:#56657a;pointer-events:none}
+.tb3d-readout{position:absolute;left:12px;bottom:10px;right:12px;font-family:var(--mono),monospace;font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:.02em;pointer-events:none;display:flex;flex-wrap:wrap;gap:4px 14px}
+.tb3d-foot{flex:0 0 auto;padding:9px 14px;border-top:1px solid var(--border2,#1d2533);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tb3d-presets{display:flex;gap:6px;flex-wrap:wrap}
+.tb3d-pbtn{background:#172132;color:#cdd6e2;border:1px solid var(--border2,#1d2533);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--mono),monospace}
+.tb3d-pbtn:hover{border-color:var(--gold,#e3b341)}
+.tb3d-pbtn.on{border-color:var(--gold,#e3b341);color:var(--gold,#e3b341)}
+.tb3d-note{margin-left:auto;font-size:9.5px;color:#56657a;letter-spacing:.03em}
+.tb3d-bg.binding .tb3d-presets{display:none}
+@media(max-width:680px){.tb3d-note{display:none}.tb3d-card{height:88vh}}
 .modal-bg.open{display:flex}
 .modal{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:18px;padding:32px 36px;max-width:460px;width:90%;box-shadow:var(--shadow),0 0 0 1px var(--hairline) inset}
 .modal h2{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent-hi);letter-spacing:.06em;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--hairline)}
@@ -899,6 +922,20 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <div class="sc-title">How to use</div>
       <div class="sc-desc">New here? A 2-minute visual tour of both workflows &mdash; the gestures, the views and the match.</div>
     </div>
+    <div class="start-card guide-card" id="modeMachine" onclick="openMachine3D()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMachine3D();}">
+      <span class="sc-badge guide-badge">3D</span>
+      <div class="sc-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7">
+          <ellipse cx="16" cy="16" rx="13" ry="9"/>
+          <path d="M16 4v6M13 10h6" stroke-linecap="round"/>
+          <rect x="13.5" y="9.5" width="5" height="4.5" rx="1"/>
+          <line x1="6" y1="23" x2="26" y2="23"/>
+          <circle cx="16" cy="16" r="1.6" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div class="sc-title">3D Machine</div>
+      <div class="sc-desc">Interactive 3D TrueBeam &mdash; orbit the gantry, head, imaging arms &amp; 6DOF couch. Tracks the live gantry &amp; couch during a match.</div>
+    </div>
   </div>
   <div class="start-cards case-cards hidden" id="casePicker"></div>
   <div class="rt-summary" id="rtSummary"></div>
@@ -993,6 +1030,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
       </div>
       <div class="tool-sep"></div>
+      <button class="btn-ghost" id="machine3dBtn" onclick="openMachine3D()" title="3D machine view — live gantry &amp; couch">&#9186;&nbsp;3D</button>
       <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
     </div>
   </header>
@@ -1192,7 +1230,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <button class="btn-tool active" id="gridBtn" onclick="toggleGrid()"><span class="glyph">&#8853;</span>Iso/Grid</button>
     </div>
     <div class="tool-sep"></div>
-    <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
+    <button class="btn-ghost" id="machine3dBtn" onclick="openMachine3D()" title="3D machine view — live gantry &amp; couch">&#9186;&nbsp;3D</button>
+      <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
   </div>
 </header>
 <main>
@@ -1750,6 +1789,34 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="rt-an-act">
     <button class="btn-primary" type="button" onclick="rtNudgeSignUp()">Create free account</button>
     <button class="btn-ghost" type="button" onclick="rtDismissNudge(true)">Not now</button>
+  </div>
+</div>
+
+<!-- 3D Machine View — interactive procedural TrueBeam (assets/truebeam). Lazy: three.js + the
+     viewer load only when this opens. Binds live to the active case (CONSOLE gantry/couch on 2D,
+     CBCT 6DOF shift) or runs as a free-orbit explorer from the start screen. -->
+<div class="modal-bg tb3d-bg" id="tb3dModal" aria-hidden="true" onclick="if(event.target===this)closeMachine3D()">
+  <div class="tb3d-card" role="dialog" aria-modal="true" aria-label="3D machine view">
+    <div class="tb3d-head">
+      <span class="tb3d-title">TrueBeam &middot; 3D Machine View</span>
+      <span class="tb3d-mode" id="tb3dMode">Explore</span>
+      <button class="tb3d-x" type="button" onclick="closeMachine3D()" aria-label="Close 3D view">&times;</button>
+    </div>
+    <div class="tb3d-stage">
+      <canvas id="tb3dCanvas"></canvas>
+      <div class="tb3d-hint" id="tb3dHint">Drag to orbit &middot; scroll to zoom</div>
+      <div class="tb3d-readout" id="tb3dReadout"></div>
+    </div>
+    <div class="tb3d-foot">
+      <div class="tb3d-presets" id="tb3dPresets">
+        <button type="button" class="tb3d-pbtn" data-tbp="ap">kV AP (G90)</button>
+        <button type="button" class="tb3d-pbtn" data-tbp="lat">kV Lat (G0)</button>
+        <button type="button" class="tb3d-pbtn" data-tbp="obl">Oblique (G45)</button>
+        <button type="button" class="tb3d-pbtn" data-tbp="home">Home</button>
+        <button type="button" class="tb3d-pbtn" id="tb3dSpin" data-tbp="spin">Auto-rotate</button>
+      </div>
+      <div class="tb3d-note">Educational model &middot; geometry approximate &middot; IEC&nbsp;61217 &middot; iso = origin</div>
+    </div>
   </div>
 </div>
 
@@ -6686,6 +6753,7 @@ const CBCT=(function(){
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
+window.CBCT=CBCT;   // exposed for the 3D Machine View live binding (mirrors window.CONSOLE)
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
    Free-rotate volume render of the active CBCT case's planning CT (case-aware via
@@ -6896,6 +6964,104 @@ requestAnimationFrame(()=>{
 });
 </script>
 <div class="disclaimer-bar" aria-hidden="true"><span>Training simulator · Not for clinical use · Values are fictional</span></div>
+<script>
+/* ── 3D Machine View controller ───────────────────────────────────────────────
+   Lazy-loads the procedural TrueBeam viewer (assets/truebeam) only when opened, then
+   binds it to the active case: 2D/2D reads CONSOLE gantry + couch (cm, relative to the
+   plan baseline); CBCT reads the 6DOF shift (mm/deg). With no active match it free-orbits
+   as an explorer. Render-on-demand: poses are pushed only when the machine state changes. */
+(function(){
+  let viewer=null, raf=0, loading=false, spin=false, lastSig='';
+  const $=id=>document.getElementById(id);
+  const modal=()=>$('tb3dModal');
+  const isOpen=()=>modal().classList.contains('open');
+
+  async function ensureViewer(){
+    if(viewer||loading) return viewer;
+    loading=true;
+    try{
+      const THREE=await import('three');
+      const {OrbitControls}=await import('/assets/truebeam/vendor/OrbitControls.js');
+      const {TrueBeamViewer}=await import('/assets/truebeam/truebeam-viewer.js');
+      await new Promise(r=>requestAnimationFrame(r));   // let the shown canvas get layout size
+      viewer=new TrueBeamViewer(THREE,{canvas:$('tb3dCanvas'),OrbitControls,edu:true,axes:true,background:null});
+    }catch(e){
+      $('tb3dReadout').innerHTML='<span style="color:#ff8a5a">3D view unavailable: '+((e&&e.message)||e)+'</span>';
+    }
+    loading=false; return viewer;
+  }
+
+  // Live machine state from whichever mode is active; null → explore mode.
+  function livePose(){
+    try{
+      if(window.currentMode==='2d2d' && window.CONSOLE && CONSOLE.active && CONSOLE.active()){
+        const s=CONSOLE._dbg.state(), c=s.couch||{}, c0=s.couch0||{};
+        return {mode:'LIVE · 2D · '+(s.caseKey||''),
+          pose:{gantryAngle:s.gantry||0, kvDeploy:0, mvDeploy:0,
+            couch:{lat:((c.lat||0)-(c0.lat||0))/100, long:((c.lng||0)-(c0.lng||0))/100,
+                   vert:((c.vrt||0)-(c0.vrt||0))/100, yaw:(c.rtn||0)}}};
+      }
+      if(window.currentMode==='cbct' && window.CBCT && CBCT._dbg && CBCT._dbg.shift){
+        const sh=CBCT._dbg.shift()||{}, key=(CBCT._dbg.caseKey&&CBCT._dbg.caseKey())||'';
+        return {mode:'LIVE · CBCT · '+key,
+          pose:{gantryAngle:0, kvDeploy:1, kvDetDeploy:1,
+            couch:{lat:(sh.x||0)/1000, long:(sh.y||0)/1000, vert:(sh.z||0)/1000,
+                   pitch:sh.pitch||0, roll:sh.roll||0, yaw:sh.yaw||0}}};
+      }
+    }catch(_){}
+    return null;
+  }
+
+  const EXPLORE={gantryAngle:-22, collimatorAngle:0, kvDeploy:0, kvDetDeploy:0, mvDeploy:0,
+                 couch:{lat:0,long:0,vert:0,yaw:0,pitch:0,roll:0}};
+  let explorePose=Object.assign({},EXPLORE);
+
+  function renderReadout(p,live){
+    const r=viewer.readout(p), keys=live?['gantry','lat','lng','vrt','pitch','roll','yaw']:['gantry'];
+    $('tb3dReadout').innerHTML=keys.map(k=>{const x=r[k];return x?
+      '<span style="color:'+x.color+'">'+x.label+': '+x.value+(x.dir&&x.dir!=='—'?' ('+x.dir+')':'')+'</span>':'';}).join('');
+  }
+
+  function loop(){
+    if(!isOpen()){raf=0;return;}
+    raf=requestAnimationFrame(loop);
+    if(!viewer)return;
+    const L=livePose(), pose=L?L.pose:explorePose, modeTxt=L?L.mode:'Explore';
+    const sig=JSON.stringify(pose)+'|'+modeTxt;
+    if(sig===lastSig)return;                      // render only on change (idle otherwise)
+    lastSig=sig;
+    const me=$('tb3dMode');
+    modal().classList.toggle('binding',!!L); me.classList.toggle('live',!!L); me.textContent=modeTxt;
+    viewer.setPose(pose); renderReadout(pose,!!L);
+  }
+
+  window.openMachine3D=async function(){
+    const m=modal(); m.classList.add('open'); m.setAttribute('aria-hidden','false');
+    lastSig='';
+    await ensureViewer();
+    if(viewer){ viewer.setAutoRotate(spin); viewer.start(); }
+    if(!raf) loop();
+  };
+  window.closeMachine3D=function(){
+    const m=modal(); m.classList.remove('open'); m.setAttribute('aria-hidden','true');
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+    if(viewer)viewer.stop();
+  };
+
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.tb3d-pbtn'); if(!b)return;
+    const p=b.dataset.tbp;
+    if(p==='spin'){ spin=!spin; b.classList.toggle('on',spin); if(viewer)viewer.setAutoRotate(spin); return; }
+    if(p==='ap')       explorePose=Object.assign({},EXPLORE,{gantryAngle:90,kvDeploy:1,kvDetDeploy:1});
+    else if(p==='lat') explorePose=Object.assign({},EXPLORE,{gantryAngle:0,kvDeploy:1,kvDetDeploy:1});
+    else if(p==='obl') explorePose=Object.assign({},EXPLORE,{gantryAngle:45});
+    else               explorePose=Object.assign({},EXPLORE);
+    lastSig='';   // force the loop to re-apply
+  });
+
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&isOpen())closeMachine3D(); });
+})();
+</script>
 <script src="/clerk-auth.js"></script>
 </body>
 </html>
