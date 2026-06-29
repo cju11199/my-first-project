@@ -336,22 +336,23 @@ Two workflows, picked on the start screen:
 - **2D/2D:** Brain · Pelvis · Thorax (CT DRR) · Femur (extremity DRR; femoral-shaft landmark) ·
   **Spine SBRT** (thoracic vertebral-column bony match, AP+Lat DRRs ray-summed from a full-resolution
   diagnostic chest CT — `generate_spine_2d.py`; tight 1 mm/1° tolerance) · **Head & Neck** (whole head +
-  cervical-spine bony match, AP+Lat DRRs from a clean full-head CT — `generate_hn_2d.py`; carries the
-  **enter-room / re-setup decision** below) · Breast L (monoisocentric SCV + medial-tangent, Varian-style) ·
+  cervical-spine bony match, AP+Lat DRRs from a clean full-head CT — `generate_hn_2d.py`) · Breast L
+  (monoisocentric SCV + medial-tangent, Varian-style) ·
   **Breast L · DIBH** (breath-hold coaching → the same SCV+tangent match).
-  - **Enter-room / re-setup decision + directional guidance (Head & Neck case; CONSOLE):** some daily
-    setups roll a **GROSS** error (beyond the couch **action limit** — `CONSOLE_PLANS.hn.resetup`:
-    `actionLimitMm` 10 / `rotLimitDeg` 3 / `grossChance` 0.45; `applyNewOffset2d` rolls gross vs
-    correctable offsets when `CONSOLE.resetupCfg()` is set). A couch shift can't safely fix a gross/rotated
-    mask setup, so the correct action is to **ENTER ROOM** and reposition the patient — not Apply Shifts.
-    In the MATCH phase the console shows an **ENTER ROOM** button (glows when `trueErrGross()`); **APPLY
-    SHIFTS is blocked + dimmed** on a gross error (`applyShifts` gate). `CONSOLE.enterRoom()` on a gross
-    error repositions → ALIGNED (records a clear); on a within-limit error it's unnecessary → corrective
-    feedback + re-acquire. A live **"Move" line** in the control strip (`roomDirections()` →
-    `refreshReadouts`) translates the dialed correction into plain patient directions (e.g.
-    "RIGHT 0.4 cm · SUP 1.2 cm · POST 0.3 cm · ROLL CW 2°"), grounded in the file's Lat/Lng/Vrt sign
-    conventions, and the same helper labels the room repositioning. `CONSOLE._dbg` adds `enterRoom`,
-    `isGross`, `resetupCfg`, `setError` for headless tests (decision flow verified in headless Chromium).
+  - **Enter-room / re-setup decision (Head & Neck case; CONSOLE) — BUILT but DISABLED for now.** The
+    mechanism is fully in place but inert: `CONSOLE_PLANS.hn` intentionally OMITS its `resetup` config, so
+    `CONSOLE.resetupCfg()` returns null → no gross offsets, the **ENTER ROOM** button stays hidden, and
+    `applyShifts` never blocks (H&N is a plain orthogonal-pair bony match). To re-enable, restore
+    `resetup:{ actionLimitMm:10, rotLimitDeg:3, grossChance:0.45 }` on `CONSOLE_PLANS.hn`. The dormant
+    machinery: when a `resetup` config is set, `applyNewOffset2d` rolls GROSS vs correctable offsets; in
+    MATCH the console shows an **ENTER ROOM** button (glows on `trueErrGross()`) and **APPLY SHIFTS is
+    blocked + dimmed** on a gross error; `CONSOLE.enterRoom()` on a gross error repositions → ALIGNED, on a
+    within-limit error gives corrective feedback. `CONSOLE._dbg` exposes `enterRoom`/`isGross`/`resetupCfg`/
+    `setError` for headless tests.
+  - **Directional "Move" guidance (all 2D cases; still active):** a live **"Move" line** in the control
+    strip (`roomDirections()` → `refreshReadouts`) translates the dialed correction into plain patient
+    directions (e.g. "RIGHT 0.4 cm · SUP 1.2 cm · POST 0.3 cm · ROLL CW 2°"), grounded in the file's
+    Lat/Lng/Vrt sign conventions.
   - **Breast DIBH (`DIBH` module):** button-driven deep-inspiration breath-hold coach docked as a **strip
     at the bottom of the 2D/2D match screen** (`#dibhStrip`, inside the `.match-col` wrapper that now holds
     `.views` + the strip), *not* a separate overlay — the RPM-style amplitude trace (cm) animates beside the

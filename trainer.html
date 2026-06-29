@@ -1904,9 +1904,8 @@ const CASES = {
   // ray-summed from a clean diagnostic head-and-neck CT (TCIA TCGA-THCA TCGA-DE-A4MA; full cranial
   // vault → cervical spine → shoulders, no de-ID box). Flat (tilt:null) — the cervical spine,
   // mandible and skull base are the bony landmarks. Data in image_data.js (HN_AP_SRC / HN_LAT_SRC).
-  // This case adds the "enter room / re-setup" decision (CONSOLE_PLANS.hn.resetup): a gross setup
-  // error beyond the couch action limit must be fixed by repositioning the patient in the room,
-  // not a couch shift.
+  // (The "enter room / re-setup" decision is DISABLED for now — see CONSOLE_PLANS.hn, where the
+  // `resetup` config is intentionally omitted; the mechanism stays in place but inert.)
   hn:{ name:'Head & Neck · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
        iso:{ ap:{x:0.519,y:0.488}, lat:{x:0.641,y:0.488} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
@@ -2948,14 +2947,14 @@ const CONSOLE_PLANS={
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   spine:{plan:'SPINE_SBRT', couch:{vrt: 3.40, lng:88.60, lat:-0.45, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
-  // Head & Neck: deep Lng (head driven into the bore). Carries the RE-SETUP decision: some daily
-  // setups are GROSS — beyond the couch action limit — and a couch shift can't safely correct a
-  // large/rotated mask setup, so the therapist must ENTER ROOM and reposition the patient.
-  // actionLimitMm = per-axis couch-shift action level (mm); rotLimitDeg = rotation action level;
-  // grossChance = how often applyNewOffset2d rolls a gross (re-setup-required) offset for this case.
+  // Head & Neck: deep Lng (head driven into the bore). A plain orthogonal-pair bony match.
+  // NOTE: the ENTER ROOM / re-setup decision is DISABLED for now — the `resetup` config below is
+  // intentionally omitted, so resetupCfg() returns null (no gross offsets, no ENTER ROOM button,
+  // applyShifts never blocks). The mechanism (CONSOLE.enterRoom / trueErrGross / applyShifts gate /
+  // applyNewOffset2d gross roll) stays in place and inert; to re-enable, restore:
+  //   resetup:{ actionLimitMm:10, rotLimitDeg:3, grossChance:0.45 }
   hn:{plan:'HEAD_NECK_IMRT', couch:{vrt:-2.10, lng:96.80, lat: 0.40, rtn:0}, views:[
-    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ],
-    resetup:{ actionLimitMm:10, rotLimitDeg:3, grossChance:0.45 } },
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ] },
   // Breast tangents are verified with MV (the gantry head / EPID), NOT kV: image each tangent field at its own
   // treatment gantry angle (medial ~G305, lateral ~G125 — parallel-opposed). mv:true + per-view angles override
   // the kV geometry; the acquire fires the MV head→EPID beam and the console reads "MV".
@@ -4635,7 +4634,7 @@ const CASE_LISTS={
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair', b:'Register a chest orthogonal pair to the planning DRRs.'},
     {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair', b:'Line up the femoral shaft on AP + lateral DRRs of the thigh.'},
     {v:'spine',  t:'Spine SBRT', d:'CT DRR &middot; orthogonal pair', b:'Align the thoracic vertebral column on AP + lateral DRRs — tight SBRT tolerance.'},
-    {v:'hn',     t:'Head &amp; Neck', d:'CT DRR &middot; orthogonal pair', b:'Align the head &amp; neck on AP + lateral DRRs — and decide when a gross error needs a room re-setup, not a couch shift.'},
+    {v:'hn',     t:'Head &amp; Neck', d:'CT DRR &middot; orthogonal pair', b:'Align the head &amp; neck on AP + lateral DRRs — cervical spine, mandible and skull-base bony match.'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent', b:'Set up a left-breast medial tangent + supraclavicular field, Varian-style.'},
     {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match', b:'Voice-coach the patient into a breath-hold, then match both breast fields.'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match', b:'Drag a 3-marker triad onto the implanted gold seeds in both kV views.'},
