@@ -2634,6 +2634,7 @@ const DIBH=(function(){
   let active=false;                              // animation loop running
   let acq=false, done=false;                     // acq: acquisition phase in progress; done: both fields captured
   let fieldIdx=0; let captured=[false,false];    // which of the two fields are acquired
+  let awaitingRotate=false;                      // between fields: must coach "breathe normally" before rotating to the next
   let exposing=false, exposeT=0;                 // a beam-on exposure is in progress / its elapsed seconds
   let penalty=0, abortBonus=0, lastScore=null; const perField=[];
   const buf=[];                                  // recent {t, amp, inGate} for the scrolling trace
@@ -2642,6 +2643,9 @@ const DIBH=(function(){
   function el(id){return document.getElementById(id);}
   function inGate(a){return a>=GATE_LO&&a<=GATE_HI;}
   function stable(){return phase==='holding'&&inGate(amp)&&Math.abs(vel)<0.18&&stableSince!=null&&(simNow-stableSince)*1000>=STABLE_MS;}
+  // You can ONLY beam (acquire) a field while the breath-hold is settled IN the gate — and not mid-cough,
+  // not while already captured, and not between fields (awaiting the breathe-normally before the next field).
+  function canBeam(){return acq&&!done&&!exposing&&!awaitingRotate&&!captured[fieldIdx]&&!coughActive()&&stable();}
   function coughActive(){return simNow<coughUntil;}
   function setMsg(t,c){const m=el('dibhMsg');if(m){m.textContent=t;m.className='dibh-msg'+(c?(' '+c):'');}}
 
@@ -2687,6 +2691,13 @@ const DIBH=(function(){
   /* ---- coach commands (buttons today; voice maps to these in Phase 2) ---- */
   function cmd(c){
     if(!acq||done)return;
+    if(awaitingRotate){                          // after a capture: breathe the patient out before rotating / matching
+      if(c==='relax'){ awaitingRotate=false; phase='free'; holdSince=null; stableSince=null;
+        if(fieldIdx<FIELDS.length-1) advanceField(); else finishAcq(); }   // rotate to the next field, or finish -> enable matching
+      else if(c==='abort'){ onAbort(); }
+      else setMsg('Tell the patient to BREATHE NORMALLY first.','');
+      updateButtons(); return;
+    }
     if(c==='in'){ phase='inhaling'; inhaleSince=(inhaleSince==null?simNow:inhaleSince); setMsg('Take a deep breath in…',''); }
     else if(c==='hold'){ holdTarget=Math.max(HOLD_MIN,Math.min(HOLD_MAX,amp)); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('Hold it there — steady…',''); }
     else if(c==='up'){ if(phase!=='holding')holdTarget=amp; holdTarget=Math.min(HOLD_MAX,holdTarget+NUDGE); phase='holding'; if(holdSince==null)holdSince=simNow; setMsg('A little more in…',''); }
@@ -2726,10 +2737,17 @@ const DIBH=(function(){
     const center=(GATE_LO+GATE_HI)/2;
     penalty += Math.abs(amp-center)*8;                  // reward a well-centred hold
     perField.push({field:FIELDS[fieldIdx].key, amp:+amp.toFixed(2), t:+simNow.toFixed(1)});
-    setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm.','ok');
     try{ if(typeof render==='function') render(); }catch(e){}   // reveal this view's portal
     updateExposeBar(); updateBadges();
-    advanceField();
+    // the patient is STILL holding their breath after the exposure — you must coach "breathe normally"
+    // before rotating to the next field (or, after the last field, before matching).
+    awaitingRotate=true;
+    if(fieldIdx<FIELDS.length-1){
+      setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm. Now tell the patient to BREATHE NORMALLY before rotating to '+FIELDS[fieldIdx+1].label.split(' · ')[1]+'.','ok');
+    } else {
+      setMsg('✓ '+FIELDS[fieldIdx].label.split(' · ')[1]+' acquired at '+amp.toFixed(2)+' cm. Both fields in — tell the patient to BREATHE NORMALLY before matching.','ok');
+    }
+    updateButtons();
   }
   function advanceField(){
     if(fieldIdx<FIELDS.length-1){
@@ -2737,7 +2755,7 @@ const DIBH=(function(){
       phase='free'; holdSince=null; stableSince=null; inhaleSince=null;
       randomizePatient();                                // fresh, unpredictable breathing for the next field
       updateFieldLabel(); updateBadges(); updateButtons();
-      setMsg('Field '+(fieldIdx+1)+' of '+FIELDS.length+': coach a fresh breath-hold, then Beam On.','');
+      setMsg('Patient breathing normally — rotated to '+FIELDS[fieldIdx].label.split(' · ')[1]+' (Field '+(fieldIdx+1)+' of '+FIELDS.length+'). Coach a fresh breath-hold, then Beam On.','');
     } else {
       finishAcq();
     }
@@ -2774,7 +2792,10 @@ const DIBH=(function(){
   }
   function updateButtons(){
     const dis=(id,d)=>{const b=el(id);if(b)b.disabled=!!d;};
-    ['dibhBtnIn','dibhBtnHold','dibhBtnUp','dibhBtnDown','dibhBtnRelax','dibhBtnBeam'].forEach(id=>dis(id,exposing||done));
+    // can't coach a new hold while exposing / finished / waiting to breathe the patient out between fields
+    ['dibhBtnIn','dibhBtnHold','dibhBtnUp','dibhBtnDown'].forEach(id=>dis(id,exposing||done||awaitingRotate));
+    dis('dibhBtnRelax', done);                   // "breathe normally" stays available — it's how you rotate between fields
+    dis('dibhBtnBeam', !canBeam());              // ONLY enabled when settled in-gate -> can only acquire within the gate
     dis('dibhBtnAbort', done);
   }
   function updateReadouts(){
@@ -2827,7 +2848,7 @@ const DIBH=(function(){
     tick(dt);
     buf.push({t:simNow,amp,inGate:inGate(amp)});
     while(buf.length>0&&buf[0].t<simNow-WIN-1)buf.shift();
-    updateReadouts(); updateExposeBar(); draw();
+    updateReadouts(); updateButtons(); updateExposeBar(); draw();
     raf=requestAnimationFrame(frame);
   }
 
@@ -2836,7 +2857,7 @@ const DIBH=(function(){
 
   function enter(){
     // reset acquisition + patient state
-    acq=true; done=false; fieldIdx=0; captured=[false,false]; perField.length=0;
+    acq=true; done=false; fieldIdx=0; captured=[false,false]; perField.length=0; awaitingRotate=false;
     penalty=0; abortBonus=0; lastScore=null; exposing=false; exposeT=0;
     amp=0; vel=0; target=0; phase='free'; holdSince=null; stableSince=null; inhaleSince=null;
     coughUntil=0; coughNext=0; simNow=0; buf.length=0;
@@ -2868,7 +2889,7 @@ const DIBH=(function(){
   // _dbg: headless hooks (drive the model deterministically + inspect state).
   const _dbg={
     set:(o)=>{o=o||{};if(o.amp!=null)amp=o.amp;if(o.target!=null)target=o.target;if(o.holdTarget!=null)holdTarget=o.holdTarget;if(o.pInhaleTarget!=null)pInhaleTarget=o.pInhaleTarget;if(o.phase)phase=o.phase;if(o.vel!=null)vel=o.vel;if(o.holdSince!=null)holdSince=o.holdSince;if(o.stableSince!=null)stableSince=o.stableSince;if(o.coughUntil!=null)coughUntil=o.coughUntil;if(o.active!=null)active=o.active;if(o.acq!=null)acq=o.acq;if(o.done!=null)done=o.done;if(o.fieldIdx!=null)fieldIdx=o.fieldIdx;if(o.captured)captured=o.captured.slice();if(o.pDrift!=null)pDrift=o.pDrift;if(o.pNoise!=null)pNoise=o.pNoise;if(o.pCough!=null)pCough=o.pCough;},
-    state:()=>({amp,vel,phase,holdTarget:+holdTarget.toFixed(2),pInhaleTarget:+pInhaleTarget.toFixed(2),inGate:inGate(amp),stable:stable(),exposing,exposeT:+exposeT.toFixed(3),fieldIdx,captured:captured.slice(),acq,done,penalty:+penalty.toFixed(2),abortBonus,simNow:+simNow.toFixed(2),coughActive:coughActive(),score:lastScore}),
+    state:()=>({amp,vel,phase,holdTarget:+holdTarget.toFixed(2),pInhaleTarget:+pInhaleTarget.toFixed(2),inGate:inGate(amp),stable:stable(),canBeam:canBeam(),awaitingRotate,exposing,exposeT:+exposeT.toFixed(3),fieldIdx,captured:captured.slice(),acq,done,penalty:+penalty.toFixed(2),abortBonus,simNow:+simNow.toFixed(2),coughActive:coughActive(),score:lastScore}),
     advance:(secs,d=0.016)=>{for(let t=0;t<secs;t+=d){simNow+=d;tick(d);}},
     cmd, beam:onBeam, abort:onAbort, randomizePatient,
     inGate,GATE_LO,GATE_HI,HOLD,NUDGE,EXPOSE_DUR,fields:FIELDS,
