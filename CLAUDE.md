@@ -208,6 +208,25 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   `doi:10.7937/k9/tcia.2018.3r3juisw`, baked into the data-file headers. Files committed, `.vercelignore`d, in
   the **three Phase-2 allowlists** (and `PUBLIC_KEYS` since it's the free case); re-run the **"Upload data to
   Blob" Action** after merge or the case 404s live. Visual rendering still needs a real-browser check.
+- `generate_hn_cbct.py` — offline helper that ingests an **EAY131 / NCI-MATCH** patient (contrast neck CT +
+  RTSTRUCT tumour annotations) and writes `hn3d_data.js` + `hn3d_labels_data.js` for the **Head & Neck** CBCT
+  case (`VOLCASE.hn`, `cbct:hn` `CASE_TOL` 3 mm/3°, `HN_STRUCTS`). The **first H&N case** — a daily-IGRT rigid
+  6DOF match over the **cervical spine / mandible / skull-base** bony anatomy with a real **pharynx/larynx
+  primary** + involved **neck node** soft-tissue target (both ROIs fold into the generic **`tumor`** slot like
+  cervix/liver/sarcoma, so no new legend HTML; iso = the pharynx-primary centroid). Uses the trainer's default
+  CBCT struct pattern but its **own** non-default branch (`HN_LBL`/`HN_ISO_IDX`/`_decodeHNLabels`/`_hnCtrCache`,
+  `cur*` switches), mirroring sarcoma. Body is thresholded from the CT (the RECIST annotation RTSTRUCTs carry no
+  external/OAR ROIs). **Unlike the other CBCT generators, this neck CT has NON-UNIFORM native slice spacing** (a
+  clean 0.7 mm run through the target, scattered larger gaps elsewhere), so the generator first **resamples the
+  volume + masks onto a uniform world-Z grid** (linear interp per column) before the in-plane crop / isotropic
+  resample — `ndimage.zoom` assumes uniform spacing, so the raw stack would be geometrically wrong. The target
+  sits in the clean run; superior reformats show mild interpolation smear from the gaps. Reachable only from the
+  **start-screen picker** (not the in-app dropdown, like the other recent CBCT cases). Built from patient
+  `EAY131-7978834` (the `Neck_1_0_I26s_3` 0.7 mm series; `PHARYNX AND LARYNX` + `LEFT NECK LYMPH NODE`
+  annotations reference that CT) via the **IDC** bucket `s3://idc-open-data`. **Licence CC BY 4.0** — attribute
+  `doi:10.7937/c5ke-yx42`, baked into the data-file headers. Files committed, `.vercelignore`d, in the **three
+  Phase-2 allowlists**; re-run the **"Upload data to Blob" Action** after merge or the case 404s live. Visual
+  rendering still needs a real-browser check.
 - Docs: `README.md`, `DEPLOY.md`, `PAYWALL.md`, `EMAIL.md`, `UNBLOCK.md`, `LICENSE`.
 
 ## The trainer app (trainer.html)
@@ -340,6 +359,8 @@ Two workflows, picked on the start screen:
   replaced the old Pelvis bony-match case) · Acoustic neuroma (vestibular schwannoma IAC SRS) · Breast (real 3D CT, MPR + contours)
   · Spine SBRT (T7 vertebral target, cord-avoiding PTV) · Lung SBRT (peripheral RLL nodule, **off-bone**) ·
   Prostate (gold fiducial markers, **off-bone**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
+  Soft-tissue sarcoma · **Head & Neck** (EAY131/NCI-MATCH neck CT; daily-IGRT 6DOF match over the cervical
+  spine/mandible/skull-base with a real pharynx/larynx + neck-node soft-tissue target — see `generate_hn_cbct.py`) ·
   **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,
   with peritumoral edema; smoothed external head contour as body — see `generate_gbm_mr.py`):
   - Lung SBRT — a **synthetic**, irregular/spiculated soft-tissue lesion baked into the thoracic CT via
