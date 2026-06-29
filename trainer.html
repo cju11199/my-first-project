@@ -2974,6 +2974,7 @@ const CONSOLE=(()=>{
     gantry=startAngle(); acquired=[false,false]; applied=null; phase='ACQUIRE'; motTarget=null;
     stopMotion(); clearTimeout(resetTmr);
     active=true;
+    if(views[0]&&window.selectView)window.selectView(views[0].slot);   // start parked at view 0's angle -> select+highlight it
     const s=el('consoleStrip'); if(s)s.classList.remove('hidden');
     document.body.classList.add('console-mode');
     if(el('conPlan'))el('conPlan').textContent=plan.plan;
@@ -3110,6 +3111,7 @@ const CONSOLE=(()=>{
     const v=views.find(x=>x.slot===slot); if(!v)return;
     const a=nearestAngle(v); if(a==null)return;
     motTarget=a;
+    if(window.selectView)window.selectView(slot);   // highlight the pane we're rotating to
     if(Math.abs(angDiff(a,gantry))<0.5) msg('Gantry already at '+v.label+' (G'+Math.round(a)+') — hold Enter to Acquire.','');
     else msg('Selected '+v.label+' (G'+Math.round(a)+'). Hold SPACE to drive the gantry there.','');
     renderGantry(); renderViz(); renderButtons();
@@ -3123,6 +3125,7 @@ const CONSOLE=(()=>{
         // auto-stopped at the lateral. Only auto-pick a target when we're between views (not parked at one).
         if(viewAtGantry()){ renderViz(); return; }
         const t=rotateTarget(); motTarget=t?nearestAngle(t):null;   // between views -> drive to the next one
+        if(t&&window.selectView)window.selectView(t.slot);          // highlight the view we're driving to
       }
       if(motTarget==null||Math.abs(angDiff(motTarget,gantry))<0.5){ renderViz(); return; }   // nothing to drive to
       motOn=true; motDead=!!deadman; startMotion();
@@ -3135,7 +3138,8 @@ const CONSOLE=(()=>{
     const step=Math.sign(d)*Math.min(Math.abs(d),ROT_SPEED*dt);
     gantry=(((gantry+step)%360)+360)%360;
     if(Math.abs(gantryDelta(gantry,motTarget))<0.4){ gantry=motTarget; pauseMotion(); motTarget=null;
-      const at=viewAtGantry(); if(at)msg('Gantry at G'+gantry.toFixed(0)+' — hold Enter to acquire '+at.label+'.',''); }
+      const at=viewAtGantry(); if(at){ if(window.selectView)window.selectView(at.slot);   // arrived: select+highlight that view
+        msg('Gantry at G'+gantry.toFixed(0)+' — hold Enter to acquire '+at.label+'.',''); } }
     renderGantry(); renderViz(); renderButtons(); renderPips();
   }
   function motFrame(ts){ if(!motOn)return; if(!motTs)motTs=ts;
@@ -3166,6 +3170,7 @@ const CONSOLE=(()=>{
     } else {
       const nx=nextUnacquired();                          // AUTO-ADVANCE the target to the next view to shoot
       motTarget=nearestAngle(nx);
+      if(nx&&window.selectView)window.selectView(nx.slot);   // auto-select the next view we'll rotate to
       msg((retake?'Re-took ':'Acquired ')+v.label+'. Hold MOTION ENABLE to rotate to '+(nx?nx.label:'the other view')+', then expose.',''); }
     setPhase('ACQUIRE');                                  // NEVER auto-enter MATCH; the trainee presses 2D/2D MATCH
   }
@@ -4077,7 +4082,16 @@ function refreshReadouts(){
 
 // Apply a drag delta (mm) to a shift axis and refresh the readouts (no re-render here;
 // the mousemove handler calls render once per event)
+// Matching is LOCKED during the IGRT acquire flow (and DIBH breath-hold coaching): no input —
+// pane drag, arrow keys, or the touch D-pad/nudge buttons — may move the shift until the trainee
+// presses 2D/2D MATCH (console) or has acquired both fields (DIBH). The pane-drag handler gates
+// itself; this central guard also covers the keyboard/touch paths (moveShift/adjust/adjustRot).
+function matchInputBlocked(){
+  return (window.CONSOLE && CONSOLE.acquiring && CONSOLE.acquiring())
+      || (window.DIBH && DIBH.acquiring && DIBH.acquiring());
+}
 function moveShift(axis,deltaMM){
+  if(matchInputBlocked())return;
   matchTimer2d.onMove();
   shift[axis]=+(shift[axis]+deltaMM).toFixed(1);
   refreshReadouts();
@@ -4133,6 +4147,7 @@ function updateArrowHints(){
 }
 
 function adjust(axis,dir){
+  if(matchInputBlocked())return;
   matchTimer2d.onMove();
   pushUndo();
   shift[axis]=+(shift[axis]+dir*step).toFixed(1);
@@ -4142,6 +4157,7 @@ function adjust(axis,dir){
 
 // Rotation buttons use a fixed 0.5 deg step (independent of the cm Step Size buttons)
 function adjustRot(axis,dir){
+  if(matchInputBlocked())return;
   matchTimer2d.onMove();
   pushUndo();
   shift[axis]=+(shift[axis]+dir*0.5).toFixed(1);
