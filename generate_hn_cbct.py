@@ -22,18 +22,24 @@ DATA
 ----
 Source (licence CC BY 4.0 — commercial use OK with attribution):
   EAY131 / NCI-MATCH (ECOG-ACRIN)   https://doi.org/10.7937/c5ke-yx42
-  patient EAY131-7978834: a 0.7 mm contrast neck CT (Neck_1_0_I26s_3) with two
-  RECIST tumour annotations referencing it — "PHARYNX AND LARYNX - 1" (the
-  soft-tissue primary, the match target) and "LEFT NECK LYMPH NODE - 1"
-  (an involved node).  Pulled from the NCI Imaging Data Commons bucket
-  s3://idc-open-data via the idc-index PyPI package.
+  patient EAY131-7978834: a 0.7 mm contrast neck CT (Neck_1_0_I26s_3) with a
+  RECIST tumour annotation referencing it — "PHARYNX AND LARYNX - 1" (the
+  soft-tissue primary, the match target).  Pulled from the NCI Imaging Data
+  Commons bucket s3://idc-open-data via the idc-index PyPI package.
 
-NOTE: this neck CT has NON-UNIFORM native slice spacing (a clean 0.7 mm run
-through the target, with scattered larger gaps elsewhere in the stack), so —
-unlike the cervix template — we first resample the volume + masks onto a
-uniform world-Z grid (linear interp per column) before the in-plane crop /
-isotropic resample.  ndimage.zoom assumes uniform spacing, so feeding it the
-raw non-uniform stack would be geometrically wrong.
+NOTE: this neck CT has NON-UNIFORM native slice spacing — a clean ~0.7 mm run
+(~48 mm) through the primary target, but scattered LARGE gaps (12-51 mm)
+elsewhere in the stack.  So, unlike the cervix template, we (1) resample the
+volume + masks onto a uniform world-Z grid (linear interp per column) before
+the in-plane crop / isotropic resample (ndimage.zoom assumes uniform spacing,
+so feeding it the raw stack would be geometrically wrong), AND (2) CLIP the
+superior-inferior slab to the largest contiguous clean native run (gaps
+<= GAP_TOL_MM) that contains the target.  Without (2), a symmetric target
++/- 30 mm slab pulled ~46% of its slices out of the big gaps, which the
+uniform-Z interpolation smeared along the SI axis -> visible vertical streaking
+in the coronal/sagittal reformats.  The "LEFT NECK LYMPH NODE - 1" annotation
+sits ~13 mm superior of the clean run inside a 12.6 mm gap, so it can't be
+rendered cleanly from this series and is intentionally dropped (primary-only).
 
 USAGE
 -----
@@ -58,6 +64,10 @@ TILES_PER_ROW  = 10     # atlas tiling (10 cols x ceil(Z/10) rows), matches the 
 UNIFORM_DZ_MM  = 1.0    # uniform world-Z grid spacing the native stack is resampled onto.
 CROP_MARGIN_MM = 30     # superior-inferior margin around the target -> neck slab w/ spine context.
 BODY_MARGIN_MM = 8      # in-plane (LR/AP) skin margin around the BODY mask.
+GAP_TOL_MM     = 1.5    # native gaps <= this are "clean"; the SI slab is clipped to the largest
+                        # contiguous clean run containing the target so the reformats never
+                        # interpolate across the big (12-51 mm) native slice gaps (-> through-plane
+                        # smear).  This neck CT's clean ~0.7 mm run is ~48 mm and holds the primary.
 
 # HU -> density(0..255):  HU = density*(2000/255) - 500  =>  density = (HU+500)*255/2000.
 HU_OFF, HU_SCALE = -500.0, 2000.0 / 255.0
@@ -69,12 +79,15 @@ def hu_to_density(hu):
 # legend / contour-menu slot (same as the liver / sarcoma / cervix soft-tissue cases).
 STRUCT_BITS = {
     'body':  1,    # External/BODY (thresholded from the CT)
-    'tumor': 2,    # the tumour target (pharynx/larynx primary + involved neck node)
+    'tumor': 2,    # the tumour target (pharynx/larynx primary)
 }
 # Lowercased substrings -> struct key (first match wins; specific first).
+# NOTE: the LEFT NECK LYMPH NODE annotation is deliberately NOT mapped: it sits ~13 mm superior of
+# the primary, inside a 12.6 mm native slice gap, so it can't be rendered cleanly from this series.
+# We ship the pharynx/larynx primary only (a clean, fully-sampled target).
 ROI_ALIASES = [
-    ('pharynx', 'tumor'), ('larynx', 'tumor'), ('lymph node', 'tumor'), ('node', 'tumor'),
-    ('gtv', 'tumor'), ('ctv', 'tumor'), ('tumor', 'tumor'), ('tumour', 'tumor'), ('neck', 'tumor'),
+    ('pharynx', 'tumor'), ('larynx', 'tumor'),
+    ('gtv', 'tumor'), ('ctv', 'tumor'), ('tumor', 'tumor'), ('tumour', 'tumor'),
     ('external', 'body'), ('body', 'body'), ('skin', 'body'),
 ]
 # The pharynx primary is the dominant volume -> its centroid is the isocentre.
@@ -182,14 +195,38 @@ def to_uniform_z(arr_f, zs, grid):
         out[j] = (1 - t) * src[k - 1] + t * src[k]
     return out
 
+def clean_run_bounds(zs, tgt_lo, tgt_hi, gap_tol=GAP_TOL_MM):
+    """World-Z bounds of the largest contiguous native run (every gap <= gap_tol) that holds the
+    target.  Used to clip the SI slab so reformats never interpolate across the big native gaps."""
+    z = np.sort(zs)
+    gaps = np.diff(z)
+    runs, start = [], 0
+    for i, g in enumerate(gaps):
+        if g > gap_tol:
+            runs.append((start, i)); start = i + 1
+    runs.append((start, len(z) - 1))
+    tc = 0.5 * (tgt_lo + tgt_hi)
+    for a, b in runs:                                  # run covering the target centroid
+        if z[a] <= tc <= z[b]:
+            return float(z[a]), float(z[b])
+    a, b = max(runs, key=lambda r: z[r[1]] - z[r[0]])  # fallback: largest run
+    return float(z[a]), float(z[b])
+
 def uniformise(ct, masks, primary):
     zs = ct['zs']
     grid = np.arange(zs.min(), zs.max() + 1e-3, UNIFORM_DZ_MM)
     hu = to_uniform_z(ct['hu'], zs, grid)
     um = {k: to_uniform_z(m.astype(np.float32), zs, grid) > 0.5 for k, m in masks.items()}
     uprim = to_uniform_z(primary.astype(np.float32), zs, grid) > 0.5
+    # clean contiguous native run holding the primary target -> world-Z bounds to clip the SI slab
+    pz = np.where(primary.any(axis=(1, 2)))[0] if primary.any() else np.where(um['tumor'].any(axis=(1,2)))[0]
+    ptgt = (float(zs[pz.min()]), float(zs[pz.max()])) if pz.size else (float(zs.min()), float(zs.max()))
+    clean = clean_run_bounds(zs, *ptgt)
     print(f"uniform-Z resample: {ct['nz']} native -> {len(grid)} slices @ {UNIFORM_DZ_MM} mm")
+    print(f"clean native run (gaps<= {GAP_TOL_MM} mm) world-Z [{clean[0]:.1f}, {clean[1]:.1f}] "
+          f"({clean[1]-clean[0]:.1f} mm) — SI slab will be clipped to this")
     ct = dict(ct); ct['hu'] = hu; ct['nz'] = len(grid); ct['dz'] = UNIFORM_DZ_MM
+    ct['z_uniform0'] = float(grid[0]); ct['clean_z'] = clean
     return ct, um, uprim
 
 # --- crop + isotropic resample ----------------------------------------------
@@ -204,6 +241,13 @@ def resample(ct, masks, primary):
         z0, z1 = max(0, int(zsel.min() - mz)), min(SZ, int(zsel.max() + mz) + 1)
     else:
         z0, z1 = 0, SZ
+    # clip the SI slab to the clean contiguous native run (no interpolation across big native gaps)
+    clean = ct.get('clean_z')
+    if clean is not None:
+        g0 = int(round((clean[0] - ct['z_uniform0']) / spz))
+        g1 = int(round((clean[1] - ct['z_uniform0']) / spz)) + 1
+        z0, z1 = max(z0, g0), min(z1, g1)
+        print(f"  SI slab clipped to clean run -> z[{z0}:{z1}] (was target +/- {CROP_MARGIN_MM} mm)")
     body = masks.get('body')
     if body is not None and body[z0:z1].any():
         bslab = body[z0:z1]

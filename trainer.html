@@ -4935,7 +4935,7 @@ const CBCT=(function(){
     liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
     gbm:{file:'gbm3d_data.js', get:()=>typeof GBM3D_VOL!=='undefined'?GBM3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},   // GBM cranial (TCIA UPenn-GBM): post-contrast T1 planning MR (not CT), percentile-normalised. Real GTV (enhancing lesion + necrotic core) + peritumoral edema + brain envelope. autoWin fits the window from the histogram on open (mirrors the acoustic-neuroma MR case). 6DOF cranial match. Data built by generate_gbm_mr.py.
     sarcoma:{file:'sarcoma3d_data.js', get:()=>typeof SARCOMA3D_VOL!=='undefined'?SARCOMA3D_VOL:null, win:{l:40,w:400}, contours:true},   // soft-tissue sarcoma (TCIA Soft-tissue-Sarcoma): extremity CT (thigh), real GTV_Mass tumour. Unusual limb anatomy — rigid 6DOF soft-tissue match with the femur as the bony landmark. Data built by generate_sarcoma.py.
-    hn:{file:'hn3d_data.js', get:()=>typeof HN3D_VOL!=='undefined'?HN3D_VOL:null, win:{l:40,w:400}, contours:true}   // head & neck (EAY131 / NCI-MATCH): contrast neck CT, neck soft-tissue window. Real pharynx/larynx primary + involved neck node target — rigid 6DOF daily-IGRT match over the cervical spine / mandible / skull-base bony anatomy. Data built by generate_hn_cbct.py.
+    hn:{file:'hn3d_data.js', get:()=>typeof HN3D_VOL!=='undefined'?HN3D_VOL:null, win:{l:40,w:400}, contours:true}   // head & neck (EAY131 / NCI-MATCH): contrast neck CT, neck soft-tissue window. Real pharynx/larynx primary target — rigid 6DOF daily-IGRT match over the cervical spine / mandible / skull-base bony anatomy. Data built by generate_hn_cbct.py (SI slab clipped to the clean native run to avoid reformat smear).
   };
   const hasVol=k=>!!VOLCASE[k];
   function curOffBone(){return (VOLCASE[caseKey]&&VOLCASE[caseKey].offBone)||null;}
@@ -5274,7 +5274,7 @@ const CBCT=(function(){
   let LIVER_LBL=null, LIVER_ISO_IDX=[78,100,79];        // liver: tumour (Mass) centroid -> isocentre (overwritten from the label file's isoIdx)
   let GBM_LBL=null, GBM_ISO_IDX=[143,109,76];           // GBM: enhancing-tumour+necrosis centroid -> isocentre (overwritten from the label file's isoIdx)
   let SARCOMA_LBL=null, SARCOMA_ISO_IDX=[73,76,93];        // sarcoma: tumour (GTV_Mass) centroid -> isocentre (overwritten from the label file's isoIdx)
-  let HN_LBL=null, HN_ISO_IDX=[97,66,41];                  // head & neck: pharynx/larynx primary centroid -> isocentre (overwritten from the label file's isoIdx)
+  let HN_LBL=null, HN_ISO_IDX=[97,44,32];                  // head & neck: pharynx/larynx primary centroid -> isocentre (overwritten from the label file's isoIdx)
   const _ctrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _brainCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
   const _breastCtrCache={axial:{k:-1,polys:null},coronal:{k:-1,polys:null},sagittal:{k:-1,polys:null}};
