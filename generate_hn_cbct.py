@@ -54,22 +54,23 @@ CROP_MARGIN_MM = 62     # superior-inferior half-slab of context above/below the
                         # the available volume, so this effectively shows most of the head + neck.
 BODY_MARGIN_MM = 8      # in-plane (LR/AP) skin margin around the BODY mask.
 
-# Synthetic BILATERAL cervical-nodal PTV (no tumour ROI in TCGA-THCA): an anterior-convex horseshoe/U
-# of two jugular-chain lobes (levels II-IV both sides) joined by a thin anterior bridge, carving out the
+# Synthetic BILATERAL cervical-nodal PTV (no tumour ROI in TCGA-THCA): two SEPARATE jugular-chain lobes
+# (levels II-IV, both sides) flanking the airway/spine — no anterior midline bridge — carving out the
 # central airway + the posterior spinal cord / vertebral body. Geometry from an ultracode design
 # workflow (radonc + geometry proposals, judged + synthesised). Bounded to the CERVICAL z-window
 # (the source CT is the full cranial vault, so a whole-head span would drape the PTV over the brain).
-Z_FRAC_LO, Z_FRAC_HI = 0.30, 0.72   # cervical build window (skull base/C1 -> low neck/supraclav)
+Z_FRAC_LO, Z_FRAC_HI = 0.30, 0.60   # cervical build window: low neck/supraclav -> mandible angle / C1.
+                                     # HI was 0.72, which reached the chin/oral-cavity level where the head
+                                     # is narrow so the two lobes crowded the anterior midline (PTV "in
+                                     # front of the chin"). 0.60 tops out at the upper neck, below the chin.
 ISO_Z_FRAC   = 0.51     # iso SI hint within the window (~C3-C4); iso is recomputed post-resample anyway.
 LOBE_RX_MM, LOBE_RY_MM = 13.0, 16.0 # lobe in-plane semi-axes (LR / AP) — ~26x32 mm jugular-chain lobe.
 AP_BIAS      = -0.05    # lobe AP centre, fraction of body AP depth ANTERIOR of the body centroid.
-BRIDGE_THICK_MM = 8.0   # AP thickness of the thin anterior bridge joining the two lobes across the front.
-SKIN_MARGIN_MM  = 4.0   # inset of lobes/bridge from the anterior skin surface.
 BODY_ERODE_MM   = 3.0   # erode body -> body_in; the PTV is constrained inside this (never reaches skin).
 SPINE_HW_MM     = 12.0  # half-width of the posterior-central cord/vertebral-body keep-out column.
 POST_CUT_FRAC   = 0.22  # posterior cutoff = cy + frac*AP_depth; drop voxels behind it (U stays open).
 AIRWAY_PAD_MM   = 5.0   # dilation of the detected airway CC before subtraction (keeps the U's mouth clear).
-TAPER_N         = 4     # top/bottom slices over which lobe radii + bridge taper for rounded SI caps.
+TAPER_N         = 4     # top/bottom slices over which the lobe radii taper for rounded SI caps.
 SOFT_HU = (-50, 250)    # soft-tissue HU window (no airway / bone); BONE_HU>250, AIR_HU<-500.
 
 # HU -> density(0..255):  HU = density*(2000/255) - 500  =>  density = (HU+500)*255/2000.
@@ -117,8 +118,8 @@ def body_mask(hu):
         body = lbl == sizes.argmax()                                # largest CC = head/neck
     return ndimage.binary_fill_holes(body)
 
-# --- synthesise a BILATERAL cervical-nodal PTV (horseshoe/U) -----------------
-# Two jugular-chain lobes (levels II-IV, both sides) joined by a thin anterior bridge, carving out the
+# --- synthesise a BILATERAL cervical-nodal PTV (two separate chains) ---------
+# Two jugular-chain lobes (levels II-IV, both sides), kept SEPARATE (no anterior bridge), carving out the
 # central airway + posterior cord/vertebra so the U opens posteriorly (cord-sparing). Level-aware:
 # II (sup, narrower/medial) -> III (mid, widest/lateral) -> IV (inf, anterior supraclav shelf), with
 # optional Ib (submandibular, top) and Va (posterolateral nub, mid). Geometry from the ultracode design.
@@ -167,7 +168,6 @@ def synth_target(body, hu, dz, py, px, seed=7):
     Y, X = np.ogrid[0:SY, 0:SX]
     tgt = np.zeros_like(body)
     lat_frac = lambda f: 0.46 + (0.34-0.46)*f      # 0.34 sup(II) -> 0.42 mid(III) -> 0.46 inf(IV)
-    bridge_hw_f = lambda f: 0.55 + (0.30-0.55)*f   # 0.30 sup -> 0.55 inf
     span = max(1, z1 - z0)
     for z in range(z0, z1+1):
         if not act[z]:
@@ -182,14 +182,11 @@ def synth_target(body, hu, dz, py, px, seed=7):
             xc = cx[z] + sgn*loff*jit
             rx = (LOBE_RX_MM/px)*taper*jit; ry = (LOBE_RY_MM/py)*taper
             sl |= (((X-xc)/rx)**2 + ((Y-yc_lobe)/ry)**2) <= 1.0
-        # thin anterior bridge joining the lobes across the front (midline primary / low-neck junction)
-        bhw = bridge_hw_f(f)*hw[z]
-        yin = yant[z] + SKIN_MARGIN_MM/py; yout = yin + (BRIDGE_THICK_MM/py)*taper
-        sl |= (np.abs(X-cx[z])<=bhw) & (Y>=yin) & (Y<=yout)
-        # optional level Ib (submandibular, superior) + Va (posterolateral nub, mid)
-        if f >= 0.88:
-            for sgn in (-1, +1):
-                sl |= (((X-(cx[z]+sgn*0.22*hw[z]))/(8.0/px))**2 + ((Y-(yant[z]+0.30*apd[z]))/(8.0/py))**2) <= 1.0
+        # NOTE: no anterior midline bridge — the two chains are kept SEPARATE (a clean bilateral level
+        # II-IV neck volume). An anterior bridge read as PTV sitting in front of the neck/chin, so it
+        # was removed; bilateral elective nodal volumes are commonly two distinct left/right targets.
+        # optional level Va (posterolateral nub, mid neck). Level Ib (submandibular) is intentionally
+        # omitted — placed anteriorly it read as PTV "in front of the chin".
         va = np.zeros((SY, SX), bool)
         if 0.45 <= f <= 0.80:
             for sgn in (-1, +1):
@@ -308,7 +305,7 @@ def main():
               '// De-identified head-and-neck CT (patient TCGA-DE-A4MA, "CT HeadNeck 3.0"); full\n'
               '// cranial vault through the neck, cropped to a neck slab + isotropic atlas. SAME\n'
               '// patient as the 2D/2D H&N case. The soft-tissue target is SYNTHETIC (a BILATERAL\n'
-              '// cervical-nodal PTV — a horseshoe over levels II-IV both sides, cord/airway-sparing) —\n'
+              '// cervical-nodal PTV — two separate chains over levels II-IV both sides, cord/airway-sparing) —\n'
               '// TCGA-THCA carries no tumour annotation; the match is a rigid 6DOF registration of the\n'
               '// real bony head & neck. Educational use only; values fictional.\n')
     meta = (f'{{"dims": [{OX}, {OY}, {OZ}], "spacingMm": [{iso_sp:.4f}, {iso_sp:.4f}, {iso_sp:.4f}], '
@@ -326,7 +323,7 @@ def main():
                 f'"isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}]}}')
     with open('hn3d_labels_data.js', 'w') as f:
         f.write(ATTRIB)
-        f.write('// Head & Neck CBCT labels: synthetic BILATERAL cervical-nodal PTV — horseshoe over levels II-IV\n')
+        f.write('// Head & Neck CBCT labels: synthetic BILATERAL cervical-nodal PTV — two separate chains over levels II-IV\n')
         f.write('// both sides, cord/airway-sparing (bit "tumor") + thresholded body.\n')
         f.write(f'const HN3D_LABELS={lbl_meta};\n')
         f.write(f"HN3D_LABELS.atlas='data:image/png;base64,{lbl_b64}';\n")

@@ -249,15 +249,17 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   crops a **generous head+neck slab** (`CROP_MARGIN_MM` 62 → near the full vault-to-thorax FOV so you can
   scroll higher/lower for context) + body in-plane, and isotropically resamples to the tiled-atlas format
   (`_decodeHNLabels`, bits body=1 / tumor=2 — unchanged). TCGA-THCA carries **no tumour RTSTRUCT/SEG**, so
-  the soft-tissue target is **SYNTHETIC**: a **BILATERAL cervical-nodal PTV** (`synth_target`) — an
-  anterior-convex **horseshoe/U** of two jugular-chain lobes (levels **II–IV** both sides) joined by a thin
-  anterior bridge, carving out the **central airway** (connected-component detection + dilate) and a
-  **posterior cord/vertebral-body keep-out** so the U opens posteriorly (cord-sparing). Level-aware (II
-  sup/narrow → III mid/widest → IV inf/anterior-supraclav-shelf, optional Ib/Va), bounded to the
-  **cervical SI window** `Z_FRAC` 0.30–0.72 (NOT the whole head — the CT is the full vault, so a whole-head
-  span would drape over the brain), tapered SI caps, body-relative outer standoff, slight L/R jitter, and
-  keep-outs re-applied **after** z-smoothing. ~110 cc (vs the old ~3 cc unilateral node). The whole
-  horseshoe is the single generic **`tumor`** slot (reuses the existing legend; iso = the PTV centroid).
+  the soft-tissue target is **SYNTHETIC**: a **BILATERAL cervical-nodal PTV** (`synth_target`) — two
+  **SEPARATE jugular-chain lobes** (levels **II–IV** both sides) flanking the airway/spine, carving out the
+  **central airway** (connected-component detection + dilate) and a **posterior cord/vertebral-body
+  keep-out** (cord-sparing). There is **no anterior midline bridge** — an earlier horseshoe bridge read as
+  PTV "in front of the chin/neck", so the two chains are kept distinct (a common bilateral elective-neck
+  look). Level-aware (II sup/narrow → III mid/widest → IV inf), Va nub optional, bounded to the **cervical
+  SI window** `Z_FRAC` 0.30–**0.60** (NOT the whole head — the CT is the full vault; and the **0.60 top
+  stops below the chin/oral-cavity**, where the head is narrow and the lobes would otherwise crowd the
+  anterior midline), tapered SI caps, body-relative outer standoff, slight L/R jitter, keep-outs re-applied
+  **after** z-smoothing. ~70 cc (vs the old ~3 cc unilateral node). The PTV is the single generic
+  **`tumor`** slot (reuses the existing legend; iso = the PTV centroid).
   The **bilateral-PTV geometry was designed by an ultracode workflow** (radonc + geometry proposals →
   judge panel → synthesis). Rigid 6DOF daily-IGRT match over the real cervical-spine / mandible /
   skull-base bony anatomy; the synthetic PTV defines the iso/contour. Reachable only from the
@@ -415,7 +417,7 @@ Two workflows, picked on the start screen:
   Prostate (gold fiducial markers, **off-bone**) · Pancreas · Acoustic neuroma · MR · Liver SBRT ·
   Soft-tissue sarcoma · **Head & Neck** (TCGA-THCA `TCGA-DE-A4MA` clean full-head CT — SAME patient as the
   2D H&N case; daily-IGRT 6DOF match over the cervical spine/mandible/skull-base with a **synthetic bilateral
-  cervical-nodal PTV** (levels II–IV horseshoe, cord/airway-sparing) — see `generate_hn_cbct.py`) ·
+  cervical-nodal PTV** (two separate levels II–IV chains, cord/airway-sparing) — see `generate_hn_cbct.py`) ·
   **Adrenal · off-bone** (Adrenal-ACC-Ki67-Seg; an adrenal mass in retroperitoneal fat that drifts off the spine
   with respiration — the third off-bone case, register the mass not the vertebrae — see `generate_adrenal_cbct.py`) ·
   **Glioblastoma · MR** (UPenn-GBM post-contrast T1; cranial match on the enhancing GTV + necrotic core,
