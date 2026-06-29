@@ -2836,20 +2836,20 @@ const FID2D=(function(){
     else if(arm){if(msg)msg.textContent='Gantry at '+tgt+'°. Hold kV Beam On to acquire the '+which+' radiograph.';lamp=fExpoHold?'EXPOSING':'READY';}
     const L=document.getElementById('fidAcqLamp');if(L){L.textContent=lamp;L.className='cb-acq-lamp'+(arm&&fExpoHold?' live':'')+(arm&&!fExpoHold?' ready':'');}
   }
-  function fMotStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();const tgt=fAcqPhase==='rotAP'?0:fAcqPhase==='rotLAT'?90:null;if(tgt===null)return;fMot=true;let last=performance.now();
+  function fMotStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();const tgt=fAcqPhase==='rotAP'?0:fAcqPhase==='rotLAT'?90:null;if(tgt===null)return;fAcqStopRaf();fMot=true;let last=performance.now();
     const step=(t)=>{if(!fMot){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;let d=tgt-fGantry;if(d>180)d-=360;if(d<-180)d+=360;const s=F_ROT*dt*(d>=0?1:-1);
       if(Math.abs(s)>=Math.abs(d)){fGantry=tgt;fMot=false;fRaf=0;fAcqPhase=(fAcqPhase==='rotAP')?'armAP':'armLAT';fAcqRender();return;}
       fGantry+=s;fAcqRender();fRaf=requestAnimationFrame(step);};
     fRaf=requestAnimationFrame(step);}
   function fMotStop(){if(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'){fMot=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}}}
-  function fExpoStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(fAcqPhase!=='armAP'&&fAcqPhase!=='armLAT')return;fExpoHold=true;let last=performance.now();
+  function fExpoStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(fAcqPhase!=='armAP'&&fAcqPhase!=='armLAT')return;fAcqStopRaf();fExpoHold=true;let last=performance.now();
     const step=(t)=>{if(!fExpoHold){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;fExpoP=Math.min(1,fExpoP+dt*1000/F_EXPO_MS);fAcqRender();
       if(fExpoP>=1){fExpoHold=false;fRaf=0;fExpoP=0;if(fAcqPhase==='armAP'){fCap.ap=true;fAcqPhase='rotLAT';}else{fCap.lat=true;fAcqPhase='ready';render();}fAcqRender();return;}
       fRaf=requestAnimationFrame(step);};
     fRaf=requestAnimationFrame(step);fAcqRender();}
   function fExpoStop(){if(fExpoHold){fExpoHold=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fAcqRender();}}
   function fToggleAcq(on){fAcqEnabled=!!on;if(fAcqUses()){if(fAcqPhase==='ready')fAcqArm();}else{fAcqPhase='ready';fAcqStopRaf();}fAcqRender();}
-  function fSetAcqForce(on){fAcqForce=!!on;}
+  function fSetAcqForce(on){fAcqForce=!!on;if(!fAcqUses()){fAcqStopRaf();fAcqPhase='ready';fAcqRender();}}
 
   /* ---- interaction ---- */
   function vKey(area){return area==='apArea'?'ap':area==='latArea'?'lat':null;}
@@ -7222,7 +7222,7 @@ const CBCT=(function(){
     if(axis==='y'){ adj(P.sy, dir*0.5*P.fy); return; }
   }
   /* ---- acquisition console rendering + control ---- */
-  function acqStopRaf(){if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqMotion=false;}
+  function acqStopRaf(){if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqMotion=false;acqSweepHold=false;}
   function acqRender(){
     const wrap=gid('cbAcq');if(!wrap)return;
     if(!acqUses()){wrap.classList.add('hidden');return;}
@@ -7240,7 +7240,7 @@ const CBCT=(function(){
     const lamp=gid('cbAcqLamp');if(lamp){lamp.textContent=lampTxt;lamp.className='cb-acq-lamp'+((acqPhase==='acquiring'&&acqSweepHold)?' live':'')+(acqPhase==='armed'?' ready':'');}
   }
   function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
-  function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqMotion=true;let last=performance.now();
+  function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqStopRaf();acqMotion=true;let last=performance.now();
     const step=(t)=>{if(!acqMotion){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
       let d=180-acqAngle;if(d>180)d-=360;if(d<-180)d+=360;
       const stepDeg=ACQ_ROT*dt*(d>=0?1:-1);
@@ -7252,7 +7252,7 @@ const CBCT=(function(){
   // while the button is held; releasing pauses it. Reaching 100% reconstructs and unlocks the match.
   function acqSweepStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();
     if(acqPhase!=='armed'&&acqPhase!=='acquiring')return;
-    acqPhase='acquiring';acqSweepHold=true;let last=performance.now();
+    acqStopRaf();acqPhase='acquiring';acqSweepHold=true;let last=performance.now();
     const step=(t)=>{if(!acqSweepHold){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
       acqSweepP=Math.min(1,acqSweepP+dt*1000/ACQ_SWEEP_MS);acqAngle=ACQ_START+acqSweepP*360;acqRender();
       if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='ready';acqRender();if(window.TXFLOW&&TXFLOW.onCbctAcquired)TXFLOW.onCbctAcquired();return;}
@@ -7260,7 +7260,7 @@ const CBCT=(function(){
     acqRaf=requestAnimationFrame(step);acqRender();}
   function acqSweepStop(){if(acqSweepHold){acqSweepHold=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqRender();}}
   function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
-  function setAcqForce(on){acqForce=!!on;}
+  function setAcqForce(on){acqForce=!!on;if(!acqUses()){acqStopRaf();}}
   function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,setAcqForce,acqReady,
