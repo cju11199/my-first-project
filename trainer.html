@@ -3029,30 +3029,31 @@ const CONSOLE=(()=>{
   }
 
   // ---- iso-derived starting couch (2D console cases) ----
-  // BASE = realistic per-case Varian TrueBeam literal at nominal iso 0.5, on the IEC 61217
-  // ("Varian IEC") scale, HFS supine. Encoder = the couch value that brings the planned iso to
-  // machine isocenter. Signs are grounded in IEC 61217:
-  //   Vrt is positive-UP and the tabletop sits BELOW iso for a supine patient -> bases are NEGATIVE.
-  //   Lng is positive toward the gantry (head-in); cranial sites are driven deepest into the bore.
-  // + signed delta from the planned iso offset, honoring the VERIFIED ENCODER sign rules:
-  //   superior iso (small ap.y) => LOWER Lng  (couch retracted out of the bore)
-  //   POSTERIOR iso (large lat.x) => HIGHER Vrt (point nearer tabletop => couch RAISED, less negative)
-  //   patient-RIGHT iso (small ap.x) => HIGHER Lat (table moves toward patient-left, +Xt)
-  // breast iso:null -> BASE literal unchanged (no NaN); non-console key -> null. rtn always 0.
+  // BASE = per-case Varian TrueBeam couch readout at nominal iso 0.5, HFS supine.
+  // VERTICAL sign convention (per clinical use): RAISING the table moves the iso DOWN = a NEGATIVE
+  // change. So a SHALLOW iso (table high: brain/hn) reads NEGATIVE Vrt; a DEEP iso (table low:
+  // pelvis/breast/thorax) reads MORE POSITIVE Vrt. LONG is positive head-in (cranial driven deepest
+  // into the bore). LAT is offset off-midline for lateralized targets (left breast, a lung lesion).
+  // Signed delta from the planned iso offset honors the encoder sign rules:
+  //   superior iso (small ap.y)      => LOWER Lng  (couch retracted out of the bore)
+  //   POSTERIOR iso (large lat.x)    => LOWER Vrt  (iso sits nearer the tabletop -> table raised, and
+  //                                                 table-up = iso-down = the negative direction)
+  //   patient-RIGHT iso (small ap.x) => HIGHER Lat
+  // breast iso:null -> BASE literal verbatim (no NaN); non-console key -> null. rtn always 0.
   const COUCH_ISO_BASE={
-    brain :{vrt: -7.00,lng:96.00,lat: 0.30}, pelvis:{vrt:-17.00,lng:84.00,lat:-0.40},
-    thorax:{vrt:-12.50,lng:88.00,lat: 0.20}, femur :{vrt:-10.50,lng:60.00,lat: 2.60},
-    spine :{vrt:-12.50,lng:86.00,lat:-0.30}, hn    :{vrt: -6.00,lng:94.00,lat: 0.30},
-    breast:{vrt: -9.00,lng:80.00,lat:-1.00} };          // BASE = value at nominal iso fraction 0.5
+    brain :{vrt:-3.85,lng:96.00,lat: 0.30}, pelvis:{vrt: 6.20,lng:84.00,lat:-0.40},
+    thorax:{vrt: 4.10,lng:88.00,lat: 4.00}, femur :{vrt: 1.55,lng:60.00,lat: 2.60},
+    spine :{vrt: 3.40,lng:86.00,lat:-0.30}, hn    :{vrt:-2.10,lng:94.00,lat: 0.30},
+    breast:{vrt: 5.35,lng:80.00,lat:-4.50} };          // BASE = value at nominal iso fraction 0.5
   const COUCH_K={lat:4,vrt:4,lng:10};                   // cm per full-frame iso fraction (small, physical)
   function seedCouchFromIso(key){
     const b=COUCH_ISO_BASE[key]; if(!b) return null;
     const c=(typeof CASES!=='undefined')&&CASES[key], iso=c&&c.iso;
     if(!iso||!iso.ap||!iso.lat||iso.ap.x==null||iso.ap.y==null||iso.lat.x==null)
       return {vrt:+b.vrt.toFixed(2),lng:+b.lng.toFixed(2),lat:+b.lat.toFixed(2),rtn:0};
-    const lat=b.lat - COUCH_K.lat*(iso.ap.x-0.5);   // IEC: patient-RIGHT (ap.x<0.5) => HIGHER Lat (table to patient-left)
-    const vrt=b.vrt + COUCH_K.vrt*(iso.lat.x-0.5);  // IEC: POSTERIOR (lat.x>0.5) => HIGHER Vrt (nearer tabletop, couch raised)
-    const lng=b.lng + COUCH_K.lng*(iso.ap.y-0.5);   // IEC: SUPERIOR (ap.y<0.5) => LOWER Lng (couch out of bore)
+    const lat=b.lat - COUCH_K.lat*(iso.ap.x-0.5);   // patient-RIGHT (ap.x<0.5) => HIGHER Lat (table to patient-left)
+    const vrt=b.vrt - COUCH_K.vrt*(iso.lat.x-0.5);  // POSTERIOR (lat.x>0.5) => LOWER Vrt (table raised = iso down = negative)
+    const lng=b.lng + COUCH_K.lng*(iso.ap.y-0.5);   // SUPERIOR (ap.y<0.5) => LOWER Lng (couch out of bore)
     return {vrt:+vrt.toFixed(2),lng:+lng.toFixed(2),lat:+lat.toFixed(2),rtn:0};
   }
   // ---- lifecycle ----
