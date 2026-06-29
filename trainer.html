@@ -2930,6 +2930,8 @@ window.DIBH=DIBH;
 // Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
 // (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
 // couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// NOTE: couch is now ISO-DERIVED at runtime via seedCouchFromIso() (re-seeded on console enter + every New Offset);
+// the literals here are the per-case BASE at nominal iso 0.5 (and the breast iso:null fallback).
 // views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
 // angles + hidesPortal + the awaiting badge. Because the OBI kV source sits 90° off the gantry head, an AP kV
 // image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
@@ -3026,12 +3028,32 @@ const CONSOLE=(()=>{
          ||Math.abs(hidden.roll)>rl||Math.abs(hidden.pitch)>rl;
   }
 
+  // ---- iso-derived starting couch (2D console cases) ----
+  // BASE = realistic per-case Varian literal at nominal iso 0.5; + signed delta from the planned iso
+  // offset, honoring the three ENCODER sign rules (superior=>lower Lng / posterior=>lower Vrt /
+  // right=>higher Lat). breast iso:null -> BASE literal unchanged (no NaN); non-console key -> null. rtn always 0.
+  const COUCH_ISO_BASE={
+    brain :{vrt:-3.85,lng:97.40,lat: 0.35}, pelvis:{vrt: 6.20,lng:89.20,lat:-0.60},
+    thorax:{vrt: 4.10,lng:90.30,lat: 0.20}, femur :{vrt: 1.55,lng:72.80,lat: 2.85},
+    spine :{vrt: 3.40,lng:88.60,lat:-0.45}, hn    :{vrt:-2.10,lng:96.80,lat: 0.40},
+    breast:{vrt: 5.35,lng:84.75,lat:-1.20} };
+  const COUCH_K={lat:12,vrt:14,lng:14};
+  function seedCouchFromIso(key){
+    const b=COUCH_ISO_BASE[key]; if(!b) return null;
+    const c=(typeof CASES!=='undefined')&&CASES[key], iso=c&&c.iso;
+    if(!iso||!iso.ap||!iso.lat||iso.ap.x==null||iso.ap.y==null||iso.lat.x==null)
+      return {vrt:+b.vrt.toFixed(2),lng:+b.lng.toFixed(2),lat:+b.lat.toFixed(2),rtn:0};
+    const lat=b.lat - COUCH_K.lat*(iso.ap.x-0.5);   // R3: right (ap.x<0.5) => higher Lat
+    const vrt=b.vrt - COUCH_K.vrt*(iso.lat.x-0.5);  // R2: posterior (lat.x>0.5) => lower Vrt
+    const lng=b.lng + COUCH_K.lng*(iso.ap.y-0.5);   // R1: superior (ap.y<0.5) => lower Lng
+    return {vrt:+vrt.toFixed(2),lng:+lng.toFixed(2),lat:+lat.toFixed(2),rtn:0};
+  }
   // ---- lifecycle ----
   function refresh(key){
     if(key==='breastDIBH'||document.body.classList.contains('dibh-mode')||
        document.body.classList.contains('fid-mode')||!CONSOLE_PLANS[key]){ exit(); return; }
     caseKey=key; plan=CONSOLE_PLANS[key]; views=plan.views.slice();
-    couch={...plan.couch}; couch0={...plan.couch};
+    couch0=seedCouchFromIso(key)||{...plan.couch}; couch={...couch0};   // iso-derived starting couch
     gantry=startAngle(); acquired=[false,false]; applied=null; phase='ACQUIRE'; motTarget=null;
     stopMotion(); clearTimeout(resetTmr);
     active=true;
@@ -3348,6 +3370,7 @@ const CONSOLE=(()=>{
   // ---- New Offset / re-image: fresh setup error, re-acquire from scratch (couch unchanged here) ----
   function reinterlock(){
     if(!active)return;
+    const seed=seedCouchFromIso(caseKey); if(seed){ couch0={...seed}; couch={...seed}; }   // recompute starting couch from the planned iso each new offset
     acquired=[false,false]; applied=null; gantry=startAngle(); motTarget=null; stopMotion(); clearTimeout(resetTmr);
     updateBadges(); if(typeof render==='function')render();
     setPhase('ACQUIRE'); msg('New offset — re-acquire both images, then match.','');
