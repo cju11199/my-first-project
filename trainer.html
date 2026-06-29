@@ -6702,7 +6702,7 @@ const CBCT=(function(){
   const cbTimer=makeMatchTimer();   // hidden timer: first directional move -> Check Match
   function adj(axis,delta){if(!acqReady())return;cbTimer.onMove();pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
   function slStart(){pushUndo();}
-  function slide(axis,val){cbTimer.onMove();shift[axis]=+parseFloat(val).toFixed(1);clearErrors();refreshReadouts();render();}
+  function slide(axis,val){if(!acqReady())return;cbTimer.onMove();shift[axis]=+parseFloat(val).toFixed(1);clearErrors();refreshReadouts();render();}
   function setBlend(name,val){ST[name].blend=+val;drawPlane(name);}
   // single CT<->CBCT blend that drives all three planes (slider lives on the main pane only)
   function setBlendAll(val){val=+val;Object.keys(PLANES).forEach(name=>{ST[name].blend=val;const sl=gid(PLANES[name].sl);if(sl)sl.value=val;});render();}
