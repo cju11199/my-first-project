@@ -245,10 +245,13 @@ export function build(THREE, opts = {}) {
   // kV Detector (flat-panel imager) — patient-right (-X), across iso from the source.
   const kvDetBoom = exactBoom('kV_Detector_Arm', -1);
   kvDetBoom.root.position.set(-0.58, 0, 0.12);
+  // framed flat-panel detector (matches the photo): WHITE housing frame → thin dark recess
+  // line → light-grey active face, set slightly proud; faces +X back at the source.
   const kvPanMount = grp(THREE, 'kV_Panel'); kvPanMount.position.x = -0.2;
-  const kvPanHsg = box(THREE, 0.1, 0.52, 0.52, M.panelHs, 'kV_Panel_Housing');
-  const kvPanFace = box(THREE, 0.05, 0.46, 0.46, M.panel, 'kV_Panel_Face'); kvPanFace.position.x = 0.05; // active face → source
-  kvPanMount.add(kvPanHsg, kvPanFace); kvDetBoom.s2.add(kvPanMount);
+  const kvPanFrame = box(THREE, 0.06, 0.56, 0.56, M.shell, 'kV_Panel_Housing');           // white frame slab
+  const kvPanGap   = box(THREE, 0.05, 0.49, 0.49, M.panelHs, 'kV_Panel_Recess'); kvPanGap.position.x = 0.015;  // thin dark recess ring
+  const kvPanFace  = box(THREE, 0.04, 0.45, 0.45, M.panel, 'kV_Panel_Face');     kvPanFace.position.x = 0.03;  // light-grey active surface
+  kvPanMount.add(kvPanFrame, kvPanGap, kvPanFace); kvDetBoom.s2.add(kvPanMount);
   gantry.add(kvDetBoom.root);
   parts.kV_Detector_Arm = kvDetBoom.root;
 
@@ -260,10 +263,12 @@ export function build(THREE, opts = {}) {
   const mvL1 = box(THREE, 0.22, 0.36, 0.24, M.creamDk, 'MV_Link1');
   const mvS2 = grp(THREE, 'MV_Stage2');
   const mvL2 = box(THREE, 0.18, 0.36, 0.18, M.cream, 'MV_Link2');
+  // MV/EPID — same framed flat-panel look, larger, lying flat with its active face up toward iso.
   const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.y = -0.26;
-  const mvPanHsg = box(THREE, 0.56, 0.1, 0.56, M.panelHs, 'MV_Panel_Housing');
-  const mvPanFace = box(THREE, 0.5, 0.05, 0.5, M.panel, 'MV_Panel_Face'); mvPanFace.position.y = 0.06; // face → iso/head
-  mvPanMount.add(mvPanHsg, mvPanFace);
+  const mvPanFrame = box(THREE, 0.6, 0.06, 0.6, M.shell, 'MV_Panel_Housing');               // white frame slab
+  const mvPanGap   = box(THREE, 0.52, 0.05, 0.52, M.panelHs, 'MV_Panel_Recess'); mvPanGap.position.y = 0.015; // dark recess ring
+  const mvPanFace  = box(THREE, 0.48, 0.04, 0.48, M.panel, 'MV_Panel_Face');     mvPanFace.position.y = 0.03;  // light-grey active surface
+  mvPanMount.add(mvPanFrame, mvPanGap, mvPanFace);
   mvS2.add(mvL2, mvPanMount); mvS1.add(mvL1, mvS2); mvDet.add(mvBase, mvS1);
   gantry.add(mvDet);
   parts.MV_Detector_Arm = mvDet; parts._mvS1 = mvS1; parts._mvS2 = mvS2;
