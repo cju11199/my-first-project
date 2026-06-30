@@ -2906,8 +2906,10 @@ const FID2D=(function(){
     const mot=document.getElementById('fidAcqMotion');if(mot){mot.disabled=!rot;mot.classList.toggle('needmove',rot&&!fMot);mot.classList.toggle('moving',fMot);}
     const go=document.getElementById('fidAcqGo');if(go)go.disabled=!arm;
     const bar=document.getElementById('fidAcqBar');if(bar)bar.style.width=Math.round(fExpoP*100)+'%';
-    fAcqLamp('fdaLampAP',fCap.ap,'on');
-    fAcqLamp('fdaLampLat',fCap.lat,'on');
+    // AP/LAT lamps: amber while that view is the active target, green once its exposure is captured
+    const apActive=(fAcqPhase==='rotAP'||fAcqPhase==='armAP'),latActive=(fAcqPhase==='rotLAT'||fAcqPhase==='armLAT');
+    fAcqLamp('fdaLampAP',fCap.ap||apActive,fCap.ap?'on':'warn');
+    fAcqLamp('fdaLampLat',fCap.lat||latActive,fCap.lat?'on':'warn');
     fAcqLamp('fdaLampReady',fAcqPhase==='ready','on');
     const which=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?'AP':'Lateral',tgt=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?0:90;
     const st=document.getElementById('fdaLcdSt');
