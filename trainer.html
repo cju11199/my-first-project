@@ -1338,6 +1338,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <div class="con-pendant-btns">
           <button class="pbtn motion" id="cbAcqMotion" type="button" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the 180&deg; cone-beam start"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
           <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="PRESS (or Enter) to auto-acquire — the gantry circles the patient and reconstructs"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="cbAcqBar"></i></button>
+          <button class="pbtn match" id="cbAcqMatch" type="button" style="display:none;grid-column:1/3" onclick="CBCT.acqStartMatch()" title="Start the 3D/3D volumetric registration"><span class="pbtn-lbl">3D / 3D MATCH</span></button>
         </div>
         <div class="con-msg" id="cbAcqMsg">Hold MOTION ENABLE to rotate the gantry to the 180&deg; cone-beam start position.</div>
       </div>
@@ -1580,8 +1581,27 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <div class="con-pendant-btns">
         <button class="pbtn motion" id="fidAcqMotion" type="button" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the kV imaging position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
         <button class="pbtn kvbeam" id="fidAcqGo" type="button" disabled onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()" title="HOLD (or hold Enter) to take the kV exposure"><span class="pbtn-lbl">kV BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="fidAcqBar"></i></button>
+        <button class="pbtn match" id="fidAcqMatch" type="button" style="display:none;grid-column:1/3" onclick="FID2D.acqStartMatch()" title="Start placing the fiducial markers"><span class="pbtn-lbl">FIDUCIAL 2D / 2D MATCH</span></button>
       </div>
       <div class="con-msg" id="fidAcqMsg">Hold MOTION ENABLE to rotate the gantry to the AP kV imaging position.</div>
+    </div>
+  </div>
+  <!-- Full Treatment only: after the kV fiducial match, APPLY SHIFTS then MOTION ENABLE moves the couch. -->
+  <div class="cb-acq hidden" id="fidAppl" onpointerdown="event.stopPropagation()">
+    <div class="con-couch" aria-label="Couch coordinates" id="fdaplCouch">
+      <span class="con-couch-ttl">COUCH</span>
+      <div class="con-cell"><span class="cl">VRT</span><b id="fdaplVrt">-3.20</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">LNG</span><b id="fdaplLng">24.50</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">LAT</span><b id="fdaplLat">0.10</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">RTN</span><b id="fdaplRtn">0.0</b><span class="u">&deg;</span></div>
+    </div>
+    <div class="con-side con-pendant">
+      <div class="con-pendant-hd"><span class="con-pendant-ttl">COUCH SHIFT &middot; APPLY</span><span class="con-pendant-sn" id="fdaplState">MATCH REVIEW</span></div>
+      <div class="con-msg" id="fdaplMsg">Fiducials matched &mdash; apply the couch shift.</div>
+      <div class="con-pendant-btns">
+        <button class="pbtn apply" id="fdaplApply" type="button" disabled onclick="TXFLOW.fidApply()" title="Apply the matched couch correction"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+        <button class="pbtn motion" id="fdaplMotion" type="button" disabled onclick="TXFLOW.fidMotion()" title="Move the couch to the corrected position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">move couch</span></button>
+      </div>
     </div>
   </div>
   <!-- DIBH breath-hold coaching strip: breathing trace + coaching buttons, docked at the bottom
@@ -2860,7 +2880,7 @@ const FID2D=(function(){
     else if(close){msg='⚡ Close — nest all three markers on the seeds until they turn green; '+KMOD+'+drag to rotate'+tag;cls='label';}
     else{msg='✗ Drag each marker onto its seed in both views until all three are green'+tag;cls='bad';}
     // Full Treatment Stage 2: TXFLOW owns progression — advance only on accept, keep the same offset otherwise.
-    if(window.TXFLOW&&TXFLOW.active()){setMsg(msg,cls);TXFLOW.onStageResult('kv',{accepted:ok,mag:transErr});return;}
+    if(window.TXFLOW&&TXFLOW.active()){setMsg(msg,cls);TXFLOW.onStageResult('kv',{accepted:ok,mag:transErr,shift:{x:f.t[0],y:f.t[2],z:f.t[1],yaw:f.r[1]}});return;}
     if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:null});
     // Check Match resets the clock + loads a fresh offset for the next rep, then shows the verdict
     matchTimer2d.reset();
@@ -2949,21 +2969,23 @@ const FID2D=(function(){
     const a=((fGantry%360)+360)%360;
     const grig=document.getElementById('fdaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=document.getElementById('fdaLcdG');if(lg)lg.textContent=fAcqFmtG(fGantry);
-    const rot=(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'),arm=(fAcqPhase==='armAP'||fAcqPhase==='armLAT');
-    const gauge=document.getElementById('fdaGauge');if(gauge)gauge.className='con-gauge '+(fExpoHold?'moving':arm?'ok':'off');
-    const mot=document.getElementById('fidAcqMotion');if(mot){mot.disabled=!rot;mot.classList.toggle('needmove',rot&&!fMot);mot.classList.toggle('moving',fMot);}
-    const go=document.getElementById('fidAcqGo');if(go)go.disabled=!arm;
+    const rot=(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'),arm=(fAcqPhase==='armAP'||fAcqPhase==='armLAT'),prompt=(fAcqPhase==='matchprompt');
+    const gauge=document.getElementById('fdaGauge');if(gauge)gauge.className='con-gauge '+(fExpoHold?'moving':(arm||prompt)?'ok':'off');
+    const mot=document.getElementById('fidAcqMotion');if(mot){mot.style.display=prompt?'none':'';mot.disabled=!rot;mot.classList.toggle('needmove',rot&&!fMot);mot.classList.toggle('moving',fMot);}
+    const go=document.getElementById('fidAcqGo');if(go){go.style.display=prompt?'none':'';go.disabled=!arm;}
+    const mb=document.getElementById('fidAcqMatch');if(mb)mb.style.display=prompt?'':'none';
     const bar=document.getElementById('fidAcqBar');if(bar)bar.style.width=Math.round(fExpoP*100)+'%';
     // AP/LAT lamps: amber while that view is the active target, green once its exposure is captured
     const apActive=(fAcqPhase==='rotAP'||fAcqPhase==='armAP'),latActive=(fAcqPhase==='rotLAT'||fAcqPhase==='armLAT');
     fAcqLamp('fdaLampAP',fCap.ap||apActive,fCap.ap?'on':'warn');
     fAcqLamp('fdaLampLat',fCap.lat||latActive,fCap.lat?'on':'warn');
-    fAcqLamp('fdaLampReady',fAcqPhase==='ready','on');
+    fAcqLamp('fdaLampReady',prompt,'on');
     const which=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?'AP':'Lateral',tgt=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?0:90;
     const st=document.getElementById('fdaLcdSt');
-    if(st){let t,c;if(rot){t='ROTATE → G'+tgt+' ('+which+')';c='off';}else{t=fExpoHold?('EXPOSING '+which+'…'):('AT G'+tgt+' · EXPOSE '+which);c=fExpoHold?'moving':'ok';}st.textContent=t;st.className='con-lcd-st '+c;}
+    if(st){let t,c;if(rot){t='ROTATE → G'+tgt+' ('+which+')';c='off';}else if(prompt){t='kV PAIR READY';c='ok';}else{t=fExpoHold?('EXPOSING '+which+'…'):('AT G'+tgt+' · EXPOSE '+which);c=fExpoHold?'moving':'ok';}st.textContent=t;st.className='con-lcd-st '+c;}
     const msg=document.getElementById('fidAcqMsg');
     if(msg)msg.textContent=rot?('Hold MOTION ENABLE to rotate the gantry to the '+which+' kV imaging position (G'+tgt+').')
+      :prompt?('kV pair acquired — press FIDUCIAL 2D/2D MATCH to start placing the markers.')
       :fExpoHold?('Exposing the '+which+' radiograph — keep holding…'):('Gantry at G'+tgt+'. Hold kV BEAM ON to acquire the '+which+' radiograph.');
   }
   function fMotStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();const tgt=fAcqPhase==='rotAP'?0:fAcqPhase==='rotLAT'?90:null;if(tgt===null)return;fAcqStopRaf();fMot=true;let last=performance.now();
@@ -2974,10 +2996,11 @@ const FID2D=(function(){
   function fMotStop(){if(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'){fMot=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}}}
   function fExpoStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(fAcqPhase!=='armAP'&&fAcqPhase!=='armLAT')return;fAcqStopRaf();fExpoHold=true;let last=performance.now();
     const step=(t)=>{if(!fExpoHold){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;fExpoP=Math.min(1,fExpoP+dt*1000/F_EXPO_MS);fAcqRender();
-      if(fExpoP>=1){fExpoHold=false;fRaf=0;fExpoP=0;if(fAcqPhase==='armAP'){fCap.ap=true;fAcqPhase='rotLAT';}else{fCap.lat=true;fAcqPhase='ready';render();}fAcqRender();return;}
+      if(fExpoP>=1){fExpoHold=false;fRaf=0;fExpoP=0;if(fAcqPhase==='armAP'){fCap.ap=true;fAcqPhase='rotLAT';}else{fCap.lat=true;fAcqPhase='matchprompt';render();}fAcqRender();return;}   // both kV images taken — wait for "START FIDUCIAL 2D/2D MATCH"
       fRaf=requestAnimationFrame(step);};
     fRaf=requestAnimationFrame(step);fAcqRender();}
   function fExpoStop(){if(fExpoHold){fExpoHold=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fAcqRender();}}
+  function fStartMatch(){if(fAcqPhase!=='matchprompt')return;fAcqPhase='ready';fAcqRender();render();}   // "FIDUCIAL 2D/2D MATCH" — unlock the marker drag
   function fToggleAcq(on){fAcqEnabled=!!on;if(fAcqUses()){if(fAcqPhase==='ready')fAcqArm();}else{fAcqPhase='ready';fAcqStopRaf();}fAcqRender();}
   function fSetAcqForce(on){fAcqForce=!!on;if(!fAcqUses()){fAcqStopRaf();fAcqPhase='ready';fAcqRender();}}
 
@@ -3025,7 +3048,7 @@ const FID2D=(function(){
     rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext,
     acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady,allGreen};
   return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,
-    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,setPendingOffset,
+    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,acqStartMatch:fStartMatch,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,setPendingOffset,
     resize:()=>{if(active())render();},_dbg};
 })();
 window.FID2D=FID2D;
@@ -3102,6 +3125,7 @@ const TXFLOW=(function(){
     requestAnimationFrame(()=>resizeAll());
   }
   function goTreat(){
+    if(!running) return;   // a deferred couch-move callback must not advance a flow the student already exited
     stage='treat'; updateStepper();
     if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);   // kV stage done — release the forced console
     document.body.classList.remove('fid-mode');
@@ -3116,7 +3140,7 @@ const TXFLOW=(function(){
     // CBCT: do NOT gate on tolerance — always enter the shift-apply flow; it alerts the residual but
     // lets the student proceed to the kV stage even out of tolerance (the residual carries to the kV).
     if(which==='cbct'){ cbctRes=res; enterCbApply(); }
-    else if(which==='kv'){ if(res.accepted){ kvRes=res; goTreat(); } }
+    else if(which==='kv'){ if(res.accepted){ kvRes=res; enterFidApply(); } }
   }
   /* ---- CBCT shift-apply sub-flow (Full Treatment): check → APPLY SHIFTS → MOTION ENABLE → couch move ---- */
   function setCouch(c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('cbaplVrt',c.vrt,2);e('cbaplLng',c.lng,2);e('cbaplLat',c.lat,2);e('cbaplRtn',c.rtn,1);}
@@ -3152,6 +3176,40 @@ const TXFLOW=(function(){
         setTimeout(()=>{const s=gid('cbAppl');if(s)s.classList.add('hidden');goKv();},800);}};
     motionRaf=requestAnimationFrame(step);
   }
+  /* ---- kV fiducial shift-apply sub-flow (Full Treatment): match → APPLY SHIFTS → MOTION ENABLE → couch move → treat ---- */
+  function setCouchFd(c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('fdaplVrt',c.vrt,2);e('fdaplLng',c.lng,2);e('fdaplLat',c.lat,2);e('fdaplRtn',c.rtn,1);}
+  function enterFidApply(){
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    const strip=gid('fidAppl'); if(strip)strip.classList.remove('hidden');
+    const couch=gid('fdaplCouch'); if(couch)couch.classList.remove('couch-moving');
+    setCouchFd(couchBase);
+    const msg=gid('fdaplMsg'); if(msg){msg.textContent='Fiducials matched — apply the couch shift.';msg.className='con-msg';}
+    const stt=gid('fdaplState'); if(stt)stt.textContent='APPLY SHIFTS';
+    const ap=gid('fdaplApply'); if(ap)ap.disabled=false;
+    const mo=gid('fdaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    requestAnimationFrame(()=>resizeAll());
+  }
+  function fidApply(){
+    const ap=gid('fdaplApply'); if(ap)ap.disabled=true;
+    const mo=gid('fdaplMotion'); if(mo){mo.disabled=false;mo.classList.add('needmove');}
+    const stt=gid('fdaplState'); if(stt)stt.textContent='MOTION ENABLE';
+    const msg=gid('fdaplMsg'); if(msg){msg.textContent='Couch shift loaded — hit MOTION ENABLE to move the couch.';msg.className='con-msg';}
+  }
+  function fidMotion(){
+    const mo=gid('fdaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    const sh=(kvRes&&kvRes.shift)||{x:0,y:0,z:0,yaw:0};
+    const target={vrt:couchBase.vrt+(sh.z||0)/10,lng:couchBase.lng+(sh.y||0)/10,lat:couchBase.lat+(sh.x||0)/10,rtn:couchBase.rtn+(sh.yaw||0)};
+    const couch=gid('fdaplCouch'); if(couch)couch.classList.add('couch-moving');
+    const stt=gid('fdaplState'); if(stt)stt.textContent='COUCH MOVING…';
+    const msg=gid('fdaplMsg'); if(msg)msg.textContent='Couch moving to the corrected position…';
+    const t0=performance.now(),dur=1500;
+    const step=(t)=>{const p=Math.min(1,(t-t0)/dur);
+      setCouchFd({vrt:couchBase.vrt+(target.vrt-couchBase.vrt)*p,lng:couchBase.lng+(target.lng-couchBase.lng)*p,lat:couchBase.lat+(target.lat-couchBase.lat)*p,rtn:couchBase.rtn+(target.rtn-couchBase.rtn)*p});
+      if(p<1){motionRaf=requestAnimationFrame(step);}
+      else{motionRaf=0;if(couch)couch.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — beginning treatment delivery…';
+        setTimeout(()=>{const s=gid('fidAppl');if(s)s.classList.add('hidden');goTreat();},800);}};
+    motionRaf=requestAnimationFrame(step);
+  }
   function exit(){
     running=false; stage=null; beamPhase='idle';
     if(raf){cancelAnimationFrame(raf);raf=0;}
@@ -3160,6 +3218,7 @@ const TXFLOW=(function(){
     if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);
     showStepper(false);
     const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');
+    const fa=gid('fidAppl'); if(fa)fa.classList.add('hidden');
     const sc=gid('txScreen'); if(sc)sc.classList.add('hidden');
   }
   function restart(){ const sm=gid('txSummary'); if(sm)sm.classList.add('hidden'); enter(); }
@@ -3328,7 +3387,7 @@ const TXFLOW=(function(){
     backdrop=c.toDataURL('image/png');return backdrop;
   }
 
-  return {enter,exit,restart,active,onStageResult,beamBtn,startRematch,cbApply,cbMotion,
+  return {enter,exit,restart,active,onStageResult,beamBtn,startRematch,cbApply,cbMotion,fidApply,fidMotion,
     _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();drawTrace();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
       forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx}};
@@ -7414,23 +7473,26 @@ const CBCT=(function(){
     const a=((acqAngle%360)+360)%360;
     const grig=gid('cbaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
-    const gauge=gid('cbaGauge');if(gauge)gauge.className='con-gauge '+(acqPhase==='acquiring'?'moving':acqPhase==='armed'?'ok':'off');
-    const mot=gid('cbAcqMotion');if(mot){mot.disabled=(acqPhase!=='park');mot.classList.toggle('needmove',acqPhase==='park'&&!acqMotion);mot.classList.toggle('moving',acqMotion);}
-    const go=gid('cbAcqGo');if(go)go.disabled=(acqPhase!=='armed');
+    const prompt=(acqPhase==='matchprompt');
+    const gauge=gid('cbaGauge');if(gauge)gauge.className='con-gauge '+(acqPhase==='acquiring'?'moving':(acqPhase==='armed'||prompt)?'ok':'off');
+    const mot=gid('cbAcqMotion');if(mot){mot.style.display=prompt?'none':'';mot.disabled=(acqPhase!=='park');mot.classList.toggle('needmove',acqPhase==='park'&&!acqMotion);mot.classList.toggle('moving',acqMotion);}
+    const go=gid('cbAcqGo');if(go){go.style.display=prompt?'none':'';go.disabled=(acqPhase!=='armed');}
+    const mb=gid('cbAcqMatch');if(mb)mb.style.display=prompt?'':'none';
     const bar=gid('cbAcqBar');if(bar)bar.style.width=Math.round(acqSweepP*100)+'%';
     acqLamp('cbaLampRot',acqPhase==='park'||acqPhase==='armed','warn');
     acqLamp('cbaLampAcq',acqPhase==='acquiring','beam');
-    acqLamp('cbaLampReady',acqPhase==='ready','on');
+    acqLamp('cbaLampReady',prompt,'on');
     const st=gid('cbaLcdSt');
-    if(st){let t,c;if(acqPhase==='park'){t='ROTATE → G180';c='off';}else if(acqPhase==='armed'){t='AT G180 · ACQUIRE';c='ok';}else{t='ACQUIRING…';c='moving';}st.textContent=t;st.className='con-lcd-st '+c;}
+    if(st){let t,c;if(acqPhase==='park'){t='ROTATE → G180';c='off';}else if(acqPhase==='armed'){t='AT G180 · ACQUIRE';c='ok';}else if(prompt){t='RECONSTRUCTED';c='ok';}else{t='ACQUIRING…';c='moving';}st.textContent=t;st.className='con-lcd-st '+c;}
     const msg=gid('cbAcqMsg');
     if(msg)msg.textContent=acqPhase==='park'?'Hold MOTION ENABLE (or SPACE) to rotate the gantry to the 180° cone-beam start position.'
       :acqPhase==='armed'?'Gantry at 180°. Press CONE-BEAM ON (or Enter) — the gantry circles the patient and reconstructs automatically.'
+      :prompt?'Cone-beam reconstructed — press 3D / 3D MATCH to start registering the volume.'
       :'Acquiring cone-beam — the gantry is circling the patient…';
     // reconstruction reveal: opaque until acquired, then wiped in clockwise with the gantry sweep
     const rev=gid('cbAcqReveal');
     if(rev){
-      if(acqPhase==='ready'){rev.classList.add('hidden');}
+      if(acqPhase==='ready'||prompt){rev.classList.add('hidden');}
       else{rev.classList.remove('hidden');
         const deg=(acqPhase==='acquiring')?acqSweepP*360:0;
         rev.style.background='conic-gradient(from -90deg, rgba(2,6,10,0) 0deg, rgba(2,6,10,0) '+deg.toFixed(1)+'deg, rgba(2,6,10,.94) '+deg.toFixed(1)+'deg)';
@@ -7456,15 +7518,16 @@ const CBCT=(function(){
     acqStopRaf();acqPhase='acquiring';acqSweepHold=true;let last=performance.now();
     const step=(t)=>{const dt=Math.min(0.05,(t-last)/1000);last=t;
       acqSweepP=Math.min(1,acqSweepP+dt*1000/ACQ_SWEEP_MS);acqAngle=ACQ_START+acqSweepP*360;acqRender();
-      if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='ready';acqRender();if(window.TXFLOW&&TXFLOW.onCbctAcquired)TXFLOW.onCbctAcquired();return;}
+      if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='matchprompt';acqRender();return;}   // reconstructed — wait for "START 3D/3D MATCH"
       acqRaf=requestAnimationFrame(step);};
     acqRaf=requestAnimationFrame(step);acqRender();}
   function acqSweepStop(){}   // auto-acquire: Beam On runs the full sweep; release/keyup is a no-op
+  function acqStartMatch(){if(acqPhase!=='matchprompt')return;acqPhase='ready';acqRender();render();}   // "3D/3D MATCH" — unlock the registration
   function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
   function setAcqForce(on){acqForce=!!on;if(!acqUses()){acqStopRaf();}}
   function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
-    toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,setAcqForce,acqReady,
+    toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,acqStartMatch,setAcqForce,acqReady,
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
 })();
 window.CBCT=CBCT;
