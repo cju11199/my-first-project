@@ -148,42 +148,35 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // ── ONE-PIECE C-ARM GANTRY ──────────────────────────────────────────────────
-  // The whole gantry is ONE continuous C: the treatment HEAD is the TOP tip (beam straight down
-  // through iso), the body curves down the +X side, and the MV EPID is the BOTTOM tip (directly
-  // under iso, catching the beam). The MV beam runs straight down the C's axis (head → iso → EPID).
-  // The kV source/detector arms hang off this same C. Brought FORWARD toward the couch and OPEN on
-  // the −X side, so it reads as one C unit yet still clears the narrow couch (no material on the
-  // patient centreline). Built as a single SMOOTH swept tube (CatmullRom path → TubeGeometry) with
-  // fat shoulders fairing it into the head (top) and the EPID (bottom).
+  // ── C-ARM GANTRY (head on a cantilever arm) ─────────────────────────────────
   const banana = grp(THREE, 'Gantry_Banana');
   const V = THREE.Vector3;
-  // CHUNKY curved gantry mass — the real gantry is a big voluminous structure, not a thin pipe.
-  // The path is pushed OUTBOARD (belly ~x0.80) so the thick tube's inner edge still clears the
-  // narrow couch, and the top end fairs up into the head.
-  const cPath = new THREE.CatmullRomCurve3([
-    new V(0.00,  0.82, 0.16),   // TOP — fairs up into the head drum
-    new V(0.42,  0.66, 0.36),
-    new V(0.72,  0.30, 0.50),
-    new V(0.82,  0.02, 0.54),   // +X belly (pushed out so the thick body clears the couch)
-    new V(0.72, -0.32, 0.50),
-    new V(0.42, -0.62, 0.34),
-    new V(0.04, -0.74, 0.16),   // BOTTOM — into the MV EPID arm
+  // The gantry does NOT wrap around iso (that read as a ring/bore from the foot). Instead it's a
+  // thick rounded ARM that cantilevers the head out from the rotation hub: the head sits at the top
+  // of the arm, the arm leans down-and-back to a modest rounded hub at the rotation axis, and the
+  // hub joins the fixed stand behind. The MV EPID hangs off the hub on the opposite (lower) side.
+  // From the foot you see the head + the arm behind it, no ring and no flat disc.
+  const armPath = new THREE.CatmullRomCurve3([
+    new V(0, 0.86, 0.12),   // top — fairs into the head drum (head at z0.05)
+    new V(0, 0.55, 0.30),
+    new V(0, 0.22, 0.48),
+    new V(0, -0.06, 0.62),  // root into the hub on the rotation axis
   ]);
-  const cTube = new THREE.Mesh(new THREE.TubeGeometry(cPath, 80, 0.42, 24, false), M.shell);
-  cTube.name = 'Gantry_C_Body';
-  banana.add(cTube);
-  // fat rounded shoulders fairing the chunky C into the head (top) and the EPID (bottom)
-  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.46, 22, 18), M.shell);
-  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0.0, 0.78, 0.14); banana.add(shTop);
-  const shBot = new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 16), M.shell);
-  shBot.name = 'Gantry_Shoulder_EPID'; shBot.position.set(0.04, -0.70, 0.16); banana.add(shBot);
+  const armTube = new THREE.Mesh(new THREE.TubeGeometry(armPath, 48, 0.34, 24, false), M.shell);
+  armTube.name = 'Gantry_Arm';
+  banana.add(armTube);
+  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.40, 22, 18), M.shell);
+  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0, 0.82, 0.12); banana.add(shTop);
+  // modest rounded HUB at the rotation axis (NOT a big disc) — where the arm meets the stand
+  const hub = cyl(THREE, 0.42, 0.46, 0.5, M.shell, 40, 'Gantry_Hub');
+  hub.rotation.x = Math.PI / 2; hub.position.z = 0.74;
+  banana.add(hub);
   gantry.add(banana);
   parts.Gantry_Body = banana;
-  parts.Gantry_FacePlate = banana;
-  // hub/axle behind the belly linking the C to the stand (small, tucked behind the +X belly)
-  const axle = cyl(THREE, 0.22, 0.25, 0.7, M.creamDk, 28, 'Gantry_Axle');
-  axle.rotation.x = Math.PI / 2; axle.position.set(0.30, -0.04, 0.85);
+  parts.Gantry_FacePlate = hub;
+  // axle linking the hub back to the stand
+  const axle = cyl(THREE, 0.24, 0.26, 0.7, M.creamDk, 28, 'Gantry_Axle');
+  axle.rotation.x = Math.PI / 2; axle.position.set(0, 0, 0.95);   // on the rotation axis, hub → stand
   gantry.add(axle);
 
   // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
