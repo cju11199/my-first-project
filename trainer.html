@@ -2856,7 +2856,8 @@ window.DIBH=DIBH;
    ============================================================================ */
 // Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
 // (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
-// couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// couch = STARTING iso-referenced Varian IEC couch readout (HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// (Vrt is iso-referenced — small, can be negative — NOT a true absolute couch-height encoder, which reads tens of cm.)
 // NOTE: couch is now ISO-DERIVED at runtime via seedCouchFromIso() (re-seeded on console enter + every New Offset);
 // the literals here are the per-case BASE at nominal iso 0.5 (and the breast iso:null fallback).
 // views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
@@ -2864,8 +2865,8 @@ window.DIBH=DIBH;
 // image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
 const VIEW_ANGLES={ap:[90,270], lat:[0,180]};
 const CONSOLE_PLANS={
-  // couch = realistic Varian/IEC 61217 HFS-supine absolute encoder readout: large Lng (table driven into the
-  // bore, deepest for the head ~97, shallowest for an extremity ~73), small Vrt couch height, near-0 Lat, Rtn 0.
+  // couch = realistic Varian/IEC 61217 HFS-supine iso-referenced readout: large Lng (table driven into the
+  // bore, deepest for the head ~97, shallowest for an extremity ~73), small/iso-referenced Vrt, near-0 Lat, Rtn 0.
   brain:{plan:'BRAIN_SRT', couch:{vrt:-3.85, lng:97.40, lat: 0.35, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   pelvis:{plan:'PELVIS_IMRT', couch:{vrt: 6.20, lng:89.20, lat:-0.60, rtn:0}, views:[
@@ -6866,7 +6867,7 @@ requestAnimationFrame(()=>{
         const sh=CBCT._dbg.shift()||{}, key=(CBCT._dbg.caseKey&&CBCT._dbg.caseKey())||'';
         return {mode:'LIVE · CBCT · '+key,
           pose:{gantryAngle:0, kvDeploy:1, kvDetDeploy:1,
-            couch:{lat:(sh.x||0)/1000, long:(sh.y||0)/1000, vert:(sh.z||0)/1000,
+            couch:{lat:-(sh.x||0)/1000, long:(sh.y||0)/1000, vert:(sh.z||0)/1000,   // lat = -x to match cbValX (+=patient RIGHT)
                    pitch:sh.pitch||0, roll:sh.roll||0, yaw:sh.yaw||0}}};
       }
     }catch(_){}

@@ -451,9 +451,11 @@ export function build(THREE, opts = {}) {
       gantry:   { label: 'Gantry',   value: ((p.gantryAngle || 0)).toFixed(1) + '°', color: '#ffffff' },
       collim:   { label: 'Collimator', value: ((p.collimatorAngle || 0)).toFixed(1) + '°', color: '#cfd6df' },
       // couch translations — color-coded to the IEC axes (X red, Z blue, Y green)
-      lat:      { label: 'Lat (X)', value: f1(lat) + ' cm', dir: dir(lat, 'LEFT', 'RIGHT'), color: '#ff4d4d' },
-      lng:      { label: 'Lng (Z)', value: f1(lng) + ' cm', dir: dir(lng, 'SUP', 'INF'),    color: '#4d9dff' },
-      vrt:      { label: 'Vrt (Y)', value: f1(vrt) + ' cm', dir: dir(vrt, 'UP', 'DOWN'),    color: '#4dff7a' },
+      // direction words match the trainer's patient-move convention (roomDirections): +Lat=RIGHT,
+      // +Lng=INF, +Vrt=POST — so the Machine-View panel reads the same way as the 2D/CBCT console.
+      lat:      { label: 'Lat (X)', value: f1(lat) + ' cm', dir: dir(lat, 'RIGHT', 'LEFT'), color: '#ff4d4d' },
+      lng:      { label: 'Lng (Z)', value: f1(lng) + ' cm', dir: dir(lng, 'INF', 'SUP'),    color: '#4d9dff' },
+      vrt:      { label: 'Vrt (Y)', value: f1(vrt) + ' cm', dir: dir(vrt, 'POST', 'ANT'),   color: '#4dff7a' },
       pitch:    { label: 'Pitch',   value: f1(c.pitch || 0) + '°', dir: dir(c.pitch || 0, 'CW', 'CCW'),  color: '#ff4d4d' },
       roll:     { label: 'Roll',    value: f1(c.roll  || 0) + '°', dir: dir(c.roll  || 0, 'CW', 'CCW'),  color: '#4d9dff' },
       yaw:      { label: 'Yaw',     value: f1(c.yaw   || 0) + '°', dir: dir(c.yaw   || 0, 'CW', 'CCW'),  color: '#4dff7a' },
