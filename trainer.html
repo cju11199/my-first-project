@@ -2675,6 +2675,11 @@ const FID2D=(function(){
   // External session (Full Treatment re-match): when set, FID2D runs on injected images/geometry and
   // hands the result to ext.onCheck instead of the normal record+new-offset loop.
   let ext=null;
+  // Linked offset (Full Treatment): the next randomize() uses this exact hidden offset (the residual
+  // carried over from the CBCT match) instead of a fresh random one, so the same seeds are off by the
+  // same amount on the kV pair. {t:[Lat,AP,SI] mm, r:[rx,ry,rz] deg}. One-shot (cleared on use).
+  let pendingOffset=null;
+  function setPendingOffset(o){pendingOffset=o;}
   function active(){return ext?true:(currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch);}
   // kV fiducial acquisition console: rotate to the AP kV position, hold to expose, rotate to Lateral,
   // hold to expose — THEN the markers/match unlock. Mirrors the CBCT acquisition console. Skipped for
@@ -2766,13 +2771,17 @@ const FID2D=(function(){
   function fidRotTol(){return fidTol().r1;}     // rotation accept (deg)
   function fidTransTol(){return fidTol().t1;}   // translation accept (mm) — markers must be seated too
   function randomize(keepResult){if(ext)return;const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
-    const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
-    // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
-    // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
-    // never seat all three markers — the student MUST Ctrl+drag one or two seeds to rotate the triad.
-    let rv=[rr(3,5)*sg(),rr(3,5)*sg(),rr(3,5)*sg()];
-    const need=fidRotTol()*2,tot=Math.hypot(rv[0],rv[1],rv[2]);
-    if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
+    let tt,rv;
+    if(pendingOffset){tt=pendingOffset.t.slice();rv=pendingOffset.r.slice();pendingOffset=null;}   // Full Treatment: inherit the residual left after the CBCT match (same seeds, same offset)
+    else{
+      tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
+      // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
+      // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
+      // never seat all three markers — the student MUST Ctrl+drag one or two seeds to rotate the triad.
+      rv=[rr(3,5)*sg(),rr(3,5)*sg(),rr(3,5)*sg()];
+      const need=fidRotTol()*2,tot=Math.hypot(rv[0],rv[1],rv[2]);
+      if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
+    }
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
     if(!keepResult){setMsg('Drag the markers onto the seeds in both views — '+KMOD+'+drag a single marker to rotate the triad','label');fAcqArm();}
@@ -2993,7 +3002,7 @@ const FID2D=(function(){
     rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext,
     acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady,allGreen};
   return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,
-    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,
+    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,setPendingOffset,
     resize:()=>{if(active())render();},_dbg};
 })();
 window.FID2D=FID2D;
@@ -3053,6 +3062,9 @@ const TXFLOW=(function(){
     gid('txScreen').classList.add('hidden');
     currentMode='2d2d';
     if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(true);   // force the kV acquisition console for the fraction
+    // Link the seeds: the kV pair starts off by the SAME residual the student left after the CBCT match.
+    // CBCT axes (x=Lat, y=Lng/SI, z=Vrt/AP; pitch/roll/yaw) → FID2D patient coords (t=[Lat,AP,SI], r=[rx,ry,rz]=[Roll,Yaw,Pitch]).
+    if(window.FID2D&&FID2D.setPendingOffset&&cbctRes&&cbctRes.res6){const g=cbctRes.res6;FID2D.setPendingOffset({t:[g.x,g.z,g.y],r:[g.roll,g.yaw,g.pitch]});}
     applyCase('prostate');   // global 2D applyCase routes to FID2D.enter() (fidMatch) + sets fid-mode
     requestAnimationFrame(()=>resizeAll());
   }
@@ -7056,7 +7068,7 @@ const CBCT=(function(){
     else{msg='✗ Residual error — keep fusing the planes'+tt;col='var(--accent2)';}
     // Full Treatment Stage 1: TXFLOW owns progression — show the verdict, advance only on accept,
     // and DON'T roll a new offset (keep the same setup error so the student keeps trying).
-    if(window.TXFLOW&&TXFLOW.active()){const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;TXFLOW.onStageResult('cbct',{accepted:accepted,mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z)});return;}
+    if(window.TXFLOW&&TXFLOW.active()){const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;TXFLOW.onStageResult('cbct',{accepted:accepted,mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z),res6:{x:g.x,y:g.y,z:g.z,pitch:g.pitch,roll:g.roll,yaw:g.yaw}});return;}
     // record this attempt; only document a time when within tolerance
     rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:accepted?ms:null});
     // Check Match resets the clock + loads a fresh offset for the next rep; keep the verdict and the
