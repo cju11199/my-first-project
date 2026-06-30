@@ -280,23 +280,24 @@ export function build(THREE, opts = {}) {
   // vertical telescoping boom drops the EPID to ~0.5 m below iso, in line with the MV beam (−Y).
   // (It must NOT float below iso / appear to rise from the floor — it hangs off the drum.)
   const mvDet = grp(THREE, 'MV_Detector_Arm');                 // child of gantry → orbits with it
-  // structural arm from the drum's lower front, reaching in to the beam axis BELOW the couch.
-  // The WHOLE MV assembly stays under the tabletop (top ~ -0.24 m vs couch underside ~ -0.06),
-  // so nothing protrudes into the table and there is no boom poking up through the panel.
-  const mvMount = box(THREE, 0.2, 0.16, 0.6, M.cream, 'MV_Mount');
-  mvMount.position.set(0, -0.32, 0.3);                         // drum side (z~0.6) → beam axis (z0) at y-0.32
-  // vertical telescoping boom HANGING DOWN from the mount to the EPID below iso
-  const mvS1 = grp(THREE, 'MV_Stage1'); mvS1.position.set(0, -0.32, 0);   // fixed carriage at the inner mount end
-  const mvCarriage = box(THREE, 0.18, 0.14, 0.2, M.creamDk, 'MV_Carriage');
-  const mvS2 = grp(THREE, 'MV_Stage2');                        // the moving stage that drops the EPID
-  const mvCol = box(THREE, 0.1, 0.18, 0.1, M.cream, 'MV_Column'); mvCol.position.y = 0.09;  // short column UP toward the carriage
-  // EPID flat panel (square aS1200) at the boom's LOWER end, lying flat, active face UP toward iso/head
-  const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.y = 0;
+  // The EPID reads as a CLEAN FLAT PANEL: the support arm attaches at the panel's BACK EDGE
+  // (the +Z side toward the gantry) and runs up behind it — NOTHING rises out of the panel face,
+  // and the whole assembly stays below the couch (couch underside ~ -0.06 m).
+  // structural mount from the drum's lower front to the back post (below the couch)
+  const mvMount = box(THREE, 0.16, 0.16, 0.52, M.cream, 'MV_Mount');
+  mvMount.position.set(0, -0.3, 0.44);                         // drum (z~0.62) → back post (z~0.32)
+  const mvS1 = grp(THREE, 'MV_Stage1'); mvS1.position.set(0, -0.3, 0);    // fixed reference at mount level
+  const mvS2 = grp(THREE, 'MV_Stage2');                        // moving stage: panel + its back arm telescope down together
+  // back POST behind the panel + a short LINK from the post to the panel's back edge (an L-arm)
+  const mvPost = box(THREE, 0.12, 0.34, 0.12, M.creamDk, 'MV_Post'); mvPost.position.set(0, 0.16, 0.32);
+  const mvLink = box(THREE, 0.14, 0.07, 0.34, M.cream, 'MV_ArmLink'); mvLink.position.set(0, 0.0, 0.17);
+  // EPID flat panel (square aS1200) — face UP toward iso/head, centred under iso (z0); face stays clean
+  const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.set(0, 0, 0);
   const mvPanFrame = box(THREE, 0.6, 0.06, 0.6, M.shell, 'MV_Panel_Housing');
   const mvPanGap   = box(THREE, 0.52, 0.05, 0.52, M.panelHs, 'MV_Panel_Recess'); mvPanGap.position.y = 0.015;
   const mvPanFace  = box(THREE, 0.48, 0.04, 0.48, M.panel, 'MV_Panel_Face');     mvPanFace.position.y = 0.03;
   mvPanMount.add(mvPanFrame, mvPanGap, mvPanFace);
-  mvS2.add(mvCol, mvPanMount); mvS1.add(mvCarriage, mvS2); mvDet.add(mvMount, mvS1);
+  mvS2.add(mvPost, mvLink, mvPanMount); mvS1.add(mvS2); mvDet.add(mvMount, mvS1);
   gantry.add(mvDet);
   parts.MV_Detector_Arm = mvDet; parts._mvS1 = mvS1; parts._mvS2 = mvS2;
   parts._kvSrcBoom = kvSrcBoom; parts._kvDetBoom = kvDetBoom;
@@ -408,7 +409,7 @@ export function build(THREE, opts = {}) {
     },
     mvDeploy(t) {                                                    // telescope the EPID down the beam axis
       t = clamp01(t);
-      mvS2.position.y = -0.06 - t * 0.16;   // EPID hangs ~0.38 m (stowed) → ~0.54 m (deployed) below iso, always under the couch
+      mvS2.position.y = -0.15 - t * 0.13;   // EPID + its back arm telescope down: ~0.45 m (stowed) → ~0.58 m (deployed) below iso
     },
     mlcField(w, h) {                                                 // metres at iso plane (cosmetic)
       const halfOpen = 0.03 + (w || 0) * 0.5;       // MLC bank + X-jaw half-separation grows with width
