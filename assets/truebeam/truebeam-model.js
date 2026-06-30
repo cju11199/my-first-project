@@ -118,27 +118,24 @@ export function build(THREE, opts = {}) {
   // The gantry drum mounts on its upper front face; its top rises above iso (head-height).
   // A tall STAND (not a thin pole) is what stops the machine reading as a CT bore.
   const stand = grp(THREE, 'Stand_Drive_Base');
-  // SHORT, set-back drive base mostly HIDDEN behind the curved gantry mass (in the photo the
-  // rigid base barely shows). Top kept below the gantry so it never towers over the head.
-  const col = box(THREE, 1.02, 1.8, 0.7, M.cream, 'Stand_Column');
-  col.position.set(0, IEC.FLOOR_Y + 0.9, 1.22);     // base on floor; top ~y0.6 (below gantry top)
-  // rounded vertical fairing softening the column's front so the base doesn't read boxy
-  const colFair = cyl(THREE, 0.56, 0.56, 1.72, M.cream, 32, 'Stand_Fairing');
-  colFair.position.set(0, IEC.FLOOR_Y + 0.88, 1.02);
-  // rounded vertical corner fairings + a domed top cap so the tower reads smooth, not boxy
-  const colEdgeL = cyl(THREE, 0.2, 0.2, 1.72, M.cream, 20, 'Stand_Edge_L'); colEdgeL.position.set(-0.50, IEC.FLOOR_Y + 0.88, 1.0);
-  const colEdgeR = cyl(THREE, 0.2, 0.2, 1.72, M.cream, 20, 'Stand_Edge_R'); colEdgeR.position.set( 0.50, IEC.FLOOR_Y + 0.88, 1.0);
-  const colTop = new THREE.Mesh(new THREE.SphereGeometry(0.58, 28, 16), M.cream);
-  colTop.name = 'Stand_Top'; colTop.scale.set(0.9, 0.5, 0.62); colTop.position.set(0, IEC.FLOOR_Y + 1.74, 1.1);
-  const ped = box(THREE, 1.4, 0.16, 1.0, M.creamDk, 'Stand_Pedestal');
-  ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.12);
-  const standBlue = box(THREE, 0.05, 1.0, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
-  standBlue.position.set(0, 0.0, 0.74);
-  // small fixed shoulder where the banana's axle enters the stand (tucked behind the banana;
-  // small radius so it never reads as a circular drum face toward the couch).
-  const bearingCollar = cyl(THREE, 0.34, 0.34, 0.16, M.creamDk, 32, 'Stand_Bearing_Collar');
-  bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 1.02);
-  stand.add(col, colFair, colEdgeL, colEdgeR, colTop, ped, standBlue, bearingCollar);
+  // Drive base modelled on the maastro reference: a support block rising from the floor, topped by
+  // a RIBBED/FINNED cylindrical drive drum on the rotation axis (the gantry's distinctive finned
+  // drum), with the gantry C-arm rotating on its front face.
+  const base = box(THREE, 1.06, 1.34, 1.0, M.cream, 'Stand_Base');
+  base.position.set(0, IEC.FLOOR_Y + 0.62, 1.18);     // floor → ~y0 (iso height, under the drum)
+  const baseFront = cyl(THREE, 0.34, 0.34, 1.3, M.cream, 24, 'Stand_Base_Fair');  // rounded front edge
+  baseFront.position.set(0, IEC.FLOOR_Y + 0.6, 0.72);
+  const ped = box(THREE, 1.4, 0.16, 1.1, M.creamDk, 'Stand_Pedestal');
+  ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.18);
+  // RIBBED DRIVE DRUM — a finned cylinder on the rotation axis (Z), the signature gantry drive
+  const drumCore = cyl(THREE, 0.5, 0.5, 0.98, M.cream, 40, 'Drive_Drum_Core');
+  drumCore.rotation.x = Math.PI / 2; drumCore.position.set(0, 0, 1.04);
+  stand.add(base, baseFront, ped, drumCore);
+  for (let i = 0; i < 11; i++) {                       // circular cooling/drive fins
+    const fin = cyl(THREE, 0.6, 0.6, 0.05, M.creamDk, 36, 'Drive_Drum_Fin_' + i);
+    fin.rotation.x = Math.PI / 2; fin.position.set(0, 0, 0.62 + i * 0.085);
+    stand.add(fin);
+  }
   root.add(stand);
   parts.Stand_Drive_Base = stand;
 
