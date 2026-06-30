@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<!-- preview.html — standalone TrueBeam viewer demo + reference consumer.
+     Same vendored three.js + CSP-safe ES modules the trainer uses. Drives the
+     procedural model with live sliders so you can eyeball the kinematics, and
+     doubles as the marketing "product visual" source. Pause-when-hidden is on. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'; base-uri 'self'">
+<meta name="robots" content="noindex">
+<title>TrueBeam — procedural model preview</title>
+<style>
+  :root{ --bg:#070a0f; --panel:#0e131b; --line:#1d2533; --txt:#cdd6e2; --muted:#7b8798; --gold:#e3b341; }
+  *{box-sizing:border-box} html,body{margin:0;height:100%}
+  body{background:var(--bg);color:var(--txt);font:13px/1.4 system-ui,Segoe UI,Roboto,sans-serif;display:flex}
+  #stage{flex:1;position:relative;min-width:0}
+  canvas{width:100%;height:100%;display:block}
+  #hud{position:absolute;left:12px;top:10px;font-size:11px;color:var(--muted);letter-spacing:.04em}
+  #hud b{color:var(--gold)}
+  #panel{width:280px;background:var(--panel);border-left:1px solid var(--line);padding:14px 16px;overflow:auto}
+  h1{font-size:13px;margin:0 0 4px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+  .sub{color:var(--muted);font-size:11px;margin:0 0 14px}
+  .row{margin:0 0 11px}
+  label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:3px}
+  label span{color:var(--txt);font-variant-numeric:tabular-nums}
+  input[type=range]{width:100%;accent-color:var(--gold)}
+  .grp{margin:16px 0 6px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#566;border-top:1px solid var(--line);padding-top:10px}
+  button{background:#172132;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:11px}
+  button:hover{border-color:var(--gold)}
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="hud">VARIAN TRUEBEAM · procedural · IEC 61217 · iso=origin · <b id="tris">—</b></div>
+    <div id="readout" style="position:absolute;left:12px;bottom:10px;font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:.02em"></div>
+  </div>
+  <div id="panel">
+    <h1>Machine pose</h1>
+    <p class="sub">Drag to orbit. Every rotation pivots through isocenter.</p>
+
+    <div class="grp">Gantry / collimator</div>
+    <div class="row"><label>Gantry angle <span id="vGantry">0°</span></label><input id="gantry" type="range" min="-180" max="180" value="0"></div>
+    <div class="row"><label>Collimator <span id="vColl">0°</span></label><input id="coll" type="range" min="-165" max="165" value="0"></div>
+
+    <div class="grp">Imaging arms (deploy)</div>
+    <div class="row"><label>kV source <span id="vKv">0</span></label><input id="kv" type="range" min="0" max="100" value="0"></div>
+    <div class="row"><label>kV detector <span id="vKvd">0</span></label><input id="kvd" type="range" min="0" max="100" value="0"></div>
+    <div class="row"><label>MV / EPID <span id="vMv">0</span></label><input id="mv" type="range" min="0" max="100" value="0"></div>
+
+    <div class="grp">Couch 6DOF (isocentric)</div>
+    <div class="row"><label>Yaw <span id="vYaw">0°</span></label><input id="yaw" type="range" min="-90" max="90" value="0"></div>
+    <div class="row"><label>Pitch <span id="vPitch">0°</span></label><input id="pitch" type="range" min="-15" max="15" value="0"></div>
+    <div class="row"><label>Roll <span id="vRoll">0°</span></label><input id="roll" type="range" min="-15" max="15" value="0"></div>
+    <div class="row"><label>Vert <span id="vVert">0</span></label><input id="vert" type="range" min="-30" max="30" value="0"></div>
+
+    <div class="grp">Presets</div>
+    <div class="row" style="display:flex;gap:6px;flex-wrap:wrap">
+      <button data-preset="ap">kV AP (G90 deployed)</button>
+      <button data-preset="lat">kV Lat (G0 deployed)</button>
+      <button data-preset="home">Home</button>
+    </div>
+  </div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from './vendor/OrbitControls.js';
+import { TrueBeamViewer } from './truebeam-viewer.js';
+
+const cv = document.getElementById('cv');
+// EDUCATIONAL overlay on: MV+kV beam central rays to iso, color-coded IEC axes, iso reticle
+const viewer = new TrueBeamViewer(THREE, { canvas: cv, OrbitControls, edu: true, axes: true, background: null });
+document.getElementById('tris').textContent = '~1300 tris · MV ray (teal) · kV ray (amber) · X red Y green Z blue';
+
+const pose = { gantryAngle:0, collimatorAngle:0, kvDeploy:0, kvDetDeploy:0, mvDeploy:0,
+               couch:{ yaw:0, pitch:0, roll:0, vert:0 } };
+function apply(){
+  viewer.setPose(pose);
+  // color-coded readout strip (gantry + 6DOF couch) beside the live model
+  const r = viewer.readout(pose);
+  const ro = document.getElementById('readout');
+  if (ro) ro.innerHTML = ['gantry','lat','lng','vrt','pitch','roll','yaw'].map(k=>{
+    const x=r[k]; return `<span style="color:${x.color}">${x.label}: ${x.value}${x.dir&&x.dir!=='—'?' ('+x.dir+')':''}</span>`;
+  }).join(' &nbsp;·&nbsp; ');
+}
+
+const bind = (id, fn, fmt) => {
+  const el = document.getElementById(id), out = document.getElementById('v'+id[0].toUpperCase()+id.slice(1));
+  el.addEventListener('input', () => { fn(+el.value); if(out) out.textContent = fmt? fmt(+el.value): el.value; apply(); });
+};
+bind('gantry', v=>pose.gantryAngle=v, v=>v+'°');
+bind('coll',   v=>pose.collimatorAngle=v, v=>v+'°'); document.getElementById('coll');
+document.getElementById('coll').addEventListener('input', e=>{document.getElementById('vColl').textContent=e.target.value+'°';});
+bind('kv',  v=>pose.kvDeploy=v/100);    document.getElementById('kv').addEventListener('input',e=>document.getElementById('vKv').textContent=(e.target.value/100).toFixed(2));
+bind('kvd', v=>pose.kvDetDeploy=v/100); document.getElementById('kvd').addEventListener('input',e=>document.getElementById('vKvd').textContent=(e.target.value/100).toFixed(2));
+bind('mv',  v=>pose.mvDeploy=v/100);    document.getElementById('mv').addEventListener('input',e=>document.getElementById('vMv').textContent=(e.target.value/100).toFixed(2));
+const cb=(id,key,fmt)=>document.getElementById(id).addEventListener('input',e=>{pose.couch[key]=+e.target.value*(key==='vert'?0.01:1);document.getElementById('v'+id[0].toUpperCase()+id.slice(1)).textContent=fmt(e.target.value);apply();});
+cb('yaw','yaw',v=>v+'°'); cb('pitch','pitch',v=>v+'°'); cb('roll','roll',v=>v+'°'); cb('vert','vert',v=>v+' cm');
+
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{
+  const p=b.dataset.preset;
+  if(p==='ap'){ Object.assign(pose,{gantryAngle:90,kvDeploy:1,kvDetDeploy:1}); }
+  else if(p==='lat'){ Object.assign(pose,{gantryAngle:0,kvDeploy:1,kvDetDeploy:1}); }
+  else { Object.assign(pose,{gantryAngle:0,collimatorAngle:0,kvDeploy:0,kvDetDeploy:0,mvDeploy:0}); pose.couch={yaw:0,pitch:0,roll:0,vert:0}; }
+  // reflect into sliders
+  gantry.value=pose.gantryAngle; document.getElementById('vGantry').textContent=pose.gantryAngle+'°';
+  apply();
+}));
+
+apply(); // populate the color-coded readout strip on load
+window.__viewer = viewer; // for headless screenshot harness
+</script>
+</body>
+</html>

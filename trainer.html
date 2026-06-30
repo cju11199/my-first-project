@@ -7,6 +7,8 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://challenges.cloudflare.com; connect-src 'self' https://clerk.rtimagematch.com https://*.clerk.accounts.dev https://clerk-telemetry.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://img.clerk.com; font-src 'self' data:; worker-src 'self' blob:; frame-src 'self' https://challenges.cloudflare.com https://clerk.rtimagematch.com https://*.clerk.accounts.dev;">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex">
+<!-- bare 'three' → vendored module (CSP-safe, same-origin) for the 3D Machine View (assets/truebeam) -->
+<script type="importmap">{"imports":{"three":"/assets/truebeam/vendor/three.module.js"}}</script>
 <meta name="theme-color" content="#070a0f">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/favicon.svg">
@@ -208,6 +210,27 @@ main.shifts-collapsed .shift-tab{left:0}
 @keyframes slideIn{from{opacity:0;top:50px}to{opacity:1;top:64px}}
 
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(4,7,11,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:100;align-items:center;justify-content:center}
+/* ── 3D Machine View modal (procedural TrueBeam) ── */
+.tb3d-bg{z-index:280}   /* above the start screen (200) + guide/progress modals (260/270) */
+.tb3d-card{display:flex;flex-direction:column;width:min(92vw,960px);height:min(86vh,720px);background:linear-gradient(180deg,#0e131b,#080b11);border:1px solid var(--border2,#1d2533);border-radius:14px;box-shadow:0 24px 70px -20px rgba(0,0,0,.8);overflow:hidden}
+.tb3d-head{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border2,#1d2533);flex:0 0 auto}
+.tb3d-title{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold,#e3b341)}
+.tb3d-mode{font-family:var(--mono),monospace;font-size:10px;letter-spacing:.08em;color:#7b8798;border:1px solid var(--border2,#1d2533);border-radius:999px;padding:2px 9px}
+.tb3d-mode.live{color:#8ef0c2;border-color:rgba(142,240,194,.5)}
+.tb3d-x{margin-left:auto;background:none;border:none;color:#7b8798;font-size:22px;line-height:1;cursor:pointer;padding:0 4px}
+.tb3d-x:hover{color:#eaf1f8}
+.tb3d-stage{position:relative;flex:1 1 auto;min-height:0;background:radial-gradient(120% 120% at 50% 20%,#0c1118,#05080c)}
+.tb3d-stage canvas{width:100%;height:100%;display:block}
+.tb3d-hint{position:absolute;left:12px;top:10px;font-size:10px;letter-spacing:.04em;color:#56657a;pointer-events:none}
+.tb3d-readout{position:absolute;left:12px;bottom:10px;right:12px;font-family:var(--mono),monospace;font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:.02em;pointer-events:none;display:flex;flex-wrap:wrap;gap:4px 14px}
+.tb3d-foot{flex:0 0 auto;padding:9px 14px;border-top:1px solid var(--border2,#1d2533);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tb3d-presets{display:flex;gap:6px;flex-wrap:wrap}
+.tb3d-pbtn{background:#172132;color:#cdd6e2;border:1px solid var(--border2,#1d2533);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-family:var(--mono),monospace}
+.tb3d-pbtn:hover{border-color:var(--gold,#e3b341)}
+.tb3d-pbtn.on{border-color:var(--gold,#e3b341);color:var(--gold,#e3b341)}
+.tb3d-note{margin-left:auto;font-size:9.5px;color:#56657a;letter-spacing:.03em}
+.tb3d-bg.binding .tb3d-presets{display:none}
+@media(max-width:680px){.tb3d-note{display:none}.tb3d-card{height:88vh}}
 .modal-bg.open{display:flex}
 .modal{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:18px;padding:32px 36px;max-width:460px;width:90%;box-shadow:var(--shadow),0 0 0 1px var(--hairline) inset}
 .modal h2{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--accent-hi);letter-spacing:.06em;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--hairline)}
@@ -687,8 +710,9 @@ html:not(.auth-pending) #authGate{display:none}
 .con-pip.done{background:var(--green);border-color:var(--green)}
 .con-plan{margin-left:auto;font-size:10px;color:var(--muted);letter-spacing:.08em}
 /* ── SVG linac gantry visualization ── */
-.con-viz{flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px}
+.con-viz{flex:0 0 190px;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 25%,#0c1118,#04070b);border:1px solid var(--border2);border-radius:10px;overflow:hidden}
 .con-svg{width:128px;height:116px;display:block}
+.con-3dcanvas{width:100%;height:100%;display:block}
 /* ── photoreal TrueBeam DRUM (front-on, down the bore) — metal-gradient gantry that rotates about iso ── */
 /* the bore + drum + head/imager fills come from inline SVG gradients (defs in the markup);
    CSS only governs the strokes/colours JS does not paint and the beam-flash visibility. */
@@ -899,6 +923,20 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <div class="sc-title">How to use</div>
       <div class="sc-desc">New here? A 2-minute visual tour of both workflows &mdash; the gestures, the views and the match.</div>
     </div>
+    <div class="start-card guide-card" id="modeMachine" onclick="openMachine3D()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openMachine3D();}">
+      <span class="sc-badge guide-badge">3D</span>
+      <div class="sc-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7">
+          <ellipse cx="16" cy="16" rx="13" ry="9"/>
+          <path d="M16 4v6M13 10h6" stroke-linecap="round"/>
+          <rect x="13.5" y="9.5" width="5" height="4.5" rx="1"/>
+          <line x1="6" y1="23" x2="26" y2="23"/>
+          <circle cx="16" cy="16" r="1.6" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div class="sc-title">3D Machine</div>
+      <div class="sc-desc">Interactive 3D TrueBeam &mdash; orbit the gantry, head, imaging arms &amp; 6DOF couch. Tracks the live gantry &amp; couch during a match.</div>
+    </div>
   </div>
   <div class="start-cards case-cards hidden" id="casePicker"></div>
   <div class="rt-summary" id="rtSummary"></div>
@@ -993,6 +1031,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
       </div>
       <div class="tool-sep"></div>
+      <button class="btn-ghost" id="machine3dBtn" onclick="openMachine3D()" title="3D machine view — live gantry &amp; couch">&#9186;&nbsp;3D</button>
       <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
     </div>
   </header>
@@ -1192,7 +1231,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <button class="btn-tool active" id="gridBtn" onclick="toggleGrid()"><span class="glyph">&#8853;</span>Iso/Grid</button>
     </div>
     <div class="tool-sep"></div>
-    <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
+    <button class="btn-ghost" id="machine3dBtn" onclick="openMachine3D()" title="3D machine view — live gantry &amp; couch">&#9186;&nbsp;3D</button>
+      <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
   </div>
 </header>
 <main>
@@ -1328,149 +1368,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="console-strip hidden ph-acquire" id="consoleStrip" aria-label="IGRT setup console">
     <!-- SVG linac: a rotating gantry rig (head + MV/EPID + kV source/panel) with a beam-fan flash on Acquire -->
     <div class="con-viz">
-      <svg viewBox="0 0 128 116" class="con-svg" aria-hidden="true">
-        <defs>
-          <!-- bore: dark recessed drum interior -->
-          <radialGradient id="cBore" cx="50%" cy="46%" r="58%">
-            <stop offset="0%" stop-color="#0a121d"/>
-            <stop offset="62%" stop-color="#0c151f"/>
-            <stop offset="100%" stop-color="#172331"/>
-          </radialGradient>
-          <!-- the rotating drum FACE: brushed silver torus catching light from upper-left -->
-          <radialGradient id="cDrum" cx="38%" cy="32%" r="78%">
-            <stop offset="0%" stop-color="#6a7f9c"/>
-            <stop offset="42%" stop-color="#475b78"/>
-            <stop offset="78%" stop-color="#33465f"/>
-            <stop offset="100%" stop-color="#26384e"/>
-          </radialGradient>
-          <radialGradient id="cDrumInner" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#0c1622"/>
-            <stop offset="80%" stop-color="#11202f"/>
-            <stop offset="100%" stop-color="#22344a"/>
-          </radialGradient>
-          <!-- treatment head: machined silver block, foreshortened toward iso -->
-          <linearGradient id="cHead" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#7e93b0"/>
-            <stop offset="34%" stop-color="#56698a"/>
-            <stop offset="100%" stop-color="#33455f"/>
-          </linearGradient>
-          <linearGradient id="cHeadSide" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#5b6f8e"/>
-            <stop offset="100%" stop-color="#2c3c52"/>
-          </linearGradient>
-          <!-- glossy EPID flat panel -->
-          <linearGradient id="cEpid" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#8fa6c4"/>
-            <stop offset="18%" stop-color="#5a708f"/>
-            <stop offset="50%" stop-color="#3c5070"/>
-            <stop offset="100%" stop-color="#283950"/>
-          </linearGradient>
-          <linearGradient id="cKvPan" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#7e95b4"/>
-            <stop offset="45%" stop-color="#415672"/>
-            <stop offset="100%" stop-color="#293a52"/>
-          </linearGradient>
-          <linearGradient id="cArm" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#566a89"/>
-            <stop offset="50%" stop-color="#6f86a6"/>
-            <stop offset="100%" stop-color="#384a64"/>
-          </linearGradient>
-          <!-- couch top: brushed support bar -->
-          <linearGradient id="cCouch" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3a4d66"/>
-            <stop offset="48%" stop-color="#2a3a51"/>
-            <stop offset="100%" stop-color="#1c2a3c"/>
-          </linearGradient>
-          <!-- MV volumetric beam (hero on exposure: bright apex) -->
-          <linearGradient id="cMvBeam" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ffd0ad" stop-opacity="1"/>
-            <stop offset="48%" stop-color="#ff7a45" stop-opacity=".82"/>
-            <stop offset="100%" stop-color="#ff7a45" stop-opacity=".22"/>
-          </linearGradient>
-          <linearGradient id="cKvBeam" x1="1" y1="0" x2="0" y2="0">
-            <stop offset="0%" stop-color="#9ff0fb" stop-opacity=".95"/>
-            <stop offset="55%" stop-color="#2dd4ee" stop-opacity=".68"/>
-            <stop offset="100%" stop-color="#2dd4ee" stop-opacity=".16"/>
-          </linearGradient>
-          <filter id="cShadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#000" flood-opacity="0.55"/>
-          </filter>
-        </defs>
-
-        <!-- bore interior (static, recessed drum the gantry emerges from) -->
-        <circle class="con-bore" cx="64" cy="58" r="47" fill="url(#cBore)"/>
-        <circle cx="64" cy="58" r="47" fill="none" stroke="#1d2c3e" stroke-width="1.4"/>
-        <circle cx="64" cy="58" r="44" fill="none" stroke="#0a1019" stroke-width="2" opacity="0.7"/>
-
-        <!-- gantry hard limit marker (180°, bottom): no straight-down transit -->
-        <line class="con-limit" x1="64" y1="104" x2="64" y2="113"/>
-        <path class="con-limit-arrow" d="M59 107 L64 102 L69 107" fill="none"/>
-
-        <!-- patient / couch indication at iso (static) — horizontal support bar through iso + patient -->
-        <rect class="con-couchtop" x="20" y="61.6" width="88" height="5.4" rx="1.6" fill="url(#cCouch)"/>
-        <rect class="con-couchgloss" x="22" y="62.4" width="84" height="1.4" rx="0.7"/>
-        <ellipse class="con-pt" cx="64" cy="58" rx="9.5" ry="6.6"/>
-        <ellipse class="con-pt-core" cx="64" cy="56.6" rx="6" ry="3.5"/>
-
-        <!-- view-angle ticks (positioned/coloured by JS) -->
-        <g id="conMark0" class="con-vmark"><line x1="64" y1="6" x2="64" y2="13"/></g>
-        <g id="conMark1" class="con-vmark"><line x1="64" y1="6" x2="64" y2="13"/></g>
-
-        <!-- ===================== ROTATING GANTRY RIG ===================== -->
-        <g id="conRig" transform="rotate(0 64 58)">
-
-          <!-- structural drum FACE: thick silver torus emerging from the bore -->
-          <circle class="con-drum" cx="64" cy="58" r="40" fill="url(#cDrum)" filter="url(#cShadow)"/>
-          <circle cx="64" cy="58" r="40" fill="none" stroke="#8499b6" stroke-width="0.8" opacity="0.5"/>
-          <!-- brushed panel-seam grooves (segmented gantry shell) -->
-          <circle cx="64" cy="58" r="36.5" fill="none" stroke="#1f2f43" stroke-width="0.8" opacity="0.55"/>
-          <circle cx="64" cy="58" r="36.5" fill="none" stroke="#7c92b0" stroke-width="0.5" stroke-dasharray="0.6 5.2" opacity="0.4"/>
-          <circle class="con-drum-in" cx="64" cy="58" r="31" fill="url(#cDrumInner)"/>
-          <circle cx="64" cy="58" r="31" fill="none" stroke="#1b2a3b" stroke-width="1.2"/>
-          <!-- specular highlight arc on the drum (upper-left light) -->
-          <path d="M36 41 A40 40 0 0 1 78 20" fill="none" stroke="#aebfd6" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
-          <!-- 6 o'clock cable-wrap gap: notch in the drum-face ring at 180° -->
-          <path d="M58 97.6 A40 40 0 0 0 70 97.6" fill="none" stroke="#04070b" stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>
-
-          <!-- ===== MV TREATMENT HEAD (12 o'clock) — foreshortened toward iso ===== -->
-          <rect x="60.5" y="24" width="7" height="11" rx="1" fill="url(#cArm)"/>
-          <path class="con-head" d="M51 11 L77 11 L73 26 L55 26 Z" fill="url(#cHead)" stroke="#8aa0bd" stroke-width="0.7" filter="url(#cShadow)"/>
-          <rect class="con-head-top" x="55" y="8" width="18" height="4" rx="1.6" fill="url(#cHeadSide)" stroke="#7e93b0" stroke-width="0.5"/>
-          <rect x="57" y="12.5" width="14" height="2" rx="1" fill="#9fb4d2" opacity="0.6"/>
-          <path class="con-coll" d="M58 26 L70 26 L66.5 32 L61.5 32 Z" fill="#2c3c52" stroke="#56698a" stroke-width="0.6"/>
-          <circle cx="64" cy="31" r="1.5" fill="#11202f" stroke="#4a5e7c" stroke-width="0.5"/>
-          <text class="con-glyph mv" x="64" y="21" text-anchor="middle" font-size="8" font-weight="800">MV</text>
-
-          <!-- ===== MV PORTAL IMAGER / EPID (6 o'clock, opposite head) — glossy panel ===== -->
-          <rect class="con-epid-arm" x="61" y="82" width="6" height="11" rx="1" fill="url(#cArm)"/>
-          <rect class="con-epid" x="49" y="92" width="30" height="10" rx="2" fill="url(#cEpid)" stroke="#8198b6" stroke-width="0.7" filter="url(#cShadow)"/>
-          <rect x="51" y="93.5" width="26" height="2.6" rx="1.3" fill="#cdd9ec" opacity="0.45"/>
-          <line class="con-epid-line" x1="52" y1="98" x2="76" y2="98"/>
-
-          <!-- ===== kV OBI SOURCE (3 o'clock, 90° from head) ===== -->
-          <rect x="82" y="55" width="13" height="6" rx="1" fill="url(#cArm)"/>
-          <g filter="url(#cShadow)">
-            <path class="con-kvsrc" d="M93 50 L105 52 L105 64 L93 66 Z" fill="url(#cHeadSide)" stroke="#7e93b0" stroke-width="0.6"/>
-          </g>
-          <rect x="95" y="52" width="2.5" height="12" rx="1" fill="#9fb4d2" opacity="0.5"/>
-          <path d="M92 54 L98 56 L98 60 L92 62 Z" fill="#1a2838" stroke="#3f5470" stroke-width="0.5"/>
-          <text class="con-glyph kv" x="100" y="61" text-anchor="middle" font-size="7" font-weight="800">kV</text>
-
-          <!-- ===== kV DETECTOR PANEL (9 o'clock, opposite kV source) — glossy flat panel, pulled out & ~10% smaller ===== -->
-          <rect class="con-kvarm" x="31.5" y="55.5" width="14" height="5" rx="1" fill="url(#cArm)"/>
-          <rect class="con-kvpan" x="20" y="50" width="9" height="16" rx="2" fill="url(#cKvPan)" stroke="#7e95b4" stroke-width="0.7" filter="url(#cShadow)"/>
-          <rect x="21.8" y="52" width="2.3" height="12" rx="1.15" fill="#bccbe2" opacity="0.42"/>
-          <line class="con-kvpan-line" x1="25.4" y1="52" x2="25.4" y2="64"/>
-
-          <!-- volumetric beams (flash on exposure) — drawn over the drum interior, converging on iso 64,58 -->
-          <polygon id="conMvBeam" class="con-beamfan mv" points="64,30 54,57.5 74,57.5" fill="url(#cMvBeam)"/>
-          <polygon id="conKvBeam" class="con-beamfan kv" points="93,58 67,51 67,65" fill="url(#cKvBeam)"/>
-
-          <!-- central bearing hub over iso, faint cyan rim glow -->
-          <circle class="con-isohub" cx="64" cy="58" r="2.8" fill="#1a2a3b" stroke="#2dd4ee" stroke-width="0.7" opacity="0.85"/>
-          <circle class="con-iso" cx="64" cy="58" r="1.4"/>
-        </g>
-      </svg>
+      <!-- live 3D TrueBeam (replaces the SVG dial): bound to the case gantry + couch via CON3D -->
+      <canvas id="con3dCanvas" class="con-3dcanvas" aria-hidden="true"></canvas>
     </div>
     <div class="con-main">
       <div class="con-seq">
@@ -1750,6 +1649,34 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="rt-an-act">
     <button class="btn-primary" type="button" onclick="rtNudgeSignUp()">Create free account</button>
     <button class="btn-ghost" type="button" onclick="rtDismissNudge(true)">Not now</button>
+  </div>
+</div>
+
+<!-- 3D Machine View — interactive procedural TrueBeam (assets/truebeam). Lazy: three.js + the
+     viewer load only when this opens. Binds live to the active case (CONSOLE gantry/couch on 2D,
+     CBCT 6DOF shift) or runs as a free-orbit explorer from the start screen. -->
+<div class="modal-bg tb3d-bg" id="tb3dModal" aria-hidden="true" onclick="if(event.target===this)closeMachine3D()">
+  <div class="tb3d-card" role="dialog" aria-modal="true" aria-label="3D machine view">
+    <div class="tb3d-head">
+      <span class="tb3d-title">TrueBeam &middot; 3D Machine View</span>
+      <span class="tb3d-mode" id="tb3dMode">Explore</span>
+      <button class="tb3d-x" type="button" onclick="closeMachine3D()" aria-label="Close 3D view">&times;</button>
+    </div>
+    <div class="tb3d-stage">
+      <canvas id="tb3dCanvas"></canvas>
+      <div class="tb3d-hint" id="tb3dHint">Drag to orbit &middot; scroll to zoom</div>
+      <div class="tb3d-readout" id="tb3dReadout"></div>
+    </div>
+    <div class="tb3d-foot">
+      <div class="tb3d-presets" id="tb3dPresets">
+        <button type="button" class="tb3d-pbtn" data-tbp="ap">kV AP (G90)</button>
+        <button type="button" class="tb3d-pbtn" data-tbp="lat">kV Lat (G0)</button>
+        <button type="button" class="tb3d-pbtn" data-tbp="obl">Oblique (G45)</button>
+        <button type="button" class="tb3d-pbtn" data-tbp="home">Home</button>
+        <button type="button" class="tb3d-pbtn" id="tb3dSpin" data-tbp="spin">Auto-rotate</button>
+      </div>
+      <div class="tb3d-note">Educational model &middot; geometry approximate &middot; IEC&nbsp;61217 &middot; iso = origin</div>
+    </div>
   </div>
 </div>
 
@@ -2929,7 +2856,8 @@ window.DIBH=DIBH;
    ============================================================================ */
 // Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
 // (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
-// couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// couch = STARTING iso-referenced Varian IEC couch readout (HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// (Vrt is iso-referenced — small, can be negative — NOT a true absolute couch-height encoder, which reads tens of cm.)
 // NOTE: couch is now ISO-DERIVED at runtime via seedCouchFromIso() (re-seeded on console enter + every New Offset);
 // the literals here are the per-case BASE at nominal iso 0.5 (and the breast iso:null fallback).
 // views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
@@ -2937,8 +2865,8 @@ window.DIBH=DIBH;
 // image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
 const VIEW_ANGLES={ap:[90,270], lat:[0,180]};
 const CONSOLE_PLANS={
-  // couch = realistic Varian/IEC 61217 HFS-supine absolute encoder readout: large Lng (table driven into the
-  // bore, deepest for the head ~97, shallowest for an extremity ~73), small Vrt couch height, near-0 Lat, Rtn 0.
+  // couch = realistic Varian/IEC 61217 HFS-supine iso-referenced readout: large Lng (table driven into the
+  // bore, deepest for the head ~97, shallowest for an extremity ~73), small/iso-referenced Vrt, near-0 Lat, Rtn 0.
   brain:{plan:'BRAIN_SRT', couch:{vrt:-3.85, lng:97.40, lat: 0.35, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   pelvis:{plan:'PELVIS_IMRT', couch:{vrt: 6.20, lng:89.20, lat:-0.60, rtn:0}, views:[
@@ -3134,6 +3062,7 @@ const CONSOLE=(()=>{
       m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':'')));});
     const mv=el('lampMotion'); if(mv)mv.className='con-lamp'+(motOn?' warn':'');
     renderGantryHead();
+    if(window.CON3D)CON3D.update(gantry, couch, couch0);   // drive the inline 3D TrueBeam (replaces the SVG dial)
   }
   // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
   // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
@@ -6650,6 +6579,7 @@ const CBCT=(function(){
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
 })();
+window.CBCT=CBCT;   // exposed for the 3D Machine View live binding (mirrors window.CONSOLE)
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
    Free-rotate volume render of the active CBCT case's planning CT (case-aware via
@@ -6860,6 +6790,142 @@ requestAnimationFrame(()=>{
 });
 </script>
 <div class="disclaimer-bar" aria-hidden="true"><span>Training simulator · Not for clinical use · Values are fictional</span></div>
+<script>
+/* ── 3D Machine View controller ───────────────────────────────────────────────
+   Lazy-loads the procedural TrueBeam viewer (assets/truebeam) only when opened, then
+   binds it to the active case: 2D/2D reads CONSOLE gantry + couch (cm, relative to the
+   plan baseline); CBCT reads the 6DOF shift (mm/deg). With no active match it free-orbits
+   as an explorer. Render-on-demand: poses are pushed only when the machine state changes. */
+(function(){
+  let viewer=null, raf=0, loading=false, spin=false, lastSig='';
+  const $=id=>document.getElementById(id);
+  const modal=()=>$('tb3dModal');
+  const isOpen=()=>modal().classList.contains('open');
+
+  async function ensureViewer(){
+    if(viewer||loading) return viewer;
+    loading=true;
+    try{
+      const THREE=await import('three');
+      const {OrbitControls}=await import('/assets/truebeam/vendor/OrbitControls.js');
+      const {TrueBeamViewer}=await import('/assets/truebeam/truebeam-viewer.js');
+      await new Promise(r=>requestAnimationFrame(r));   // let the shown canvas get layout size
+      viewer=new TrueBeamViewer(THREE,{canvas:$('tb3dCanvas'),OrbitControls,edu:true,axes:true,background:null});
+    }catch(e){
+      $('tb3dReadout').innerHTML='<span style="color:#ff8a5a">3D view unavailable: '+((e&&e.message)||e)+'</span>';
+    }
+    loading=false; return viewer;
+  }
+
+  // Live machine state from whichever mode is active; null → explore mode.
+  function livePose(){
+    try{
+      if(window.currentMode==='2d2d' && window.CONSOLE && CONSOLE.active && CONSOLE.active()){
+        const s=CONSOLE._dbg.state(), c=s.couch||{}, c0=s.couch0||{};
+        return {mode:'LIVE · 2D · '+(s.caseKey||''),
+          pose:{gantryAngle:s.gantry||0, kvDeploy:0, mvDeploy:0,
+            couch:{lat:((c.lat||0)-(c0.lat||0))/100, long:((c.lng||0)-(c0.lng||0))/100,
+                   vert:((c.vrt||0)-(c0.vrt||0))/100, yaw:(c.rtn||0)}}};
+      }
+      if(window.currentMode==='cbct' && window.CBCT && CBCT._dbg && CBCT._dbg.shift){
+        const sh=CBCT._dbg.shift()||{}, key=(CBCT._dbg.caseKey&&CBCT._dbg.caseKey())||'';
+        return {mode:'LIVE · CBCT · '+key,
+          pose:{gantryAngle:0, kvDeploy:1, kvDetDeploy:1,
+            couch:{lat:-(sh.x||0)/1000, long:(sh.y||0)/1000, vert:(sh.z||0)/1000,   // lat = -x to match cbValX (+=patient RIGHT)
+                   pitch:sh.pitch||0, roll:sh.roll||0, yaw:sh.yaw||0}}};
+      }
+    }catch(_){}
+    return null;
+  }
+
+  const EXPLORE={gantryAngle:-22, collimatorAngle:0, kvDeploy:0, kvDetDeploy:0, mvDeploy:0,
+                 couch:{lat:0,long:0,vert:0,yaw:0,pitch:0,roll:0}};
+  let explorePose=Object.assign({},EXPLORE);
+
+  function renderReadout(p,live){
+    const r=viewer.readout(p), keys=live?['gantry','lat','lng','vrt','pitch','roll','yaw']:['gantry'];
+    $('tb3dReadout').innerHTML=keys.map(k=>{const x=r[k];return x?
+      '<span style="color:'+x.color+'">'+x.label+': '+x.value+(x.dir&&x.dir!=='—'?' ('+x.dir+')':'')+'</span>':'';}).join('');
+  }
+
+  function loop(){
+    if(!isOpen()){raf=0;return;}
+    raf=requestAnimationFrame(loop);
+    if(!viewer)return;
+    const L=livePose(), pose=L?L.pose:explorePose, modeTxt=L?L.mode:'Explore';
+    const sig=JSON.stringify(pose)+'|'+modeTxt;
+    if(sig===lastSig)return;                      // render only on change (idle otherwise)
+    lastSig=sig;
+    const me=$('tb3dMode');
+    modal().classList.toggle('binding',!!L); me.classList.toggle('live',!!L); me.textContent=modeTxt;
+    viewer.setPose(pose); renderReadout(pose,!!L);
+  }
+
+  window.openMachine3D=async function(){
+    const m=modal(); m.classList.add('open'); m.setAttribute('aria-hidden','false');
+    lastSig='';
+    await ensureViewer();
+    if(viewer){ viewer.setAutoRotate(spin); viewer.start(); }
+    if(!raf) loop();
+  };
+  window.closeMachine3D=function(){
+    const m=modal(); m.classList.remove('open'); m.setAttribute('aria-hidden','true');
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+    if(viewer)viewer.stop();
+  };
+
+  document.addEventListener('click',e=>{
+    const b=e.target.closest('.tb3d-pbtn'); if(!b)return;
+    const p=b.dataset.tbp;
+    if(p==='spin'){ spin=!spin; b.classList.toggle('on',spin); if(viewer)viewer.setAutoRotate(spin); return; }
+    if(p==='ap')       explorePose=Object.assign({},EXPLORE,{gantryAngle:90,kvDeploy:1,kvDetDeploy:1});
+    else if(p==='lat') explorePose=Object.assign({},EXPLORE,{gantryAngle:0,kvDeploy:1,kvDetDeploy:1});
+    else if(p==='obl') explorePose=Object.assign({},EXPLORE,{gantryAngle:45});
+    else               explorePose=Object.assign({},EXPLORE);
+    lastSig='';   // force the loop to re-apply
+  });
+
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&isOpen())closeMachine3D(); });
+})();
+</script>
+<script>
+/* ── Inline 3D TrueBeam for the 2D console (replaces the SVG dial) ─────────────
+   A compact, non-interactive live viewer in the IGRT console strip, bound to the
+   case gantry + couch via CONSOLE.renderViz → CON3D.update. Lazy-loads three.js on
+   first 2D case; pauses when the console is hidden (IntersectionObserver in the viewer). */
+(function(){
+  let v=null, loading=false, lastSig='';
+  async function ensure(){
+    if(v||loading) return v;
+    const cv=document.getElementById('con3dCanvas');
+    if(!cv || !cv.clientWidth) return null;          // wait until the console (and canvas) is visible
+    loading=true;
+    try{
+      const THREE=await import('three');
+      const {TrueBeamViewer}=await import('/assets/truebeam/truebeam-viewer.js');
+      await new Promise(r=>requestAnimationFrame(r));
+      v=new TrueBeamViewer(THREE,{canvas:cv, edu:true, axes:false, patient:true, background:null});
+      v.camera.fov=32; v.camera.position.set(2.7, 0.95, -3.0); v.camera.lookAt(0, 0.15, -0.25);  // landscape 3/4 framing (head over couch)
+      v.camera.updateProjectionMatrix();
+      v.setPose({ gantryAngle:0, kvDeploy:0, kvDetDeploy:0, mvDeploy:0 });
+      window.__conViewer=v;   // exposed for the headless framing check
+    }catch(e){ /* leave the panel empty on failure — numeric readouts still inform */ }
+    loading=false; return v;
+  }
+  window.CON3D={
+    ensure,
+    update(gantry, couch, couch0){
+      if(!v){ ensure(); return; }
+      const c=couch||{}, c0=couch0||{};
+      const pose={ gantryAngle: gantry||0,
+        couch:{ lat:((c.lat||0)-(c0.lat||0))/100, long:((c.lng||0)-(c0.lng||0))/100,
+                vert:((c.vrt||0)-(c0.vrt||0))/100, yaw:(c.rtn||0) } };
+      const sig=JSON.stringify(pose); if(sig===lastSig) return;   // render only on change
+      lastSig=sig; v.setPose(pose);
+    },
+  };
+})();
+</script>
 <script src="/clerk-auth.js"></script>
 </body>
 </html>
