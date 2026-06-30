@@ -39,19 +39,32 @@ export class TrueBeamViewer {
     });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.setSize(w, h, false);
+    // filmic tone mapping + sRGB output so the white shells read as a real painted
+    // linac under room light (no blown highlights, soft rolloff on the bright covers).
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
+    if ('outputColorSpace' in this.renderer) this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene = new THREE.Scene();
     this.scene.background = opts.background === undefined ? null : opts.background;
+
+    // image-based lighting: a small procedural "treatment-vault" studio baked to an
+    // env map via PMREM. This is what makes the low-poly PBR read as real hardware —
+    // the brushed-metal couch picks up soft reflections and every white cover gets a
+    // gentle ambient gradient instead of looking flat-shaded.
+    this._buildEnvironment(THREE);
 
     // camera: meters, looking at iso (origin). Default 3/4 vault view.
     this.camera = new THREE.PerspectiveCamera(35, w / h, 0.05, 50);
     this.camera.position.set(2.6, 1.4, -3.0);
     this.camera.lookAt(0, 0, -0.2);
 
-    // lights: cheap — one key dir + hemi fill, no shadows (perf).
-    const key = new THREE.DirectionalLight(0xffffff, 1.5); key.position.set(2, 4, -2);
-    const hemi = new THREE.HemisphereLight(0xbfd2e6, 0x2a2a33, 0.9);
-    this.scene.add(key, hemi);
+    // direct lights ON TOP of the IBL: a warm key + cool rim for form + a low hemi floor.
+    // Kept moderate because the env map now carries most of the fill.
+    const key = new THREE.DirectionalLight(0xfff4e2, 1.7); key.position.set(3, 4.5, -2);
+    const rim = new THREE.DirectionalLight(0xc2d6f0, 0.8); rim.position.set(-3, 2, 3.5);
+    const hemi = new THREE.HemisphereLight(0xbfd2e6, 0x24262e, 0.35);
+    this.scene.add(key, rim, hemi);
 
     // the model — forward educational flags (beam lines to iso, color-coded IEC axes)
     // so the trainer Machine-view panel can request them: new TrueBeamViewer(THREE,{edu:true,axes:true})
@@ -128,6 +141,40 @@ export class TrueBeamViewer {
     if (!this._autoRotate && !this._dirty && !(this.controls && this.controls.enableDamping)) this.stop();
   }
 
+  // ── procedural IBL ──────────────────────────────────────────────────────────
+  // Build a tiny emissive "studio" scene (bright soft ceiling, cool + warm side
+  // panels, a floor bounce inside a dark room shell) and bake it to a PMREM env
+  // map. No external HDR / no extra vendored file — PMREMGenerator is in core three.
+  _buildEnvironment(THREE) {
+    try {
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      const env = new THREE.Scene();
+      const box = new THREE.BoxGeometry(1, 1, 1);
+      const lit = (hex, intensity) => {
+        const m = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
+        m.color.setHex(0x000000); m.emissive = new THREE.Color(hex); m.emissiveIntensity = intensity;
+        return m;
+      };
+      const add = (mat, sx, sy, sz, px, py, pz) => {
+        const mh = new THREE.Mesh(box, mat); mh.scale.set(sx, sy, sz); mh.position.set(px, py, pz); env.add(mh);
+      };
+      // dark room shell (seen from inside) → keeps reflections from washing out
+      const room = new THREE.Mesh(box, new THREE.MeshStandardMaterial({ side: THREE.BackSide, roughness: 1, metalness: 0 }));
+      room.material.color.setHex(0x2b2f37); room.scale.set(14, 9, 14); env.add(room);
+      add(lit(0xffffff, 1.6),  7, 0.1, 7,  0,  3.6,  0);   // broad soft ceiling light
+      add(lit(0xfff0d6, 1.0),  0.1, 4, 6,  4.5, 1.4, -1);  // warm key side
+      add(lit(0x9bbceb, 0.75), 0.1, 4, 6, -4.5, 1.0,  1);  // cool fill side
+      add(lit(0x3c424d, 0.55), 9, 0.1, 9,  0, -2.4,  0);   // floor bounce
+      const rt = pmrem.fromScene(env, 0.03);
+      this.scene.environment = rt.texture;
+      this._envRT = rt;
+      // dispose the throwaway studio scene
+      box.dispose(); room.material.dispose();
+      env.traverse(n => { if (n.material && n !== room) n.material.dispose(); });
+      pmrem.dispose();
+    } catch (e) { /* IBL is a nicety — never block the viewer on it */ }
+  }
+
   _initObservers() {
     // IntersectionObserver: pause when the canvas scrolls out of view
     if ('IntersectionObserver' in window) {
@@ -160,6 +207,7 @@ export class TrueBeamViewer {
     window.removeEventListener('resize', this._onResize);
     if (this.controls && this.controls.dispose) this.controls.dispose();
     this.model.dispose();
+    if (this._envRT) this._envRT.dispose();
     this.renderer.dispose();
   }
 }
