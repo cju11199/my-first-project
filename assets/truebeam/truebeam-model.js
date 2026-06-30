@@ -244,9 +244,12 @@ export function build(THREE, opts = {}) {
     const g = grp(THREE, name);
     const base = box(THREE, 0.34, 0.24, 0.3, M.cream, name + '_Base');     base.position.x = sign * 0.06;
     const s1 = grp(THREE, name + '_Stage1');         // first telescoping stage (nests in base when stowed)
-    const l1 = box(THREE, 0.4, 0.18, 0.22, M.creamDk, name + '_Link1');    // centred on the stage origin
+    // links extend OUTBOARD (away from iso) from each stage origin, so the stage origin is the
+    // INBOARD tip — the payload mounts there with the whole arm strictly behind it (no link
+    // reaches in front of the kV detector's active face).
+    const l1 = box(THREE, 0.4, 0.18, 0.22, M.creamDk, name + '_Link1');    l1.position.x = sign * 0.2;
     const s2 = grp(THREE, name + '_Stage2');         // second stage (carries the payload)
-    const l2 = box(THREE, 0.4, 0.14, 0.16, M.cream, name + '_Link2');
+    const l2 = box(THREE, 0.4, 0.14, 0.16, M.cream, name + '_Link2');      l2.position.x = sign * 0.2;
     s2.add(l2); s1.add(l1, s2); g.add(base, s1);
     return { root: g, s1, s2 };
   }
@@ -267,11 +270,15 @@ export function build(THREE, opts = {}) {
   // framed flat-panel detector (matches the photo): WHITE housing frame → thin dark recess
   // line → light-grey active face, set slightly proud; faces +X back at the source.
   // kV detector = LANDSCAPE 40x30 framed panel (smaller + wider-than-tall vs the square MV — a TrueBeam tell)
-  const kvPanMount = grp(THREE, 'kV_Panel'); kvPanMount.position.x = -0.2;
+  // Mounted INBOARD (+X, toward iso) of the boom's last link so the ARM sits BEHIND the panel —
+  // the active face (+X) reads as a clean flat panel with no boom/pole in front of it.
+  const kvPanMount = grp(THREE, 'kV_Panel'); kvPanMount.position.x = 0.28;
   const kvPanFrame = box(THREE, 0.06, 0.40, 0.50, M.shell, 'kV_Panel_Housing');           // white frame slab
   const kvPanGap   = box(THREE, 0.05, 0.34, 0.44, M.panelHs, 'kV_Panel_Recess'); kvPanGap.position.x = 0.015;  // thin dark recess ring
   const kvPanFace  = box(THREE, 0.04, 0.30, 0.40, M.panel, 'kV_Panel_Face');     kvPanFace.position.x = 0.03;  // light-grey active surface
-  kvPanMount.add(kvPanFrame, kvPanGap, kvPanFace); kvDetBoom.s2.add(kvPanMount);
+  // short stub linking the boom end to the panel's BACK (−X) edge — the arm-to-panel joint, behind the face
+  const kvPanArm   = box(THREE, 0.18, 0.10, 0.12, M.creamDk, 'kV_Panel_Arm'); kvPanArm.position.x = -0.13;
+  kvPanMount.add(kvPanFrame, kvPanGap, kvPanFace, kvPanArm); kvDetBoom.s2.add(kvPanMount);
   gantry.add(kvDetBoom.root);
   parts.kV_Detector_Arm = kvDetBoom.root;
 
