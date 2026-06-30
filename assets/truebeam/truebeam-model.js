@@ -148,42 +148,41 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // ── BANANA C-ARM GANTRY BODY ────────────────────────────────────────────────
-  // ONE continuous curved "banana"/boomerang mass like the real TrueBeam — NOT a ring,
-  // NOT a flat circular face. A tapered arc of graded, overlapping spheres (which blend
-  // into one smooth solid) sweeps from the treatment head (top) around the rotation axis
-  // toward the imaging side: thin tips, fat belly. Open curved unit (no closed centre →
-  // never a bore). Bulged toward +Z (front ≈ z0.48) so it clears the couch.
-  // The head is the THICK TOP END of the banana: the head-end ramps FORWARD (−Z) and up so
-  // it climbs into and merges with the head drum (one continuous unit), while the belly stays
-  // set back (front ≈ z0.47) to clear the couch.
+  // ── ONE-PIECE C-ARM GANTRY ──────────────────────────────────────────────────
+  // The whole gantry is ONE continuous C, like the real TrueBeam: the treatment HEAD is the
+  // TOP tip (beam straight down through iso), the body curves down the +X side, and the MV
+  // EPID is the BOTTOM tip (directly under iso, catching the beam). The MV beam runs straight
+  // down the C's axis (head → iso → EPID). The kV source/detector arms hang off this same C.
+  // It is brought FORWARD toward the couch and left OPEN on the −X side, so it reads as one C
+  // unit yet still clears the narrow couch (no material on the patient centreline).
+  // ONE SMOOTH swept tube (CatmullRom path → TubeGeometry): a clean continuous C from the head
+  // (top) down the +X belly to the EPID (bottom) — no segmented/lumpy surface. Fat shoulders at
+  // the ends fair it into the head drum and the EPID arm so the whole thing reads as one unit.
   const banana = grp(THREE, 'Gantry_Banana');
-  const BN = 42, BA0 = 94 * Math.PI / 180, BA1 = -78 * Math.PI / 180, BR = 0.64, BZ = 0.92;
-  for (let i = 0; i < BN; i++) {
-    const t = i / (BN - 1);
-    const ang = BA0 + (BA1 - BA0) * t;
-    let x = BR * Math.cos(ang), y = BR * Math.sin(ang), z = BZ;
-    // taper: thin at both tips, fat belly in the middle
-    let rad = 0.19 + 0.24 * Math.sin(Math.PI * Math.min(1, 0.12 + t * 0.88));
-    if (t < 0.30) {                   // head-end shoulder: ramp forward + up so it MERGES into the head
-      const k = 1 - t / 0.30;         // 1 at the very head end → 0 where it rejoins the arc
-      z = BZ - k * 0.78;              // z0.92 (arc) → z0.14 (deep into the head drum at z0.05)
-      y += k * 0.17;                  // climb to the head centre
-      rad += k * 0.10;                // fat shoulder fairing into the head
-    }
-    const s = new THREE.Mesh(new THREE.SphereGeometry(rad, 16, 12), M.shell);
-    s.name = 'Gantry_Banana_' + i;
-    s.position.set(x, y, z);
-    s.scale.z = 0.92;                 // nearly round → tighter overlap blends smoother
-    banana.add(s);
-  }
+  const V = THREE.Vector3;
+  const cPath = new THREE.CatmullRomCurve3([
+    new V(0.00,  0.74, 0.12),   // TOP tip — inside the head drum
+    new V(0.30,  0.60, 0.34),
+    new V(0.55,  0.30, 0.50),
+    new V(0.63,  0.02, 0.54),   // +X belly (set out from iso → clears the narrow couch)
+    new V(0.55, -0.30, 0.50),
+    new V(0.30, -0.56, 0.32),
+    new V(0.02, -0.66, 0.14),   // BOTTOM tip — into the MV EPID arm
+  ]);
+  const cTube = new THREE.Mesh(new THREE.TubeGeometry(cPath, 72, 0.27, 20, false), M.shell);
+  cTube.name = 'Gantry_C_Body';
+  banana.add(cTube);
+  // fat rounded shoulders that fair the C into the head (top) and the EPID (bottom)
+  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 16), M.shell);
+  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0.0, 0.72, 0.12); banana.add(shTop);
+  const shBot = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 14), M.shell);
+  shBot.name = 'Gantry_Shoulder_EPID'; shBot.position.set(0.02, -0.64, 0.16); banana.add(shBot);
   gantry.add(banana);
   parts.Gantry_Body = banana;
   parts.Gantry_FacePlate = banana;
-  // short structural axle at the rotation centre linking the banana back to the stand —
-  // small and tucked behind the banana, so there is NO big circular face toward the couch.
-  const axle = cyl(THREE, 0.24, 0.27, 0.72, M.creamDk, 28, 'Gantry_Axle');
-  axle.rotation.x = Math.PI / 2; axle.position.z = 1.0;
+  // hub/axle behind the belly linking the C to the stand (small, tucked behind the +X belly)
+  const axle = cyl(THREE, 0.22, 0.25, 0.7, M.creamDk, 28, 'Gantry_Axle');
+  axle.rotation.x = Math.PI / 2; axle.position.set(0.30, -0.04, 0.85);
   gantry.add(axle);
 
   // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
