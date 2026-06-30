@@ -2791,11 +2791,19 @@ const FID2D=(function(){
     if(cfg.msg)setMsg(cfg.msg,'label');
   }
   function exitExternal(){ext=null;viewTheta={ap:0,lat:90};fidPanel(false);}
+  // A marker is "green" when it overlaps its seed in a view (same test drawView uses). The match is
+  // accepted as soon as ALL three markers sit on their seeds (green) in BOTH views.
+  function allGreen(){
+    for(const key of ['ap','lat']){const Z=(views[key]&&views[key].zoom)||1;
+      for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
+        if(Math.hypot(s[0]-ss[0],s[1]-ss[1])>4.5*Z)return false;}}
+    return true;
+  }
   function check(){
     if(ext){                               // re-match: grade residual + hand the correction back to TXFLOW
       const r=fit(M,Qtrue),f=fit(P,M);
       const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]),transErr=Math.hypot(r.t[0],r.t[1],r.t[2]);
-      if(ext.onCheck)ext.onCheck({rotErr,transErr,correction:f,residual:r});
+      if(ext.onCheck)ext.onCheck({rotErr,transErr,correction:f,residual:r,allGreen:allGreen()});
       return;
     }
     if(!fAcqReady()){setMsg('Acquire the kV pair first — rotate to each imaging position and expose.','bad');return;}
@@ -2804,13 +2812,14 @@ const FID2D=(function(){
     const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]);   // residual rotation (deg)
     const transErr=Math.hypot(r.t[0],r.t[1],r.t[2]); // residual translation (mm)
     const rotTol=fidRotTol(),transTol=fidTransTol();
-    const ok=rotErr<=rotTol && transErr<=transTol;
-    const close=rotErr<=rotTol*1.8 && transErr<=transTol*1.8;
+    // Accepted as soon as all three markers are green (nested on their seeds) in both views.
+    const ok=allGreen();
+    const close=!ok && rotErr<=rotTol*1.8 && transErr<=transTol*1.8;
     const tag='';   // 2D fiducial case: match time is not tracked
     let msg,cls;
-    if(ok){msg='✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag;cls='ok';}
-    else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; '+KMOD+'+drag to rotate'+tag;cls='label';}
-    else{msg='✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag;cls='bad';}
+    if(ok){msg='✓ Fiducials matched — all three seeds aligned'+tag;cls='ok';}
+    else if(close){msg='⚡ Close — nest all three markers on the seeds until they turn green; '+KMOD+'+drag to rotate'+tag;cls='label';}
+    else{msg='✗ Drag each marker onto its seed in both views until all three are green'+tag;cls='bad';}
     // Full Treatment Stage 2: TXFLOW owns progression — advance only on accept, keep the same offset otherwise.
     if(window.TXFLOW&&TXFLOW.active()){setMsg(msg,cls);TXFLOW.onStageResult('kv',{accepted:ok,mag:transErr});return;}
     if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:null});
@@ -2975,7 +2984,7 @@ const FID2D=(function(){
     hiddenDeg:()=>fit(P,Qtrue).r.map(x=>+x.toFixed(2)),                              // per-axis hidden rotation
     residDeg:()=>{const r=fit(M,Qtrue);return +Math.hypot(r.r[0],r.r[1],r.r[2]).toFixed(2);},
     rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext,
-    acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady};
+    acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady,allGreen};
   return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,
     acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,
     resize:()=>{if(active())render();},_dbg};
@@ -3156,7 +3165,7 @@ const TXFLOW=(function(){
   }
   function onRematchCheck(r){
     const sm=document.getElementById('statusMsg');
-    if(r.transErr<=REMATCH_TOL){
+    if(r.allGreen||r.transErr<=REMATCH_TOL){
       // apply the recovered couch correction → recentres the fiducials (measured offset → ~residual)
       appliedCorr.x+=r.correction.t[0]; appliedCorr.y+=r.correction.t[1]; appliedCorr.z+=r.correction.t[2];
       reimages++;
