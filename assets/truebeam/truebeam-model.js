@@ -167,14 +167,14 @@ export function build(THREE, opts = {}) {
     new V(0, 0.22, 0.48),
     new V(0, -0.06, 0.62),  // root into the hub on the rotation axis
   ]);
-  const armTube = new THREE.Mesh(new THREE.TubeGeometry(armPath, 48, 0.34, 24, false), M.shell);
+  const armTube = new THREE.Mesh(new THREE.TubeGeometry(armPath, 56, 0.42, 28, false), M.shell);
   armTube.name = 'Gantry_Arm';
   banana.add(armTube);
-  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.40, 22, 18), M.shell);
-  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0, 0.82, 0.12); banana.add(shTop);
-  // modest rounded HUB at the rotation axis (NOT a big disc) — where the arm meets the stand
-  const hub = cyl(THREE, 0.42, 0.46, 0.5, M.shell, 40, 'Gantry_Hub');
-  hub.rotation.x = Math.PI / 2; hub.position.z = 0.74;
+  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 18), M.shell);
+  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0, 0.80, 0.12); banana.add(shTop);
+  // rounded HUB at the rotation axis — the big curved gantry body mass where the arm meets the stand
+  const hub = cyl(THREE, 0.52, 0.56, 0.56, M.shell, 44, 'Gantry_Hub');
+  hub.rotation.x = Math.PI / 2; hub.position.z = 0.72;
   banana.add(hub);
   gantry.add(banana);
   parts.Gantry_Body = banana;
@@ -191,9 +191,9 @@ export function build(THREE, opts = {}) {
   const targetBlk = box(THREE, 0.2, 0.1, 0.2, M.metal, 'MV_Target');
   targetBlk.position.y = 0;
   // bulky SMOOTH rounded head: a slightly-tapered round housing + a clean low dome cap (no facets).
-  const headHousing = cyl(THREE, 0.37, 0.4, 0.62, M.shell, 30, 'Head_Housing');
+  const headHousing = cyl(THREE, 0.43, 0.46, 0.66, M.shell, 32, 'Head_Housing');
   headHousing.position.y = -0.3;
-  const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.37, 26, 16), M.shell);
+  const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.43, 28, 16), M.shell);
   headCrown.name = 'Head_Crown'; headCrown.position.y = 0.0; headCrown.scale.set(1, 0.5, 1);   // low smooth dome matching the housing top
   const headNeck = cyl(THREE, 0.3, 0.3, 0.72, M.shell, 22, 'Head_Neck');
   headNeck.rotation.x = Math.PI / 2; headNeck.position.set(0, -0.04, 0.31);    // faired link back to the set-back drum
@@ -226,10 +226,13 @@ export function build(THREE, opts = {}) {
     return g;
   }
   const mlcL = mlcBank('MLC_BankL', -1), mlcR = mlcBank('MLC_BankR', +1);
-  // beige accessory-mount bezel (the signature warm slide-rail frame) on the head underside
-  const accFrame = box(THREE, 0.46, 0.05, 0.46, M.accessory, 'Accessory_Mount'); accFrame.position.y = -0.63;
-  const accSlot  = box(THREE, 0.3, 0.06, 0.3, M.faceDark, 'Accessory_Slot');     accSlot.position.y = -0.63;  // dark opening
-  collim.add(collCavity, jawXL, jawXR, jawYA, jawYB, mlcL, mlcR, accFrame, accSlot);
+  // CIRCULAR beige collimator/accessory face-plate (per the head close-up): a round beige disc on
+  // the head underside with a rectangular MLC aperture recessed in its centre, plus a thin raised
+  // bolt-ring rim (the rotating-collimator ring).
+  const accPlate = cyl(THREE, 0.42, 0.42, 0.05, M.accessory, 32, 'Accessory_Plate'); accPlate.position.y = -0.63;
+  const accRing  = cyl(THREE, 0.44, 0.44, 0.03, M.creamDk, 32, 'Accessory_Ring');    accRing.position.y = -0.605;  // raised rim
+  const accSlot  = box(THREE, 0.30, 0.06, 0.34, M.faceDark, 'Accessory_Slot');       accSlot.position.y = -0.645;  // rectangular dark aperture
+  collim.add(collCavity, jawXL, jawXR, jawYA, jawYB, mlcL, mlcR, accRing, accPlate, accSlot);
   parts._jawXL = jawXL; parts._jawXR = jawXR; parts._mlcL = mlcL; parts._mlcR = mlcR; parts._bankSpan = bankSpan;
   // optional electron applicator — a stepped downward-tapering beige funnel (toggle)
   if (o.applicator) {
