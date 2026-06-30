@@ -1306,8 +1306,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           </div>
         </div>
         <div class="con-pendant-btns">
-          <button class="pbtn motion" id="cbAcqMotion" type="button" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()" title="HOLD to drive the gantry to the 180&deg; cone-beam start"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">hold</span></button>
-          <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="HOLD to scan the 360&deg; cone-beam acquisition"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">hold</span><i class="con-acqprog" id="cbAcqBar"></i></button>
+          <button class="pbtn motion" id="cbAcqMotion" type="button" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the 180&deg; cone-beam start"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
+          <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="HOLD (or hold Enter) to scan the 360&deg; cone-beam acquisition"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="cbAcqBar"></i></button>
         </div>
         <div class="con-msg" id="cbAcqMsg">Hold MOTION ENABLE to rotate the gantry to the 180&deg; cone-beam start position.</div>
       </div>
@@ -1548,8 +1548,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         </div>
       </div>
       <div class="con-pendant-btns">
-        <button class="pbtn motion" id="fidAcqMotion" type="button" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()" title="HOLD to drive the gantry to the kV imaging position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">hold</span></button>
-        <button class="pbtn kvbeam" id="fidAcqGo" type="button" disabled onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()" title="HOLD to take the kV exposure"><span class="pbtn-lbl">kV BEAM ON</span><span class="pbtn-key">hold</span><i class="con-acqprog" id="fidAcqBar"></i></button>
+        <button class="pbtn motion" id="fidAcqMotion" type="button" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the kV imaging position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
+        <button class="pbtn kvbeam" id="fidAcqGo" type="button" disabled onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()" title="HOLD (or hold Enter) to take the kV exposure"><span class="pbtn-lbl">kV BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="fidAcqBar"></i></button>
       </div>
       <div class="con-msg" id="fidAcqMsg">Hold MOTION ENABLE to rotate the gantry to the AP kV imaging position.</div>
     </div>
@@ -2673,7 +2673,7 @@ const FID2D=(function(){
   // hold to expose — THEN the markers/match unlock. Mirrors the CBCT acquisition console. Skipped for
   // the external re-match (that already represents taking a kV–MV pair). Forced ON in Full Treatment.
   let fAcqEnabled=true, fAcqForce=false, fAcqPhase='ready', fGantry=90, fRaf=0, fMot=false, fExpoP=0, fExpoHold=false, fCap={ap:false,lat:false};
-  const F_ROT=80, F_EXPO_MS=1100;   // rotate °/s; hold-to-expose duration per kV image
+  const F_ROT=20, F_EXPO_MS=1000;   // gantry °/s (matches the 2D console) ; ~1 s hold-to-expose per kV image
   function fAcqUses(){return !ext && currentMode==='2d2d' && CASES[currentCase] && CASES[currentCase].fidMatch && (fAcqForce||fAcqEnabled);}
   function fAcqReady(){return !fAcqUses() || fAcqPhase==='ready';}
   function setMsg(t,c){const m=document.getElementById('statusMsg');if(m){m.textContent=t;m.style.color=c==='ok'?'var(--accent)':c==='bad'?'var(--accent2)':'var(--label)';}}
@@ -5739,8 +5739,8 @@ const CBCT=(function(){
      Standalone CBCT: optional (skip toggle, default on). Full Treatment Stage 1: forced on.
      phase: park (drive to 180°) -> armed (at 180°) -> acquiring (360° sweep) -> ready (match unlocked). */
   let acqEnabled=true, acqForce=false, acqPhase='ready', acqAngle=90, acqRaf=0, acqMotion=false, acqSweepP=0, acqSweepHold=false;
-  const ACQ_ROT=80;          // deg/sec while holding the Motion Enable button (rotate to 180° start)
-  const ACQ_SWEEP_MS=3800;   // full 360° acquisition duration (only advances while Cone-Beam On is held)
+  const ACQ_ROT=20;          // deg/sec while holding Motion Enable (rotate to 180° start) — matches the 2D console gantry speed
+  const ACQ_SWEEP_MS=12000;  // full 360° cone-beam acquisition (~30°/s; only advances while Cone-Beam On is held)
   const ACQ_START=180;       // cone-beam acquisition start angle (gantry 180°)
   function acqUses(){return caseKey==='prostate' && (acqForce||acqEnabled);}
   function acqReady(){return !acqUses() || acqPhase==='ready';}
@@ -7366,6 +7366,27 @@ const CBCT=(function(){
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
 })();
 window.CBCT=CBCT;
+/* Acquisition-console keyboard deadman (matches the 2D console): SPACE = Motion Enable (hold),
+   Enter = Cone-Beam/kV beam on (hold). Only fires while a CBCT or kV-fiducial acquisition console
+   is actually up (acqReady()===false); auto-repeat is ignored so the hold timer advances normally. */
+(function(){
+  const cbctUp=()=>typeof CBCT!=='undefined'&&CBCT.acqReady&&!CBCT.acqReady();
+  const fidUp =()=>typeof FID2D!=='undefined'&&FID2D.acqReady&&!FID2D.acqReady();
+  document.addEventListener('keydown',function(e){
+    if(e.repeat)return;
+    if(e.code==='Space'||e.key===' '){
+      if(cbctUp()){e.preventDefault();CBCT.acqMotionStart(e);}
+      else if(fidUp()){e.preventDefault();FID2D.acqMotionStart(e);}
+    }else if(e.key==='Enter'){
+      if(cbctUp()){e.preventDefault();CBCT.acqSweepStart(e);}
+      else if(fidUp()){e.preventDefault();FID2D.acqBeamStart(e);}
+    }
+  });
+  document.addEventListener('keyup',function(e){
+    if(e.code==='Space'||e.key===' '){if(typeof CBCT!=='undefined')CBCT.acqMotionStop();if(typeof FID2D!=='undefined')FID2D.acqMotionStop();}
+    else if(e.key==='Enter'){if(typeof CBCT!=='undefined')CBCT.acqSweepStop();if(typeof FID2D!=='undefined')FID2D.acqBeamStop();}
+  });
+})();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================
    Free-rotate volume render of the active CBCT case's planning CT (case-aware via
