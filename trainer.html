@@ -5219,18 +5219,23 @@ const CBCT=(function(){
             // untouched, and for an emptied bladder the receded part of the planning bladder is repainted as
             // soft tissue (`erase`). The seed drift matches: a fuller bladder pushes the prostate posterior/
             // inferior (+y/-z), an emptier one anterior/superior (-y/+z). |drift.y|>=3 keeps it clearly off-bone
-            // (> t1=2mm). Densities are on the 0..255 atlas scale (urine ~64 = this volume's bladder, erase 55
-            // = peri-bladder soft tissue). Synthetic forward model on the single planning CT.
+            // (> t1=2mm). Densities are on the 0..255 atlas scale (urine ~64 = this volume's bladder, erase 68
+            // = collapsed soft tissue). The resized bladder is clipped to the body mask so it never paints
+            // outside the body contour. Synthetic forward model on the single planning CT.
             offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3], y:[3,5], z:[2,4]},
                      okMsg:'✓ Fiducials aligned — gold seeds within tolerance',
                      hint:'✗ Pelvis bones aligned, but the seeds are off — match the gold fiducials, not the bone',
                      setup:'New setup — the prostate has drifted off the bony pelvis; match the gold fiducials, not the bone',
-                     fill:{bladderBit:4, prostateBit:1, urine:64, erase:55, scenarios:[
-                       {key:'empty',    label:'Empty bladder',     bladderScale:0.62, drift:{x:-1, y:-3, z:2},
+                     // bodyBit clips the resized bladder to the patient (a scaled-up bladder must never spill
+                     // outside the body contour); erase 68 = collapsed soft tissue (NOT fat 55 — that read as a
+                     // dark halo around an emptied bladder). Scales kept modest so a full bladder grows naturally
+                     // instead of ballooning into a flat slab.
+                     fill:{bladderBit:4, prostateBit:1, bodyBit:128, urine:64, erase:68, scenarios:[
+                       {key:'empty',    label:'Empty bladder',     bladderScale:0.65, drift:{x:-1, y:-3, z:2},
                         setup:'Daily CBCT — empty bladder (smaller than plan): the prostate sits anterior/superior. Match the gold fiducials, not the bone.'},
-                       {key:'full',     label:'Full bladder',      bladderScale:1.30, drift:{x:1, y:3, z:-2},
+                       {key:'full',     label:'Full bladder',      bladderScale:1.22, drift:{x:1, y:3, z:-2},
                         setup:'Daily CBCT — full bladder (larger than plan): the prostate is pushed posterior/inferior. Match the gold fiducials, not the bone.'},
-                       {key:'veryfull', label:'Very full bladder', bladderScale:1.55, drift:{x:1, y:4, z:-2},
+                       {key:'veryfull', label:'Very full bladder', bladderScale:1.40, drift:{x:1, y:4, z:-2},
                         setup:'Daily CBCT — very full bladder: the prostate is pushed posterior/inferior. Match the gold fiducials, not the bone.'},
                      ]}}},
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
@@ -5446,11 +5451,13 @@ const CBCT=(function(){
           // tissue. The prostate gland (bit 1) is skipped so the gold seeds are never covered.
           if(_ob.fill&&curFill&&curFill.bladderScale){
             const F=_ob.fill,s=curFill.bladderScale,an=curIsoIdx();
-            if(gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
+            // Clip to the patient body: a scaled-up bladder must stay inside the body contour (don't paint urine
+            // into the air outside the patient), and never paint over the prostate gland so the gold seeds show.
+            if((!F.bodyBit||gtvOcc(_lbl,gx,gy,gz,F.bodyBit)>=0.5) && gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
               const qx=an[0]+(gx-an[0])/s,qy=an[1]+(gy-an[1])/s,qz=an[2]+(gz-an[2])/s;
               let oS=gtvOcc(_lbl,qx,qy,qz,F.bladderBit);              // inside the resized bladder?
               if(oS>0){oS=oS<0.7?oS*1.4:1; if(oS>1)oS=1; dens=dens+(F.urine-dens)*oS;}
-              else if(s<1){let oO=gtvOcc(_lbl,gx,gy,gz,F.bladderBit); if(oO>0){oO=oO<0.7?oO*1.4:1; if(oO>1)oO=1; dens=dens+(F.erase-dens)*oO;}}   // empty: erase the receded planning bladder
+              else if(s<1){let oO=gtvOcc(_lbl,gx,gy,gz,F.bladderBit); if(oO>0){oO=oO<0.7?oO*1.4:1; if(oO>1)oO=1; dens=dens+(F.erase-dens)*oO;}}   // empty: collapse the receded planning bladder to soft tissue
             }
           }
           // soft (trilinear) occupancy -> blend density by coverage, so the feature has smooth edges
