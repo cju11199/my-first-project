@@ -148,32 +148,40 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // ── DRUM-STAND GANTRY (the real TrueBeam architecture) ──────────────────────
-  // The TrueBeam gantry is a large rotating DRUM — a deep solid cylinder on the rotation axis —
-  // with a gently domed SOLID face toward the room (no central hole, so it is NOT a CT bore), and
-  // the bulky treatment HEAD protruding from the UPPER part of that face, faired in as one
-  // continuous mass and aimed down at iso. Set back so the face clears the couch; the region
-  // below iso stays open (drum sits behind, head above) for couch access.
-  const drum = cyl(THREE, 0.82, 0.82, 0.66, M.shell, 56, 'Gantry_Drum');
-  drum.rotation.x = Math.PI / 2; drum.position.set(0, 0, 0.95);          // axis along Z, set back
-  // ONE smooth domed SOLID cap over the whole drum front — a single continuous convex surface
-  // (a flattened sphere) that slightly OVERHANGS the drum rim, so there is no recessed ring/gap,
-  // no peeking rim edge, and no central hole (not a CT bore): a clean uniform white face.
-  const drumCap = new THREE.Mesh(new THREE.SphereGeometry(0.85, 56, 30), M.shell);
-  drumCap.name = 'Gantry_Drum_Face'; drumCap.scale.set(1, 1, 0.24); drumCap.position.z = 0.62;  // equator at drum front, front pole ≈ z0.42
-  gantry.add(drum, drumCap);
-  parts.Gantry_Drum = drum; parts.Gantry_FacePlate = drumCap; parts.Gantry_Body = drum;
-  // SHOULDER fairing: the head grows out of the drum's upper face as one continuous unit.
-  // A swept tube from the upper face (z back) forward+up to the head drum (z0.05) hides the gap.
+  // ── ONE-PIECE C-ARM GANTRY ──────────────────────────────────────────────────
+  // The whole gantry is ONE continuous C: the treatment HEAD is the TOP tip (beam straight down
+  // through iso), the body curves down the +X side, and the MV EPID is the BOTTOM tip (directly
+  // under iso, catching the beam). The MV beam runs straight down the C's axis (head → iso → EPID).
+  // The kV source/detector arms hang off this same C. Brought FORWARD toward the couch and OPEN on
+  // the −X side, so it reads as one C unit yet still clears the narrow couch (no material on the
+  // patient centreline). Built as a single SMOOTH swept tube (CatmullRom path → TubeGeometry) with
+  // fat shoulders fairing it into the head (top) and the EPID (bottom).
+  const banana = grp(THREE, 'Gantry_Banana');
   const V = THREE.Vector3;
-  const shPath = new THREE.CatmullRomCurve3([
-    new V(0, 0.50, 0.62),   // rooted in the drum's upper face
-    new V(0, 0.66, 0.40),
-    new V(0, 0.74, 0.18),   // fairs into the back of the head drum (head at z0.05)
+  const cPath = new THREE.CatmullRomCurve3([
+    new V(0.00,  0.74, 0.12),   // TOP tip — inside the head drum
+    new V(0.30,  0.60, 0.34),
+    new V(0.55,  0.30, 0.50),
+    new V(0.63,  0.02, 0.54),   // +X belly (set out from iso → clears the narrow couch)
+    new V(0.55, -0.30, 0.50),
+    new V(0.30, -0.56, 0.32),
+    new V(0.02, -0.66, 0.14),   // BOTTOM tip — into the MV EPID arm
   ]);
-  const shoulder = new THREE.Mesh(new THREE.TubeGeometry(shPath, 24, 0.34, 20, false), M.shell);
-  shoulder.name = 'Gantry_Head_Shoulder';
-  gantry.add(shoulder);
+  const cTube = new THREE.Mesh(new THREE.TubeGeometry(cPath, 72, 0.27, 20, false), M.shell);
+  cTube.name = 'Gantry_C_Body';
+  banana.add(cTube);
+  // fat rounded shoulders that fair the C into the head (top) and the EPID (bottom)
+  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 16), M.shell);
+  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0.0, 0.72, 0.12); banana.add(shTop);
+  const shBot = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 14), M.shell);
+  shBot.name = 'Gantry_Shoulder_EPID'; shBot.position.set(0.02, -0.64, 0.16); banana.add(shBot);
+  gantry.add(banana);
+  parts.Gantry_Body = banana;
+  parts.Gantry_FacePlate = banana;
+  // hub/axle behind the belly linking the C to the stand (small, tucked behind the +X belly)
+  const axle = cyl(THREE, 0.22, 0.25, 0.7, M.creamDk, 28, 'Gantry_Axle');
+  axle.rotation.x = Math.PI / 2; axle.position.set(0.30, -0.04, 0.85);
+  gantry.add(axle);
 
   // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
   // Group ORIGIN = MV source/target EXACTLY at SAD (1.0 m) above iso (load-bearing for beam geometry).
