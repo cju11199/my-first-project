@@ -53,11 +53,15 @@ function makeMaterials(THREE) {
     couchMetal:std(0xB0B6BC, 0.38, 0.6),                 // brushed-metal stepped couch pedestal
     faceDark: std(0x34383D, 0.6,  0.25),                 // recessed gantry face (lightened vs near-black)
     headGray: std(0x4A4D52, 0.55, 0.35),                 // exposed mechanism (snout underside)
-    blue:     std(0x0A6CB5, 0.35, 0.1, { emissive: 0x06304f, emissiveIntensity: 0.25 }), // Varian accent
+    blue:     std(0x1B6FC4, 0.35, 0.1, { emissive: 0x06304f, emissiveIntensity: 0.25 }), // Varian accent
     metal:    std(0x9097A0, 0.35, 0.85),                 // exposed metal / target block
+    tungsten: std(0x3A3D42, 0.6,  0.45),                 // dull matte MV jaws + MLC leaf comb
     panel:    std(0xC4C9CF, 0.4,  0.1),                  // imager active face (light gray)
     panelHs:  std(0x303338, 0.55, 0.3),                  // imager housing (matte dark)
-    carbon:   std(0x23262B, 0.4,  0.2),                  // couch carbon-fibre top
+    couchMetalMid:std(0x9AA0A6, 0.42, 0.55),             // 6DOF pitch/roll module + couch rails
+    carbon:   std(0x1C1E22, 0.4,  0.2),                  // couch carbon-fibre top (charcoal)
+    skin:     std(0xB7A99A, 0.7,  0.0),                  // patient phantom
+    floorDark:std(0x141821, 0.9,  0.0),                  // vault floor (machine pops)
     foam:     std(0x6FB6C8, 0.7,  0.0),                  // immobilization foam (teal)
     beamLit:  Object.assign(new THREE.MeshBasicMaterial({ color: 0x67e8c0, transparent: true, opacity: 0.18 }), {}),
     // ── educational overlay materials (unlit so they read in any lighting) ──────
@@ -99,26 +103,28 @@ const grp = (THREE, name) => { const g = new THREE.Group(); g.name = name; retur
  */
 export function build(THREE, opts = {}) {
   const M = makeMaterials(THREE);
-  const o = Object.assign({ beamStopper: false, patient: true, beamLine: false, edu: false, axes: false }, opts);
+  const o = Object.assign({ beamStopper: false, patient: true, beamLine: false, edu: false, axes: false, applicator: false }, opts);
 
   const root = grp(THREE, 'World_Root');        // = isocenter, never transformed
   const parts = {};
 
-  // ── Stand_Drive_Base (static) ───────────────────────────────────────────────
+  // ── Stand_Drive_Base (static) — tall rounded-rectangle A-frame on the +Z side ─
+  // The gantry drum mounts on its upper front face; its top rises above iso (head-height).
+  // A tall STAND (not a thin pole) is what stops the machine reading as a CT bore.
   const stand = grp(THREE, 'Stand_Drive_Base');
-  // column sits on the +Z (stand) side; gantry cantilevers off its front face toward -Z
-  const col = box(THREE, 1.5, 2.6, 1.2, M.cream, 'Stand_Column');
-  col.position.set(0, IEC.FLOOR_Y + 1.3, 1.25);     // base on floor, centered ~+Z
-  const ped = box(THREE, 1.8, 0.18, 1.5, M.creamDk, 'Stand_Pedestal');
-  ped.position.set(0, IEC.FLOOR_Y + 0.09, 1.25);
-  stand.add(col, ped);
+  const col = box(THREE, 1.3, 2.4, 0.8, M.cream, 'Stand_Column');
+  col.position.set(0, IEC.FLOOR_Y + 1.2, 1.05);     // base on floor; top ~Y+1.2 (above iso)
+  const ped = box(THREE, 1.7, 0.16, 1.1, M.creamDk, 'Stand_Pedestal');
+  ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.05);
+  const standBlue = box(THREE, 0.05, 1.4, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
+  standBlue.position.set(0, 0.1, 0.64);
+  stand.add(col, ped, standBlue);
   root.add(stand);
   parts.Stand_Drive_Base = stand;
 
   // ── Floor (cosmetic, static) ────────────────────────────────────────────────
-  const floor = box(THREE, 4.0, 0.04, 3.4, M.creamDk, 'Floor');
+  const floor = box(THREE, 4.0, 0.04, 3.4, M.floorDark, 'Floor');
   floor.position.set(0, IEC.FLOOR_Y - 0.02, 0.3);
-  floor.material = new THREE.MeshStandardMaterial({ color: 0x141821, roughness: 0.9, metalness: 0 });
   root.add(floor);
   parts.Floor = floor;
 
@@ -127,74 +133,81 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // Gantry support: a chunky white SHOULDER/yoke off the stand that carries the rotating head —
-  // a C-arm, NOT a CT ring. The drum is modest (it must not frame the patient like a bore).
-  const drum = cyl(THREE, 0.66, 0.66, 0.66, M.shell, 36, 'Gantry_Drum');   // compact rotating hub
-  drum.rotation.x = Math.PI / 2;
-  drum.position.set(0, 0, 0.66);
+  // Gantry_Drum — a COMPACT rotating hub (one side, NOT a CT ring). Deliberately modest so the
+  // head-on-arm dominates and the machine reads as an OPEN C-arm, never a bore (user-confirmed).
+  const drum = cyl(THREE, 0.68, 0.68, 0.6, M.shell, 40, 'Gantry_Drum');
+  drum.rotation.x = Math.PI / 2; drum.position.set(0, 0, 0.62);
   gantry.add(drum);
   parts.Gantry_Drum = drum;
-  // the arm/yoke: a tapered white limb from the hub out to the head at SAD (top at gantry 0),
-  // so the head clearly cantilevers over the couch from one side (the reference's defining look).
-  const yoke = box(THREE, 0.46, 1.06, 0.5, M.shell, 'Gantry_Arm');
-  yoke.position.set(0, 0.5, 0.4);          // spans hub (y0) up toward the head mount (y~1.0)
-  gantry.add(yoke);
-  parts.Gantry_Arm = yoke;
+  // forward disc face + restrained blue accent ring + hub boss (no big disc that reads as a CT gantry)
+  const facePlate = cyl(THREE, 0.7, 0.6, 0.12, M.shell, 40, 'Gantry_FacePlate');       // convex white disc cap
+  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.28;
+  const blueRing = cyl(THREE, 0.42, 0.42, 0.05, M.blue, 36, 'Gantry_FaceBlueRing');    // Varian accent
+  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.25;
+  const hubBoss = cyl(THREE, 0.22, 0.24, 0.16, M.creamDk, 28, 'Gantry_HubBoss');       // central boss
+  hubBoss.rotation.x = Math.PI / 2; hubBoss.position.z = 0.2;
+  gantry.add(facePlate, blueRing, hubBoss);
+  parts.Gantry_FacePlate = facePlate;
+  // faired ARM cantilevering radially out from the drum up to the head at SAD (one-sided C-arm)
+  const arm = box(THREE, 0.48, 1.06, 0.52, M.shell, 'Gantry_Arm');
+  arm.position.set(0, 0.5, 0.4);
+  gantry.add(arm);
+  parts.Gantry_Arm = arm;
 
-  // Gantry_Face_Cover — a SOLID WHITE convex hub face (no recess/bore), Varian blue accent + pivot boss.
-  const face = grp(THREE, 'Gantry_Face_Cover');
-  const facePlate = cyl(THREE, 0.7, 0.58, 0.14, M.shell, 36, 'Face_Outer');    // tapered → convex white front cap
-  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.3;
-  const blueRing = cyl(THREE, 0.44, 0.44, 0.06, M.blue, 32, 'Face_BlueRing');  // Varian accent
-  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.27;
-  const hub = cyl(THREE, 0.22, 0.24, 0.18, M.creamDk, 28, 'Face_Hub');         // central pivot boss (light)
-  hub.rotation.x = Math.PI / 2; hub.position.z = 0.22;
-  face.add(facePlate, blueRing, hub);
-  gantry.add(face);
-  parts.Gantry_Face_Cover = face;
-
-  // ── Treatment_Head_Group  (hangs off the drum toward iso, along the beam axis) ─
-  // At gantry 0 the beam axis is -Y (down); we author the head ABOVE iso (+Y) so the
-  // snout points down toward iso. Beam axis (head→iso) = local -Y of the gantry group.
+  // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
+  // Group ORIGIN = MV source/target EXACTLY at SAD (1.0 m) above iso (load-bearing for beam geometry).
   const head = grp(THREE, 'Treatment_Head_Group');
-  // Head GROUP ORIGIN sits exactly at the MV source point = SAD (1.0 m) above iso at G0.
-  // The source/target block is centred at the group origin; housing+snout hang toward iso.
-  head.position.set(0, IEC.SAD, 0.05);    // group origin = source point, on the beam axis
-  const targetBlk = box(THREE, 0.2, 0.1, 0.2, M.metal, 'MV_Target');  // x-ray target = source point
-  targetBlk.position.y = 0;               // EXACTLY at SAD (source) — load-bearing for beam geometry
-  // Large rounded cream housing — the iconic Varian treatment head, hanging toward iso.
-  const headShell = cyl(THREE, 0.34, 0.40, 0.62, M.shell, 28, 'Head_Housing'); // tapered drum along beam (Y)
-  headShell.position.y = -0.30;
-  const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.34, 22, 14), M.shell);
-  headCrown.name = 'Head_Crown'; headCrown.position.y = 0.01; headCrown.scale.set(1, 0.62, 1);  // rounded top cap
-  // short neck tucked inside the shell radius, linking the head to the gantry face (no protruding corners)
-  const headNeck = cyl(THREE, 0.3, 0.3, 0.5, M.shell, 20, 'Head_Neck');
-  headNeck.rotation.x = Math.PI / 2; headNeck.position.set(0, -0.05, 0.18);      // reaches back toward the drum face
-  // beige accessory / collimator tray facing iso (the signature tan block holder)
-  const collTray = box(THREE, 0.42, 0.18, 0.42, M.accessory, 'Collimator_Tray');
-  collTray.position.y = -0.60;
-  const snout = box(THREE, 0.3, 0.12, 0.3, M.headGray, 'Snout');                 // dark mechanism beneath the tray
-  snout.position.y = -0.71;
-  head.add(headShell, headCrown, headNeck, targetBlk, collTray, snout);
+  head.position.set(0, IEC.SAD, 0.05);
+  const targetBlk = box(THREE, 0.2, 0.1, 0.2, M.metal, 'MV_Target');
+  targetBlk.position.y = 0;
+  // bulky SMOOTH rounded head: a slightly-tapered round housing + a clean low dome cap (no facets).
+  const headHousing = cyl(THREE, 0.37, 0.4, 0.62, M.shell, 30, 'Head_Housing');
+  headHousing.position.y = -0.3;
+  const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.37, 26, 16), M.shell);
+  headCrown.name = 'Head_Crown'; headCrown.position.y = 0.0; headCrown.scale.set(1, 0.5, 1);   // low smooth dome matching the housing top
+  const headNeck = cyl(THREE, 0.3, 0.3, 0.5, M.shell, 22, 'Head_Neck');
+  headNeck.rotation.x = Math.PI / 2; headNeck.position.set(0, -0.04, 0.2);     // faired link back to the drum
+  head.add(targetBlk, headHousing, headCrown, headNeck);
   gantry.add(head);
   parts.Treatment_Head_Group = head;
 
-  // Collimator_Rotation — pivot ON the beam central axis (local Y line through iso).
-  // Nested under the head/gantry so it tracks the beam when the gantry rotates.
-  const collim = grp(THREE, 'Collimator_Rotation');     // pivot at head local origin, on beam axis
+  // Collimator_Rotation — pivot ON the beam central axis (local Y line through iso); rotates as a unit.
+  const collim = grp(THREE, 'Collimator_Rotation');
   head.add(collim);
   parts.Collimator_Rotation = collim;
-
-  // MLC_Collimator — leaf bank below the snout; leaves slide perpendicular to beam.
-  const mlc = grp(THREE, 'MLC_Collimator');
-  mlc.position.y = -0.80;                  // below the collimator tray (toward iso)
-  const mlcBody = box(THREE, 0.36, 0.2, 0.36, M.metal, 'MLC_Body');
-  const leafL = box(THREE, 0.16, 0.06, 0.34, M.headGray, 'MLC_BankL');
-  const leafR = box(THREE, 0.16, 0.06, 0.34, M.headGray, 'MLC_BankR');
-  leafL.position.set(-0.05, -0.08, 0); leafR.position.set(0.05, -0.08, 0);  // closed-ish default
-  mlc.add(mlcBody, leafL, leafR);
-  collim.add(mlc);
-  parts.MLC_Collimator = mlc; parts._mlcLeafL = leafL; parts._mlcLeafR = leafR;
+  // dark recessed throat in the head's bottom face (the open mouth reads dark)
+  const collCavity = box(THREE, 0.34, 0.1, 0.34, M.faceDark, 'Collimator_Cavity'); collCavity.position.y = -0.55;
+  // secondary collimator: X jaws (translate along X) + Y jaws (along Z), forming the rectangular aperture
+  const jawXL = box(THREE, 0.04, 0.06, 0.34, M.tungsten, 'Jaws_XL'); jawXL.position.set(-0.08, -0.52, 0);
+  const jawXR = box(THREE, 0.04, 0.06, 0.34, M.tungsten, 'Jaws_XR'); jawXR.position.set( 0.08, -0.52, 0);
+  const jawYA = box(THREE, 0.34, 0.06, 0.04, M.tungsten, 'Jaws_YA'); jawYA.position.set(0, -0.52, -0.08);
+  const jawYB = box(THREE, 0.34, 0.06, 0.04, M.tungsten, 'Jaws_YB'); jawYB.position.set(0, -0.52,  0.08);
+  // 120-leaf MLC: two opposed combs of ~12 thin leaves each (the iconic fine leaf-end comb)
+  const leafN = 12, leafW = 0.026, leafGap = 0.001, leafLen = 0.16, leafThk = 0.05;
+  const bankSpan = leafN * (leafW + leafGap);
+  function mlcBank(name, sign) {
+    const g = grp(THREE, name);
+    for (let i = 0; i < leafN; i++) {
+      const lf = box(THREE, leafLen, leafThk, leafW, M.tungsten, '');
+      lf.position.set(sign * (leafLen / 2), 0, (i - (leafN - 1) / 2) * (leafW + leafGap));
+      g.add(lf);
+    }
+    g.position.set(sign * 0.03, -0.585, 0);   // tips meet near centre (slightly open default)
+    return g;
+  }
+  const mlcL = mlcBank('MLC_BankL', -1), mlcR = mlcBank('MLC_BankR', +1);
+  // beige accessory-mount bezel (the signature warm slide-rail frame) on the head underside
+  const accFrame = box(THREE, 0.46, 0.05, 0.46, M.accessory, 'Accessory_Mount'); accFrame.position.y = -0.63;
+  const accSlot  = box(THREE, 0.3, 0.06, 0.3, M.faceDark, 'Accessory_Slot');     accSlot.position.y = -0.63;  // dark opening
+  collim.add(collCavity, jawXL, jawXR, jawYA, jawYB, mlcL, mlcR, accFrame, accSlot);
+  parts._jawXL = jawXL; parts._jawXR = jawXR; parts._mlcL = mlcL; parts._mlcR = mlcR; parts._bankSpan = bankSpan;
+  // optional electron applicator — a stepped downward-tapering beige funnel (toggle)
+  if (o.applicator) {
+    const app = grp(THREE, 'Electron_Applicator'); app.position.y = -0.7;
+    const rings = [[0.34, 0.0], [0.26, -0.13], [0.18, -0.26], [0.12, -0.36]];
+    rings.forEach(([s, y], i) => { const r = box(THREE, s, 0.03, s, M.accessory, 'App_Ring' + i); r.position.y = y; app.add(r); });
+    collim.add(app); parts.Electron_Applicator = app;
+  }
 
   // optional faint central-ray for the preview (head source → iso → MV panel)
   if (o.beamLine) {
@@ -247,29 +260,35 @@ export function build(THREE, opts = {}) {
   kvDetBoom.root.position.set(-0.58, 0, 0.12);
   // framed flat-panel detector (matches the photo): WHITE housing frame → thin dark recess
   // line → light-grey active face, set slightly proud; faces +X back at the source.
+  // kV detector = LANDSCAPE 40x30 framed panel (smaller + wider-than-tall vs the square MV — a TrueBeam tell)
   const kvPanMount = grp(THREE, 'kV_Panel'); kvPanMount.position.x = -0.2;
-  const kvPanFrame = box(THREE, 0.06, 0.56, 0.56, M.shell, 'kV_Panel_Housing');           // white frame slab
-  const kvPanGap   = box(THREE, 0.05, 0.49, 0.49, M.panelHs, 'kV_Panel_Recess'); kvPanGap.position.x = 0.015;  // thin dark recess ring
-  const kvPanFace  = box(THREE, 0.04, 0.45, 0.45, M.panel, 'kV_Panel_Face');     kvPanFace.position.x = 0.03;  // light-grey active surface
+  const kvPanFrame = box(THREE, 0.06, 0.40, 0.50, M.shell, 'kV_Panel_Housing');           // white frame slab
+  const kvPanGap   = box(THREE, 0.05, 0.34, 0.44, M.panelHs, 'kV_Panel_Recess'); kvPanGap.position.x = 0.015;  // thin dark recess ring
+  const kvPanFace  = box(THREE, 0.04, 0.30, 0.40, M.panel, 'kV_Panel_Face');     kvPanFace.position.x = 0.03;  // light-grey active surface
   kvPanMount.add(kvPanFrame, kvPanGap, kvPanFace); kvDetBoom.s2.add(kvPanMount);
   gantry.add(kvDetBoom.root);
   parts.kV_Detector_Arm = kvDetBoom.root;
 
-  // ── MV_Detector_Arm (EPID/portal imager) — below iso, in line with the head (−Y) ─
-  // a vertical telescoping boom (base + 2 nested stages) carrying a large flat panel.
-  const mvDet = grp(THREE, 'MV_Detector_Arm'); mvDet.position.y = -0.32;
-  const mvBase = box(THREE, 0.28, 0.26, 0.32, M.cream, 'MV_Base');
-  const mvS1 = grp(THREE, 'MV_Stage1');
-  const mvL1 = box(THREE, 0.22, 0.36, 0.24, M.creamDk, 'MV_Link1');
+  // ── MV_Detector_Arm (EPID/portal imager) — emerges FROM THE GANTRY, opposite the head ──
+  // The arm ROOTS in the gantry drum (lower front), reaches in to the rotation axis, then a
+  // vertical telescoping boom drops the EPID to ~0.5 m below iso, in line with the MV beam (−Y).
+  // (It must NOT float below iso / appear to rise from the floor — it hangs off the drum.)
+  const mvDet = grp(THREE, 'MV_Detector_Arm');                 // child of gantry → orbits with it
+  // structural mount hanging off the drum's lower front, spanning back to the rotation axis
+  const mvMount = box(THREE, 0.22, 0.24, 0.62, M.cream, 'MV_Mount');
+  mvMount.position.set(0, -0.16, 0.18);                        // top end seats into the drum (z~0.49), inner end at the axis
+  // vertical telescoping boom (2 nested stages) carrying the EPID straight down the beam axis
+  const mvS1 = grp(THREE, 'MV_Stage1'); mvS1.position.set(0, -0.15, 0);
+  const mvL1 = box(THREE, 0.2, 0.3, 0.22, M.creamDk, 'MV_Link1');
   const mvS2 = grp(THREE, 'MV_Stage2');
-  const mvL2 = box(THREE, 0.18, 0.36, 0.18, M.cream, 'MV_Link2');
-  // MV/EPID — same framed flat-panel look, larger, lying flat with its active face up toward iso.
-  const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.y = -0.26;
-  const mvPanFrame = box(THREE, 0.6, 0.06, 0.6, M.shell, 'MV_Panel_Housing');               // white frame slab
-  const mvPanGap   = box(THREE, 0.52, 0.05, 0.52, M.panelHs, 'MV_Panel_Recess'); mvPanGap.position.y = 0.015; // dark recess ring
-  const mvPanFace  = box(THREE, 0.48, 0.04, 0.48, M.panel, 'MV_Panel_Face');     mvPanFace.position.y = 0.03;  // light-grey active surface
+  const mvL2 = box(THREE, 0.16, 0.3, 0.18, M.cream, 'MV_Link2');
+  // EPID flat panel (square aS1200) lying flat, active face UP toward iso/head
+  const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.y = -0.1;
+  const mvPanFrame = box(THREE, 0.6, 0.06, 0.6, M.shell, 'MV_Panel_Housing');
+  const mvPanGap   = box(THREE, 0.52, 0.05, 0.52, M.panelHs, 'MV_Panel_Recess'); mvPanGap.position.y = 0.015;
+  const mvPanFace  = box(THREE, 0.48, 0.04, 0.48, M.panel, 'MV_Panel_Face');     mvPanFace.position.y = 0.03;
   mvPanMount.add(mvPanFrame, mvPanGap, mvPanFace);
-  mvS2.add(mvL2, mvPanMount); mvS1.add(mvL1, mvS2); mvDet.add(mvBase, mvS1);
+  mvS2.add(mvL2, mvPanMount); mvS1.add(mvL1, mvS2); mvDet.add(mvMount, mvS1);
   gantry.add(mvDet);
   parts.MV_Detector_Arm = mvDet; parts._mvS1 = mvS1; parts._mvS2 = mvS2;
   parts._kvSrcBoom = kvSrcBoom; parts._kvDetBoom = kvDetBoom;
@@ -277,13 +296,16 @@ export function build(THREE, opts = {}) {
   // ── Couch chain (independent sibling of the gantry) ─────────────────────────
   const couchRoot = grp(THREE, 'Couch_6DOF_Group');
   root.add(couchRoot);
-  // stepped brushed-metal pedestal on the -Z (bore) side, reaching up toward iso
-  const cz = -1.4;
-  const baseLo  = box(THREE, 0.98, 0.12, 1.04, M.couchMetal, 'Couch_Base');       baseLo.position.set(0, IEC.FLOOR_Y + 0.06, cz);
-  const baseMid = box(THREE, 0.74, 0.18, 0.82, M.couchMetal, 'Couch_Base_Step');  baseMid.position.set(0, IEC.FLOOR_Y + 0.22, cz);
-  const couchCol= box(THREE, 0.48, 0.92, 0.52, M.couchMetal, 'Couch_Column');     couchCol.position.set(0, IEC.FLOOR_Y + 0.77, cz);
-  const couchPiv= box(THREE, 0.52, 0.16, 0.66, M.couchMetal, 'Couch_Pivot');      couchPiv.position.set(0, IEC.FLOOR_Y + 1.30, cz + 0.12);
-  couchRoot.add(baseLo, baseMid, couchCol, couchPiv);
+  // stepped brushed-metal pedestal, OFFSET on the -Z side so the table cantilevers in to iso
+  // with nothing solid under iso (full gantry clearance) — a free-floating couch, not a CT slab.
+  const cz = -1.42;
+  const baseLo  = box(THREE, 0.85, 0.12, 0.95, M.couchMetal, 'Couch_Base');       baseLo.position.set(0, IEC.FLOOR_Y + 0.06, cz);
+  const baseMid = box(THREE, 0.70, 0.10, 0.78, M.couchMetal, 'Couch_Base_Step');  baseMid.position.set(0, IEC.FLOOR_Y + 0.17, cz);
+  const baseCol = box(THREE, 0.50, 0.08, 0.55, M.couchMetal, 'Couch_Base_Collar');baseCol.position.set(0, IEC.FLOOR_Y + 0.26, cz);
+  const couchCol= box(THREE, 0.26, 0.90, 0.30, M.couchMetal, 'Couch_Column');     couchCol.position.set(0, IEC.FLOOR_Y + 0.62, cz);
+  // the 6DOF pitch/roll module block — the physical TELL of PerfectPitch (a 4DOF couch lacks it)
+  const couchMod= box(THREE, 0.46, 0.12, 0.42, M.couchMetalMid, 'Couch_PitchRollModule'); couchMod.position.set(0, IEC.FLOOR_Y + 1.10, cz + 0.06);
+  couchRoot.add(baseLo, baseMid, baseCol, couchCol, couchMod);
   parts.Couch_6DOF_Group = couchRoot;
 
   // nested 6DOF: translations BEFORE isocentric rotations, all rotation pivots at iso
@@ -300,16 +322,18 @@ export function build(THREE, opts = {}) {
   // pedestal (foot side, -Z) to ~iso and STOPS before the gantry — it must NOT pass through the
   // gantry face (that read as a CT bore). Treated point (iso) sits near the head end of the table.
   const top = grp(THREE, 'Couch_Top_Patient');
-  const tabletop = box(THREE, 0.55, 0.06, 1.7, M.carbon, 'Tabletop');
-  tabletop.position.set(0, -0.04, -0.72);   // head end ~z+0.13 (in front of the gantry face), foot at -1.57
-  top.add(tabletop);
+  // two-section carbon top: THICK proximal section (pedestal side) steps DOWN to a THIN treatment
+  // plank cantilevering toward iso. Both top surfaces aligned at ~y0 (iso height). The thin plank
+  // STOPS before the drum face (front edge ~z+0.2 < drum face z0.28) so it never reads as a bore.
+  const topThick = box(THREE, 0.53, 0.075, 0.72, M.carbon, 'Couch_Top_ThickProx'); topThick.position.set(0, -0.0375, -1.04);
+  const topThin  = box(THREE, 0.53, 0.05,  1.2,  M.carbon, 'Couch_Top_ThinTreat');  topThin.position.set(0, -0.025, -0.4);
+  const railL = box(THREE, 0.02, 0.035, 1.85, M.couchMetalMid, 'Couch_RailL'); railL.position.set(-0.255, -0.01, -0.55);
+  const railR = box(THREE, 0.02, 0.035, 1.85, M.couchMetalMid, 'Couch_RailR'); railR.position.set( 0.255, -0.01, -0.55);
+  top.add(topThick, topThin, railL, railR);
   if (o.patient) {
-    const board = box(THREE, 0.5, 0.04, 1.5, M.foam, 'Immobilization');
-    board.position.set(0, -0.005, -0.72);
-    const phantom = box(THREE, 0.32, 0.2, 1.2, M.creamDk, 'Patient_Phantom');
-    phantom.position.set(0, 0.12, -0.78);   // head of the phantom reaches iso, body extends out toward the foot
-    phantom.material = new THREE.MeshStandardMaterial({ color: 0xb7a99a, roughness: 0.7, metalness: 0 });
-    top.add(board, phantom);
+    const pad = box(THREE, 0.46, 0.02, 1.7, M.foam, 'Couch_Pad'); pad.position.set(0, 0.01, -0.5);
+    const phantom = box(THREE, 0.3, 0.2, 1.1, M.skin, 'Patient_Phantom'); phantom.position.set(0, 0.12, -0.5);
+    top.add(pad, phantom);
   }
   cPitch.add(top);
   parts.Couch_Top_Patient = top;
@@ -374,16 +398,15 @@ export function build(THREE, opts = {}) {
       kvDetBoom.s1.position.x = -t * 0.24;          // telescope out (-X, across iso from the source)
       kvDetBoom.s2.position.x = -t * 0.26;
     },
-    mvDeploy(t) {                                                    // telescope the EPID below iso
+    mvDeploy(t) {                                                    // telescope the EPID down the beam axis
       t = clamp01(t);
-      mvS1.position.y = -t * 0.26;          // stage 1 drops
-      mvS2.position.y = -t * 0.3;           // stage 2 drops further → panel ~0.5 m beyond iso
+      mvS2.position.y = -t * 0.25;          // boom extends down → EPID ~0.5 m below iso (stows up to the drum)
     },
     mlcField(w, h) {                                                 // metres at iso plane (cosmetic)
-      const s = 0.5; // leaf bank half-separation scales with field width
-      parts._mlcLeafL.position.x = -(0.02 + (w || 0) * s);
-      parts._mlcLeafR.position.x =  (0.02 + (w || 0) * s);
-      parts._mlcLeafL.scale.z = parts._mlcLeafR.scale.z = 0.4 + (h || 0) * 1.2;
+      const halfOpen = 0.03 + (w || 0) * 0.5;       // MLC bank + X-jaw half-separation grows with width
+      parts._mlcL.position.x = -halfOpen; parts._mlcR.position.x = halfOpen;
+      parts._jawXL.position.x = -(0.05 + (w || 0) * 0.5); parts._jawXR.position.x = (0.05 + (w || 0) * 0.5);
+      parts._mlcL.scale.z = parts._mlcR.scale.z = 0.5 + (h || 0) * 1.0;   // field height (Z)
     },
     couch(c) {
       c = c || {};
