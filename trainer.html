@@ -858,8 +858,14 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .cb-acq-reveal.hidden{display:none}
 .cb-acq-reveal-lbl{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.14em;color:#8ef0c2;background:rgba(2,6,10,.55);padding:5px 14px;border-radius:20px;border:1px solid rgba(142,240,194,.25)}
 /* CBCT shift-apply strip: couch encoder turns gold + pulses while the couch is moving */
-#cbaplCouch.couch-moving{box-shadow:0 0 0 1px var(--gold,#e6c25a)}
-#cbaplCouch.couch-moving .con-cell b{color:var(--gold,#e6c25a)}
+#cbaplCouch.couch-moving,#fdaplCouch.couch-moving{box-shadow:0 0 0 1px var(--gold,#e6c25a)}
+#cbaplCouch.couch-moving .con-cell b,#fdaplCouch.couch-moving .con-cell b{color:var(--gold,#e6c25a)}
+.con-couch .con-arrow{grid-column:4;justify-self:start;align-self:baseline;font-family:var(--mono),monospace;font-size:13px;font-weight:600;color:var(--gold,#e6c25a);font-variant-numeric:tabular-nums;white-space:nowrap;animation:conArrowIn .3s ease}
+@keyframes conArrowIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+.tx-couch{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.tx-couch-cell{display:flex;flex-direction:column;align-items:center;background:rgba(8,11,16,.5);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;min-width:48px}
+.tx-couch-cell i{font-size:8px;letter-spacing:.06em;color:var(--muted);font-style:normal;text-transform:uppercase}
+.tx-couch-cell b{font-family:var(--mono),monospace;font-size:14px;color:var(--green);font-variant-numeric:tabular-nums}
 .con-msg.warn{color:var(--accent2,#ff8a4d)}
 /* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
 .tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
@@ -1131,7 +1137,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         </div>
         <div class="status-msg" id="cbStatusMsg">Fuse all three planes to the reference</div>
         <div class="match-timer" id="cbMatchTimerDisp" title="Match time — starts on your first adjustment, resets each Check Match">&#9201; 0:00.0</div>
-        <button class="btn-primary" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
+        <button class="btn-primary" id="cbCheckBtn" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
       </div>
     </div>
     <div class="cbct-pane-col">
@@ -1272,10 +1278,10 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <div class="cb-acq hidden" id="cbAppl" onpointerdown="event.stopPropagation()">
       <div class="con-couch" aria-label="Couch coordinates" id="cbaplCouch">
         <span class="con-couch-ttl">COUCH</span>
-        <div class="con-cell"><span class="cl">VRT</span><b id="cbaplVrt">-3.20</b><span class="u">cm</span></div>
-        <div class="con-cell"><span class="cl">LNG</span><b id="cbaplLng">24.50</b><span class="u">cm</span></div>
-        <div class="con-cell"><span class="cl">LAT</span><b id="cbaplLat">0.10</b><span class="u">cm</span></div>
-        <div class="con-cell"><span class="cl">RTN</span><b id="cbaplRtn">0.0</b><span class="u">&deg;</span></div>
+        <div class="con-cell"><span class="cl">VRT</span><b id="cbaplVrt">-3.20</b><span class="u">cm</span><span class="con-arrow" id="cbaplVrtA" style="display:none"></span></div>
+        <div class="con-cell"><span class="cl">LNG</span><b id="cbaplLng">24.50</b><span class="u">cm</span><span class="con-arrow" id="cbaplLngA" style="display:none"></span></div>
+        <div class="con-cell"><span class="cl">LAT</span><b id="cbaplLat">0.10</b><span class="u">cm</span><span class="con-arrow" id="cbaplLatA" style="display:none"></span></div>
+        <div class="con-cell"><span class="cl">RTN</span><b id="cbaplRtn">0.0</b><span class="u">&deg;</span><span class="con-arrow" id="cbaplRtnA" style="display:none"></span></div>
       </div>
       <div class="con-side con-pendant">
         <div class="con-pendant-hd"><span class="con-pendant-ttl">COUCH SHIFT &middot; APPLY</span><span class="con-pendant-sn" id="cbaplState">MATCH REVIEW</span></div>
@@ -1385,6 +1391,12 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           </g>
         </svg>
         <div class="tx-ang" id="txGantryAng">Gantry 180&deg;</div>
+        <div class="tx-couch" id="txCouch" aria-label="Treatment couch coordinates">
+          <span class="tx-couch-cell"><i>VRT</i><b id="txCouchVrt">-3.20</b></span>
+          <span class="tx-couch-cell"><i>LNG</i><b id="txCouchLng">24.50</b></span>
+          <span class="tx-couch-cell"><i>LAT</i><b id="txCouchLat">0.10</b></span>
+          <span class="tx-couch-cell"><i>RTN</i><b id="txCouchRtn">0.0</b></span>
+        </div>
       </div>
       <div class="tx-card">
         <h3>Delivery</h3>
@@ -1590,10 +1602,10 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="cb-acq hidden" id="fidAppl" onpointerdown="event.stopPropagation()">
     <div class="con-couch" aria-label="Couch coordinates" id="fdaplCouch">
       <span class="con-couch-ttl">COUCH</span>
-      <div class="con-cell"><span class="cl">VRT</span><b id="fdaplVrt">-3.20</b><span class="u">cm</span></div>
-      <div class="con-cell"><span class="cl">LNG</span><b id="fdaplLng">24.50</b><span class="u">cm</span></div>
-      <div class="con-cell"><span class="cl">LAT</span><b id="fdaplLat">0.10</b><span class="u">cm</span></div>
-      <div class="con-cell"><span class="cl">RTN</span><b id="fdaplRtn">0.0</b><span class="u">&deg;</span></div>
+      <div class="con-cell"><span class="cl">VRT</span><b id="fdaplVrt">-3.20</b><span class="u">cm</span><span class="con-arrow" id="fdaplVrtA" style="display:none"></span></div>
+      <div class="con-cell"><span class="cl">LNG</span><b id="fdaplLng">24.50</b><span class="u">cm</span><span class="con-arrow" id="fdaplLngA" style="display:none"></span></div>
+      <div class="con-cell"><span class="cl">LAT</span><b id="fdaplLat">0.10</b><span class="u">cm</span><span class="con-arrow" id="fdaplLatA" style="display:none"></span></div>
+      <div class="con-cell"><span class="cl">RTN</span><b id="fdaplRtn">0.0</b><span class="u">&deg;</span><span class="con-arrow" id="fdaplRtnA" style="display:none"></span></div>
     </div>
     <div class="con-side con-pendant">
       <div class="con-pendant-hd"><span class="con-pendant-ttl">COUCH SHIFT &middot; APPLY</span><span class="con-pendant-sn" id="fdaplState">MATCH REVIEW</span></div>
@@ -2855,7 +2867,7 @@ const FID2D=(function(){
   function allGreen(){
     for(const key of ['ap','lat']){const Z=(views[key]&&views[key].zoom)||1;
       for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
-        if(Math.hypot(s[0]-ss[0],s[1]-ss[1])>3.5*Z)return false;}}   // tighter than the draw threshold so 6DOF (rotation) genuinely matters
+        if(Math.hypot(s[0]-ss[0],s[1]-ss[1])>4.5*Z)return false;}}   // a little more margin to turn green (kept == the draw threshold)
     return true;
   }
   function check(){
@@ -2888,6 +2900,13 @@ const FID2D=(function(){
     setMsg(msg+'  ·  new offset loaded',cls);
   }
 
+  // Side-effect-free getter for Full Treatment APPLY: the recovered couch shift + whether all seeds are
+  // green. shift is in FID2D patient coords mapped to couch axes (x=Lat, y=SI/Lng, z=AP/Vrt, yaw).
+  function matchResult(){
+    const f=fit(P,M), r=fit(M,Qtrue);
+    return {accepted:allGreen(), transErr:Math.hypot(r.t[0],r.t[1],r.t[2]),
+      shift:{x:f.t[0],y:f.t[2],z:f.t[1],yaw:f.r[1]}};
+  }
   /* ---- readout (inject a Yaw row + relabel rotations for 6DOF while in this case) ---- */
   function fidPanel(on){
     // relabel the two rotation rows + add Yaw, both in the live panel and error display
@@ -2948,7 +2967,7 @@ const FID2D=(function(){
     // so you nest it on the seed. RED while off the seed, GREEN once it overlaps the fiducial.
     ctx.lineCap='butt';
     for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
-      const touching=Math.hypot(s[0]-ss[0],s[1]-ss[1])<=3.5*Z;   // green threshold == allGreen() accept threshold
+      const touching=Math.hypot(s[0]-ss[0],s[1]-ss[1])<=4.5*Z;   // green threshold == allGreen() accept threshold
       ctx.strokeStyle=touching?'rgba(56,232,128,0.98)':'rgba(255,72,72,0.96)';ctx.lineWidth=1.2*Z;
       ctx.beginPath();ctx.arc(s[0],s[1],1.8*Z,0,7);ctx.stroke();
       ctx.beginPath();ctx.moveTo(s[0]-9*Z,s[1]);ctx.lineTo(s[0]-3.5*Z,s[1]);ctx.moveTo(s[0]+3.5*Z,s[1]);ctx.lineTo(s[0]+9*Z,s[1]);
@@ -3000,7 +3019,8 @@ const FID2D=(function(){
       fRaf=requestAnimationFrame(step);};
     fRaf=requestAnimationFrame(step);fAcqRender();}
   function fExpoStop(){if(fExpoHold){fExpoHold=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fAcqRender();}}
-  function fStartMatch(){if(fAcqPhase!=='matchprompt')return;fAcqPhase='ready';fAcqRender();render();}   // "FIDUCIAL 2D/2D MATCH" — unlock the marker drag
+  function fStartMatch(){if(fAcqPhase!=='matchprompt')return;fAcqPhase='ready';fAcqRender();render();   // "FIDUCIAL 2D/2D MATCH" — unlock the marker drag
+    if(window.TXFLOW&&TXFLOW.active()&&TXFLOW.onMatchStart)TXFLOW.onMatchStart('kv');}   // Full Treatment: open the APPLY console now
   function fToggleAcq(on){fAcqEnabled=!!on;if(fAcqUses()){if(fAcqPhase==='ready')fAcqArm();}else{fAcqPhase='ready';fAcqStopRaf();}fAcqRender();}
   function fSetAcqForce(on){fAcqForce=!!on;if(!fAcqUses()){fAcqStopRaf();fAcqPhase='ready';fAcqRender();}}
 
@@ -3048,7 +3068,7 @@ const FID2D=(function(){
     rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext,
     acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady,allGreen};
   return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,
-    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,acqStartMatch:fStartMatch,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,setPendingOffset,
+    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,acqStartMatch:fStartMatch,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,setPendingOffset,matchResult,
     resize:()=>{if(active())render();},_dbg};
 })();
 window.FID2D=FID2D;
@@ -3086,19 +3106,34 @@ const TXFLOW=(function(){
   let backdrop=null;
   let motionRaf=0;          // couch-move animation (CBCT shift-apply)
   const couchBase={vrt:-3.20,lng:24.50,lat:0.10,rtn:0};   // planned couch encoder readout (prostate)
+  // ONE running couch position carried across all three stages: it starts at the plan, and each stage's
+  // applied shift accumulates into it so CBCT → kV → treatment always show consistent encoder values.
+  let couch={...couchBase};
+  let pendingTarget=null;   // the new couch values an APPLY loaded; MOTION ENABLE drives the couch to it
+  const CB_IDS={vrt:'cbaplVrt',lng:'cbaplLng',lat:'cbaplLat',rtn:'cbaplRtn',vrtA:'cbaplVrtA',lngA:'cbaplLngA',latA:'cbaplLatA',rtnA:'cbaplRtnA'};
+  const FD_IDS={vrt:'fdaplVrt',lng:'fdaplLng',lat:'fdaplLat',rtn:'fdaplRtn',vrtA:'fdaplVrtA',lngA:'fdaplLngA',latA:'fdaplLatA',rtnA:'fdaplRtnA'};
   const gid=id=>document.getElementById(id);
 
   function active(){return running;}
+  // ---- shared couch readouts ----
+  function paintCouch(ids,c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e(ids.vrt,c.vrt,2);e(ids.lng,c.lng,2);e(ids.lat,c.lat,2);e(ids.rtn,c.rtn,1);}
+  function showArrows(ids,t){const s=(id,v,d)=>{const el=gid(id);if(el){el.textContent='→ '+(v>=0?'+':'')+v.toFixed(d);el.style.display='';}};s(ids.vrtA,t.vrt,2);s(ids.lngA,t.lng,2);s(ids.latA,t.lat,2);s(ids.rtnA,t.rtn,1);}
+  function hideArrows(ids){[ids.vrtA,ids.lngA,ids.latA,ids.rtnA].forEach(id=>{const el=gid(id);if(el)el.style.display='none';});}
+  function paintTxCouch(){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('txCouchVrt',couch.vrt,2);e('txCouchLng',couch.lng,2);e('txCouchLat',couch.lat,2);e('txCouchRtn',couch.rtn,1);}
+  // SPACE always drives whichever couch-move MOTION ENABLE is currently armed (in either apply strip).
+  function spaceMotion(){if(!running)return false;for(const id of ['cbaplMotion','fdaplMotion']){const mo=gid(id);if(mo&&!mo.disabled&&mo.offsetParent!==null){mo.click();return true;}}return false;}
 
   /* ---- stage machine ---- */
   function enter(){
     running=true; holds=0; reimages=0; cbctRes=null; kvRes=null;
+    couch={...couchBase}; pendingTarget=null;   // fresh fraction starts at the planned couch
     showStepper(true); goCbct();
   }
   function goCbct(){
     stage='cbct'; updateStepper();
     currentMode='cbct';
-    const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');   // hide the shift-apply strip until the match is checked
+    const cm=gid('cbCheckBtn'); if(cm)cm.style.display='none';   // Full Treatment uses APPLY only — no Check Match
+    const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');   // the shift-apply strip opens when the 3D/3D match starts
     if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
     gid('startScreen').classList.add('hidden');
     gid('txScreen').classList.add('hidden');
@@ -3112,6 +3147,7 @@ const TXFLOW=(function(){
     gid('cbctScreen').classList.add('hidden');
     gid('txScreen').classList.add('hidden');
     currentMode='2d2d';
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='none';   // Full Treatment uses APPLY only — no Check Match
     if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(true);   // force the kV acquisition console for the fraction
     // Link the seeds: the kV pair starts off by the SAME residual the student left after the CBCT match.
     // CBCT axes (x=Lat, y=Lng/SI, z=Vrt/AP; pitch/roll/yaw) → FID2D patient coords (t=[Lat,AP,SI], r=[rx,ry,rz]=[Roll,Yaw,Pitch]).
@@ -3132,82 +3168,105 @@ const TXFLOW=(function(){
     gid('cbctScreen').classList.add('hidden');
     currentMode='tx';
     gid('txScreen').classList.remove('hidden');
+    paintTxCouch();   // carry the accumulated couch position into the treatment screen
     startDelivery();
     requestAnimationFrame(()=>{ const c=gid('txTrace'); if(c){c.width=c.clientWidth||900;} drawTrace(); });
   }
+  // Fallback entry (kept in case CBCT.check / FID2D.check ever route here): just open the apply strip.
+  // In Full Treatment there is NO "Check Match" — onMatchStart() opens the strip the moment the match
+  // begins, and APPLY reads the live residual itself.
   function onStageResult(which,res){
     if(!running) return;
-    // CBCT: do NOT gate on tolerance — always enter the shift-apply flow; it alerts the residual but
-    // lets the student proceed to the kV stage even out of tolerance (the residual carries to the kV).
-    if(which==='cbct'){ cbctRes=res; enterCbApply(); }
-    else if(which==='kv'){ if(res.accepted){ kvRes=res; enterFidApply(); } }
+    if(which==='cbct'){ cbctRes=res; showCbApply(); }
+    else if(which==='kv'){ kvRes=res; showFidApply(); }
   }
-  /* ---- CBCT shift-apply sub-flow (Full Treatment): check → APPLY SHIFTS → MOTION ENABLE → couch move ---- */
-  function setCouch(c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('cbaplVrt',c.vrt,2);e('cbaplLng',c.lng,2);e('cbaplLat',c.lat,2);e('cbaplRtn',c.rtn,1);}
-  function enterCbApply(){
+  // Called by CBCT.acqStartMatch / FID2D.acqStartMatch (the 3D/3D MATCH · FIDUCIAL MATCH buttons) when
+  // the registration unlocks, so the APPLY console is live from the start of the match.
+  function onMatchStart(which){ if(!running)return; if(which==='cbct')showCbApply(); else if(which==='kv')showFidApply(); }
+
+  /* ---- CBCT shift-apply sub-flow (Full Treatment): register → APPLY (loads new couch values + arrow)
+     → MOTION ENABLE / SPACE (couch drives to the new values) → kV stage. No Check Match. ---- */
+  function showCbApply(){
     if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    pendingTarget=null;
     const strip=gid('cbAppl'); if(strip)strip.classList.remove('hidden');
-    const couch=gid('cbaplCouch'); if(couch)couch.classList.remove('couch-moving');
-    setCouch(couchBase);
-    const acc=!!(cbctRes&&cbctRes.accepted), mag=(cbctRes&&cbctRes.mag)||0;
-    const msg=gid('cbaplMsg'); if(msg){msg.innerHTML='Match residual <b>'+mag.toFixed(1)+' mm</b> — '+(acc?'within tolerance.':'out of tolerance (you may still proceed).');msg.className='con-msg'+(acc?'':' warn');}
-    const stt=gid('cbaplState'); if(stt)stt.textContent='APPLY SHIFTS';
+    const c=gid('cbaplCouch'); if(c)c.classList.remove('couch-moving');
+    hideArrows(CB_IDS); paintCouch(CB_IDS,couch);
+    const stt=gid('cbaplState'); if(stt)stt.textContent='REGISTER → APPLY';
+    const msg=gid('cbaplMsg'); if(msg){msg.textContent='Register the cone-beam to the plan, then APPLY to load the couch shift.';msg.className='con-msg';}
     const ap=gid('cbaplApply'); if(ap)ap.disabled=false;
     const mo=gid('cbaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    requestAnimationFrame(()=>{try{window.dispatchEvent(new Event('resize'));}catch(e){}});
   }
   function cbApply(){
+    if(!running)return;
+    const res=(typeof CBCT!=='undefined'&&CBCT.residual)?CBCT.residual():null;
+    cbctRes=res||{accepted:false,mag:0,res6:{x:0,y:0,z:0,pitch:0,roll:0,yaw:0}};
+    const sh=(typeof CBCT!=='undefined'&&CBCT._dbg&&CBCT._dbg.shift)?CBCT._dbg.shift():{x:0,y:0,z:0,yaw:0};
+    pendingTarget={vrt:couch.vrt+(sh.z||0)/10,lng:couch.lng+(sh.y||0)/10,lat:couch.lat+(sh.x||0)/10,rtn:couch.rtn+(sh.yaw||0)};
+    showArrows(CB_IDS,pendingTarget);
     const ap=gid('cbaplApply'); if(ap)ap.disabled=true;
     const mo=gid('cbaplMotion'); if(mo){mo.disabled=false;mo.classList.add('needmove');}
     const stt=gid('cbaplState'); if(stt)stt.textContent='MOTION ENABLE';
-    const msg=gid('cbaplMsg'); if(msg){msg.textContent='Couch shift loaded — hit MOTION ENABLE to move the couch.';msg.className='con-msg';}
+    const acc=!!cbctRes.accepted, mag=cbctRes.mag||0;
+    const msg=gid('cbaplMsg'); if(msg){msg.innerHTML='Residual <b>'+mag.toFixed(1)+' mm</b> ('+(acc?'in tolerance':'out of tolerance — you may still proceed')+'). New couch values shown — hold MOTION ENABLE or SPACE to move.';msg.className='con-msg'+(acc?'':' warn');}
   }
   function cbMotion(){
+    if(!pendingTarget)return;
     const mo=gid('cbaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
-    const sh=(typeof CBCT!=='undefined'&&CBCT._dbg&&CBCT._dbg.shift)?CBCT._dbg.shift():{x:0,y:0,z:0,yaw:0};
-    const target={vrt:couchBase.vrt+(sh.z||0)/10,lng:couchBase.lng+(sh.y||0)/10,lat:couchBase.lat+(sh.x||0)/10,rtn:couchBase.rtn+(sh.yaw||0)};
-    const couch=gid('cbaplCouch'); if(couch)couch.classList.add('couch-moving');
+    const from={...couch}, target=pendingTarget;
+    const c=gid('cbaplCouch'); if(c)c.classList.add('couch-moving');
     const stt=gid('cbaplState'); if(stt)stt.textContent='COUCH MOVING…';
     const msg=gid('cbaplMsg'); if(msg)msg.textContent='Couch moving to the corrected position…';
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
     const t0=performance.now(),dur=1500;
     const step=(t)=>{const p=Math.min(1,(t-t0)/dur);
-      setCouch({vrt:couchBase.vrt+(target.vrt-couchBase.vrt)*p,lng:couchBase.lng+(target.lng-couchBase.lng)*p,lat:couchBase.lat+(target.lat-couchBase.lat)*p,rtn:couchBase.rtn+(target.rtn-couchBase.rtn)*p});
+      paintCouch(CB_IDS,{vrt:from.vrt+(target.vrt-from.vrt)*p,lng:from.lng+(target.lng-from.lng)*p,lat:from.lat+(target.lat-from.lat)*p,rtn:from.rtn+(target.rtn-from.rtn)*p});
       if(p<1){motionRaf=requestAnimationFrame(step);}
-      else{motionRaf=0;if(couch)couch.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — proceeding to kV fiducial imaging…';
-        setTimeout(()=>{const s=gid('cbAppl');if(s)s.classList.add('hidden');goKv();},800);}};
+      else{motionRaf=0;couch={...target};pendingTarget=null;hideArrows(CB_IDS);if(c)c.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — proceeding to kV fiducial imaging…';
+        setTimeout(()=>{if(!running)return;const s=gid('cbAppl');if(s)s.classList.add('hidden');goKv();},800);}};
     motionRaf=requestAnimationFrame(step);
   }
-  /* ---- kV fiducial shift-apply sub-flow (Full Treatment): match → APPLY SHIFTS → MOTION ENABLE → couch move → treat ---- */
-  function setCouchFd(c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('fdaplVrt',c.vrt,2);e('fdaplLng',c.lng,2);e('fdaplLat',c.lat,2);e('fdaplRtn',c.rtn,1);}
-  function enterFidApply(){
+  /* ---- kV fiducial shift-apply sub-flow: drag triad → APPLY → MOTION ENABLE / SPACE → treat ---- */
+  function showFidApply(){
     if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    pendingTarget=null;
     const strip=gid('fidAppl'); if(strip)strip.classList.remove('hidden');
-    const couch=gid('fdaplCouch'); if(couch)couch.classList.remove('couch-moving');
-    setCouchFd(couchBase);
-    const msg=gid('fdaplMsg'); if(msg){msg.textContent='Fiducials matched — apply the couch shift.';msg.className='con-msg';}
-    const stt=gid('fdaplState'); if(stt)stt.textContent='APPLY SHIFTS';
+    const c=gid('fdaplCouch'); if(c)c.classList.remove('couch-moving');
+    hideArrows(FD_IDS); paintCouch(FD_IDS,couch);
+    const stt=gid('fdaplState'); if(stt)stt.textContent='REGISTER → APPLY';
+    const msg=gid('fdaplMsg'); if(msg){msg.textContent='Drag the triad onto the seeds (all green), then APPLY to load the couch shift.';msg.className='con-msg';}
     const ap=gid('fdaplApply'); if(ap)ap.disabled=false;
     const mo=gid('fdaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
     requestAnimationFrame(()=>resizeAll());
   }
   function fidApply(){
+    if(!running)return;
+    const mr=(window.FID2D&&FID2D.matchResult)?FID2D.matchResult():null;
+    kvRes=mr||{accepted:false,transErr:0,shift:{x:0,y:0,z:0,yaw:0}};
+    const sh=kvRes.shift||{x:0,y:0,z:0,yaw:0};
+    pendingTarget={vrt:couch.vrt+(sh.z||0)/10,lng:couch.lng+(sh.y||0)/10,lat:couch.lat+(sh.x||0)/10,rtn:couch.rtn+(sh.yaw||0)};
+    showArrows(FD_IDS,pendingTarget);
     const ap=gid('fdaplApply'); if(ap)ap.disabled=true;
     const mo=gid('fdaplMotion'); if(mo){mo.disabled=false;mo.classList.add('needmove');}
     const stt=gid('fdaplState'); if(stt)stt.textContent='MOTION ENABLE';
-    const msg=gid('fdaplMsg'); if(msg){msg.textContent='Couch shift loaded — hit MOTION ENABLE to move the couch.';msg.className='con-msg';}
+    const grn=!!kvRes.accepted;
+    const msg=gid('fdaplMsg'); if(msg){msg.innerHTML=(grn?'All three seeds aligned. ':'Triad placed. ')+'New couch values shown — hold MOTION ENABLE or SPACE to move.';msg.className='con-msg'+(grn?'':' warn');}
   }
   function fidMotion(){
+    if(!pendingTarget)return;
     const mo=gid('fdaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
-    const sh=(kvRes&&kvRes.shift)||{x:0,y:0,z:0,yaw:0};
-    const target={vrt:couchBase.vrt+(sh.z||0)/10,lng:couchBase.lng+(sh.y||0)/10,lat:couchBase.lat+(sh.x||0)/10,rtn:couchBase.rtn+(sh.yaw||0)};
-    const couch=gid('fdaplCouch'); if(couch)couch.classList.add('couch-moving');
+    const from={...couch}, target=pendingTarget;
+    const c=gid('fdaplCouch'); if(c)c.classList.add('couch-moving');
     const stt=gid('fdaplState'); if(stt)stt.textContent='COUCH MOVING…';
     const msg=gid('fdaplMsg'); if(msg)msg.textContent='Couch moving to the corrected position…';
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
     const t0=performance.now(),dur=1500;
     const step=(t)=>{const p=Math.min(1,(t-t0)/dur);
-      setCouchFd({vrt:couchBase.vrt+(target.vrt-couchBase.vrt)*p,lng:couchBase.lng+(target.lng-couchBase.lng)*p,lat:couchBase.lat+(target.lat-couchBase.lat)*p,rtn:couchBase.rtn+(target.rtn-couchBase.rtn)*p});
+      paintCouch(FD_IDS,{vrt:from.vrt+(target.vrt-from.vrt)*p,lng:from.lng+(target.lng-from.lng)*p,lat:from.lat+(target.lat-from.lat)*p,rtn:from.rtn+(target.rtn-from.rtn)*p});
       if(p<1){motionRaf=requestAnimationFrame(step);}
-      else{motionRaf=0;if(couch)couch.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — beginning treatment delivery…';
-        setTimeout(()=>{const s=gid('fidAppl');if(s)s.classList.add('hidden');goTreat();},800);}};
+      else{motionRaf=0;couch={...target};pendingTarget=null;hideArrows(FD_IDS);if(c)c.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — beginning treatment delivery…';
+        setTimeout(()=>{if(!running)return;const s=gid('fidAppl');if(s)s.classList.add('hidden');goTreat();},800);}};
     motionRaf=requestAnimationFrame(step);
   }
   function exit(){
@@ -3220,6 +3279,9 @@ const TXFLOW=(function(){
     const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');
     const fa=gid('fidAppl'); if(fa)fa.classList.add('hidden');
     const sc=gid('txScreen'); if(sc)sc.classList.add('hidden');
+    hideArrows(CB_IDS); hideArrows(FD_IDS); pendingTarget=null;
+    const cb=gid('cbCheckBtn'); if(cb)cb.style.display='';        // restore Check Match for standalone CBCT
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';     // restore Check Match for standalone 2D
   }
   function restart(){ const sm=gid('txSummary'); if(sm)sm.classList.add('hidden'); enter(); }
 
@@ -3300,6 +3362,8 @@ const TXFLOW=(function(){
     beamPhase='rematch';
     gid('txScreen').classList.add('hidden');
     currentMode='2d2d'; document.body.classList.add('fid-mode');
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';   // the intrafraction re-match DOES use Check Match
+    if(cm)cm.textContent='Check Match';
     const gMV=((gantryAngle%360)+360)%360, m=measured(), sg=()=>Math.random()<.5?-1:1;
     const bd=getBackdrop();
     FID2D.enterExternal({
@@ -3387,7 +3451,7 @@ const TXFLOW=(function(){
     backdrop=c.toDataURL('image/png');return backdrop;
   }
 
-  return {enter,exit,restart,active,onStageResult,beamBtn,startRematch,cbApply,cbMotion,fidApply,fidMotion,
+  return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,beamBtn,startRematch,cbApply,cbMotion,fidApply,fidMotion,
     _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();drawTrace();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
       forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx}};
@@ -7163,6 +7227,18 @@ const CBCT=(function(){
     }
     render();
   }
+  // Side-effect-free residual getter for Full Treatment APPLY (mirrors check()'s grading, no UI writes,
+  // no new offset). res6 is the gradable residual (translation onto the target for off-bone cases).
+  function residual(){
+    const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
+    const g={x:e.x,y:e.y,z:e.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw};
+    if(targetDrift){g.x=+(e.x-targetDrift.x).toFixed(1);g.y=+(e.y-targetDrift.y).toFixed(1);g.z=+(e.z-targetDrift.z).toFixed(1);}
+    const TOL=rtTol('cbct',caseKey), ptvOnly=!!targetDrift;
+    const tOk=Math.abs(g.x)<=TOL.t1&&Math.abs(g.y)<=TOL.t1&&Math.abs(g.z)<=TOL.t1,
+          rOk=Math.abs(g.pitch)<=TOL.r1&&Math.abs(g.roll)<=TOL.r1&&Math.abs(g.yaw)<=TOL.r1;
+    return {accepted:ptvOnly?tOk:(tOk&&rOk), mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z),
+      res6:{x:g.x,y:g.y,z:g.z,pitch:g.pitch,roll:g.roll,yaw:g.yaw}};
+  }
   function check(){
     if(!acqReady()){const m=gid('cbStatusMsg');if(m){m.textContent='Acquire the cone-beam first — rotate to 180° and scan around the patient.';m.style.color='var(--accent2)';}return;}
     const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));   // bony residual
@@ -7522,12 +7598,13 @@ const CBCT=(function(){
       acqRaf=requestAnimationFrame(step);};
     acqRaf=requestAnimationFrame(step);acqRender();}
   function acqSweepStop(){}   // auto-acquire: Beam On runs the full sweep; release/keyup is a no-op
-  function acqStartMatch(){if(acqPhase!=='matchprompt')return;acqPhase='ready';acqRender();render();}   // "3D/3D MATCH" — unlock the registration
+  function acqStartMatch(){if(acqPhase!=='matchprompt')return;acqPhase='ready';acqRender();render();   // "3D/3D MATCH" — unlock the registration
+    if(window.TXFLOW&&TXFLOW.active()&&TXFLOW.onMatchStart)TXFLOW.onMatchStart('cbct');}   // Full Treatment: open the APPLY console now
   function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
   function setAcqForce(on){acqForce=!!on;if(!acqUses()){acqStopRaf();}}
   function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
-    toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,acqStartMatch,setAcqForce,acqReady,
+    toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,acqStartMatch,setAcqForce,acqReady,residual,
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
 })();
 window.CBCT=CBCT;
@@ -7542,6 +7619,8 @@ window.CBCT=CBCT;
     if(e.code==='Space'||e.key===' '){
       if(cbctUp()){e.preventDefault();CBCT.acqMotionStart(e);}
       else if(fidUp()){e.preventDefault();FID2D.acqMotionStart(e);}
+      // SPACE is ALWAYS a motion-enable: when no acquisition console is up, drive a loaded couch shift.
+      else if(typeof TXFLOW!=='undefined'&&TXFLOW.spaceMotion&&TXFLOW.spaceMotion()){e.preventDefault();}
     }else if(e.key==='Enter'){
       if(cbctUp()){e.preventDefault();CBCT.acqSweepStart(e);}
       else if(fidUp()){e.preventDefault();FID2D.acqBeamStart(e);}
