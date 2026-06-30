@@ -47,8 +47,12 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   button (both 2D & CBCT screens) open a `.modal-bg` (`#tb3dModal`, z-index 280) that lazy-imports the
   viewer. It **binds live to the active case** — 2D reads `CONSOLE._dbg.state()` (gantry + couch cm,
   relative to the plan baseline); CBCT reads `CBCT._dbg.shift()` (6DOF mm/deg, so `window.CBCT=CBCT`
-  was exposed) — else free-orbits as an explorer with pose presets. Model + `.glb` render verified
-  headlessly; live in-trainer tracking still wants a real-browser check (like every 3D/canvas feature).
+  was exposed) — else free-orbits as an explorer with pose presets. **The 2D IGRT console strip's
+  `.con-viz` SVG "dial" was replaced by an inline live viewer** (`#con3dCanvas`, the `CON3D` controller):
+  `CONSOLE.renderViz()` calls `CON3D.update(gantry, couch, couch0)` each frame so the compact 3D
+  TrueBeam tracks the case gantry + dialed couch correction (fixed landscape 3/4 camera, no
+  OrbitControls, pauses when the console is hidden). Model + `.glb` render verified headlessly; live
+  in-trainer tracking still wants a real-browser check (like every 3D/canvas feature).
 - `subscribe.html` — Clerk pricing table / checkout (`/subscribe`); shows a trainer-screenshot strip above the table.
 - `account.html` — self-service **account & billing** page (`/account`). Mounts Clerk
   `mountUserProfile` (profile · security · **billing**: update card / cancel) themed dark via the

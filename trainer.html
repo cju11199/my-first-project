@@ -710,8 +710,9 @@ html:not(.auth-pending) #authGate{display:none}
 .con-pip.done{background:var(--green);border-color:var(--green)}
 .con-plan{margin-left:auto;font-size:10px;color:var(--muted);letter-spacing:.08em}
 /* ── SVG linac gantry visualization ── */
-.con-viz{flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px}
+.con-viz{flex:0 0 190px;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 25%,#0c1118,#04070b);border:1px solid var(--border2);border-radius:10px;overflow:hidden}
 .con-svg{width:128px;height:116px;display:block}
+.con-3dcanvas{width:100%;height:100%;display:block}
 /* ── photoreal TrueBeam DRUM (front-on, down the bore) — metal-gradient gantry that rotates about iso ── */
 /* the bore + drum + head/imager fills come from inline SVG gradients (defs in the markup);
    CSS only governs the strokes/colours JS does not paint and the beam-flash visibility. */
@@ -1367,149 +1368,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="console-strip hidden ph-acquire" id="consoleStrip" aria-label="IGRT setup console">
     <!-- SVG linac: a rotating gantry rig (head + MV/EPID + kV source/panel) with a beam-fan flash on Acquire -->
     <div class="con-viz">
-      <svg viewBox="0 0 128 116" class="con-svg" aria-hidden="true">
-        <defs>
-          <!-- bore: dark recessed drum interior -->
-          <radialGradient id="cBore" cx="50%" cy="46%" r="58%">
-            <stop offset="0%" stop-color="#0a121d"/>
-            <stop offset="62%" stop-color="#0c151f"/>
-            <stop offset="100%" stop-color="#172331"/>
-          </radialGradient>
-          <!-- the rotating drum FACE: brushed silver torus catching light from upper-left -->
-          <radialGradient id="cDrum" cx="38%" cy="32%" r="78%">
-            <stop offset="0%" stop-color="#6a7f9c"/>
-            <stop offset="42%" stop-color="#475b78"/>
-            <stop offset="78%" stop-color="#33465f"/>
-            <stop offset="100%" stop-color="#26384e"/>
-          </radialGradient>
-          <radialGradient id="cDrumInner" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stop-color="#0c1622"/>
-            <stop offset="80%" stop-color="#11202f"/>
-            <stop offset="100%" stop-color="#22344a"/>
-          </radialGradient>
-          <!-- treatment head: machined silver block, foreshortened toward iso -->
-          <linearGradient id="cHead" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#7e93b0"/>
-            <stop offset="34%" stop-color="#56698a"/>
-            <stop offset="100%" stop-color="#33455f"/>
-          </linearGradient>
-          <linearGradient id="cHeadSide" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#5b6f8e"/>
-            <stop offset="100%" stop-color="#2c3c52"/>
-          </linearGradient>
-          <!-- glossy EPID flat panel -->
-          <linearGradient id="cEpid" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#8fa6c4"/>
-            <stop offset="18%" stop-color="#5a708f"/>
-            <stop offset="50%" stop-color="#3c5070"/>
-            <stop offset="100%" stop-color="#283950"/>
-          </linearGradient>
-          <linearGradient id="cKvPan" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#7e95b4"/>
-            <stop offset="45%" stop-color="#415672"/>
-            <stop offset="100%" stop-color="#293a52"/>
-          </linearGradient>
-          <linearGradient id="cArm" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#566a89"/>
-            <stop offset="50%" stop-color="#6f86a6"/>
-            <stop offset="100%" stop-color="#384a64"/>
-          </linearGradient>
-          <!-- couch top: brushed support bar -->
-          <linearGradient id="cCouch" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3a4d66"/>
-            <stop offset="48%" stop-color="#2a3a51"/>
-            <stop offset="100%" stop-color="#1c2a3c"/>
-          </linearGradient>
-          <!-- MV volumetric beam (hero on exposure: bright apex) -->
-          <linearGradient id="cMvBeam" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ffd0ad" stop-opacity="1"/>
-            <stop offset="48%" stop-color="#ff7a45" stop-opacity=".82"/>
-            <stop offset="100%" stop-color="#ff7a45" stop-opacity=".22"/>
-          </linearGradient>
-          <linearGradient id="cKvBeam" x1="1" y1="0" x2="0" y2="0">
-            <stop offset="0%" stop-color="#9ff0fb" stop-opacity=".95"/>
-            <stop offset="55%" stop-color="#2dd4ee" stop-opacity=".68"/>
-            <stop offset="100%" stop-color="#2dd4ee" stop-opacity=".16"/>
-          </linearGradient>
-          <filter id="cShadow" x="-30%" y="-30%" width="160%" height="160%">
-            <feDropShadow dx="0" dy="1.2" stdDeviation="1.2" flood-color="#000" flood-opacity="0.55"/>
-          </filter>
-        </defs>
-
-        <!-- bore interior (static, recessed drum the gantry emerges from) -->
-        <circle class="con-bore" cx="64" cy="58" r="47" fill="url(#cBore)"/>
-        <circle cx="64" cy="58" r="47" fill="none" stroke="#1d2c3e" stroke-width="1.4"/>
-        <circle cx="64" cy="58" r="44" fill="none" stroke="#0a1019" stroke-width="2" opacity="0.7"/>
-
-        <!-- gantry hard limit marker (180°, bottom): no straight-down transit -->
-        <line class="con-limit" x1="64" y1="104" x2="64" y2="113"/>
-        <path class="con-limit-arrow" d="M59 107 L64 102 L69 107" fill="none"/>
-
-        <!-- patient / couch indication at iso (static) — horizontal support bar through iso + patient -->
-        <rect class="con-couchtop" x="20" y="61.6" width="88" height="5.4" rx="1.6" fill="url(#cCouch)"/>
-        <rect class="con-couchgloss" x="22" y="62.4" width="84" height="1.4" rx="0.7"/>
-        <ellipse class="con-pt" cx="64" cy="58" rx="9.5" ry="6.6"/>
-        <ellipse class="con-pt-core" cx="64" cy="56.6" rx="6" ry="3.5"/>
-
-        <!-- view-angle ticks (positioned/coloured by JS) -->
-        <g id="conMark0" class="con-vmark"><line x1="64" y1="6" x2="64" y2="13"/></g>
-        <g id="conMark1" class="con-vmark"><line x1="64" y1="6" x2="64" y2="13"/></g>
-
-        <!-- ===================== ROTATING GANTRY RIG ===================== -->
-        <g id="conRig" transform="rotate(0 64 58)">
-
-          <!-- structural drum FACE: thick silver torus emerging from the bore -->
-          <circle class="con-drum" cx="64" cy="58" r="40" fill="url(#cDrum)" filter="url(#cShadow)"/>
-          <circle cx="64" cy="58" r="40" fill="none" stroke="#8499b6" stroke-width="0.8" opacity="0.5"/>
-          <!-- brushed panel-seam grooves (segmented gantry shell) -->
-          <circle cx="64" cy="58" r="36.5" fill="none" stroke="#1f2f43" stroke-width="0.8" opacity="0.55"/>
-          <circle cx="64" cy="58" r="36.5" fill="none" stroke="#7c92b0" stroke-width="0.5" stroke-dasharray="0.6 5.2" opacity="0.4"/>
-          <circle class="con-drum-in" cx="64" cy="58" r="31" fill="url(#cDrumInner)"/>
-          <circle cx="64" cy="58" r="31" fill="none" stroke="#1b2a3b" stroke-width="1.2"/>
-          <!-- specular highlight arc on the drum (upper-left light) -->
-          <path d="M36 41 A40 40 0 0 1 78 20" fill="none" stroke="#aebfd6" stroke-width="2.2" stroke-linecap="round" opacity="0.55"/>
-          <!-- 6 o'clock cable-wrap gap: notch in the drum-face ring at 180° -->
-          <path d="M58 97.6 A40 40 0 0 0 70 97.6" fill="none" stroke="#04070b" stroke-width="2.6" stroke-linecap="round" opacity="0.9"/>
-
-          <!-- ===== MV TREATMENT HEAD (12 o'clock) — foreshortened toward iso ===== -->
-          <rect x="60.5" y="24" width="7" height="11" rx="1" fill="url(#cArm)"/>
-          <path class="con-head" d="M51 11 L77 11 L73 26 L55 26 Z" fill="url(#cHead)" stroke="#8aa0bd" stroke-width="0.7" filter="url(#cShadow)"/>
-          <rect class="con-head-top" x="55" y="8" width="18" height="4" rx="1.6" fill="url(#cHeadSide)" stroke="#7e93b0" stroke-width="0.5"/>
-          <rect x="57" y="12.5" width="14" height="2" rx="1" fill="#9fb4d2" opacity="0.6"/>
-          <path class="con-coll" d="M58 26 L70 26 L66.5 32 L61.5 32 Z" fill="#2c3c52" stroke="#56698a" stroke-width="0.6"/>
-          <circle cx="64" cy="31" r="1.5" fill="#11202f" stroke="#4a5e7c" stroke-width="0.5"/>
-          <text class="con-glyph mv" x="64" y="21" text-anchor="middle" font-size="8" font-weight="800">MV</text>
-
-          <!-- ===== MV PORTAL IMAGER / EPID (6 o'clock, opposite head) — glossy panel ===== -->
-          <rect class="con-epid-arm" x="61" y="82" width="6" height="11" rx="1" fill="url(#cArm)"/>
-          <rect class="con-epid" x="49" y="92" width="30" height="10" rx="2" fill="url(#cEpid)" stroke="#8198b6" stroke-width="0.7" filter="url(#cShadow)"/>
-          <rect x="51" y="93.5" width="26" height="2.6" rx="1.3" fill="#cdd9ec" opacity="0.45"/>
-          <line class="con-epid-line" x1="52" y1="98" x2="76" y2="98"/>
-
-          <!-- ===== kV OBI SOURCE (3 o'clock, 90° from head) ===== -->
-          <rect x="82" y="55" width="13" height="6" rx="1" fill="url(#cArm)"/>
-          <g filter="url(#cShadow)">
-            <path class="con-kvsrc" d="M93 50 L105 52 L105 64 L93 66 Z" fill="url(#cHeadSide)" stroke="#7e93b0" stroke-width="0.6"/>
-          </g>
-          <rect x="95" y="52" width="2.5" height="12" rx="1" fill="#9fb4d2" opacity="0.5"/>
-          <path d="M92 54 L98 56 L98 60 L92 62 Z" fill="#1a2838" stroke="#3f5470" stroke-width="0.5"/>
-          <text class="con-glyph kv" x="100" y="61" text-anchor="middle" font-size="7" font-weight="800">kV</text>
-
-          <!-- ===== kV DETECTOR PANEL (9 o'clock, opposite kV source) — glossy flat panel, pulled out & ~10% smaller ===== -->
-          <rect class="con-kvarm" x="31.5" y="55.5" width="14" height="5" rx="1" fill="url(#cArm)"/>
-          <rect class="con-kvpan" x="20" y="50" width="9" height="16" rx="2" fill="url(#cKvPan)" stroke="#7e95b4" stroke-width="0.7" filter="url(#cShadow)"/>
-          <rect x="21.8" y="52" width="2.3" height="12" rx="1.15" fill="#bccbe2" opacity="0.42"/>
-          <line class="con-kvpan-line" x1="25.4" y1="52" x2="25.4" y2="64"/>
-
-          <!-- volumetric beams (flash on exposure) — drawn over the drum interior, converging on iso 64,58 -->
-          <polygon id="conMvBeam" class="con-beamfan mv" points="64,30 54,57.5 74,57.5" fill="url(#cMvBeam)"/>
-          <polygon id="conKvBeam" class="con-beamfan kv" points="93,58 67,51 67,65" fill="url(#cKvBeam)"/>
-
-          <!-- central bearing hub over iso, faint cyan rim glow -->
-          <circle class="con-isohub" cx="64" cy="58" r="2.8" fill="#1a2a3b" stroke="#2dd4ee" stroke-width="0.7" opacity="0.85"/>
-          <circle class="con-iso" cx="64" cy="58" r="1.4"/>
-        </g>
-      </svg>
+      <!-- live 3D TrueBeam (replaces the SVG dial): bound to the case gantry + couch via CON3D -->
+      <canvas id="con3dCanvas" class="con-3dcanvas" aria-hidden="true"></canvas>
     </div>
     <div class="con-main">
       <div class="con-seq">
@@ -3201,6 +3061,7 @@ const CONSOLE=(()=>{
       m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':'')));});
     const mv=el('lampMotion'); if(mv)mv.className='con-lamp'+(motOn?' warn':'');
     renderGantryHead();
+    if(window.CON3D)CON3D.update(gantry, couch, couch0);   // drive the inline 3D TrueBeam (replaces the SVG dial)
   }
   // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
   // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
@@ -7060,6 +6921,44 @@ requestAnimationFrame(()=>{
   });
 
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&isOpen())closeMachine3D(); });
+})();
+</script>
+<script>
+/* ── Inline 3D TrueBeam for the 2D console (replaces the SVG dial) ─────────────
+   A compact, non-interactive live viewer in the IGRT console strip, bound to the
+   case gantry + couch via CONSOLE.renderViz → CON3D.update. Lazy-loads three.js on
+   first 2D case; pauses when the console is hidden (IntersectionObserver in the viewer). */
+(function(){
+  let v=null, loading=false, lastSig='';
+  async function ensure(){
+    if(v||loading) return v;
+    const cv=document.getElementById('con3dCanvas');
+    if(!cv || !cv.clientWidth) return null;          // wait until the console (and canvas) is visible
+    loading=true;
+    try{
+      const THREE=await import('three');
+      const {TrueBeamViewer}=await import('/assets/truebeam/truebeam-viewer.js');
+      await new Promise(r=>requestAnimationFrame(r));
+      v=new TrueBeamViewer(THREE,{canvas:cv, edu:true, axes:false, patient:true, background:null});
+      v.camera.fov=32; v.camera.position.set(2.7, 0.95, -3.0); v.camera.lookAt(0, 0.15, -0.25);  // landscape 3/4 framing (head over couch)
+      v.camera.updateProjectionMatrix();
+      v.setPose({ gantryAngle:0, kvDeploy:0, kvDetDeploy:0, mvDeploy:0 });
+      window.__conViewer=v;   // exposed for the headless framing check
+    }catch(e){ /* leave the panel empty on failure — numeric readouts still inform */ }
+    loading=false; return v;
+  }
+  window.CON3D={
+    ensure,
+    update(gantry, couch, couch0){
+      if(!v){ ensure(); return; }
+      const c=couch||{}, c0=couch0||{};
+      const pose={ gantryAngle: gantry||0,
+        couch:{ lat:((c.lat||0)-(c0.lat||0))/100, long:((c.lng||0)-(c0.lng||0))/100,
+                vert:((c.vrt||0)-(c0.vrt||0))/100, yaw:(c.rtn||0) } };
+      const sig=JSON.stringify(pose); if(sig===lastSig) return;   // render only on change
+      lastSig=sig; v.setPose(pose);
+    },
+  };
 })();
 </script>
 <script src="/clerk-auth.js"></script>
