@@ -118,22 +118,19 @@ export function build(THREE, opts = {}) {
   // The gantry drum mounts on its upper front face; its top rises above iso (head-height).
   // A tall STAND (not a thin pole) is what stops the machine reading as a CT bore.
   const stand = grp(THREE, 'Stand_Drive_Base');
-  // Drive base modelled on the maastro reference: a support block rising from the floor, topped by
-  // a RIBBED/FINNED cylindrical drive drum on the rotation axis (the gantry's distinctive finned
-  // drum), with the gantry C-arm rotating on its front face.
-  const base = box(THREE, 1.06, 1.34, 1.0, M.cream, 'Stand_Base');
-  base.position.set(0, IEC.FLOOR_Y + 0.62, 1.18);     // floor → ~y0 (iso height, under the drum)
-  const baseFront = cyl(THREE, 0.34, 0.34, 1.3, M.cream, 24, 'Stand_Base_Fair');  // rounded front edge
-  baseFront.position.set(0, IEC.FLOOR_Y + 0.6, 0.72);
-  const ped = box(THREE, 1.4, 0.16, 1.1, M.creamDk, 'Stand_Pedestal');
-  ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.18);
-  // RIBBED DRIVE DRUM — a finned cylinder on the rotation axis (Z), the signature gantry drive
-  const drumCore = cyl(THREE, 0.5, 0.5, 0.98, M.cream, 40, 'Drive_Drum_Core');
-  drumCore.rotation.x = Math.PI / 2; drumCore.position.set(0, 0, 1.04);
-  stand.add(base, baseFront, ped, drumCore);
-  for (let i = 0; i < 11; i++) {                       // circular cooling/drive fins
-    const fin = cyl(THREE, 0.6, 0.6, 0.05, M.creamDk, 36, 'Drive_Drum_Fin_' + i);
-    fin.rotation.x = Math.PI / 2; fin.position.set(0, 0, 0.62 + i * 0.085);
+  // §1 (photo-redo spec) — A-frame support block from the floor, topped by a RIBBED/FINNED drive
+  // drum on the rotation axis (the signature finned drum). The C-arm rotates on its front face.
+  const footPlate = box(THREE, 1.45, 0.16, 1.20, M.creamDk, 'Stand_Foot_Plate'); footPlate.position.set(0, IEC.FLOOR_Y + 0.08, 1.18);
+  const baseBlock = box(THREE, 1.10, 1.40, 0.92, M.cream, 'Stand_Base_Block');    baseBlock.position.set(0, IEC.FLOOR_Y + 0.74, 1.22);
+  const baseFair  = cyl(THREE, 0.40, 0.40, 1.40, M.cream, 28, 'Stand_Base_Fair'); baseFair.rotation.x = Math.PI / 2; baseFair.position.set(0, IEC.FLOOR_Y + 0.74, 0.78);
+  const standSh   = new THREE.Mesh(new THREE.SphereGeometry(0.46, 20, 14), M.cream); standSh.name = 'Stand_Shoulder'; standSh.scale.set(1, 0.75, 1); standSh.position.set(0, 0.14, 0.82);
+  const drumCore  = cyl(THREE, 0.50, 0.50, 0.94, M.shell, 40, 'Drive_Drum_Core');  drumCore.rotation.x = Math.PI / 2; drumCore.position.set(0, 0, 1.02);
+  const drumFront = cyl(THREE, 0.54, 0.50, 0.10, M.creamDk, 40, 'Drive_Drum_Front'); drumFront.rotation.x = Math.PI / 2; drumFront.position.set(0, 0, 0.55);
+  const drumRear  = cyl(THREE, 0.52, 0.52, 0.05, M.cream, 40, 'Drive_Drum_Rear');  drumRear.rotation.x = Math.PI / 2; drumRear.position.set(0, 0, 1.50);
+  stand.add(footPlate, baseBlock, baseFair, standSh, drumCore, drumFront, drumRear);
+  for (let i = 0; i < 11; i++) {                       // 11 circular cooling/drive fins, proud of the core
+    const fin = cyl(THREE, 0.61, 0.61, 0.045, M.creamDk, 36, 'Drive_Drum_Fin_' + i);
+    fin.rotation.x = Math.PI / 2; fin.position.set(0, 0, 0.62 + i * 0.082);
     stand.add(fin);
   }
   root.add(stand);
@@ -150,36 +147,35 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // ── C-ARM GANTRY (head on a cantilever arm) ─────────────────────────────────
+  // ── §2 THICK CURVED C / HORSESHOE GANTRY ────────────────────────────────────
+  // ONE thick swept tube curving in the X-Y plane (head tip at top, EPID tip at bottom), bulging
+  // out on +X for girth, OPEN on the −X side. Roots into the drum front via a hub + solid spoke
+  // webs, so it reads as one continuous mass — never a thin pipe, never a closed bore.
   const banana = grp(THREE, 'Gantry_Banana');
   const V = THREE.Vector3;
-  // The gantry does NOT wrap around iso (that read as a ring/bore from the foot). Instead it's a
-  // thick rounded ARM that cantilevers the head out from the rotation hub: the head sits at the top
-  // of the arm, the arm leans down-and-back to a modest rounded hub at the rotation axis, and the
-  // hub joins the fixed stand behind. The MV EPID hangs off the hub on the opposite (lower) side.
-  // From the foot you see the head + the arm behind it, no ring and no flat disc.
-  const armPath = new THREE.CatmullRomCurve3([
-    new V(0, 0.86, 0.12),   // top — fairs into the head drum (head at z0.05)
-    new V(0, 0.55, 0.30),
-    new V(0, 0.22, 0.48),
-    new V(0, -0.06, 0.62),  // root into the hub on the rotation axis
+  const Cz = 0.40;                       // the C plane (forward of the drum, behind the couch corridor)
+  const cPath = new THREE.CatmullRomCurve3([
+    new V(0.00,  1.00, Cz),   // TOP tip — fairs into the head housing
+    new V(0.62,  0.82, Cz),   // upper +X shoulder
+    new V(0.93,  0.32, Cz),   // widest girth
+    new V(0.93, -0.32, Cz),   // lower girth
+    new V(0.62, -0.82, Cz),   // lower +X shoulder
+    new V(0.00, -1.00, Cz),   // BOTTOM tip — fairs into the MV EPID housing
   ]);
-  const armTube = new THREE.Mesh(new THREE.TubeGeometry(armPath, 56, 0.42, 28, false), M.shell);
-  armTube.name = 'Gantry_Arm';
-  banana.add(armTube);
-  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 18), M.shell);
-  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0, 0.80, 0.12); banana.add(shTop);
-  // rounded HUB at the rotation axis — the big curved gantry body mass where the arm meets the stand
-  const hub = cyl(THREE, 0.52, 0.56, 0.56, M.shell, 44, 'Gantry_Hub');
-  hub.rotation.x = Math.PI / 2; hub.position.z = 0.72;
-  banana.add(hub);
+  const cBody = new THREE.Mesh(new THREE.TubeGeometry(cPath, 64, 0.20, 20, false), M.shell);
+  cBody.name = 'Gantry_C_Body';
+  const hub = cyl(THREE, 0.56, 0.56, 0.34, M.shell, 44, 'Gantry_Hub'); hub.rotation.x = Math.PI / 2; hub.position.z = 0.45;
+  const hubCollar = torus(THREE, 0.56, 0.08, 12, 32, 360, M.creamDk, 'Gantry_Hub_Collar'); hubCollar.position.z = 0.50;
+  const spokeU = box(THREE, 0.34, 0.70, 0.22, M.shell, 'Gantry_Spoke_Upper'); spokeU.position.set(0, 0.50, 0.42);
+  const spokeL = box(THREE, 0.34, 0.70, 0.22, M.shell, 'Gantry_Spoke_Lower'); spokeL.position.set(0, -0.50, 0.42);
+  const bellyFair = new THREE.Mesh(new THREE.SphereGeometry(0.26, 18, 14), M.shell); bellyFair.name = 'Gantry_Belly_Fair'; bellyFair.scale.set(1, 1.3, 1); bellyFair.position.set(0.93, 0, Cz);
+  const shHead = new THREE.Mesh(new THREE.SphereGeometry(0.30, 22, 16), M.shell); shHead.name = 'Gantry_Shoulder_Head'; shHead.position.set(0, 0.96, Cz);
+  const shEpid = new THREE.Mesh(new THREE.SphereGeometry(0.28, 22, 16), M.shell); shEpid.name = 'Gantry_Shoulder_EPID'; shEpid.position.set(0, -0.96, Cz);
+  const axle = cyl(THREE, 0.26, 0.28, 0.30, M.creamDk, 28, 'Gantry_Axle'); axle.rotation.x = Math.PI / 2; axle.position.z = 0.50;
+  banana.add(cBody, hub, hubCollar, spokeU, spokeL, bellyFair, shHead, shEpid, axle);
   gantry.add(banana);
   parts.Gantry_Body = banana;
   parts.Gantry_FacePlate = hub;
-  // axle linking the hub back to the stand
-  const axle = cyl(THREE, 0.24, 0.26, 0.7, M.creamDk, 28, 'Gantry_Axle');
-  axle.rotation.x = Math.PI / 2; axle.position.set(0, 0, 0.95);   // on the rotation axis, hub → stand
-  gantry.add(axle);
 
   // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
   // Group ORIGIN = MV source/target EXACTLY at SAD (1.0 m) above iso (load-bearing for beam geometry).
@@ -187,14 +183,17 @@ export function build(THREE, opts = {}) {
   head.position.set(0, IEC.SAD, 0.05);
   const targetBlk = box(THREE, 0.2, 0.1, 0.2, M.metal, 'MV_Target');
   targetBlk.position.y = 0;
-  // bulky SMOOTH rounded head: a slightly-tapered round housing + a clean low dome cap (no facets).
-  const headHousing = cyl(THREE, 0.43, 0.46, 0.66, M.shell, 32, 'Head_Housing');
-  headHousing.position.y = -0.3;
-  const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.43, 28, 16), M.shell);
-  headCrown.name = 'Head_Crown'; headCrown.position.y = 0.0; headCrown.scale.set(1, 0.5, 1);   // low smooth dome matching the housing top
-  const headNeck = cyl(THREE, 0.3, 0.3, 0.72, M.shell, 22, 'Head_Neck');
-  headNeck.rotation.x = Math.PI / 2; headNeck.position.set(0, -0.04, 0.31);    // faired link back to the set-back drum
-  head.add(targetBlk, headHousing, headCrown, headNeck);
+  // §3 — bulky round housing widening downward + low dome cap, a back-fair into the C-top shoulder,
+  // and two side cheeks the kV arms emerge from (so nothing floats).
+  const headHousing = cyl(THREE, 0.46, 0.50, 0.62, M.shell, 32, 'Head_Housing');
+  headHousing.position.y = -0.30;
+  const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.46, 28, 16), M.shell);
+  headCrown.name = 'Head_Crown'; headCrown.position.y = 0.01; headCrown.scale.set(1, 0.5, 1);
+  const headBack = cyl(THREE, 0.40, 0.40, 0.56, M.shell, 24, 'Head_Back_Fair');
+  headBack.rotation.x = Math.PI / 2; headBack.position.set(0, -0.10, 0.30);    // reaches z≈0.58 to fuse with the C top (z0.40)
+  const headBulgeL = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), M.shell); headBulgeL.name = 'Head_Side_Bulge_L'; headBulgeL.position.set(0.34, -0.28, 0);
+  const headBulgeR = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 12), M.shell); headBulgeR.name = 'Head_Side_Bulge_R'; headBulgeR.position.set(-0.34, -0.28, 0);
+  head.add(targetBlk, headHousing, headCrown, headBack, headBulgeL, headBulgeR);
   gantry.add(head);
   parts.Treatment_Head_Group = head;
 
@@ -322,12 +321,14 @@ export function build(THREE, opts = {}) {
   // back POST behind the panel + a short LINK from the post to the panel's back edge (an L-arm)
   const mvPost = box(THREE, 0.12, 0.34, 0.12, M.creamDk, 'MV_Post'); mvPost.position.set(0, 0.16, 0.32);
   const mvLink = box(THREE, 0.14, 0.07, 0.34, M.cream, 'MV_ArmLink'); mvLink.position.set(0, 0.0, 0.17);
-  // EPID flat panel (square aS1200) — face UP toward iso/head, centred under iso (z0); face stays clean
+  // §4 — EPID as a SUBSTANTIAL ROUNDED HOUSING (not a thin slab): a drum housing + rounded skirt
+  // rim + domed under-cap, with the light-grey active face pointing UP at iso/beam, centred under iso.
   const mvPanMount = grp(THREE, 'MV_Panel'); mvPanMount.position.set(0, 0, 0);
-  const mvPanFrame = box(THREE, 0.6, 0.06, 0.6, M.shell, 'MV_Panel_Housing');
-  const mvPanGap   = box(THREE, 0.52, 0.05, 0.52, M.panelHs, 'MV_Panel_Recess'); mvPanGap.position.y = 0.015;
-  const mvPanFace  = box(THREE, 0.48, 0.04, 0.48, M.panel, 'MV_Panel_Face');     mvPanFace.position.y = 0.03;
-  mvPanMount.add(mvPanFrame, mvPanGap, mvPanFace);
+  const mvHousing  = cyl(THREE, 0.42, 0.42, 0.18, M.panelHs, 28, 'MV_EPID_Housing');  mvHousing.position.y = -0.04;
+  const mvSkirt    = torus(THREE, 0.42, 0.06, 12, 28, 360, M.creamDk, 'MV_EPID_Skirt'); mvSkirt.rotation.x = Math.PI / 2; mvSkirt.position.y = -0.01;
+  const mvUnder    = new THREE.Mesh(new THREE.SphereGeometry(0.38, 20, 12), M.panelHs); mvUnder.name = 'MV_EPID_UnderCap'; mvUnder.scale.set(1, 0.45, 1); mvUnder.position.y = -0.10;
+  const mvPanFace  = box(THREE, 0.50, 0.04, 0.50, M.panel, 'MV_Panel_Face');     mvPanFace.position.y = 0.06;
+  mvPanMount.add(mvHousing, mvSkirt, mvUnder, mvPanFace);
   mvS2.add(mvPost, mvLink, mvPanMount); mvS1.add(mvS2); mvDet.add(mvMount, mvS1);
   gantry.add(mvDet);
   parts.MV_Detector_Arm = mvDet; parts._mvS1 = mvS1; parts._mvS2 = mvS2;
