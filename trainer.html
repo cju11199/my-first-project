@@ -3084,6 +3084,7 @@ const TXFLOW=(function(){
     setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
   }
   function goKv(){
+    if(!running) return;   // a deferred couch-move callback must not advance a flow the student already exited
     stage='kv'; updateStepper();
     gid('cbctScreen').classList.add('hidden');
     gid('txScreen').classList.add('hidden');
