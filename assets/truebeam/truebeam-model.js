@@ -129,13 +129,11 @@ export function build(THREE, opts = {}) {
   ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.12);
   const standBlue = box(THREE, 0.05, 1.0, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
   standBlue.position.set(0, 0.0, 0.74);
-  // FIXED bearing collar/ring (NOT parented to the gantry) so the rotating drum visibly seats into
-  // the stand on a slewing bearing — an annular bezel only (never a solid ring → no CT-bore read).
-  const bearingCollar = cyl(THREE, 0.8, 0.8, 0.18, M.creamDk, 40, 'Stand_Bearing_Collar');
-  bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 0.96);   // wraps the drum's rear barrel
-  const bearingRing = cyl(THREE, 0.74, 0.74, 0.04, M.blue, 40, 'Stand_Bearing_Ring');
-  bearingRing.rotation.x = Math.PI / 2; bearingRing.position.set(0, 0, 0.87);        // fixed blue bearing lip the drum spins in
-  stand.add(col, colFair, ped, standBlue, bearingCollar, bearingRing);
+  // small fixed shoulder where the banana's axle enters the stand (tucked behind the banana;
+  // small radius so it never reads as a circular drum face toward the couch).
+  const bearingCollar = cyl(THREE, 0.34, 0.34, 0.16, M.creamDk, 32, 'Stand_Bearing_Collar');
+  bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 1.02);
+  stand.add(col, colFair, ped, standBlue, bearingCollar);
   root.add(stand);
   parts.Stand_Drive_Base = stand;
 
@@ -150,36 +148,43 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // ── CURVED C-ARM GANTRY BODY (the big sculptural mass, like the real TrueBeam) ──
-  // A THICK PARTIAL TORUS in the X-Y rotation plane: a fat rounded arc that sweeps from
-  // the head (top) around toward the imaging side, with the bottom (couch side) LEFT
-  // OPEN — an OPEN C, never a closed CT bore. Bulged toward +Z so its front face clears
-  // the couch (frontmost ≈ z0.50 ≥ the 0.45 couch-clearance line). This replaces the old
-  // thin rectangular arm + small flat drum that read as boxy/CT-like.
-  const bodyArc = torus(THREE, 0.58, 0.40, 20, 48, 282, M.shell, 'Gantry_Body');
-  bodyArc.position.set(0, 0, 0.90);
-  bodyArc.rotation.z = -51 * Math.PI / 180;     // sweep the 78° open gap to the bottom (couch entry)
-  gantry.add(bodyArc);
-  parts.Gantry_Body = bodyArc;
-  // inner fairing torus (slightly smaller/darker) to give the curved mass visual depth
-  const bodyInner = torus(THREE, 0.58, 0.30, 18, 44, 282, M.creamDk, 'Gantry_Body_Inner');
-  bodyInner.position.set(0, 0, 1.04);
-  bodyInner.rotation.z = -51 * Math.PI / 180;
-  gantry.add(bodyInner);
-  // SOLID hub core plugging the centre of the C so the gantry is solid white from EVERY angle —
-  // the torus inner hole + the cavity behind the face are filled, so no see-through "bore" mouth
-  // shows from the side. It only fills the centre (r≈0.52), so the BOTTOM of the C stays OPEN.
-  const hubPlug = cyl(THREE, 0.54, 0.54, 0.56, M.shell, 44, 'Gantry_Hub_Core');
-  hubPlug.rotation.x = Math.PI / 2; hubPlug.position.z = 0.74;            // solid z0.46→1.02, plugs the torus hole
-  // large rounded FACE at the rotation hub, facing the couch (-Z) — the big round gantry face.
-  const facePlate = cyl(THREE, 0.62, 0.56, 0.16, M.shell, 48, 'Gantry_FacePlate');
-  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.55;        // front at z0.47
-  const faceBoss  = cyl(THREE, 0.34, 0.40, 0.06, M.shell, 48, 'Gantry_Face_Boss');     // raised light central boss
-  faceBoss.rotation.x = Math.PI / 2; faceBoss.position.z = 0.47;
-  const blueRing = cyl(THREE, 0.50, 0.50, 0.05, M.blue, 48, 'Gantry_FaceBlueRing');   // Varian accent ring
-  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.49;          // sits just proud of the face
-  gantry.add(hubPlug, facePlate, faceBoss, blueRing);
-  parts.Gantry_FacePlate = facePlate;
+  // ── BANANA C-ARM GANTRY BODY ────────────────────────────────────────────────
+  // ONE continuous curved "banana"/boomerang mass like the real TrueBeam — NOT a ring,
+  // NOT a flat circular face. A tapered arc of graded, overlapping spheres (which blend
+  // into one smooth solid) sweeps from the treatment head (top) around the rotation axis
+  // toward the imaging side: thin tips, fat belly. Open curved unit (no closed centre →
+  // never a bore). Bulged toward +Z (front ≈ z0.48) so it clears the couch.
+  // The head is the THICK TOP END of the banana: the head-end ramps FORWARD (−Z) and up so
+  // it climbs into and merges with the head drum (one continuous unit), while the belly stays
+  // set back (front ≈ z0.47) to clear the couch.
+  const banana = grp(THREE, 'Gantry_Banana');
+  const BN = 42, BA0 = 94 * Math.PI / 180, BA1 = -78 * Math.PI / 180, BR = 0.64, BZ = 0.92;
+  for (let i = 0; i < BN; i++) {
+    const t = i / (BN - 1);
+    const ang = BA0 + (BA1 - BA0) * t;
+    let x = BR * Math.cos(ang), y = BR * Math.sin(ang), z = BZ;
+    // taper: thin at both tips, fat belly in the middle
+    let rad = 0.19 + 0.24 * Math.sin(Math.PI * Math.min(1, 0.12 + t * 0.88));
+    if (t < 0.30) {                   // head-end shoulder: ramp forward + up so it MERGES into the head
+      const k = 1 - t / 0.30;         // 1 at the very head end → 0 where it rejoins the arc
+      z = BZ - k * 0.78;              // z0.92 (arc) → z0.14 (deep into the head drum at z0.05)
+      y += k * 0.17;                  // climb to the head centre
+      rad += k * 0.10;                // fat shoulder fairing into the head
+    }
+    const s = new THREE.Mesh(new THREE.SphereGeometry(rad, 16, 12), M.shell);
+    s.name = 'Gantry_Banana_' + i;
+    s.position.set(x, y, z);
+    s.scale.z = 0.92;                 // nearly round → tighter overlap blends smoother
+    banana.add(s);
+  }
+  gantry.add(banana);
+  parts.Gantry_Body = banana;
+  parts.Gantry_FacePlate = banana;
+  // short structural axle at the rotation centre linking the banana back to the stand —
+  // small and tucked behind the banana, so there is NO big circular face toward the couch.
+  const axle = cyl(THREE, 0.24, 0.27, 0.72, M.creamDk, 28, 'Gantry_Axle');
+  axle.rotation.x = Math.PI / 2; axle.position.z = 1.0;
+  gantry.add(axle);
 
   // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
   // Group ORIGIN = MV source/target EXACTLY at SAD (1.0 m) above iso (load-bearing for beam geometry).
