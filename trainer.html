@@ -857,6 +857,10 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .cb-acq-reveal{position:absolute;inset:0;z-index:21;pointer-events:none;display:flex;align-items:center;justify-content:center;background:rgba(2,6,10,.94)}
 .cb-acq-reveal.hidden{display:none}
 .cb-acq-reveal-lbl{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.14em;color:#8ef0c2;background:rgba(2,6,10,.55);padding:5px 14px;border-radius:20px;border:1px solid rgba(142,240,194,.25)}
+/* CBCT shift-apply strip: couch encoder turns gold + pulses while the couch is moving */
+#cbaplCouch.couch-moving{box-shadow:0 0 0 1px var(--gold,#e6c25a)}
+#cbaplCouch.couch-moving .con-cell b{color:var(--gold,#e6c25a)}
+.con-msg.warn{color:var(--accent2,#ff8a4d)}
 /* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
 .tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
 .tx-stepper.hidden{display:none}
@@ -1263,6 +1267,25 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         </div>
       </div>
     </div><!-- /.cbct-panes -->
+    <!-- Full Treatment only: after the CBCT match, APPLY SHIFTS then MOTION ENABLE moves the couch.
+         Non-gating — it alerts the residual but lets you proceed to the kV stage out of tolerance. -->
+    <div class="cb-acq hidden" id="cbAppl" onpointerdown="event.stopPropagation()">
+      <div class="con-couch" aria-label="Couch coordinates" id="cbaplCouch">
+        <span class="con-couch-ttl">COUCH</span>
+        <div class="con-cell"><span class="cl">VRT</span><b id="cbaplVrt">-3.20</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LNG</span><b id="cbaplLng">24.50</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LAT</span><b id="cbaplLat">0.10</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">RTN</span><b id="cbaplRtn">0.0</b><span class="u">&deg;</span></div>
+      </div>
+      <div class="con-side con-pendant">
+        <div class="con-pendant-hd"><span class="con-pendant-ttl">COUCH SHIFT &middot; APPLY</span><span class="con-pendant-sn" id="cbaplState">MATCH REVIEW</span></div>
+        <div class="con-msg" id="cbaplMsg">Check the CBCT match, then apply the couch shift.</div>
+        <div class="con-pendant-btns">
+          <button class="pbtn apply" id="cbaplApply" type="button" disabled onclick="TXFLOW.cbApply()" title="Apply the matched couch correction"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+          <button class="pbtn motion" id="cbaplMotion" type="button" disabled onclick="TXFLOW.cbMotion()" title="Move the couch to the corrected position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">move couch</span></button>
+        </div>
+      </div>
+    </div>
     <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()">
       <div class="con-viz">
         <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
@@ -2775,11 +2798,11 @@ const FID2D=(function(){
     if(pendingOffset){tt=pendingOffset.t.slice();rv=pendingOffset.r.slice();pendingOffset=null;}   // Full Treatment: inherit the residual left after the CBCT match (same seeds, same offset)
     else{
       tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
-      // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
-      // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
-      // never seat all three markers — the student MUST Ctrl+drag one or two seeds to rotate the triad.
-      rv=[rr(3,5)*sg(),rr(3,5)*sg(),rr(3,5)*sg()];
-      const need=fidRotTol()*2,tot=Math.hypot(rv[0],rv[1],rv[2]);
+      // Per-axis rotation (4–8°). Across 3 axes the total compounds to ~7–14°, forced to clear FOUR
+      // times the accept tolerance — large enough that the seeds visibly swing off their marks and a
+      // translate-only (plain drag) solution can NOT seat all three: the student MUST rotate the triad.
+      rv=[rr(4,8)*sg(),rr(4,8)*sg(),rr(4,8)*sg()];
+      const need=fidRotTol()*4,tot=Math.hypot(rv[0],rv[1],rv[2]);
       if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
     }
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
@@ -2812,7 +2835,7 @@ const FID2D=(function(){
   function allGreen(){
     for(const key of ['ap','lat']){const Z=(views[key]&&views[key].zoom)||1;
       for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
-        if(Math.hypot(s[0]-ss[0],s[1]-ss[1])>4.5*Z)return false;}}
+        if(Math.hypot(s[0]-ss[0],s[1]-ss[1])>3.5*Z)return false;}}   // tighter than the draw threshold so 6DOF (rotation) genuinely matters
     return true;
   }
   function check(){
@@ -2905,7 +2928,7 @@ const FID2D=(function(){
     // so you nest it on the seed. RED while off the seed, GREEN once it overlaps the fiducial.
     ctx.lineCap='butt';
     for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
-      const touching=Math.hypot(s[0]-ss[0],s[1]-ss[1])<=4.5*Z;
+      const touching=Math.hypot(s[0]-ss[0],s[1]-ss[1])<=3.5*Z;   // green threshold == allGreen() accept threshold
       ctx.strokeStyle=touching?'rgba(56,232,128,0.98)':'rgba(255,72,72,0.96)';ctx.lineWidth=1.2*Z;
       ctx.beginPath();ctx.arc(s[0],s[1],1.8*Z,0,7);ctx.stroke();
       ctx.beginPath();ctx.moveTo(s[0]-9*Z,s[1]);ctx.lineTo(s[0]-3.5*Z,s[1]);ctx.moveTo(s[0]+3.5*Z,s[1]);ctx.lineTo(s[0]+9*Z,s[1]);
@@ -3038,6 +3061,8 @@ const TXFLOW=(function(){
   let holds=0, reimages=0, cbctRes=null, kvRes=null;
   let trace=[];             // {mag, trig}
   let backdrop=null;
+  let motionRaf=0;          // couch-move animation (CBCT shift-apply)
+  const couchBase={vrt:-3.20,lng:24.50,lat:0.10,rtn:0};   // planned couch encoder readout (prostate)
   const gid=id=>document.getElementById(id);
 
   function active(){return running;}
@@ -3050,6 +3075,8 @@ const TXFLOW=(function(){
   function goCbct(){
     stage='cbct'; updateStepper();
     currentMode='cbct';
+    const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');   // hide the shift-apply strip until the match is checked
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
     gid('startScreen').classList.add('hidden');
     gid('txScreen').classList.add('hidden');
     gid('cbctScreen').classList.remove('hidden');
@@ -3064,7 +3091,12 @@ const TXFLOW=(function(){
     if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(true);   // force the kV acquisition console for the fraction
     // Link the seeds: the kV pair starts off by the SAME residual the student left after the CBCT match.
     // CBCT axes (x=Lat, y=Lng/SI, z=Vrt/AP; pitch/roll/yaw) → FID2D patient coords (t=[Lat,AP,SI], r=[rx,ry,rz]=[Roll,Yaw,Pitch]).
-    if(window.FID2D&&FID2D.setPendingOffset&&cbctRes&&cbctRes.res6){const g=cbctRes.res6;FID2D.setPendingOffset({t:[g.x,g.z,g.y],r:[g.roll,g.yaw,g.pitch]});}
+    if(window.FID2D&&FID2D.setPendingOffset&&cbctRes&&cbctRes.res6){const g=cbctRes.res6;
+      // Translation stays exact (same distance off); amplify + floor the carried rotation so the kV
+      // verification clearly requires a 6DOF correction (CBCT prostate doesn't grade rotation).
+      const GR=3;let r=[g.roll*GR,g.yaw*GR,g.pitch*GR];const tot=Math.hypot(r[0],r[1],r[2]),flo=10;
+      if(tot<flo){r=(tot>0.5)?r.map(x=>x*flo/tot):[6,-5,5];}
+      FID2D.setPendingOffset({t:[g.x,g.z,g.y],r});}
     applyCase('prostate');   // global 2D applyCase routes to FID2D.enter() (fidMatch) + sets fid-mode
     requestAnimationFrame(()=>resizeAll());
   }
@@ -3080,15 +3112,53 @@ const TXFLOW=(function(){
   }
   function onStageResult(which,res){
     if(!running) return;
-    if(which==='cbct'){ if(res.accepted){ cbctRes=res; goKv(); } }
+    // CBCT: do NOT gate on tolerance — always enter the shift-apply flow; it alerts the residual but
+    // lets the student proceed to the kV stage even out of tolerance (the residual carries to the kV).
+    if(which==='cbct'){ cbctRes=res; enterCbApply(); }
     else if(which==='kv'){ if(res.accepted){ kvRes=res; goTreat(); } }
+  }
+  /* ---- CBCT shift-apply sub-flow (Full Treatment): check → APPLY SHIFTS → MOTION ENABLE → couch move ---- */
+  function setCouch(c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('cbaplVrt',c.vrt,2);e('cbaplLng',c.lng,2);e('cbaplLat',c.lat,2);e('cbaplRtn',c.rtn,1);}
+  function enterCbApply(){
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    const strip=gid('cbAppl'); if(strip)strip.classList.remove('hidden');
+    const couch=gid('cbaplCouch'); if(couch)couch.classList.remove('couch-moving');
+    setCouch(couchBase);
+    const acc=!!(cbctRes&&cbctRes.accepted), mag=(cbctRes&&cbctRes.mag)||0;
+    const msg=gid('cbaplMsg'); if(msg){msg.innerHTML='Match residual <b>'+mag.toFixed(1)+' mm</b> — '+(acc?'within tolerance.':'out of tolerance (you may still proceed).');msg.className='con-msg'+(acc?'':' warn');}
+    const stt=gid('cbaplState'); if(stt)stt.textContent='APPLY SHIFTS';
+    const ap=gid('cbaplApply'); if(ap)ap.disabled=false;
+    const mo=gid('cbaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+  }
+  function cbApply(){
+    const ap=gid('cbaplApply'); if(ap)ap.disabled=true;
+    const mo=gid('cbaplMotion'); if(mo){mo.disabled=false;mo.classList.add('needmove');}
+    const stt=gid('cbaplState'); if(stt)stt.textContent='MOTION ENABLE';
+    const msg=gid('cbaplMsg'); if(msg){msg.textContent='Couch shift loaded — hit MOTION ENABLE to move the couch.';msg.className='con-msg';}
+  }
+  function cbMotion(){
+    const mo=gid('cbaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    const sh=(typeof CBCT!=='undefined'&&CBCT._dbg&&CBCT._dbg.shift)?CBCT._dbg.shift():{x:0,y:0,z:0,yaw:0};
+    const target={vrt:couchBase.vrt+(sh.z||0)/10,lng:couchBase.lng+(sh.y||0)/10,lat:couchBase.lat+(sh.x||0)/10,rtn:couchBase.rtn+(sh.yaw||0)};
+    const couch=gid('cbaplCouch'); if(couch)couch.classList.add('couch-moving');
+    const stt=gid('cbaplState'); if(stt)stt.textContent='COUCH MOVING…';
+    const msg=gid('cbaplMsg'); if(msg)msg.textContent='Couch moving to the corrected position…';
+    const t0=performance.now(),dur=1500;
+    const step=(t)=>{const p=Math.min(1,(t-t0)/dur);
+      setCouch({vrt:couchBase.vrt+(target.vrt-couchBase.vrt)*p,lng:couchBase.lng+(target.lng-couchBase.lng)*p,lat:couchBase.lat+(target.lat-couchBase.lat)*p,rtn:couchBase.rtn+(target.rtn-couchBase.rtn)*p});
+      if(p<1){motionRaf=requestAnimationFrame(step);}
+      else{motionRaf=0;if(couch)couch.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — proceeding to kV fiducial imaging…';
+        setTimeout(()=>{const s=gid('cbAppl');if(s)s.classList.add('hidden');goKv();},800);}};
+    motionRaf=requestAnimationFrame(step);
   }
   function exit(){
     running=false; stage=null; beamPhase='idle';
     if(raf){cancelAnimationFrame(raf);raf=0;}
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
     if(window.FID2D&&FID2D.isExternal&&FID2D.isExternal())FID2D.exitExternal();
     if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);
     showStepper(false);
+    const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');
     const sc=gid('txScreen'); if(sc)sc.classList.add('hidden');
   }
   function restart(){ const sm=gid('txSummary'); if(sm)sm.classList.add('hidden'); enter(); }
@@ -3257,7 +3327,7 @@ const TXFLOW=(function(){
     backdrop=c.toDataURL('image/png');return backdrop;
   }
 
-  return {enter,exit,restart,active,onStageResult,beamBtn,startRematch,
+  return {enter,exit,restart,active,onStageResult,beamBtn,startRematch,cbApply,cbMotion,
     _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();drawTrace();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
       forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx}};
