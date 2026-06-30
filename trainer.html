@@ -1540,7 +1540,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           onpointerdown="CONSOLE.acquireHoldStart()" onpointerup="CONSOLE.acquireHoldCancel()" onpointerleave="CONSOLE.acquireHoldCancel()"
           title="HOLD ~1 s to take the exposure — or hold Enter"><span class="pbtn-lbl" id="conAcqLbl">kV BEAM ON</span><span class="pbtn-key">&crarr; Enter &middot; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
         <button class="pbtn match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match"><span class="pbtn-lbl">2D / 2D MATCH</span></button>
-        <button class="pbtn apply" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+        <button class="pbtn apply" id="conApplyBtn" type="button" onclick="checkMatch()" disabled title="Check the 2D/2D match — shows your residual error and the time"><span class="pbtn-lbl">CHECK MATCH</span></button>
         <button class="pbtn room" id="conRoomBtn" type="button" onclick="CONSOLE.enterRoom()" disabled style="display:none" title="Go into the room and reposition the patient — the correct fix when a gross setup error exceeds the couch action limit"><span class="pbtn-lbl">ENTER ROOM</span><span class="pbtn-key">re-setup</span></button>
       </div>
       <div class="con-msg" id="conMsg">Click an image to select it. HOLD Motion Enable (or SPACE) to drive the gantry to the kV angle, then HOLD kV Beam On (or Enter ~1 s) to expose. AP = G90/270, Lateral = G0/180.</div>
@@ -3170,7 +3170,7 @@ const CONSOLE=(()=>{
     const b=el('conBanner'); if(!b)return;
     b.textContent =
       phase==='ACQUIRE'? (ready?'BOTH IMAGES ACQUIRED — PRESS 2D/2D MATCH (OR RETAKE)':'SETUP — ACQUIRE BOTH IMAGES')
-    : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN APPLY SHIFTS'
+    : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN CHECK MATCH'
     :                    'COUCH CORRECTED — WITHIN TOLERANCE · RESETTING';
   }
   function renderButtons(){
@@ -3194,7 +3194,7 @@ const CONSOLE=(()=>{
     if(ap){ ap.classList.toggle('wrong', !!rs&&phase==='MATCH'&&gross); }
     // mirror the action label onto the sidebar Check Match button while the console drives the case
     const cm=el('checkMatchBtn');
-    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
+    if(cm)cm.textContent = active ? (phase==='MATCH'?'Check Match':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
   }
   function renderLamps(){
     const set=(id,c)=>{const e=el(id);if(e)e.className='con-lamp'+(c?' '+c:'');};
@@ -3312,48 +3312,17 @@ const CONSOLE=(()=>{
     if(!active||phase!=='ACQUIRE'||!bothAcquired())return;
     stopMotion(); cancelAnimationFrame(acqRaf); acqHold=false; acqProg=0; setExposing(false);
     setPhase('MATCH');
-    msg('Matching enabled — drag both views to register, then Apply Shifts.','ok');
+    msg('Matching enabled — drag both views to register, then Check Match.','ok');
   }
 
-  // ---- apply shifts (replaces Check Match while the console is active) ----
-  // Always applies couch += the dialed correction; if the residual is within tolerance -> ALIGNED, else the
-  // residual persists in the (re-acquired) images and the trainee iterates until in tolerance.
+  // ---- Check Match (console) ----
+  // Report-only: the console no longer applies a couch shift, re-images on a miss, or auto-resets the rep.
+  // Check Match just reports the per-axis residual + the match time (handled by the global checkMatch) and
+  // leaves the trainee in MATCH so they can keep adjusting and re-check; New Offset loads a fresh setup.
+  // Kept under the old name for the console button / _dbg compatibility.
   function applyShifts(){
     if(!active||phase!=='MATCH')return;
-    if(typeof shift==='undefined'||typeof hidden==='undefined')return;
-    // RE-SETUP gate: if the TRUE setup error is gross (beyond the couch action limit), a couch shift is
-    // the wrong action — block it and direct the trainee into the room to reposition the patient.
-    if(trueErrGross()){
-      msg('Correction exceeds the '+(plan.resetup.actionLimitMm/10).toFixed(1)+' cm couch action limit — a couch shift can’t safely fix a gross or rotated setup. ENTER ROOM and reposition the patient.','bad');
-      renderButtons();
-      return;
-    }
-    const e={x:shift.x-hidden.x,y:shift.y-hidden.y,z:shift.z-hidden.z,roll:shift.roll-hidden.roll,pitch:shift.pitch-hidden.pitch};
-    const TOL=(typeof rtTol==='function')?rtTol('2d2d',caseKey):{t1:2,t2:4,r1:2,r2:4};
-    const within=Math.abs(e.x)<=TOL.t1&&Math.abs(e.y)<=TOL.t1&&Math.abs(e.z)<=TOL.t1&&Math.abs(e.roll)<=TOL.r1&&Math.abs(e.pitch)<=TOL.r1;
-    // couch correction = the displayed shift the trainee dialed (same signs as the live valX/valY/valZ readouts)
-    const zs=(typeof zSign!=='undefined')?zSign:1;
-    const dLat=-shift.x/10, dLng=shift.y/10, dVrt=zs*shift.z/10, dRtn=shift.roll;
-    couch.lat=+(couch.lat+dLat).toFixed(2); couch.lng=+(couch.lng+dLng).toFixed(2);
-    couch.vrt=+(couch.vrt+dVrt).toFixed(2); couch.rtn=+(couch.rtn+dRtn).toFixed(1);
-    applied={lat:dLat,lng:dLng,vrt:dVrt,rtn:dRtn,pitch:shift.pitch};
-    // the couch physically moved by `shift`, so the remaining true error becomes hidden-shift; reset the dial.
-    hidden={x:hidden.x-shift.x,y:hidden.y-shift.y,z:hidden.z-shift.z,roll:hidden.roll-shift.roll,pitch:hidden.pitch-shift.pitch};
-    shift={x:0,y:0,z:0,roll:0,pitch:0};
-    if(typeof undoStack!=='undefined')undoStack=[];
-    if(typeof refreshReadouts==='function')refreshReadouts();
-    if(typeof clearErrors==='function')clearErrors();
-    if(typeof render==='function')render();
-    if(within){
-      setPhase('ALIGNED'); renderCouch(true);
-      msg('Couch moved ('+fmtDelta(applied)+') — setup ALIGNED within tolerance. Resetting…','ok');
-      scheduleReset();                                    // success -> auto-reset to a fresh rep
-    } else {
-      acquired=[false,false]; gantry=startAngle(); motTarget=null; updateBadges();
-      if(typeof render==='function')render();
-      setPhase('ACQUIRE'); renderCouch(true);
-      msg('Shift applied ('+fmtDelta(applied)+') — residual exceeds tolerance. Re-acquire both views and correct again.','bad');
-    }
+    if(typeof checkMatch==='function') checkMatch();
   }
   function fmtDelta(a){const f=(n,d)=>(n>=0?'+':'')+n.toFixed(d);
     return 'Lat '+f(a.lat,2)+' · Lng '+f(a.lng,2)+' · Vrt '+f(a.vrt,2)+' · Rtn '+f(a.rtn,1)+'°';}
@@ -4479,29 +4448,17 @@ function checkMatch(){
   const ok=transOk&&rotOk;
   const close=Math.abs(e.x)<=TOL.t2&&Math.abs(e.y)<=TOL.t2&&Math.abs(e.z)<=TOL.t2;
   const ms=matchTimer2d.elapsed();
-  const timeTag=(ok&&ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // time only counts when within tolerance
+  const timeTag=(ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // always show how long this match took (scoring still only banks a time when accepted)
   if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
   // record this attempt; only document a time when the match is within tolerance
   rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ok?ms:null});
   const verdict=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
     :close?'\u26a1 Close \u2014 missed tolerance':'\u2717 Residual error \u2014 outside tolerance')+timeTag;
-  // IGRT console drives the case: "Check Match" becomes APPLY SHIFTS \u2014 move the couch by the matched
-  // correction, then (if still out of tolerance) re-acquire and iterate. Otherwise: normal practice loop.
-  if(window.CONSOLE && CONSOLE.active && CONSOLE.active()){
-    matchTimer2d.reset();
-    CONSOLE.applyShifts();   // reads shift/hidden/zSign; moves couch, then aligns or forces a re-acquire
-    document.getElementById('statusMsg').textContent=verdict;
-  } else {
-    // Check Match resets the clock and loads a fresh offset for the next rep. Keep the verdict and the
-    // per-axis errors on screen (they clear on the first adjustment of the new rep, like a normal move).
-    applyNewOffset2d();
-    matchTimer2d.reset();
-    shift={x:0,y:0,z:0,roll:0,pitch:0};
-    undoStack=[];
-    refreshReadouts();
-    render();
-    document.getElementById('statusMsg').textContent=verdict+'  \u00b7  new offset loaded';
-  }
+  // Report card: Check Match shows the per-axis residual + match time and STOPS. It never moves the
+  // couch, re-images, or loads a new offset \u2014 the clock keeps the elapsed time and the per-axis errors
+  // stay on screen (they clear on your first adjustment). Press New Offset for a fresh setup. The 2D
+  // console keeps its acquire-both-images step but no longer forces a re-acquire when the match is off.
+  document.getElementById('statusMsg').textContent=verdict;
 }
 function clearErrors(){['errX','errY','errZ','errRoll','errPitch'].forEach(id=>{const e=document.getElementById(id);e.textContent='\u2014';e.className='error-val';});}
 // ===== How-to-use guide (launched from the start menu; replaces the old per-tool help) =====
@@ -6423,7 +6380,7 @@ const CBCT=(function(){
     const close=ptvOnly?(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2)
                        :(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2&&Math.abs(g.pitch)<=TOL.r2&&Math.abs(g.roll)<=TOL.r2&&Math.abs(g.yaw)<=TOL.r2);
     const ms=cbTimer.elapsed();
-    const tt=(accepted&&ms!==null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // time only counts when within tolerance
+    const tt=(ms!==null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // always show how long this match took (scoring still only banks a time when accepted)
     // teaching hint: bones lined up but the (drifted) tumour is not
     const boneMatched=targetDrift&&Math.abs(e.x)<=2&&Math.abs(e.y)<=2&&Math.abs(e.z)<=2&&Math.abs(e.pitch)<=1&&Math.abs(e.roll)<=1&&Math.abs(e.yaw)<=1;
     // build the verdict from THIS attempt before loading the next offset
@@ -6434,10 +6391,10 @@ const CBCT=(function(){
     else{msg='✗ Residual error — keep fusing the planes'+tt;col='var(--accent2)';}
     // record this attempt; only document a time when within tolerance
     rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:accepted?ms:null});
-    // Check Match resets the clock + loads a fresh offset for the next rep; keep the verdict and the
-    // per-axis errors on screen (they clear on the first adjustment of the new rep).
-    randomize(true);
-    const m=gid('cbStatusMsg');m.textContent=msg+'  ·  new offset loaded';m.style.color=col;
+    // Report card: Check Match shows the residual + time and STOPS — it does not load a new offset. The
+    // per-axis errors stay on screen (they clear on your first adjustment) and the clock keeps the elapsed
+    // time; press New Offset for a fresh setup.
+    const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;
   }
 
   /* ---- interaction ---- */
