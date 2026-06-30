@@ -121,9 +121,9 @@ export function build(THREE, opts = {}) {
   // FIXED bearing collar/ring (NOT parented to the gantry) so the rotating drum visibly seats into
   // the stand on a slewing bearing — an annular bezel only (never a solid ring → no CT-bore read).
   const bearingCollar = cyl(THREE, 0.8, 0.8, 0.18, M.creamDk, 40, 'Stand_Bearing_Collar');
-  bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 0.78);   // wraps the drum's rear barrel
+  bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 0.96);   // wraps the drum's rear barrel
   const bearingRing = cyl(THREE, 0.74, 0.74, 0.04, M.blue, 40, 'Stand_Bearing_Ring');
-  bearingRing.rotation.x = Math.PI / 2; bearingRing.position.set(0, 0, 0.69);        // fixed blue bearing lip the drum spins in
+  bearingRing.rotation.x = Math.PI / 2; bearingRing.position.set(0, 0, 0.87);        // fixed blue bearing lip the drum spins in
   stand.add(col, ped, standBlue, bearingCollar, bearingRing);
   root.add(stand);
   parts.Stand_Drive_Base = stand;
@@ -141,22 +141,24 @@ export function build(THREE, opts = {}) {
 
   // Gantry_Drum — a COMPACT rotating hub (one side, NOT a CT ring). Deliberately modest so the
   // head-on-arm dominates and the machine reads as an OPEN C-arm, never a bore (user-confirmed).
+  // Drum set BACK on +Z so the gantry face clears the couch: iso→face ≈ 0.5 m, leaving room to
+  // push the table in (+Z longitudinal) for an inferior iso without the rails fouling the gantry.
   const drum = cyl(THREE, 0.68, 0.68, 0.6, M.shell, 40, 'Gantry_Drum');
-  drum.rotation.x = Math.PI / 2; drum.position.set(0, 0, 0.62);
+  drum.rotation.x = Math.PI / 2; drum.position.set(0, 0, 0.80);
   gantry.add(drum);
   parts.Gantry_Drum = drum;
   // forward disc face + restrained blue accent ring + hub boss (no big disc that reads as a CT gantry)
   const facePlate = cyl(THREE, 0.7, 0.6, 0.12, M.shell, 40, 'Gantry_FacePlate');       // convex white disc cap
-  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.28;
+  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.46;
   const blueRing = cyl(THREE, 0.42, 0.42, 0.05, M.blue, 36, 'Gantry_FaceBlueRing');    // Varian accent
-  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.25;
+  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.43;
   const hubBoss = cyl(THREE, 0.22, 0.24, 0.16, M.creamDk, 28, 'Gantry_HubBoss');       // central boss
-  hubBoss.rotation.x = Math.PI / 2; hubBoss.position.z = 0.2;
+  hubBoss.rotation.x = Math.PI / 2; hubBoss.position.z = 0.38;
   gantry.add(facePlate, blueRing, hubBoss);
   parts.Gantry_FacePlate = facePlate;
-  // faired ARM cantilevering radially out from the drum up to the head at SAD (one-sided C-arm)
-  const arm = box(THREE, 0.48, 1.06, 0.52, M.shell, 'Gantry_Arm');
-  arm.position.set(0, 0.5, 0.4);
+  // faired ARM cantilevering radially out from the (set-back) drum up to the head at SAD (one-sided C-arm)
+  const arm = box(THREE, 0.48, 1.06, 0.66, M.shell, 'Gantry_Arm');
+  arm.position.set(0, 0.5, 0.47);
   gantry.add(arm);
   parts.Gantry_Arm = arm;
 
@@ -171,8 +173,8 @@ export function build(THREE, opts = {}) {
   headHousing.position.y = -0.3;
   const headCrown = new THREE.Mesh(new THREE.SphereGeometry(0.37, 26, 16), M.shell);
   headCrown.name = 'Head_Crown'; headCrown.position.y = 0.0; headCrown.scale.set(1, 0.5, 1);   // low smooth dome matching the housing top
-  const headNeck = cyl(THREE, 0.3, 0.3, 0.5, M.shell, 22, 'Head_Neck');
-  headNeck.rotation.x = Math.PI / 2; headNeck.position.set(0, -0.04, 0.2);     // faired link back to the drum
+  const headNeck = cyl(THREE, 0.3, 0.3, 0.72, M.shell, 22, 'Head_Neck');
+  headNeck.rotation.x = Math.PI / 2; headNeck.position.set(0, -0.04, 0.31);    // faired link back to the set-back drum
   head.add(targetBlk, headHousing, headCrown, headNeck);
   gantry.add(head);
   parts.Treatment_Head_Group = head;
@@ -339,16 +341,17 @@ export function build(THREE, opts = {}) {
   // gantry face (that read as a CT bore). Treated point (iso) sits near the head end of the table.
   const top = grp(THREE, 'Couch_Top_Patient');
   // two-section carbon top: THICK proximal section (pedestal side) steps DOWN to a THIN treatment
-  // plank cantilevering toward iso. Both top surfaces aligned at ~y0 (iso height). The thin plank
-  // STOPS before the drum face (front edge ~z+0.2 < drum face z0.28) so it never reads as a bore.
+  // plank cantilevering toward iso. Both top surfaces aligned at ~y0 (iso height). The plank + rails
+  // stop just past iso (front edge ~z+0.14, well clear of the set-back gantry face z≈0.5) so the
+  // couch can travel inboard (+Z) for an inferior iso before anything nears the gantry.
   const topThick = box(THREE, 0.53, 0.075, 0.72, M.carbon, 'Couch_Top_ThickProx'); topThick.position.set(0, -0.0375, -1.04);
-  const topThin  = box(THREE, 0.53, 0.05,  1.2,  M.carbon, 'Couch_Top_ThinTreat');  topThin.position.set(0, -0.025, -0.4);
-  const railL = box(THREE, 0.02, 0.035, 1.85, M.couchMetalMid, 'Couch_RailL'); railL.position.set(-0.255, -0.01, -0.55);
-  const railR = box(THREE, 0.02, 0.035, 1.85, M.couchMetalMid, 'Couch_RailR'); railR.position.set( 0.255, -0.01, -0.55);
+  const topThin  = box(THREE, 0.53, 0.05,  1.2,  M.carbon, 'Couch_Top_ThinTreat');  topThin.position.set(0, -0.025, -0.46);
+  const railL = box(THREE, 0.02, 0.035, 1.6, M.couchMetalMid, 'Couch_RailL'); railL.position.set(-0.255, -0.01, -0.675);
+  const railR = box(THREE, 0.02, 0.035, 1.6, M.couchMetalMid, 'Couch_RailR'); railR.position.set( 0.255, -0.01, -0.675);
   top.add(topThick, topThin, railL, railR);
   if (o.patient) {
-    const pad = box(THREE, 0.46, 0.02, 1.7, M.foam, 'Couch_Pad'); pad.position.set(0, 0.01, -0.5);
-    const phantom = box(THREE, 0.3, 0.2, 1.1, M.skin, 'Patient_Phantom'); phantom.position.set(0, 0.12, -0.5);
+    const pad = box(THREE, 0.46, 0.02, 1.5, M.foam, 'Couch_Pad'); pad.position.set(0, 0.01, -0.6);
+    const phantom = box(THREE, 0.3, 0.2, 1.1, M.skin, 'Patient_Phantom'); phantom.position.set(0, 0.12, -0.55);
     top.add(pad, phantom);
   }
   cPitch.add(top);
