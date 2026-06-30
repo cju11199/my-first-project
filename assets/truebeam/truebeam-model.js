@@ -158,23 +158,26 @@ export function build(THREE, opts = {}) {
   // fat shoulders fairing it into the head (top) and the EPID (bottom).
   const banana = grp(THREE, 'Gantry_Banana');
   const V = THREE.Vector3;
+  // CHUNKY curved gantry mass — the real gantry is a big voluminous structure, not a thin pipe.
+  // The path is pushed OUTBOARD (belly ~x0.80) so the thick tube's inner edge still clears the
+  // narrow couch, and the top end fairs up into the head.
   const cPath = new THREE.CatmullRomCurve3([
-    new V(0.00,  0.74, 0.12),   // TOP tip — inside the head drum
-    new V(0.30,  0.60, 0.34),
-    new V(0.55,  0.30, 0.50),
-    new V(0.63,  0.02, 0.54),   // +X belly (set out from iso → clears the narrow couch)
-    new V(0.55, -0.30, 0.50),
-    new V(0.30, -0.56, 0.32),
-    new V(0.02, -0.66, 0.14),   // BOTTOM tip — into the MV EPID arm
+    new V(0.00,  0.82, 0.16),   // TOP — fairs up into the head drum
+    new V(0.42,  0.66, 0.36),
+    new V(0.72,  0.30, 0.50),
+    new V(0.82,  0.02, 0.54),   // +X belly (pushed out so the thick body clears the couch)
+    new V(0.72, -0.32, 0.50),
+    new V(0.42, -0.62, 0.34),
+    new V(0.04, -0.74, 0.16),   // BOTTOM — into the MV EPID arm
   ]);
-  const cTube = new THREE.Mesh(new THREE.TubeGeometry(cPath, 72, 0.27, 20, false), M.shell);
+  const cTube = new THREE.Mesh(new THREE.TubeGeometry(cPath, 80, 0.42, 24, false), M.shell);
   cTube.name = 'Gantry_C_Body';
   banana.add(cTube);
-  // fat rounded shoulders that fair the C into the head (top) and the EPID (bottom)
-  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 16), M.shell);
-  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0.0, 0.72, 0.12); banana.add(shTop);
-  const shBot = new THREE.Mesh(new THREE.SphereGeometry(0.28, 18, 14), M.shell);
-  shBot.name = 'Gantry_Shoulder_EPID'; shBot.position.set(0.02, -0.64, 0.16); banana.add(shBot);
+  // fat rounded shoulders fairing the chunky C into the head (top) and the EPID (bottom)
+  const shTop = new THREE.Mesh(new THREE.SphereGeometry(0.46, 22, 18), M.shell);
+  shTop.name = 'Gantry_Shoulder_Head'; shTop.position.set(0.0, 0.78, 0.14); banana.add(shTop);
+  const shBot = new THREE.Mesh(new THREE.SphereGeometry(0.36, 20, 16), M.shell);
+  shBot.name = 'Gantry_Shoulder_EPID'; shBot.position.set(0.04, -0.70, 0.16); banana.add(shBot);
   gantry.add(banana);
   parts.Gantry_Body = banana;
   parts.Gantry_FacePlate = banana;
