@@ -903,6 +903,19 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .tx-btn.alarm{background:#ff6b8a;color:#2a0710;border-color:transparent;font-weight:600;animation:txBlink 1s steps(2) infinite}
 .tx-trace-wrap{position:relative}
 #txTrace{width:100%;height:200px;display:block;background:#08111a;border-radius:8px}
+/* kV fiducial monitor: the discrete triggered-kV detector view next to the live trace */
+.tx-monitor{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.tx-kv{flex:0 0 250px;display:flex;flex-direction:column;gap:5px;max-width:100%}
+.tx-kv-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:10.5px}
+.tx-kv-ang{font-family:var(--mono),monospace;color:#8ef0c2;letter-spacing:.03em}
+.tx-kv-stamp{font-family:var(--mono),monospace;color:#9fb3c4;text-align:right}
+.tx-kv-stamp.out{color:#ff6b8a}.tx-kv-stamp.in{color:#8ef0c2}
+.tx-kv-view{position:relative;border:1px solid rgba(255,255,255,.10);border-radius:8px;overflow:hidden;background:#06101a;line-height:0}
+.tx-kv-view canvas{display:block;width:100%;height:auto}
+.tx-kv-view.flash::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(180,225,255,.6),rgba(180,225,255,0) 70%);animation:kvFlash .42s ease-out forwards;pointer-events:none}
+@keyframes kvFlash{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.tx-kv-view.flash::after{animation:none;opacity:0}}
+.tx-trace-col{flex:1 1 320px;min-width:280px;display:flex;flex-direction:column}
 .tx-drift{display:flex;gap:18px;margin-top:10px;font-size:13px;font-variant-numeric:tabular-nums}
 .tx-drift b{color:#eaf1f8}
 .tx-drift .lbl{color:#9fb3c4;font-size:11px;display:block}
@@ -1413,12 +1426,20 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <div class="tx-col right">
       <div class="tx-card tx-trace-wrap" style="flex:1;display:flex;flex-direction:column">
         <h3>Intrafraction kV monitoring &middot; gold fiducials (gate &plusmn;0.5 cm)</h3>
-        <canvas id="txTrace" width="900" height="200"></canvas>
-        <div class="tx-drift">
-          <div><span class="lbl">Lat</span><b id="txDriftX">0.0</b> mm</div>
-          <div><span class="lbl">AP</span><b id="txDriftY">0.0</b> mm</div>
-          <div><span class="lbl">SI</span><b id="txDriftZ">0.0</b> mm</div>
-          <div><span class="lbl">|offset|</span><b id="txDriftMag">0.0</b> mm</div>
+        <div class="tx-monitor">
+          <div class="tx-kv">
+            <div class="tx-kv-hd"><span class="tx-kv-ang" id="txKvAngle">kV imager &middot; &mdash;</span><span class="tx-kv-stamp" id="txKvStamp">awaiting first kV</span></div>
+            <div class="tx-kv-view" id="txKvWrap"><canvas id="txKvView" width="250" height="230"></canvas></div>
+          </div>
+          <div class="tx-trace-col">
+            <canvas id="txTrace" width="640" height="230"></canvas>
+            <div class="tx-drift">
+              <div><span class="lbl">Lat</span><b id="txDriftX">0.0</b> mm</div>
+              <div><span class="lbl">AP</span><b id="txDriftY">0.0</b> mm</div>
+              <div><span class="lbl">SI</span><b id="txDriftZ">0.0</b> mm</div>
+              <div><span class="lbl">|offset|</span><b id="txDriftMag">0.0</b> mm</div>
+            </div>
+          </div>
         </div>
         <div class="tx-status" id="txStatus">Press Beam On to start treatment. A triggered kV every 10 s checks the fiducials.</div>
         <div class="tx-summary hidden" id="txSummary">
@@ -3103,6 +3124,11 @@ const TXFLOW=(function(){
   let truePos={x:0,y:0,z:0}, appliedCorr={x:0,y:0,z:0}, bias={x:0,y:0,z:0};
   let holds=0, reimages=0, cbctRes=null, kvRes=null;
   let trace=[];             // {mag, trig}
+  // ---- kV fiducial monitor (the triggered-kV detector view) ----
+  // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
+  const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
+  const KV_SCALE=5;         // px per mm in the detector view (0.5 cm ring = 25 px)
+  let lastKv=null;          // {phi, t, u, v, out} — the most recent triggered kV reading
   let backdrop=null;
   let motionRaf=0;          // couch-move animation (CBCT shift-apply)
   const couchBase={vrt:-3.20,lng:24.50,lat:0.10,rtn:0};   // planned couch encoder readout (prostate)
@@ -3300,15 +3326,16 @@ const TXFLOW=(function(){
     fieldIdx=0; muInField=0; muTotal=0; gantryAngle=TX_PLAN.fields[0].g0;
     truePos={x:0,y:0,z:0}; appliedCorr={x:0,y:0,z:0};
     const sgn=()=>Math.random()<.5?-1:1;
-    // per-fraction systematic drift (mm/s): AP-dominant (rectal/bladder filling), crosses the 0.5 cm
-    // gate mid-treatment so the student always faces at least one intrafraction re-image.
-    bias={x:(0.03+Math.random()*0.05)*sgn(), y:(0.16+Math.random()*0.07)*sgn(), z:(0.05+Math.random()*0.05)*sgn()};
-    trace=[];
+    // per-fraction systematic drift (mm/s): AP-dominant (rectal/bladder filling) + a real SI component
+    // (always visible to any kV angle) so the projected fiducial reliably leaves the 0.5 cm ring
+    // mid-treatment and the student always faces at least one intrafraction re-image.
+    bias={x:(0.04+Math.random()*0.05)*sgn(), y:(0.20+Math.random()*0.10)*sgn(), z:(0.08+Math.random()*0.06)*sgn()};
+    trace=[]; lastKv=null;
     const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
     const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
     setBeamState('hold','READY'); setBtn('Beam On',false);
     status('Press Beam On to start the VMAT delivery. A triggered kV every 10 s verifies the gold fiducials stay within 0.5 cm.');
-    drawGantry(); updateField(); updateReadouts();
+    drawGantry(); updateField(); updateReadouts(); updateKvAngle(); drawKvView(false);
   }
   function beamBtn(){
     if(beamPhase==='done') return;
@@ -3335,24 +3362,30 @@ const TXFLOW=(function(){
     if(trace.length>600)trace.shift();
     // triggered kV every 10 s of beam-on
     if(simBeamSec-lastTrigSec>=TRIG_MS/1000){ lastTrigSec=simBeamSec; doTrigger(); }
-    drawGantry(); updateField(); updateReadouts(); drawTrace();
+    drawGantry(); updateField(); updateReadouts(); drawTrace(); updateKvAngle();
     if(beamPhase!=='on'){raf=0;return;}            // a trigger may have held the beam
     if(p>=1){ fieldIdx++; muInField=0; if(fieldIdx>=TX_PLAN.fields.length){ finish(); return; } gantryAngle=TX_PLAN.fields[fieldIdx].g0; }
     raf=requestAnimationFrame(tick);
   }
   function measured(){return {x:truePos.x-appliedCorr.x,y:truePos.y-appliedCorr.y,z:truePos.z-appliedCorr.z};}
+  // Project the 3D fiducial offset onto the kV detector at the current gantry angle. The kV imager sits
+  // 90° off the MV beam; its detector sees the in-plane component along the MV axis (u) and SI (v).
+  function kvProject(m,gDeg){const a=gDeg*Math.PI/180; return {u:m.x*Math.sin(a)+m.y*Math.cos(a), v:m.z};}
+  function kvAngle(){return Math.round((((gantryAngle+90)%360)+360)%360);}
   function doTrigger(){
     if(trace.length)trace[trace.length-1].trig=true;
-    const m=measured(),mag=Math.hypot(m.x,m.y,m.z);
-    const out=Math.abs(m.x)>GATE_MM||Math.abs(m.y)>GATE_MM||Math.abs(m.z)>GATE_MM;
+    const m=measured(), pr=kvProject(m,gantryAngle), ringMag=Math.hypot(pr.u,pr.v);
+    const out=ringMag>GATE_MM;                       // outside the 0.5 cm ring on the triggered kV
+    lastKv={phi:kvAngle(), t:Math.round(simBeamSec), u:pr.u, v:pr.v, out};
+    flashKv(); drawKvView(true);
     if(out){
       beamPhase='holdtrig'; holds++;
       if(raf){cancelAnimationFrame(raf);raf=0;}
       setBeamState('alarm','BEAM HOLD'); setBtn('Beam On',true);
       const rb=gid('txRematchBtn'); if(rb)rb.style.display='';
-      status('⚠ Triggered kV: fiducials have drifted '+mag.toFixed(1)+' mm (> 5 mm gate). Beam held — take a kV–MV pair and re-match.');
+      status('⚠ Triggered kV @ '+kvAngle()+'°: a fiducial is OUTSIDE its 0.5 cm ring ('+ringMag.toFixed(1)+' mm). Beam held — take a kV–MV pair and re-match.');
     } else {
-      status('✓ Triggered kV at '+Math.round(simBeamSec)+' s — fiducials within 0.5 cm ('+mag.toFixed(1)+' mm). Delivery continues.');
+      status('✓ Triggered kV @ '+kvAngle()+'° ('+Math.round(simBeamSec)+' s) — all fiducials inside the 0.5 cm ring ('+ringMag.toFixed(1)+' mm). Delivery continues.');
     }
   }
 
@@ -3387,7 +3420,9 @@ const TXFLOW=(function(){
       beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
       const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
       status('✓ Re-matched — couch corrected ('+r.transErr.toFixed(1)+' mm residual). Press Beam On to resume.');
-      drawGantry(); updateReadouts(); drawTrace();
+      const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
+      lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM};
+      drawGantry(); updateReadouts(); drawTrace(); updateKvAngle(); drawKvView(false);
     } else {
       if(sm){sm.textContent='✗ Residual '+r.transErr.toFixed(1)+' mm / '+r.rotErr.toFixed(1)+'° — seat all three markers on the seeds, then Check Match.';sm.style.color='var(--accent2)';}
     }
@@ -3423,6 +3458,45 @@ const TXFLOW=(function(){
     if(gid('txDriftY'))gid('txDriftY').textContent=(m.y>=0?'+':'')+m.y.toFixed(1);
     if(gid('txDriftZ'))gid('txDriftZ').textContent=(m.z>=0?'+':'')+m.z.toFixed(1);
     if(gid('txDriftMag'))gid('txDriftMag').textContent=Math.hypot(m.x,m.y,m.z).toFixed(1);}
+  // ---- kV fiducial monitor view ----
+  function updateKvAngle(){const e=gid('txKvAngle');if(e)e.textContent='kV imager · '+kvAngle()+'°';}
+  function flashKv(){const w=gid('txKvWrap');if(!w)return;w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');setTimeout(()=>{if(w)w.classList.remove('flash');},460);}
+  function drawKvView(triggered){
+    const c=gid('txKvView');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
+    ctx.clearRect(0,0,W,H);
+    const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0a1622');bg.addColorStop(1,'#050c14');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+    // faint detector grid + iso crosshair
+    ctx.strokeStyle='rgba(120,150,180,.08)';ctx.lineWidth=1;
+    for(let g=20;g<W;g+=24){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+    for(let g=20;g<H;g+=24){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    ctx.strokeStyle='rgba(160,190,220,.22)';ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,H-8);ctx.moveTo(8,cy);ctx.lineTo(W-8,cy);ctx.stroke();
+    const out=!!(lastKv&&lastKv.out), du=lastKv?lastKv.u:0, dv=lastKv?lastKv.v:0;
+    const col=out?'#ff5a6a':'#38e880', colDim=out?'rgba(255,90,106,.55)':'rgba(56,232,128,.5)';
+    KV_TRIAD.forEach(s=>{
+      const rx=cx+s.u*KV_SCALE, ry=cy+s.v*KV_SCALE;        // planned seed (ring centre)
+      const sx=cx+(s.u+du)*KV_SCALE, sy=cy+(s.v+dv)*KV_SCALE;// current (drifted) seed
+      // 0.5 cm tolerance ring
+      ctx.beginPath();ctx.arc(rx,ry,GATE_MM*KV_SCALE,0,7);ctx.setLineDash([4,3]);ctx.strokeStyle=colDim;ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(160,190,220,.5)';ctx.beginPath();ctx.arc(rx,ry,1.6,0,7);ctx.fill();   // planned centre dot
+      // displacement connector
+      ctx.strokeStyle=colDim;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
+      // gold seed (capsule) with verdict-coloured halo
+      ctx.save();ctx.translate(sx,sy);
+      ctx.fillStyle=col;ctx.globalAlpha=.22;ctx.beginPath();ctx.arc(0,0,6.5,0,7);ctx.fill();ctx.globalAlpha=1;
+      ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-1.5,-4);ctx.lineTo(1.5,4);ctx.stroke();
+      ctx.strokeStyle='#ffd23f';ctx.lineWidth=3.4;ctx.beginPath();ctx.moveTo(-1.2,-3.2);ctx.lineTo(1.2,3.2);ctx.stroke();
+      ctx.restore();
+    });
+    // verdict banner
+    ctx.font='600 11px system-ui';ctx.textAlign='left';
+    if(lastKv){ctx.fillStyle=col;ctx.fillText(out?'✗ OUT OF GATE':'✓ IN GATE',8,H-8);}
+    else{ctx.fillStyle='rgba(159,179,196,.8)';ctx.fillText('awaiting first kV',8,H-8);}
+    ctx.textAlign='right';ctx.fillStyle='rgba(159,179,196,.75)';ctx.fillText('0.5 cm gate',W-8,14);
+    // header stamp
+    const st=gid('txKvStamp');
+    if(st){if(lastKv){st.textContent='G'+lastKv.phi+'° · '+lastKv.t+'s · '+(out?'OUT':'IN');st.className='tx-kv-stamp '+(out?'out':'in');}
+      else{st.textContent='awaiting first kV';st.className='tx-kv-stamp';}}
+  }
   function drawTrace(){
     const c=gid('txTrace');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height;
     ctx.clearRect(0,0,W,H);ctx.fillStyle='#08111a';ctx.fillRect(0,0,W,H);
@@ -3454,7 +3528,8 @@ const TXFLOW=(function(){
   return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,beamBtn,startRematch,cbApply,cbMotion,fidApply,fidMotion,
     _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();drawTrace();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
-      forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx}};
+      forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx,lastKv:()=>lastKv?Object.assign({},lastKv):null,
+      setGantry:g=>{gantryAngle=g;drawGantry();updateKvAngle();}}};
 })();
 window.TXFLOW=TXFLOW;
 
