@@ -118,7 +118,13 @@ export function build(THREE, opts = {}) {
   ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.05);
   const standBlue = box(THREE, 0.05, 1.4, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
   standBlue.position.set(0, 0.1, 0.64);
-  stand.add(col, ped, standBlue);
+  // FIXED bearing collar/ring (NOT parented to the gantry) so the rotating drum visibly seats into
+  // the stand on a slewing bearing — an annular bezel only (never a solid ring → no CT-bore read).
+  const bearingCollar = cyl(THREE, 0.8, 0.8, 0.18, M.creamDk, 40, 'Stand_Bearing_Collar');
+  bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 0.78);   // wraps the drum's rear barrel
+  const bearingRing = cyl(THREE, 0.74, 0.74, 0.04, M.blue, 40, 'Stand_Bearing_Ring');
+  bearingRing.rotation.x = Math.PI / 2; bearingRing.position.set(0, 0, 0.69);        // fixed blue bearing lip the drum spins in
+  stand.add(col, ped, standBlue, bearingCollar, bearingRing);
   root.add(stand);
   parts.Stand_Drive_Base = stand;
 
