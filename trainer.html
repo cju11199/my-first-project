@@ -687,8 +687,10 @@ html:not(.auth-pending) #authGate{display:none}
 .con-pip.done{background:var(--green);border-color:var(--green)}
 .con-plan{margin-left:auto;font-size:10px;color:var(--muted);letter-spacing:.08em}
 /* ── SVG linac gantry visualization ── */
-.con-viz{flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px}
+.con-viz{position:relative;flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px;overflow:hidden}
 .con-svg{width:128px;height:116px;display:block}
+.con-gantry3d{position:absolute;inset:0;width:100%;height:100%;display:block;background:radial-gradient(circle at 50% 43%,rgba(45,212,238,.08),transparent 54%)}
+.con-viz.has-3d .con-svg{display:none}
 /* ── photoreal TrueBeam DRUM (front-on, down the bore) — metal-gradient gantry that rotates about iso ── */
 /* the bore + drum + head/imager fills come from inline SVG gradients (defs in the markup);
    CSS only governs the strokes/colours JS does not paint and the beam-flash visibility. */
@@ -1328,6 +1330,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="console-strip hidden ph-acquire" id="consoleStrip" aria-label="IGRT setup console">
     <!-- SVG linac: a rotating gantry rig (head + MV/EPID + kV source/panel) with a beam-fan flash on Acquire -->
     <div class="con-viz">
+      <canvas id="conGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
       <svg viewBox="0 0 128 116" class="con-svg" aria-hidden="true">
         <defs>
           <!-- bore: dark recessed drum interior -->
@@ -3137,8 +3140,24 @@ const CONSOLE=(()=>{
       m.setAttribute('transform','rotate('+a+' 64 58)');
       m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':'')));});
     const mv=el('lampMotion'); if(mv)mv.className='con-lamp'+(motOn?' warn':'');
+    renderGantry3D();
     renderGantryHead();
   }
+  function renderGantry3D(){
+    if(!window.Gantry3D||!window.Gantry3D.update)return;
+    const target = motTarget!=null ? motTarget : nearestAngle(rotateTarget());
+    window.Gantry3D.update({
+      angle: gantry,
+      target,
+      mode: (plan&&(plan.mv||(atViewMv()))) ? 'mv' : 'kv',
+      beamOn: !!acqHold,
+      moving: !!motOn,
+      phase,
+      acquired: acquired.slice(),
+      views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv}))
+    });
+  }
+  function atViewMv(){ const v=viewAtGantry(); return !!(v&&v.mv); }
   // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
   // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
   function renderGantryHead(){
@@ -3309,6 +3328,7 @@ const CONSOLE=(()=>{
     const btn=el('conAcqBtn'); if(btn)btn.classList.toggle('exposing',on);
     const f=el('conKvBeam'); if(f&&f.classList){ if(on)f.classList.add('firing'); else f.classList.remove('firing'); }
     renderAcqProg();
+    renderViz();
   }
   function renderAcqProg(){ const p=el('conAcqProg'); if(p&&p.style)p.style.width=(acqProg*100).toFixed(0)+'%'; }
 
@@ -6864,6 +6884,7 @@ requestAnimationFrame(()=>{
 });
 </script>
 <div class="disclaimer-bar" aria-hidden="true"><span>Training simulator · Not for clinical use · Values are fictional</span></div>
+<script type="module" src="/assets/gantry3d.js"></script>
 <script src="/clerk-auth.js"></script>
 </body>
 </html>
