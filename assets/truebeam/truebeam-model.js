@@ -123,8 +123,13 @@ export function build(THREE, opts = {}) {
   const col = box(THREE, 1.02, 1.8, 0.7, M.cream, 'Stand_Column');
   col.position.set(0, IEC.FLOOR_Y + 0.9, 1.22);     // base on floor; top ~y0.6 (below gantry top)
   // rounded vertical fairing softening the column's front so the base doesn't read boxy
-  const colFair = cyl(THREE, 0.5, 0.5, 1.7, M.cream, 28, 'Stand_Fairing');
-  colFair.position.set(0, IEC.FLOOR_Y + 0.88, 1.05);
+  const colFair = cyl(THREE, 0.56, 0.56, 1.72, M.cream, 32, 'Stand_Fairing');
+  colFair.position.set(0, IEC.FLOOR_Y + 0.88, 1.02);
+  // rounded vertical corner fairings + a domed top cap so the tower reads smooth, not boxy
+  const colEdgeL = cyl(THREE, 0.2, 0.2, 1.72, M.cream, 20, 'Stand_Edge_L'); colEdgeL.position.set(-0.50, IEC.FLOOR_Y + 0.88, 1.0);
+  const colEdgeR = cyl(THREE, 0.2, 0.2, 1.72, M.cream, 20, 'Stand_Edge_R'); colEdgeR.position.set( 0.50, IEC.FLOOR_Y + 0.88, 1.0);
+  const colTop = new THREE.Mesh(new THREE.SphereGeometry(0.58, 28, 16), M.cream);
+  colTop.name = 'Stand_Top'; colTop.scale.set(0.9, 0.5, 0.62); colTop.position.set(0, IEC.FLOOR_Y + 1.74, 1.1);
   const ped = box(THREE, 1.4, 0.16, 1.0, M.creamDk, 'Stand_Pedestal');
   ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.12);
   const standBlue = box(THREE, 0.05, 1.0, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
@@ -133,7 +138,7 @@ export function build(THREE, opts = {}) {
   // small radius so it never reads as a circular drum face toward the couch).
   const bearingCollar = cyl(THREE, 0.34, 0.34, 0.16, M.creamDk, 32, 'Stand_Bearing_Collar');
   bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 1.02);
-  stand.add(col, colFair, ped, standBlue, bearingCollar);
+  stand.add(col, colFair, colEdgeL, colEdgeR, colTop, ped, standBlue, bearingCollar);
   root.add(stand);
   parts.Stand_Drive_Base = stand;
 
@@ -275,7 +280,7 @@ export function build(THREE, opts = {}) {
 
   // kV Source (OBI X-ray tube) — patient-left (+X). Payload = a tube housing + collimator.
   const kvSrcBoom = exactBoom('kV_Source_Arm', +1);
-  kvSrcBoom.root.position.set(0.58, 0, 0.12);
+  kvSrcBoom.root.position.set(0.58, 0, 0.34);   // emerges from the gantry mass (not floating in front)
   const kvTubeMount = grp(THREE, 'kV_Tube'); kvTubeMount.position.x = 0.2;
   const kvTubeHsg = cyl(THREE, 0.13, 0.13, 0.28, M.panelHs, 20, 'kV_Tube_Housing'); kvTubeHsg.rotation.z = Math.PI / 2;
   const kvColl = box(THREE, 0.11, 0.14, 0.14, M.headGray, 'kV_Collimator'); kvColl.position.x = -0.18;  // beam port faces iso
@@ -285,7 +290,7 @@ export function build(THREE, opts = {}) {
 
   // kV Detector (flat-panel imager) — patient-right (-X), across iso from the source.
   const kvDetBoom = exactBoom('kV_Detector_Arm', -1);
-  kvDetBoom.root.position.set(-0.58, 0, 0.12);
+  kvDetBoom.root.position.set(-0.58, 0, 0.34);   // emerges from the gantry mass (not floating in front)
   // framed flat-panel detector (matches the photo): WHITE housing frame → thin dark recess
   // line → light-grey active face, set slightly proud; faces +X back at the source.
   // kV detector = LANDSCAPE 40x30 framed panel (smaller + wider-than-tall vs the square MV — a TrueBeam tell)
