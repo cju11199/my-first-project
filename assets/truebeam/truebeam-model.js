@@ -49,11 +49,11 @@ function makeMaterials(THREE) {
     cream:    std(0xEDE9DF, 0.45, 0.05),                 // dominant body covers
     creamDk:  std(0xD8D3C6, 0.5,  0.08),                 // seams / secondary covers
     shell:    std(0xF4F2EC, 0.42, 0.04),                 // bright white rounded covers (head/gantry shells)
-    accessory:std(0xC6B888, 0.55, 0.12),                 // beige collimator / accessory tray (the Varian tan block)
+    accessory:std(0xD2C6AC, 0.55, 0.10),                 // beige collimator / accessory tray (Varian tan, per reference palette)
     couchMetal:std(0xB0B6BC, 0.38, 0.6),                 // brushed-metal stepped couch pedestal
     faceDark: std(0x34383D, 0.6,  0.25),                 // recessed gantry face (lightened vs near-black)
     headGray: std(0x4A4D52, 0.55, 0.35),                 // exposed mechanism (snout underside)
-    blue:     std(0x1B6FC4, 0.35, 0.1, { emissive: 0x06304f, emissiveIntensity: 0.25 }), // Varian accent
+    blue:     std(0x0093D0, 0.35, 0.1, { emissive: 0x043247, emissiveIntensity: 0.22 }), // Varian brand blue (#0093D0)
     metal:    std(0x9097A0, 0.35, 0.85),                 // exposed metal / target block
     tungsten: std(0x3A3D42, 0.6,  0.45),                 // dull matte MV jaws + MLC leaf comb
     panel:    std(0xC4C9CF, 0.4,  0.1),                  // imager active face (light gray)
