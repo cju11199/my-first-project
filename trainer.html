@@ -853,6 +853,10 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .cb-acq-row input{margin:0}
 @media(prefers-reduced-motion:reduce){.cb-acq-bar i{transition:none}}
 @media(max-width:880px){.cb-acq{flex-wrap:wrap}.cb-acq-viz{flex-basis:auto;align-self:center}}
+/* CBCT reconstruction reveal: opaque until acquired, wiped away clockwise as the gantry circles */
+.cb-acq-reveal{position:absolute;inset:0;z-index:21;pointer-events:none;display:flex;align-items:center;justify-content:center;background:rgba(2,6,10,.94)}
+.cb-acq-reveal.hidden{display:none}
+.cb-acq-reveal-lbl{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.14em;color:#8ef0c2;background:rgba(2,6,10,.55);padding:5px 14px;border-radius:20px;border:1px solid rgba(142,240,194,.25)}
 /* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
 .tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
 .tx-stepper.hidden{display:none}
@@ -1128,6 +1132,9 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     </div>
     <div class="cbct-pane-col">
     <div class="cbct-panes">
+      <!-- reconstruction reveal: hides the volume until the cone-beam is acquired, then wipes it in
+           clockwise as the gantry circles the patient (synced to the sweep progress) -->
+      <div class="cb-acq-reveal hidden" id="cbAcqReveal"><div class="cb-acq-reveal-lbl" id="cbAcqRevealLbl">CONE-BEAM NOT ACQUIRED</div></div>
       <div class="cb-wl left" id="cbWLleft" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-col">
           <div class="cb-wl-lbl">LEVEL</div>
@@ -1307,7 +1314,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         </div>
         <div class="con-pendant-btns">
           <button class="pbtn motion" id="cbAcqMotion" type="button" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the 180&deg; cone-beam start"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
-          <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="HOLD (or hold Enter) to scan the 360&deg; cone-beam acquisition"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="cbAcqBar"></i></button>
+          <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="PRESS (or Enter) to auto-acquire — the gantry circles the patient and reconstructs"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="cbAcqBar"></i></button>
         </div>
         <div class="con-msg" id="cbAcqMsg">Hold MOTION ENABLE to rotate the gantry to the 180&deg; cone-beam start position.</div>
       </div>
@@ -7318,7 +7325,7 @@ const CBCT=(function(){
   function acqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
   function acqRender(){
     const wrap=gid('cbAcq');if(!wrap)return;
-    if(!acqUses()){wrap.classList.add('hidden');return;}
+    if(!acqUses()){wrap.classList.add('hidden');const rv=gid('cbAcqReveal');if(rv)rv.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',acqPhase==='ready');
     const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');   // linac viz
     const a=((acqAngle%360)+360)%360;
@@ -7326,17 +7333,27 @@ const CBCT=(function(){
     const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
     const gauge=gid('cbaGauge');if(gauge)gauge.className='con-gauge '+(acqPhase==='acquiring'?'moving':acqPhase==='armed'?'ok':'off');
     const mot=gid('cbAcqMotion');if(mot){mot.disabled=(acqPhase!=='park');mot.classList.toggle('needmove',acqPhase==='park'&&!acqMotion);mot.classList.toggle('moving',acqMotion);}
-    const go=gid('cbAcqGo');if(go)go.disabled=!(acqPhase==='armed'||acqPhase==='acquiring');
+    const go=gid('cbAcqGo');if(go)go.disabled=(acqPhase!=='armed');
     const bar=gid('cbAcqBar');if(bar)bar.style.width=Math.round(acqSweepP*100)+'%';
     acqLamp('cbaLampRot',acqPhase==='park'||acqPhase==='armed','warn');
     acqLamp('cbaLampAcq',acqPhase==='acquiring','beam');
     acqLamp('cbaLampReady',acqPhase==='ready','on');
     const st=gid('cbaLcdSt');
-    if(st){let t,c;if(acqPhase==='park'){t='ROTATE → G180';c='off';}else if(acqPhase==='armed'){t='AT G180 · ACQUIRE';c='ok';}else{t=acqSweepHold?'ACQUIRING…':'PAUSED';c='moving';}st.textContent=t;st.className='con-lcd-st '+c;}
+    if(st){let t,c;if(acqPhase==='park'){t='ROTATE → G180';c='off';}else if(acqPhase==='armed'){t='AT G180 · ACQUIRE';c='ok';}else{t='ACQUIRING…';c='moving';}st.textContent=t;st.className='con-lcd-st '+c;}
     const msg=gid('cbAcqMsg');
-    if(msg)msg.textContent=acqPhase==='park'?'Hold MOTION ENABLE to rotate the gantry to the 180° cone-beam start position.'
-      :acqPhase==='armed'?'Gantry at 180°. Hold CONE-BEAM ON to scan a full rotation around the patient.'
-      :acqSweepHold?'Acquiring cone-beam projections — keep holding…':'Paused — hold CONE-BEAM ON to finish the acquisition.';
+    if(msg)msg.textContent=acqPhase==='park'?'Hold MOTION ENABLE (or SPACE) to rotate the gantry to the 180° cone-beam start position.'
+      :acqPhase==='armed'?'Gantry at 180°. Press CONE-BEAM ON (or Enter) — the gantry circles the patient and reconstructs automatically.'
+      :'Acquiring cone-beam — the gantry is circling the patient…';
+    // reconstruction reveal: opaque until acquired, then wiped in clockwise with the gantry sweep
+    const rev=gid('cbAcqReveal');
+    if(rev){
+      if(acqPhase==='ready'){rev.classList.add('hidden');}
+      else{rev.classList.remove('hidden');
+        const deg=(acqPhase==='acquiring')?acqSweepP*360:0;
+        rev.style.background='conic-gradient(from -90deg, rgba(2,6,10,0) 0deg, rgba(2,6,10,0) '+deg.toFixed(1)+'deg, rgba(2,6,10,.94) '+deg.toFixed(1)+'deg)';
+        const rl=gid('cbAcqRevealLbl');if(rl)rl.textContent=(acqPhase==='acquiring')?('RECONSTRUCTING… '+Math.round(acqSweepP*100)+'%'):'CONE-BEAM NOT ACQUIRED';
+      }
+    }
   }
   function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
   function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqStopRaf();acqMotion=true;let last=performance.now();
@@ -7349,15 +7366,17 @@ const CBCT=(function(){
   function acqMotionStop(){if(acqPhase==='park'){acqMotion=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}}}
   // Cone-beam acquisition: HOLD-driven (like the 2D console's beam-on). The 360° sweep only advances
   // while the button is held; releasing pauses it. Reaching 100% reconstructs and unlocks the match.
+  // AUTO-acquire: a single Beam On press starts the scan and it runs to completion on its own
+  // (the gantry circles the patient automatically) — no continuous hold required.
   function acqSweepStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();
-    if(acqPhase!=='armed'&&acqPhase!=='acquiring')return;
+    if(acqPhase!=='armed')return;   // one-shot from armed; ignore re-press while acquiring
     acqStopRaf();acqPhase='acquiring';acqSweepHold=true;let last=performance.now();
-    const step=(t)=>{if(!acqSweepHold){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
+    const step=(t)=>{const dt=Math.min(0.05,(t-last)/1000);last=t;
       acqSweepP=Math.min(1,acqSweepP+dt*1000/ACQ_SWEEP_MS);acqAngle=ACQ_START+acqSweepP*360;acqRender();
       if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='ready';acqRender();if(window.TXFLOW&&TXFLOW.onCbctAcquired)TXFLOW.onCbctAcquired();return;}
       acqRaf=requestAnimationFrame(step);};
     acqRaf=requestAnimationFrame(step);acqRender();}
-  function acqSweepStop(){if(acqSweepHold){acqSweepHold=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqRender();}}
+  function acqSweepStop(){}   // auto-acquire: Beam On runs the full sweep; release/keyup is a no-op
   function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
   function setAcqForce(on){acqForce=!!on;if(!acqUses()){acqStopRaf();}}
   function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
