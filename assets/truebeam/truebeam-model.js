@@ -88,6 +88,12 @@ const cyl = (THREE, rt, rb, h, mat, seg, name) => {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg || 24), mat); m.name = name || ''; return m;
 };
 const grp = (THREE, name) => { const g = new THREE.Group(); g.name = name; return g; };
+// partial torus (arcDeg < 360 → an OPEN curved C, never a closed ring/bore)
+const torus = (THREE, radius, tube, radSeg, tubSeg, arcDeg, mat, name) => {
+  const m = new THREE.Mesh(new THREE.TorusGeometry(radius, tube, radSeg || 16, tubSeg || 40,
+    (arcDeg || 360) * Math.PI / 180), mat);
+  m.name = name || ''; return m;
+};
 
 /**
  * build(THREE, opts) → { root, parts, materials, drivers, setPose(pose), readout(pose), bounds }
@@ -112,19 +118,24 @@ export function build(THREE, opts = {}) {
   // The gantry drum mounts on its upper front face; its top rises above iso (head-height).
   // A tall STAND (not a thin pole) is what stops the machine reading as a CT bore.
   const stand = grp(THREE, 'Stand_Drive_Base');
-  const col = box(THREE, 1.3, 2.4, 0.8, M.cream, 'Stand_Column');
-  col.position.set(0, IEC.FLOOR_Y + 1.2, 1.05);     // base on floor; top ~Y+1.2 (above iso)
-  const ped = box(THREE, 1.7, 0.16, 1.1, M.creamDk, 'Stand_Pedestal');
-  ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.05);
-  const standBlue = box(THREE, 0.05, 1.4, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
-  standBlue.position.set(0, 0.1, 0.64);
+  // SHORT, set-back drive base mostly HIDDEN behind the curved gantry mass (in the photo the
+  // rigid base barely shows). Top kept below the gantry so it never towers over the head.
+  const col = box(THREE, 1.02, 1.8, 0.7, M.cream, 'Stand_Column');
+  col.position.set(0, IEC.FLOOR_Y + 0.9, 1.22);     // base on floor; top ~y0.6 (below gantry top)
+  // rounded vertical fairing softening the column's front so the base doesn't read boxy
+  const colFair = cyl(THREE, 0.5, 0.5, 1.7, M.cream, 28, 'Stand_Fairing');
+  colFair.position.set(0, IEC.FLOOR_Y + 0.88, 1.05);
+  const ped = box(THREE, 1.4, 0.16, 1.0, M.creamDk, 'Stand_Pedestal');
+  ped.position.set(0, IEC.FLOOR_Y + 0.08, 1.12);
+  const standBlue = box(THREE, 0.05, 1.0, 0.02, M.blue, 'Stand_BlueAccent');     // thin Varian-blue channel
+  standBlue.position.set(0, 0.0, 0.74);
   // FIXED bearing collar/ring (NOT parented to the gantry) so the rotating drum visibly seats into
   // the stand on a slewing bearing — an annular bezel only (never a solid ring → no CT-bore read).
   const bearingCollar = cyl(THREE, 0.8, 0.8, 0.18, M.creamDk, 40, 'Stand_Bearing_Collar');
   bearingCollar.rotation.x = Math.PI / 2; bearingCollar.position.set(0, 0, 0.96);   // wraps the drum's rear barrel
   const bearingRing = cyl(THREE, 0.74, 0.74, 0.04, M.blue, 40, 'Stand_Bearing_Ring');
   bearingRing.rotation.x = Math.PI / 2; bearingRing.position.set(0, 0, 0.87);        // fixed blue bearing lip the drum spins in
-  stand.add(col, ped, standBlue, bearingCollar, bearingRing);
+  stand.add(col, colFair, ped, standBlue, bearingCollar, bearingRing);
   root.add(stand);
   parts.Stand_Drive_Base = stand;
 
@@ -139,28 +150,36 @@ export function build(THREE, opts = {}) {
   root.add(gantry);
   parts.Gantry_Rotation_Group = gantry;
 
-  // Gantry_Drum — a COMPACT rotating hub (one side, NOT a CT ring). Deliberately modest so the
-  // head-on-arm dominates and the machine reads as an OPEN C-arm, never a bore (user-confirmed).
-  // Drum set BACK on +Z so the gantry face clears the couch: iso→face ≈ 0.5 m, leaving room to
-  // push the table in (+Z longitudinal) for an inferior iso without the rails fouling the gantry.
-  const drum = cyl(THREE, 0.68, 0.68, 0.6, M.shell, 40, 'Gantry_Drum');
-  drum.rotation.x = Math.PI / 2; drum.position.set(0, 0, 0.80);
-  gantry.add(drum);
-  parts.Gantry_Drum = drum;
-  // forward disc face + restrained blue accent ring + hub boss (no big disc that reads as a CT gantry)
-  const facePlate = cyl(THREE, 0.7, 0.6, 0.12, M.shell, 40, 'Gantry_FacePlate');       // convex white disc cap
-  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.46;
-  const blueRing = cyl(THREE, 0.42, 0.42, 0.05, M.blue, 36, 'Gantry_FaceBlueRing');    // Varian accent
-  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.43;
-  const hubBoss = cyl(THREE, 0.22, 0.24, 0.16, M.creamDk, 28, 'Gantry_HubBoss');       // central boss
-  hubBoss.rotation.x = Math.PI / 2; hubBoss.position.z = 0.38;
-  gantry.add(facePlate, blueRing, hubBoss);
+  // ── CURVED C-ARM GANTRY BODY (the big sculptural mass, like the real TrueBeam) ──
+  // A THICK PARTIAL TORUS in the X-Y rotation plane: a fat rounded arc that sweeps from
+  // the head (top) around toward the imaging side, with the bottom (couch side) LEFT
+  // OPEN — an OPEN C, never a closed CT bore. Bulged toward +Z so its front face clears
+  // the couch (frontmost ≈ z0.50 ≥ the 0.45 couch-clearance line). This replaces the old
+  // thin rectangular arm + small flat drum that read as boxy/CT-like.
+  const bodyArc = torus(THREE, 0.58, 0.40, 20, 48, 282, M.shell, 'Gantry_Body');
+  bodyArc.position.set(0, 0, 0.90);
+  bodyArc.rotation.z = -51 * Math.PI / 180;     // sweep the 78° open gap to the bottom (couch entry)
+  gantry.add(bodyArc);
+  parts.Gantry_Body = bodyArc;
+  // inner fairing torus (slightly smaller/darker) to give the curved mass visual depth
+  const bodyInner = torus(THREE, 0.58, 0.30, 18, 44, 282, M.creamDk, 'Gantry_Body_Inner');
+  bodyInner.position.set(0, 0, 1.04);
+  bodyInner.rotation.z = -51 * Math.PI / 180;
+  gantry.add(bodyInner);
+  // SOLID hub core plugging the centre of the C so the gantry is solid white from EVERY angle —
+  // the torus inner hole + the cavity behind the face are filled, so no see-through "bore" mouth
+  // shows from the side. It only fills the centre (r≈0.52), so the BOTTOM of the C stays OPEN.
+  const hubPlug = cyl(THREE, 0.54, 0.54, 0.56, M.shell, 44, 'Gantry_Hub_Core');
+  hubPlug.rotation.x = Math.PI / 2; hubPlug.position.z = 0.74;            // solid z0.46→1.02, plugs the torus hole
+  // large rounded FACE at the rotation hub, facing the couch (-Z) — the big round gantry face.
+  const facePlate = cyl(THREE, 0.62, 0.56, 0.16, M.shell, 48, 'Gantry_FacePlate');
+  facePlate.rotation.x = Math.PI / 2; facePlate.position.z = 0.55;        // front at z0.47
+  const faceBoss  = cyl(THREE, 0.34, 0.40, 0.06, M.shell, 48, 'Gantry_Face_Boss');     // raised light central boss
+  faceBoss.rotation.x = Math.PI / 2; faceBoss.position.z = 0.47;
+  const blueRing = cyl(THREE, 0.50, 0.50, 0.05, M.blue, 48, 'Gantry_FaceBlueRing');   // Varian accent ring
+  blueRing.rotation.x = Math.PI / 2; blueRing.position.z = 0.49;          // sits just proud of the face
+  gantry.add(hubPlug, facePlate, faceBoss, blueRing);
   parts.Gantry_FacePlate = facePlate;
-  // faired ARM cantilevering radially out from the (set-back) drum up to the head at SAD (one-sided C-arm)
-  const arm = box(THREE, 0.48, 1.06, 0.66, M.shell, 'Gantry_Arm');
-  arm.position.set(0, 0.5, 0.47);
-  gantry.add(arm);
-  parts.Gantry_Arm = arm;
 
   // ── Treatment_Head_Group — bulky rounded-rectangular head hanging toward iso ──
   // Group ORIGIN = MV source/target EXACTLY at SAD (1.0 m) above iso (load-bearing for beam geometry).
