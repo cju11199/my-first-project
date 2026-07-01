@@ -94,6 +94,11 @@ class GantryScene {
     this.lastH = 0;
 
     this.materials = {
+      // TrueBeam-style moulded fibreglass covers: warm ivory/pearl with warm-gray + charcoal details.
+      ivory: makeMat(0xe9e4d8, { roughness: 0.55, metalness: 0.06 }),
+      ivoryBright: makeMat(0xf4f0e6, { roughness: 0.5, metalness: 0.05 }),
+      warmGray: makeMat(0xb3b7bd, { roughness: 0.42, metalness: 0.3 }),
+      charcoal: makeMat(0x24272c, { roughness: 0.5, metalness: 0.3 }),
       shell: makeMat(0x5e7692, { roughness: 0.28, metalness: 0.7 }),
       shellDark: makeMat(0x1d2b3c, { roughness: 0.45, metalness: 0.45 }),
       trim: makeMat(0xa8b9cf, { roughness: 0.22, metalness: 0.8 }),
@@ -251,28 +256,41 @@ class GantryScene {
   }
 
   build() {
-    this.scene.add(new THREE.HemisphereLight(0xd9eefc, 0x071019, 1.6));
-    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    // Warm-neutral studio light so the ivory covers read as fibreglass white, not blue plastic.
+    this.scene.add(new THREE.HemisphereLight(0xf1ece1, 0x0a0e14, 1.7));
+    const key = new THREE.DirectionalLight(0xfff3e2, 2.3);
     key.position.set(-2.8, 3.8, 5.2);
     this.scene.add(key);
-    const rim = new THREE.DirectionalLight(0x73d8ff, 0.75);
+    const rim = new THREE.DirectionalLight(0x73d8ff, 0.55);
     rim.position.set(3.2, -1.5, 4);
     this.scene.add(rim);
 
-    // OPEN bore: a tube the couch slides down (axis along Z) with a dark interior + back cap,
-    // so the patient recedes head-first into a visible tunnel instead of sitting on a flat wall.
-    const boreWall = makeMat(0x141d29, { roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide });
-    const bore = new THREE.Mesh(new THREE.CylinderGeometry(2.14, 2.14, 1.8, 96, 1, true), boreWall);
-    bore.rotation.x = Math.PI / 2;
-    bore.position.z = -1.05;
-    this.scene.add(bore);
-    const boreBack = new THREE.Mesh(new THREE.CircleGeometry(2.14, 96), this.materials.shellDark);
-    boreBack.position.z = -1.92;
-    this.scene.add(boreBack);
-
-    const boreLip = new THREE.Mesh(new THREE.TorusGeometry(2.16, 0.05, 16, 128), this.materials.trim);
-    boreLip.position.z = -0.16;
-    this.scene.add(boreLip);
+    // TrueBeam STAND (fixed): an upright sculpted ivory tower — NOT a CT-style drum. The C-arm
+    // (on the rig) emerges from a circular hub on its face and sweeps around the patient. Side
+    // pods at couch height are where the kV imaging arms stow; a low plinth grounds it.
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.7, 4.05, 0.95), this.materials.ivory);
+    tower.position.set(0, -0.12, -2.15);
+    this.scene.add(tower);
+    const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.6, 0.85), this.materials.ivoryBright);
+    shoulderL.position.set(-1.05, 0.4, -2.12);
+    this.scene.add(shoulderL);
+    const shoulderR = shoulderL.clone();
+    shoulderR.position.x = 1.05;
+    this.scene.add(shoulderR);
+    // kV stow pods hugging the lower sides (the arms fold out of these)
+    const podL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.05, 0.75), this.materials.ivory);
+    podL.position.set(-0.95, -1.15, -2.0);
+    this.scene.add(podL);
+    const podR = podL.clone();
+    podR.position.x = 0.95;
+    this.scene.add(podR);
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 1.3), this.materials.charcoal);
+    plinth.position.set(0, -2.05, -2.1);
+    this.scene.add(plinth);
+    // fixed hub collar on the stand face — the circular seam the C-arm root rotates within
+    const hubCollar = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.05, 12, 64), this.materials.warmGray);
+    hubCollar.position.z = -1.64;
+    this.scene.add(hubCollar);
 
     // Cable-wrap HARD STOP at gantry 180° (bottom): a real linac can't transit straight
     // down through the couch — mark the no-go zone with a red hazard arc + centre pip.
@@ -312,54 +330,88 @@ class GantryScene {
     this.rig = new THREE.Group();
     this.scene.add(this.rig);
 
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.18, 24, 128), this.materials.shell);
-    ring.position.z = 0.04;
-    this.rig.add(ring);
+    // ROTATING HUB — the disc on the stand face the C-arm root grows out of (its circular seam
+    // sits inside the fixed hubCollar on the stand).
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.82, 0.14, 48), this.materials.ivoryBright);
+    hub.rotation.x = Math.PI / 2;
+    hub.position.z = -1.62;
+    this.rig.add(hub);
 
-    const inner = new THREE.Mesh(new THREE.TorusGeometry(1.27, 0.035, 12, 96), this.materials.trim);
-    inner.position.z = 0.16;
-    this.rig.add(inner);
+    // C-ARM — the TrueBeam's signature swoosh: a wide curved arm sweeping (in the beam plane) from
+    // the hub up and over to the treatment head. Approximated as chamfer-tilted ivory segments;
+    // at G0 it curves in the Y–Z plane and the whole arm rotates about the bore axis with the rig.
+    const seg = (w, h, d, x, y, z, rx) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.materials.ivory);
+      m.position.set(x, y, z); m.rotation.x = rx || 0;
+      this.rig.add(m); return m;
+    };
+    seg(1.05, 0.95, 0.42, 0, 0.5, -1.5, 0);             // root, growing off the hub
+    seg(1.05, 0.62, 0.62, 0, 1.02, -1.3, -0.5);         // lower bend
+    this.mvArm = seg(1.05, 0.56, 0.74, 0, 1.5, -0.94, -0.85);  // upper bend (shoulder)
+    seg(1.0, 0.52, 1.15, 0, 1.86, -0.35, 0);            // horizontal neck reaching over the head
 
-    // Rig components promoted to instance fields: kv-vs-mv chain visibility toggles them, and the
-    // beam-on gating glows the opposing detector. Detector meshes get a cloned material so pulsing
-    // their emissive doesn't light up every other mesh sharing this.materials.shell.
-    this.mvArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.48, 0.22), this.materials.shell);
-    this.mvArm.position.set(0, 1.33, 0.18);
-    this.rig.add(this.mvArm);
-    this.mvHead = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.42, 0.5), this.materials.shell.clone());
-    this.mvHead.position.set(0, 1.79, 0.28);
+    // TREATMENT HEAD — big two-tier cylinder aimed down the beam, with a machined warm-gray
+    // collimator plate and charcoal light-field window on its face (per the reference photos).
+    this.mvHead = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.62, 40), this.materials.ivoryBright.clone());
+    this.mvHead.position.set(0, 1.32, this.ISO_Z);
     this.rig.add(this.mvHead);
-    this.mvColl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.38), this.materials.shellDark);
-    this.mvColl.position.set(0, 1.5, 0.38);
+    const headCap = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.5, 40), this.materials.ivory);
+    headCap.position.set(0, 1.76, this.ISO_Z);
+    this.rig.add(headCap);
+    const collFace = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, 0.1, 40), this.materials.warmGray);
+    collFace.position.set(0, 0.97, this.ISO_Z);
+    this.rig.add(collFace);
+    this.mvColl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.3), this.materials.charcoal);
+    this.mvColl.position.set(0, 0.915, this.ISO_Z);
     this.rig.add(this.mvColl);
 
-    this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.56, 0.18), this.materials.shell);
-    this.epidArm.position.set(0, -1.29, 0.12);
+    // EPID (MV portal imager) opposite the head: charcoal panel + ivory tray on an angled arm.
+    this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.9, 0.26), this.materials.ivory);
+    this.epidArm.position.set(0, -1.0, -0.75);
+    this.epidArm.rotation.x = Math.atan2(1.55, -1.05);   // long axis runs hub → panel
     this.rig.add(this.epidArm);
-    this.epid = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.18, 0.48), this.materials.shell.clone());
-    this.epid.position.set(0, -1.8, 0.22);
+    this.epid = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.09, 0.72), this.materials.charcoal.clone());
+    this.epid.position.set(0, -1.62, this.ISO_Z);
     this.rig.add(this.epid);
+    const epidTray = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.78), this.materials.ivory);
+    epidTray.position.set(0, -1.69, this.ISO_Z);
+    this.rig.add(epidTray);
 
-    this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 0.18), this.materials.shell);
-    this.kvArm.position.set(1.31, 0, 0.16);
+    // kV (OBI) imaging arms fold out from the stand pods at ±90° to the head: X-ray source cowl on
+    // one side, beige flat-panel detector opposite — straight deployed arms with warm-gray elbows.
+    const kvTilt = Math.atan2(0.75, 1.45);   // arm run: (±0.75, 0, +1.45) from pod to couch level
+    this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
+    this.kvArm.position.set(1.17, 0, -0.78);
+    this.kvArm.rotation.y = kvTilt;
     this.rig.add(this.kvArm);
-    this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.46, 0.36), this.materials.shell);
-    this.kvSource.position.set(1.76, 0, 0.25);
+    const kvElbow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 12), this.materials.warmGray);
+    kvElbow.position.set(1.5, 0, -0.05);
+    this.rig.add(kvElbow);
+    this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.6, 0.44), this.materials.ivory);
+    this.kvSource.position.set(1.6, 0, this.ISO_Z + 0.02);
     this.rig.add(this.kvSource);
+    const kvWindow = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.22), this.materials.charcoal);
+    kvWindow.position.set(1.41, 0, this.ISO_Z);
+    this.rig.add(kvWindow);
 
-    this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.1, 0.16), this.materials.shell);
-    this.kvPanelArm.position.set(-1.31, 0, 0.12);
+    this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
+    this.kvPanelArm.position.set(-1.17, 0, -0.78);
+    this.kvPanelArm.rotation.y = -kvTilt;
     this.rig.add(this.kvPanelArm);
-    this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.78, 0.42), this.materials.shell.clone());
-    this.kvPanel.position.set(-1.82, 0, 0.2);
+    this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.98, 0.72),
+      makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }));   // beige detector face (per photos)
+    this.kvPanel.position.set(-1.7, 0, this.ISO_Z);
     this.rig.add(this.kvPanel);
+    const kvPanelBack = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.03, 0.78), this.materials.ivory);
+    kvPanelBack.position.set(-1.77, 0, this.ISO_Z);
+    this.rig.add(kvPanelBack);
 
     // Component labels — ride the rig so they follow the MV treatment head + kV source as it rotates.
-    this.mvLabel = makeLabel('MV', '#f0cc66', 0.46);
-    this.mvLabel.position.set(0, 1.36, 0.62);
+    this.mvLabel = makeLabel('MV', '#c99b28', 0.46);
+    this.mvLabel.position.set(0, 1.32, 0.78);
     this.rig.add(this.mvLabel);
-    this.kvLabel = makeLabel('kV', '#5fdcf0', 0.46);
-    this.kvLabel.position.set(1.34, 0, 0.62);
+    this.kvLabel = makeLabel('kV', '#2fb9d8', 0.46);
+    this.kvLabel.position.set(1.6, 0, 0.72);
     this.rig.add(this.kvLabel);
 
     // Click-to-identify tooltips: tag components; the raycaster walks up to the nearest .tip.
@@ -398,7 +450,8 @@ class GantryScene {
     // MV treatment field aperture at the head — collimator jaw frame + a few MLC leaves shaping an
     // irregular opening. Built lazily per case (configureAperture); shown only for MV cases beaming.
     this.apertureGroup = new THREE.Group();
-    this.apertureGroup.position.set(0, 1.02, 0.42);   // just below the MV head, along the beam
+    this.apertureGroup.position.set(0, 0.76, this.ISO_Z);   // just below the collimator snout
+    this.apertureGroup.rotation.x = -Math.PI / 2;            // jaw frame ⟂ to the beam (faces iso)
     this.apertureGroup.visible = false;
     this.rig.add(this.apertureGroup);
 
@@ -432,7 +485,7 @@ class GantryScene {
       const s = makeLabel(String(deg), '#6f8299', 0.26);
       s.position.set(ux * 2.28, uy * 2.28, 0.14);
       this.scene.add(s);
-      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.03), this.materials.trim);
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.03), this.materials.charcoal);
       tick.position.set(ux * 2.0, uy * 2.0, 0.12);
       tick.rotation.z = -deg * DEG;
       this.scene.add(tick);
@@ -531,12 +584,17 @@ class GantryScene {
     // they do NOT slide with the per-case longitudinal position or the couch encoder offset. The
     // column runs from just under the couch top down to the floor (like a real treatment-couch stand).
     const topY = -0.28, floorY = this.FLOOR_Y, colH = topY - (floorY + 0.1);
-    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.42, colH, 0.5), this.materials.couch);
+    // PerfectPitch-style stand: ivory moulded pedestal column + charcoal floor base.
+    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.32, colH, 0.42), this.materials.ivory);
     pedestal.position.set(0, (topY + floorY + 0.1) / 2, 1.2);
     this.scene.add(pedestal);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.couch);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.charcoal);
     base.position.set(0, floorY + 0.06, 1.2);
     this.scene.add(base);
+    // couch turntable — the flush ivory disc in the floor the whole couch kicks (Rtn) about
+    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.05, 48), this.materials.ivoryBright);
+    turntable.position.set(0, floorY + 0.03, 1.2);
+    this.scene.add(turntable);
   }
 
   // Supine patient lying head-to-foot along Z, resting on the couch (posterior at -Y), draped in a
@@ -727,8 +785,8 @@ class GantryScene {
     const amberT = Math.max(0, (near - 0.4) / 0.6);                 // ramps in over the last ~53° toward 180
     this.amberGlow += (amberT - this.amberGlow) * Math.min(1, kc);
     this.mvHead.material.emissive.setHex(0x5a2e00);
-    this.mvHead.material.emissiveIntensity = 0.15 + 0.85 * this.amberGlow;
-    this.mvHead.material.color.setHex(this.amberGlow > 0.5 ? 0xff9c3a : 0x5e7692);
+    this.mvHead.material.emissiveIntensity = 0.06 + 0.9 * this.amberGlow;
+    this.mvHead.material.color.setHex(this.amberGlow > 0.5 ? 0xff9c3a : 0xf4f0e6);   // ivory cowl at rest
 
     const beam = kv ? this.kvBeam : this.mvBeam;
     const other = kv ? this.mvBeam : this.kvBeam;
