@@ -332,8 +332,8 @@ class GantryScene {
     g.position.set(0, 0, this.ISO_Z);
     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), this.materials.iso);
     dot.renderOrder = 6; g.add(dot);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.014, 12, 64), this.materials.iso);
-    ring.renderOrder = 6; g.add(ring);   // transverse reticle in the XY plane, encircling the torso
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.011, 12, 64), this.materials.iso);
+    ring.renderOrder = 6; g.add(ring);   // small transverse reticle in the XY plane, marking iso
     const line = (len, axis) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, len, 8), this.materials.laser);
       if (axis === 'x') m.rotation.z = Math.PI / 2;
