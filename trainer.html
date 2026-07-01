@@ -3238,7 +3238,7 @@ const FID2D=(function(){
     if(!fAcqUses()){wrap.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',fAcqPhase==='ready');
     const rig=document.getElementById('fidAcqRig');if(rig)rig.setAttribute('transform','rotate('+(fGantry-90)+' 100 100)');   // linac viz
-    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('fidAcqGantry3D',{angle:fGantry,mode:'kv',beamOn:!!fExpoHold,phase:'ACQUIRE'});
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('fidAcqGantry3D',{angle:fGantry,mode:'kv',beamOn:!!fExpoHold,phase:'ACQUIRE',isoRegion:'pelvis'});
     const a=((fGantry%360)+360)%360;
     const grig=document.getElementById('fdaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=document.getElementById('fdaLcdG');if(lg)lg.textContent=fAcqFmtG(fGantry);
@@ -3702,7 +3702,8 @@ const TXFLOW=(function(){
     if(gid('txMuBar'))gid('txMuBar').style.width=Math.min(100,muTotal/totalMU*100)+'%';}
   function drawGantry(){const rig=gid('txGantryRig');if(rig)rig.setAttribute('transform','rotate('+(gantryAngle-180)+' 100 100)');
     if(gid('txGantryAng'))gid('txGantryAng').textContent='Gantry '+Math.round(((gantryAngle%360)+360)%360)+'°';
-    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{angle:gantryAngle,mode:'mv',beamOn:beamPhase==='on',phase:'TREAT'});}
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{angle:gantryAngle,mode:'mv',beamOn:beamPhase==='on',phase:'TREAT',
+      couch:{lat:couch.lat,vrt:couch.vrt-couchBase.vrt,lng:couch.lng-couchBase.lng,rtn:couch.rtn},isoRegion:'pelvis'});}
   function updateReadouts(){const m=measured();
     if(gid('txDriftX'))gid('txDriftX').textContent=(m.x>=0?'+':'')+m.x.toFixed(1);
     if(gid('txDriftY'))gid('txDriftY').textContent=(m.y>=0?'+':'')+m.y.toFixed(1);
@@ -4345,9 +4346,18 @@ const CONSOLE=(()=>{
       moving: !!motOn,
       phase,
       acquired: acquired.slice(),
-      views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv}))
+      views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv})),
+      // physical couch from the encoder readout: absolute Lat (0=centred) drives lateral shift;
+      // Vrt/Lng are absolute calibration values so pass their deviation from the plan couch; Rtn = turntable.
+      couch:{ lat:couch.lat, vrt:couch.vrt-couch0.vrt, lng:couch.lng-couch0.lng, rtn:couch.rtn },
+      // per-case treatment site → the 3D dial slides the patient so this anatomy is at isocentre;
+      // extremity setups (femur) are imaged feet-first (leg driven into the bore, head out).
+      isoRegion: ISO_REGION[caseKey] || 'pelvis',
+      feetFirst: caseKey==='femur'
     });
   }
+  // maps each 2D setup-console case to the body region its isocentre sits in (drives the 3D patient slide)
+  const ISO_REGION={ brain:'head', hn:'neck', thorax:'chest', spine:'chest', breast:'chest', breastDIBH:'chest', pelvis:'pelvis', femur:'thigh' };
   function atViewMv(){ const v=viewAtGantry(); return !!(v&&v.mv); }
   // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
   // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
@@ -8259,7 +8269,7 @@ const CBCT=(function(){
     if(!acqUses()){wrap.classList.add('hidden');const rv=gid('cbAcqReveal');if(rv)rv.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',acqPhase==='ready');
     const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');   // linac viz
-    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('cbAcqGantry3D',{angle:acqAngle,mode:'kv',beamOn:acqPhase==='acquiring',phase:'ACQUIRE'});
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('cbAcqGantry3D',{angle:acqAngle,mode:'kv',beamOn:acqPhase==='acquiring',phase:'ACQUIRE',isoRegion:'pelvis'});
     const a=((acqAngle%360)+360)%360;
     const grig=gid('cbaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
