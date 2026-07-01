@@ -873,7 +873,9 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .tx-couch{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .tx-couch-cell{display:flex;flex-direction:column;align-items:center;background:rgba(8,11,16,.5);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;min-width:48px}
 .tx-couch-cell i{font-size:8px;letter-spacing:.06em;color:var(--muted);font-style:normal;text-transform:uppercase}
-.tx-couch-cell b{font-family:var(--mono),monospace;font-size:14px;color:var(--green);font-variant-numeric:tabular-nums}
+.tx-couch-cell b{font-family:var(--mono),monospace;font-size:14px;color:var(--green);font-variant-numeric:tabular-nums;transition:color .3s ease}
+#txCouch.couch-moving .tx-couch-cell b{color:var(--gold,#e6c25a)}
+.tx-btn.needmove{animation:txBlink 1s steps(2) infinite}
 .con-msg.warn{color:var(--accent2,#ff8a4d)}
 /* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
 .tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
@@ -1585,6 +1587,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           <span class="tx-beam-state hold" id="txBeamState">READY</span>
           <button class="tx-btn primary" id="txBeamBtn" onclick="TXFLOW.beamBtn()">Beam On</button>
           <button class="tx-btn alarm" id="txRematchBtn" style="display:none" onclick="TXFLOW.startRematch()">kV&ndash;MV Re-match</button>
+          <button class="tx-btn primary" id="txMotionBtn" style="display:none" onclick="TXFLOW.txMotion()">Motion Enable</button>
         </div>
       </div>
     </div>
@@ -3363,6 +3366,7 @@ const TXFLOW=(function(){
   let truePos={x:0,y:0,z:0}, appliedCorr={x:0,y:0,z:0}, bias={x:0,y:0,z:0};
   let holds=0, reimages=0, cbctRes=null, kvRes=null;
   let kvFlashAt=0;          // timestamp of the last triggered kV (drives the dial's transient kV-beam flash)
+  let pendingRematch=null;  // recovered shift from an intrafraction re-match, held until MOTION ENABLE moves the couch
   // ---- kV fiducial monitor (the triggered-kV detector view) ----
   // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
   const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
@@ -3395,7 +3399,7 @@ const TXFLOW=(function(){
   function hideArrows(ids){[ids.vrtA,ids.lngA,ids.latA,ids.rtnA].forEach(id=>{const el=gid(id);if(el)el.style.display='none';});}
   function paintTxCouch(){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('txCouchVrt',couch.vrt,2);e('txCouchLng',couch.lng,2);e('txCouchLat',couch.lat,2);e('txCouchRtn',couch.rtn,1);}
   // SPACE always drives whichever couch-move MOTION ENABLE is currently armed (in either apply strip).
-  function spaceMotion(){if(!running)return false;for(const id of ['cbaplMotion','fdaplMotion']){const mo=gid(id);if(mo&&!mo.disabled&&mo.offsetParent!==null){mo.click();return true;}}return false;}
+  function spaceMotion(){if(!running)return false;for(const id of ['cbaplMotion','fdaplMotion','txMotionBtn']){const mo=gid(id);if(mo&&!mo.disabled&&mo.offsetParent!==null){mo.click();return true;}}return false;}
 
   /* ---- stage machine ---- */
   function enter(){
@@ -3578,10 +3582,11 @@ const TXFLOW=(function(){
     // (always visible to any kV angle) so the projected fiducial reliably leaves the 0.5 cm ring
     // mid-treatment and the student always faces at least one intrafraction re-image.
     bias={x:(0.04+Math.random()*0.05)*sgn(), y:(0.20+Math.random()*0.10)*sgn(), z:(0.08+Math.random()*0.06)*sgn()};
-    lastKv=null; kvBackImg=null; kvFlashAt=0;
+    lastKv=null; kvBackImg=null; kvFlashAt=0; pendingRematch=null;
     buildArcList();
     const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
     const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
+    const mb=gid('txMotionBtn'); if(mb){mb.style.display='none';mb.classList.remove('needmove');}
     setBeamState('hold','READY'); setBtn('Beam On',false);
     status('Press Beam On to start the VMAT delivery. A triggered kV every 10 s verifies the gold fiducials stay within 0.5 cm.');
     drawGantry(); updateField(); updateReadouts(); updateKvAngle(); drawKvView(false);
@@ -3601,6 +3606,7 @@ const TXFLOW=(function(){
   function beamBtn(){
     if(beamPhase==='done') return;
     if(beamPhase==='holdtrig') return;             // must re-match first
+    if(beamPhase==='holdmove') return;             // must motion-enable the couch first
     if(beamPhase==='on'){ beamPhase='hold'; if(raf){cancelAnimationFrame(raf);raf=0;} setBeamState('hold','HOLD'); setBtn('Beam On',false); return; }
     // idle / hold -> resume
     beamPhase='on'; lastT=performance.now(); setBeamState('on','BEAM ON'); setBtn('Beam Hold',false);
@@ -3676,19 +3682,32 @@ const TXFLOW=(function(){
     });
     requestAnimationFrame(()=>resizeAll());
   }
-  // Apply Shifts on the intrafraction kV–MV re-match: apply the recovered couch correction (recentres the
-  // fiducials), accumulate it into the running couch so CBCT→kV→treatment stay consistent, return to the
-  // delivery screen and let the student resume the beam. Applies unconditionally (like the CBCT/kV stages).
+  // Apply Shifts on the intrafraction kV–MV re-match: LOAD the recovered couch correction, return to the
+  // delivery screen, and require a MOTION ENABLE to physically move the couch before the beam can resume
+  // (the shift isn't live until the couch has moved — mirrors a real interlock).
   function onRematchCheck(r){
-    appliedCorr.x+=r.correction.t[0]; appliedCorr.y+=r.correction.t[1]; appliedCorr.z+=r.correction.t[2];
-    // FID2D coords (t=[Lat,AP,SI], r=[Roll,Yaw,Pitch]) -> couch (Vrt=AP, Lng=SI, Lat, RTN=Yaw), cm
-    couch.vrt+=r.correction.t[1]/10; couch.lng+=r.correction.t[2]/10; couch.lat+=r.correction.t[0]/10; couch.rtn+=r.correction.r[1];
+    pendingRematch=r.correction;   // held until the couch is motion-enabled
     reimages++;
     FID2D.exitExternal(); document.body.classList.remove('fid-mode');
     currentMode='tx'; gid('txScreen').classList.remove('hidden');
-    beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
+    beamPhase='holdmove'; setBeamState('alarm','MOVE COUCH'); setBtn('Beam On',true);
     const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
-    status('✓ Shifts applied — couch corrected ('+r.transErr.toFixed(1)+' mm residual). Press Beam On to resume.');
+    const mb=gid('txMotionBtn'); if(mb){mb.style.display='';mb.classList.add('needmove');}
+    status('✓ Re-matched ('+r.transErr.toFixed(1)+' mm residual). MOTION ENABLE (or SPACE) to move the couch to the corrected position, then resume.');
+    drawGantry(); updateKvAngle(); drawKvView(false);
+  }
+  // Motion Enable after a re-match: move the couch by the pending shift (couch + drift now realign),
+  // then let the student resume the beam. SPACE also triggers this (see TXFLOW.spaceMotion).
+  function txMotion(){
+    if(beamPhase!=='holdmove'||!pendingRematch) return;
+    const r=pendingRematch; pendingRematch=null;
+    appliedCorr.x+=r.t[0]; appliedCorr.y+=r.t[1]; appliedCorr.z+=r.t[2];
+    // FID2D coords (t=[Lat,AP,SI], r=[Roll,Yaw,Pitch]) -> couch (Vrt=AP, Lng=SI, Lat, RTN=Yaw), cm
+    couch.vrt+=r.t[1]/10; couch.lng+=r.t[2]/10; couch.lat+=r.t[0]/10; couch.rtn+=r.r[1];
+    const mb=gid('txMotionBtn'); if(mb){mb.style.display='none';mb.classList.remove('needmove');}
+    const cc=gid('txCouch'); if(cc){cc.classList.add('couch-moving');setTimeout(()=>{if(cc)cc.classList.remove('couch-moving');},1200);}
+    beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
+    status('Couch moved to the corrected position — press Beam On to resume delivery.');
     paintTxCouch();
     const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
     lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM,g:gantryAngle};
@@ -3777,12 +3796,13 @@ const TXFLOW=(function(){
       ctx.fillStyle='rgba(200,220,240,.6)';ctx.beginPath();ctx.arc(rx,ry,1.4*gs,0,7);ctx.fill();   // planned centre dot
       // displacement connector
       ctx.strokeStyle=colDim;ctx.lineWidth=1*gs;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
-      // the ACTUAL gold seed fiducial — a crisp capsule with a verdict-coloured halo
-      const ang=SANG[i%SANG.length],hx=Math.cos(ang)*7*gs,hy=Math.sin(ang)*7*gs;
+      // the ACTUAL gold seed fiducial — a crisp capsule with a verdict-coloured halo. Sized LARGE vs the
+      // 0.5 cm ring (radius GATE_MM*sc = 5*sc) so the seed reads clearly against its tolerance circle.
+      const ang=SANG[i%SANG.length],hx=Math.cos(ang)*12*gs,hy=Math.sin(ang)*12*gs;
       ctx.save();ctx.lineCap='round';
-      ctx.globalAlpha=.2;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,7.5*gs,0,7);ctx.fill();ctx.globalAlpha=1;   // verdict halo
-      ctx.strokeStyle=col;ctx.lineWidth=5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // verdict outline
-      ctx.strokeStyle='#ffd23f';ctx.lineWidth=3*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // gold seed
+      ctx.globalAlpha=.2;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,12*gs,0,7);ctx.fill();ctx.globalAlpha=1;   // verdict halo
+      ctx.strokeStyle=col;ctx.lineWidth=7.5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // verdict outline
+      ctx.strokeStyle='#ffd23f';ctx.lineWidth=5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // gold seed
       ctx.restore();
     });
     // verdict banner
@@ -3806,7 +3826,7 @@ const TXFLOW=(function(){
     backdrop=c.toDataURL('image/png');return backdrop;
   }
 
-  return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,beamBtn,startRematch,cbApply,cbMotion,fidApply,fidMotion,
+  return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,beamBtn,startRematch,txMotion,cbApply,cbMotion,fidApply,fidMotion,
     _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
       forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx,lastKv:()=>lastKv?Object.assign({},lastKv):null,
