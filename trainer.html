@@ -3398,10 +3398,17 @@ const TXFLOW=(function(){
     const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';   // the intrafraction re-match DOES use Check Match
     if(cm)cm.textContent='Check Match';
     const gMV=((gantryAngle%360)+360)%360, m=measured(), sg=()=>Math.random()<.5?-1:1;
-    const bd=getBackdrop();
+    // Real bony-anatomy kV–MV pair: ray-sum the loaded pelvis volume at the beam angle (MV beam's-eye
+    // view) + the orthogonal kV (OBI), iso-centred. The seeds are θ-projected over genuine pelvic bone
+    // instead of the old synthetic ellipse. Falls back to the synthetic backdrop only if the 3D volume
+    // isn't decoded yet (it is, after the Stage-1 CBCT setup on the prostate volume).
+    const HALF=80, real=(window.CBCT&&CBCT.rayDRR&&CBCT.mprCase&&CBCT.mprCase()==='prostate');
+    const mvImg=real?CBCT.rayDRR(gMV,HALF,'mv'):null;
+    const kvImg=real?CBCT.rayDRR((gMV+90)%360,HALF,'kv'):null;
+    const bd=getBackdrop(), fov=[2*HALF,2*HALF];
     FID2D.enterExternal({
-      lat:{theta:gMV,            physMm:[110,110], isoFrac:[0.5,0.5], img:bd},   // MV beam's-eye-view at the beam angle
-      ap :{theta:(gMV+90)%360,   physMm:[110,110], isoFrac:[0.5,0.5], img:bd},   // orthogonal kV (OBI)
+      lat:{theta:gMV,            physMm:(mvImg?fov:[110,110]), isoFrac:[0.5,0.5], img:mvImg||bd},   // MV beam's-eye-view at the beam angle
+      ap :{theta:(gMV+90)%360,   physMm:(kvImg?fov:[110,110]), isoFrac:[0.5,0.5], img:kvImg||bd},   // orthogonal kV (OBI)
       fiducials:PROSTATE2D.fiducials,
       hidden:{t:[m.x,m.y,m.z], r:[(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg()]},
       onCheck:onRematchCheck,
@@ -6265,6 +6272,62 @@ const CBCT=(function(){
     const c0=c00+(c01-c00)*fy,c1=c10+(c11-c10)*fy;
     return c0+(c1-c0)*fz;
   }
+  // ── Real-anatomy DRR ray-sum at an arbitrary gantry angle (rotation about the SI/longitudinal axis),
+  // iso-centred over a ±halfMm square detector. Feeds the Full Treatment intrafraction kV–MV re-match
+  // with GENUINE bony anatomy from the loaded 3D volume (replacing the old synthetic ellipse backdrop).
+  // Beam axis w=(−sinθ,cosθ,0); detector horizontal u=(cosθ,sinθ,0), vertical v=+SI — the SAME θ
+  // convention as FID2D.proj(), so the θ-projected gold seeds land on the pelvic bone. kind: 'kv' =
+  // crisp bone-bright OBI look; 'mv' = flat, hazy megavoltage (EPID). Cheap enough to build on demand
+  // (a deliberate, occasional action); returns a PNG data-URL, or null if no volume is decoded yet.
+  const _MU16=(function(){const t=new Float32Array(256);for(let d=0;d<256;d++)t[d]=Math.pow(d/255,1.6);return t;})();
+  function rayDRR(thetaDeg,halfMm,kind){
+    if(!V3||!V3.data)return null;
+    const N=180,sp=V3.sp,X=V3.X,Y=V3.Y,Z=V3.Z,data=V3.data,XY=X*Y;
+    const iso=curIsoIdx(),ix=iso[0],iy=iso[1],iz=iso[2];
+    const th=thetaDeg*Math.PI/180,c=Math.cos(th),s=Math.sin(th);
+    const depthMm=200,dStep=sp,acc=new Float32Array(N*N);let mx=0;   // step at the voxel pitch — fine enough to avoid streaks
+    for(let vi=0;vi<N;vi++){
+      const vmm=halfMm-(2*halfMm)*vi/(N-1);                 // detector vertical: top row = +SI (superior up)
+      const kk=(vmm/sp+iz+0.5)|0;                           // SI voxel — constant along the beam for this row
+      if(kk<0||kk>=Z)continue;                              // outside the volume in SI -> leave the row black
+      const kb=kk*XY,row=vi*N;
+      for(let ui=0;ui<N;ui++){
+        const umm=-halfMm+(2*halfMm)*ui/(N-1);
+        let sum=0;
+        for(let w=-depthMm/2;w<depthMm/2;w+=dStep){
+          const fi=(umm*c-w*s)/sp+ix, fj=(umm*s+w*c)/sp+iy;
+          if(fi<0||fj<0||fi>=X-1||fj>=Y-1)continue;
+          // bilinear in-plane on the bone-emphasised (μ¹·⁶) densities, then integrate — smooth, no aliasing
+          const i0=fi|0,j0=fj|0,gx=fi-i0,gy=fj-j0,b=kb+j0*X+i0;
+          const s0=_MU16[data[b]]+(_MU16[data[b+1]]-_MU16[data[b]])*gx;
+          const s1=_MU16[data[b+X]]+(_MU16[data[b+X+1]]-_MU16[data[b+X]])*gx;
+          sum+=s0+(s1-s0)*gy;
+        }
+        acc[row+ui]=sum;if(sum>mx)mx=sum;
+      }
+    }
+    if(mx<=0)return null;
+    // Percentile stretch (p45..p99.5) via a 256-bin histogram: windows overlapping soft tissue toward
+    // black so the cortical bone reads as the bright landmark (same recipe as the offline kV generator).
+    const H=new Int32Array(258);for(let p=0;p<acc.length;p++)H[(acc[p]/mx*256)|0]++;
+    const tot=acc.length;let cum=0,loB=0,hiB=256;
+    for(let b=0;b<=256;b++){cum+=H[b];if(cum>=tot*0.45){loB=b;break;}}
+    cum=0;for(let b=0;b<=256;b++){cum+=H[b];if(cum>=tot*0.995){hiB=b;break;}}
+    const lo=loB/256*mx,hi=Math.max(hiB/256*mx,lo+1e-6);
+    const cn=document.createElement('canvas');cn.width=cn.height=N;
+    const cx2=cn.getContext('2d'),id=cx2.createImageData(N,N),px=id.data;
+    for(let p=0;p<acc.length;p++){
+      let a=(acc[p]-lo)/(hi-lo);a=a<0?0:a>1?1:a;
+      let g;
+      if(kind==='mv'){a=0.5+(a-0.42)*0.7;a=a<0?0:a>1?1:a;g=(a*255)|0;}   // MV/EPID: compressed contrast, mid-grey
+      else{g=(Math.pow(a,0.85)*255)|0;}                                  // kV: gentle gamma, bone-bright
+      const o=p*4;px[o]=px[o+1]=px[o+2]=g;px[o+3]=255;
+    }
+    cx2.putImageData(id,0,0);
+    // Soften residual ray-sum grain: kV stays crisp (0.5 px), MV gets EPID unsharpness (1.1 px).
+    const c2=document.createElement('canvas');c2.width=c2.height=N;const x2=c2.getContext('2d');
+    x2.filter='blur('+(kind==='mv'?1.1:0.5)+'px)';x2.drawImage(cn,0,0);return c2.toDataURL('image/png');
+  }
   // screen(u=+right mm, v=+down mm) + depth(mm) -> world (Wx,Wy,Wz), matching pane labels
   function planeWorld(name,u,v,dep){
     if(name==='axial')   return [u, v, dep];     // right=+Wx(L) down=+Wy(P) depth=Wz(SI)
@@ -7678,7 +7741,7 @@ const CBCT=(function(){
   function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
   function setAcqForce(on){acqForce=!!on;if(!acqUses()){acqStopRaf();}}
   function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,rayDRR,mprCase:()=>mprCase,timerMs:()=>cbTimer.elapsed(),
     toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,acqStartMatch,setAcqForce,acqReady,residual,
     _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
 })();
