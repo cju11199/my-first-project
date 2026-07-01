@@ -75,8 +75,19 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   - `drr/*.png` — DRR images.
   - `assets/fonts/` — self-hosted web fonts.
 - `generate_brain_contours.py` — offline helper that generated brain contour data.
-- `generate_lung_contours.py` — offline helper that injects the synthetic RLL nodule into the
-  thoracic CT and writes `lung3d_data.js` + `lung3d_labels_data.js` (needs numpy/scipy/pillow).
+- `generate_lung_volume.py` — offline helper that **re-sources the Lung SBRT CBCT case** from a
+  documented CC-BY chest CT: ingests **LIDC-IDRI** patient `LIDC-IDRI-0136` ("ChestRoutine 3.0 B31f")
+  from the **IDC** bucket `s3://idc-open-data`, segments body + lungs, **auto-places** the synthetic
+  spiculated RLL nodule subpleurally in the right lower lobe (from the segmented lung, so it stays a
+  valid RLL lesion), bakes it in, and writes `lung3d_data.js` + `lung3d_labels_data.js` (bits
+  gtv1/ptv2/lung8/body128). **Replaces** the older `generate_lung_contours.py` build that was chained
+  off the undocumented thoracic atlas (that helper is kept for reference but no longer the source).
+  **Licence CC BY 3.0** — attribute `doi:10.7937/k9/tcia.2015.lo9ql9sx`, baked into the data-file
+  headers. Same three Phase-2 allowlists (filenames unchanged); **re-run the "Upload data to Blob"
+  Action** after merge. QC stills verified headlessly; live-trainer look needs a real-browser check.
+- `generate_lung_contours.py` — **superseded** older offline helper that injected the synthetic RLL
+  nodule into the thoracic CT derived from `spine3d_data.js` and wrote `lung3d_*` (numpy/scipy/pillow).
+  Kept for reference; the live Lung case is now built by `generate_lung_volume.py` (documented CC-BY source).
 - `generate_spine_cbct.py` — offline helper that **rebuilds the CBCT Spine SBRT case**
   (`spine3d_data.js` + `spine3d_labels_data.js`) from the **same full-res chest CT as the 2D Spine
   case** (TCIA NSCLC-Radiogenomics R01-076, 0.8 mm), replacing the older 2.2 mm atlas. Structures
@@ -94,10 +105,29 @@ Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
   in the three Phase-2 allowlists; **re-run the "Upload data to Blob" Action** after merge. Needs
   pydicom/nibabel/numpy/scipy/pillow + TotalSegmentator. Visual rendering verified headlessly (QC
   stills); live-trainer look needs a real-browser check.
+- `generate_pelvis_volume.py` — offline helper that **(re-)builds the prostate-plan pelvis CT atlas**
+  (`pelvis3d_data.js` + `pelvis3d_labels_data.js`) from a documented CC-BY source: ingests
+  **prostate_anatomical_edge_cases** patient `Prostate-AEC-124` (an RT-SIMULATION "Prostate SBRT"
+  planning CT + its `Contouring` RTSTRUCT) from the **IDC** bucket `s3://idc-open-data`, rasterises
+  **Prostate / Bladder / Rectum** (largest-CC per organ), synthesises **PTV = prostate + 5 mm** (no PTV
+  ROI in the source) and leaves the `sv` bit reserved/unused (no seminal-vesicle ROI), thresholds the
+  body, crops to the pelvic slab, and resamples to the tiled atlas (bits prostate1/ptv2/bladder4/
+  rectum8/sv16/body128; iso at the prostate centroid). `pelvis3d` is **NOT a trainer case** (the old
+  Pelvis CBCT case was retired) — it is the **source volume** consumed by the two prostate generators
+  below, so re-sourcing here re-licenses BOTH prostate cases in one place. **Licence CC BY 4.0** —
+  attribute `doi:10.7937/qstf-st65`, baked into the headers. Replaces the previous undocumented pelvis
+  atlas. Needs pydicom/numpy/scipy/pillow. QC stills verified headlessly; live-trainer look needs a real-browser check.
 - `generate_prostate_fiducials.py` — offline helper that implants 3 gold fiducials in the pelvis
   plan's prostate and writes `prostate3d_data.js` + `prostate3d_labels_data.js` (numpy/scipy/pillow).
+  Seeds are placed spread in **all three axes (LR+AP+SI)** through the gland (so the 2D triad is
+  non-degenerate in both projections) and their voxel positions are **emitted into the labels meta
+  (`seeds`)** so `generate_prostate_2d.py` reads the identical triad. Inherits the pelvis CC BY 4.0
+  provenance (`doi:10.7937/qstf-st65`, baked into the output headers).
 - `generate_prostate_2d.py` — offline helper that ray-sums the pelvis CT into kV-style AP + Lateral
-  radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case).
+  radiographs and emits the planning fiducial triad → `prostate2d_data.js` (the 2D/2D fiducial case,
+  also the full-treatment `tx:prostate` case). Reads iso + the 3 seed voxels from
+  `prostate3d_labels_data.js` (single source of truth). Inherits the pelvis CC BY 4.0 provenance
+  (`doi:10.7937/qstf-st65`, baked into the header).
 - `generate_femur_2d.py` — offline helper for the **2D/2D Femur** case: ray-sums a real thigh CT
   (TCIA **Soft-tissue-Sarcoma** `STS_004`, the same series as the CBCT sarcoma case) into bone-emphasised
   AP + Lateral DRRs of a **single femur** (the femoral shaft is the bony landmark; flat `tilt:null`

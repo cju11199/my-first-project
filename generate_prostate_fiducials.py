@@ -50,11 +50,14 @@ print(f'prostate {prostate.sum()} vox  centroid(voxel)=({cx:.1f},{cy:.1f},{cz:.1
 inner = ndimage.binary_erosion(prostate, iterations=2)
 if inner.sum() < 30:
     inner = ndimage.binary_erosion(prostate, iterations=1)
-xspan = (px.max()-px.min()); zspan = (pz.max()-pz.min())
+xspan = (px.max()-px.min()); yspan = (py.max()-py.min()); zspan = (pz.max()-pz.min())
+# Spread the triad in ALL THREE axes (LR + AP + SI) so it is non-degenerate in BOTH the AP and
+# Lateral projections — the AP offset is essential or the seeds are coplanar in AP and the 2D
+# lateral-view least-squares 6DOF fit is ill-conditioned.
 cands = [
-    (cx - 0.22*xspan, cy, cz + 0.28*zspan),   # left, superior (base)
-    (cx + 0.24*xspan, cy, cz + 0.02*zspan),   # right, mid
-    (cx - 0.05*xspan, cy, cz - 0.30*zspan),   # central, inferior (apex)
+    (cx - 0.22*xspan, cy - 0.20*yspan, cz + 0.28*zspan),   # left, anterior, superior (base)
+    (cx + 0.24*xspan, cy + 0.22*yspan, cz + 0.02*zspan),   # right, posterior, mid
+    (cx - 0.05*xspan, cy - 0.04*yspan, cz - 0.30*zspan),   # central, inferior (apex)
 ]
 zz, yy, xx = np.mgrid[0:DZ, 0:DY, 0:DX]
 def sph(c, rmm):
@@ -120,7 +123,12 @@ print(f'CT atlas {ct_sz//1024}KB  label atlas {lbl_sz//1024}KB')
 meta = (f'{{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], '
         f'"physMm": [{PHYS[0]}, {PHYS[1]}, {PHYS[2]}], "tilesPerRow": {TPR}, '
         f'"tileRows": {math.ceil(DZ/TPR)}, "boneThr": 0.42}}')
+ATTRIB = ('// Source: prostate_anatomical_edge_cases (via NCI Imaging Data Commons, s3://idc-open-data).\n'
+          '// Licence: CC BY 4.0 (commercial use permitted with attribution).\n'
+          '// Attribution: Prostate Anatomical Edge Cases, The Cancer Imaging Archive, doi:10.7937/qstf-st65.\n'
+          '// Derived from the Prostate-AEC-124 pelvis planning CT (via pelvis3d); 3 gold fiducials are synthetic.\n')
 with open('prostate3d_data.js', 'w') as f:
+    f.write(ATTRIB)
     f.write('// Pelvis CT (the prostate plan) with 3 implanted gold fiducial markers baked in.\n')
     f.write('// dims=[x(LR),y(AP),z(SI)]  seeds = bright (density 255) ~5 mm solid blobs in the prostate\n')
     f.write('// (sized so the off-bone reslice redraw samples them solidly when the seeds drift off the pelvis).\n')
@@ -132,10 +140,13 @@ lbl_meta = (f'{{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], '
             f'}}')
 # build bits json explicitly to keep key order readable
 bits_json = ', '.join(f'"{k}": {v}' for k, v in bits.items())
+seeds_json = ', '.join('[%d, %d, %d]' % (s[0], s[1], s[2]) for s in seeds)
 lbl_meta = (f'{{"dims": [{DX}, {DY}, {DZ}], "spacingMm": [{SP}, {SP}, {SP}], '
             f'"tilesPerRow": {TPR}, "bits": {{{bits_json}}}, '
-            f'"isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}]}}')
+            f'"isoIdx": [{iso[0]}, {iso[1]}, {iso[2]}], '
+            f'"seeds": [{seeds_json}]}}')   # seed voxels — consumed by generate_prostate_2d.py so the 2D triad matches the 3D seeds
 with open('prostate3d_labels_data.js', 'w') as f:
+    f.write(ATTRIB)
     f.write('// Prostate fiducial case labels: pelvis structures + 3 gold fiducial markers (bit 32).\n')
     f.write(f'const PROSTATE3D_LABELS={lbl_meta};\n')
     f.write(f"PROSTATE3D_LABELS.atlas='data:image/png;base64,{lbl_b64}';\n")
