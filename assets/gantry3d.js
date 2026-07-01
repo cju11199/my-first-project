@@ -189,6 +189,12 @@ class GantryScene {
     stopPip.position.set(0, -2.02, 0.08);
     this.scene.add(stopPip);
 
+    // couch + patient live in one movable group so they translate/rotate with the couch
+    // encoder values, while the machine isocentre, lasers and gantry stay fixed in space.
+    this.table = new THREE.Group();
+    this.scene.add(this.table);
+    this.tableOff = { x: 0, y: 0, z: 0, rtn: 0 };   // current (eased) couch offset, scene units
+    this.tableGoal = { x: 0, y: 0, z: 0, rtn: 0 };  // target from the couch encoder state
     this.buildCouch();
     this.buildPatient();
     this.buildIso();
@@ -285,7 +291,7 @@ class GantryScene {
     const base = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.1, 0.78), this.materials.couch);
     base.position.set(0, -0.96, 1.2);
     g.add(base);
-    this.scene.add(g);
+    this.table.add(g);
   }
 
   // Supine patient lying head-to-foot along Z, resting on the couch (posterior at -Y), draped in a
@@ -315,7 +321,7 @@ class GantryScene {
       const arm = cyl(0.07, 0.06, 0.62, this.materials.gown);
       arm.position.set(s * 0.27, Y - 0.04, Z - 0.24); p.add(arm);
     });
-    this.scene.add(p);
+    this.table.add(p);
   }
 
   // Isocentre marked ON the patient at the ring centre where the beams converge: a glowing point,
@@ -364,6 +370,18 @@ class GantryScene {
     // spin the long way round; small deltas glide via the eased loop below.
     const angle = Number.isFinite(this.state.angle) ? this.state.angle : 0;
     if (Math.abs(angDiff(this.dispAngle, angle)) > 90) this.dispAngle = angle;
+
+    // Couch encoder → physical couch offset. Lateral is ~0-centred so it maps directly (a big Lat
+    // shifts the couch/patient off the bore axis); vrt/lng are absolute calibration values, so use
+    // their deviation from plan (dVrt/dLng); rtn is the couch turntable angle. cm → scene units.
+    const c = this.state.couch;
+    if (c) {
+      const LAT = 0.11, VRT = 0.1, LNG = 0.1, clamp = (v, m) => Math.max(-m, Math.min(m, v));
+      this.tableGoal.x = clamp((c.lat || 0) * LAT, 1.2);
+      this.tableGoal.y = clamp((c.vrt || 0) * VRT, 0.6);   // c.vrt/c.lng are deltas-from-plan (see console)
+      this.tableGoal.z = clamp((c.lng || 0) * LNG, 0.9);
+      this.tableGoal.rtn = (c.rtn || 0) * DEG;
+    }
     this.ensureLoop();
   }
 
@@ -376,6 +394,12 @@ class GantryScene {
     const k = 1 - Math.pow(0.0025, dt / 1000);   // ~frame-rate-independent smoothing
     this.dispAngle += angDiff(this.dispAngle, angle) * Math.min(1, k);
     this.rig.rotation.z = -this.dispAngle * DEG;
+
+    // ease the couch toward its encoder offset so New Offset / corrections glide, not pop
+    const o = this.tableOff, gl = this.tableGoal, kc = Math.min(1, 1 - Math.pow(0.02, dt / 1000));
+    o.x += (gl.x - o.x) * kc; o.y += (gl.y - o.y) * kc; o.z += (gl.z - o.z) * kc; o.rtn += (gl.rtn - o.rtn) * kc;
+    this.table.position.set(o.x, o.y, o.z);
+    this.table.rotation.y = o.rtn;
 
     const showTarget = this.state.target !== null && this.state.target !== undefined && this.state.phase === 'ACQUIRE';
     this.targetMarker.visible = showTarget;
@@ -419,7 +443,10 @@ class GantryScene {
       // keep animating while the gantry is gliding, a beam is pulsing, or the camera is
       // still orbiting toward its drag goal; otherwise idle to save the GPU.
       const gantrySettled = Math.abs(angDiff(this.dispAngle, this.state.angle || 0)) < 0.05;
-      if (gantrySettled && !this.state.beamOn && this.cameraSettled()) { this._raf = null; this.lastT = null; return; }
+      const o = this.tableOff, gl = this.tableGoal;
+      const tableSettled = Math.abs(gl.x - o.x) < 1e-3 && Math.abs(gl.y - o.y) < 1e-3 &&
+        Math.abs(gl.z - o.z) < 1e-3 && Math.abs(gl.rtn - o.rtn) < 1e-3;
+      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);
