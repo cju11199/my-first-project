@@ -24,10 +24,15 @@ class GantryScene {
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
-    this.camera.position.set(0, 0, 9.8);
-    this.camera.lookAt(0, 0, 0);
+    // 3/4 view: lifted + slightly off-axis so the bore recedes and the couch/patient
+    // sit inside a gantry with real depth (dead-on read as a flat SVG-style disc).
+    this.camera.position.set(1.15, 2.85, 9.15);
+    this.camera.lookAt(0, -0.05, 0.16);
 
     this.state = { angle: 0, target: null, mode: 'kv', beamOn: false, phase: 'ACQUIRE' };
+    this.dispAngle = 0;    // eased display angle (trails the commanded gantry for smooth glide)
+    this.clock = 0;        // ms, for the beam pulse
+    this.lastT = null;
     this.lastW = 0;
     this.lastH = 0;
 
@@ -71,6 +76,20 @@ class GantryScene {
     const boreLip = new THREE.Mesh(new THREE.TorusGeometry(2.28, 0.045, 16, 128), this.materials.trim);
     boreLip.position.z = -0.2;
     this.scene.add(boreLip);
+
+    // Cable-wrap HARD STOP at gantry 180° (bottom): a real linac can't transit straight
+    // down through the couch — mark the no-go zone with a red hazard arc + centre pip.
+    const stopMat = makeMat(0xff5a3c, { roughness: 0.4, metalness: 0.2, emissive: 0x5a1400, emissiveIntensity: 0.5 });
+    const stopArc = new THREE.Mesh(
+      new THREE.TorusGeometry(2.02, 0.05, 12, 64, 26 * DEG),
+      stopMat
+    );
+    stopArc.rotation.z = -Math.PI / 2 - 13 * DEG;   // centre the 26° arc on the bottom (180°)
+    stopArc.position.z = 0.08;
+    this.scene.add(stopArc);
+    const stopPip = new THREE.Mesh(new THREE.SphereGeometry(0.055, 16, 10), stopMat);
+    stopPip.position.set(0, -2.02, 0.08);
+    this.scene.add(stopPip);
 
     const couch = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.14, 0.22), this.materials.couch);
     couch.position.set(0, -0.1, 0.12);
@@ -178,10 +197,22 @@ class GantryScene {
 
   update(state = {}) {
     this.state = { ...this.state, ...state };
-    this.resize();
+    // On a large commanded jump (reset / case switch) snap the display so it doesn't
+    // spin the long way round; small deltas glide via the eased loop below.
+    const angle = Number.isFinite(this.state.angle) ? this.state.angle : 0;
+    if (Math.abs(angDiff(this.dispAngle, angle)) > 90) this.dispAngle = angle;
+    this.ensureLoop();
+  }
+
+  // Apply the current state to the scene. `t` is a monotonic ms clock for the beam pulse.
+  apply(dt) {
+    this.resize();   // cheap no-op unless the panel actually reflowed (fixes reflow-without-window-resize)
 
     const angle = Number.isFinite(this.state.angle) ? this.state.angle : 0;
-    this.rig.rotation.z = -angle * DEG;
+    // ease the displayed angle toward the commanded gantry (shortest wrap-aware arc)
+    const k = 1 - Math.pow(0.0025, dt / 1000);   // ~frame-rate-independent smoothing
+    this.dispAngle += angDiff(this.dispAngle, angle) * Math.min(1, k);
+    this.rig.rotation.z = -this.dispAngle * DEG;
 
     const showTarget = this.state.target !== null && this.state.target !== undefined && this.state.phase === 'ACQUIRE';
     this.targetMarker.visible = showTarget;
@@ -194,21 +225,48 @@ class GantryScene {
       if (!v) return;
       m.rotation.z = -(v.angle || 0) * DEG;
       const done = !!(this.state.acquired && this.state.acquired[i]);
-      m.children.forEach(c => c.material = done ? this.materials.green : this.materials.kv);
+      const base = v.mv ? this.materials.mv : this.materials.kv;   // gold for MV/EPID views, blue for kV
+      m.children.forEach(c => c.material = done ? this.materials.green : base);
     });
 
     const beamOn = !!this.state.beamOn;
     const mode = this.state.mode === 'mv' ? 'mv' : 'kv';
-    this.mvBeam.visible = beamOn && mode === 'mv';
-    this.kvBeam.visible = beamOn && mode !== 'mv';
+    const beam = mode === 'mv' ? this.mvBeam : this.kvBeam;
+    const other = mode === 'mv' ? this.kvBeam : this.mvBeam;
+    other.visible = false;
+    beam.visible = beamOn;
+    if (beamOn) {
+      // pulse the live beam so an exposure reads as active, not a static cone
+      const p = 0.5 + 0.5 * Math.sin(this.clock / 130);
+      beam.material.opacity = 0.24 + 0.26 * p;
+      beam.material.emissiveIntensity = (mode === 'mv' ? 0.4 : 0.42) + 0.4 * p;
+      beam.scale.setScalar(0.97 + 0.05 * p);
+    }
+  }
 
-    this.render();
+  ensureLoop() {
+    if (this._raf) return;
+    const tick = (t) => {
+      const dt = this.lastT == null ? 16 : Math.min(64, t - this.lastT);
+      this.lastT = t;
+      this.clock += dt;
+      this.apply(dt);
+      this.render();
+      // keep animating while the gantry is still gliding or a beam is pulsing; otherwise idle
+      const settled = Math.abs(angDiff(this.dispAngle, this.state.angle || 0)) < 0.05;
+      if (settled && !this.state.beamOn) { this._raf = null; this.lastT = null; return; }
+      this._raf = requestAnimationFrame(tick);
+    };
+    this._raf = requestAnimationFrame(tick);
   }
 
   render() {
     this.renderer.render(this.scene, this.camera);
   }
 }
+
+// shortest signed angular difference b→a in degrees, in (-180, 180]
+function angDiff(a, b) { let d = (a - b) % 360; if (d > 180) d -= 360; if (d <= -180) d += 360; return d; }
 
 const api = {
   instance: null,
