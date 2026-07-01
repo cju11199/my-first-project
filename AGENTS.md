@@ -1,10 +1,17 @@
-# RT Image Matching Trainer — project memory
+# RT Image Matching Trainer — project memory (AGENTS.md)
 
 Interactive **RT Image Matching Trainer** for radiation-therapy students: practice aligning
 treatment-setup imaging (portal/CBCT) to reference data, like a real treatment setup.
 Live at **https://rtimagematch.com** (landing) → **/trainer** (app).
 
 > Training simulator, educational use only. Not for clinical decisions. All offsets/values are fictional.
+
+<!--
+  This file is the OpenAI Codex agent guide. It mirrors `CLAUDE.md` (the Claude Code guide) —
+  the two are kept in sync; treat `CLAUDE.md` as the canonical source for the project knowledge
+  below and update both together when project facts change. Only the final "Working with Codex"
+  section intentionally differs (Codex has no hooks/skills system — see there).
+-->>
 
 ## Stack & hosting
 
@@ -544,19 +551,30 @@ outbound as the address would require switching to a real mailbox (iCloud+ custo
   add an external origin (e.g. Clerk domains), update the CSP accordingly.
 - Per-image canvas filters (not whole-canvas CSS filters) so backgrounds/overlays stay clean.
 
-## Dev tooling (`.claude/` + `scripts/`)
+## Working with Codex (dev tooling)
 
-- **`/new-case` skill** (`.claude/skills/new-case/SKILL.md`) — the full add-a-case pipeline
-  (IDC sourcing → generator → `trainer.html` wiring → 3 allowlists → build-verify → draft PR →
-  post-merge Blob upload). Invoke it whenever adding a 2D/2D or CBCT case.
-- **`/check-blob` skill** (`.claude/skills/check-blob/SKILL.md`) — verifies the allowlists are in
-  sync and (re-)runs the "Upload data to Blob" Action. The standard **post-merge** step for a case.
+Codex has no skills or hook system, so the Claude Code automation is reproduced here as **prompts you
+run by hand** plus **checks you must remember to run** (nothing enforces them automatically — that's
+the key difference from the Claude Code setup).
+
+- **Custom prompts** (`.codex/prompts/` in this repo → copy/symlink into `~/.codex/prompts/` to use as
+  `/new-case` and `/check-blob` in Codex):
+  - **`/new-case`** (`.codex/prompts/new-case.md`) — the full add-a-case pipeline (IDC sourcing →
+    generator → `trainer.html` wiring → 3 allowlists → build-verify → draft PR → post-merge Blob
+    upload). Use it whenever adding a 2D/2D or CBCT case.
+  - **`/check-blob`** (`.codex/prompts/check-blob.md`) — verifies the allowlists are in sync and
+    (re-)runs the "Upload data to Blob" Action. The standard **post-merge** step for a case.
+  - (These are ports of the Claude Code skills under `.claude/skills/`, kept in sync with them.)
 - **`scripts/check-allowlists.mjs`** — no-deps checker that the `*_data.js` files match all three
-  Phase-2 lists (`upload-to-blob.mjs`, `api/asset.mjs`, `.vercelignore`). Run it before any push.
-- **Pre-push hook** (`.claude/settings.json` PreToolUse → `.claude/hooks/prepush-guard.mjs`) —
-  before any `git push` it runs the allowlist check (always) + `build-trainer.mjs --out` (if the
-  minify deps are installed) and **blocks the push** on failure, so a forgotten allowlist entry or
-  a broken minify can't reach a PR.
+  Phase-2 lists (`upload-to-blob.mjs`, `api/asset.mjs`, `.vercelignore`). **Run it before every push.**
+- **Pre-push enforcement.** Claude Code enforced this via a `.claude/settings.json` PreToolUse hook
+  (`.claude/hooks/prepush-guard.mjs`) that ran the allowlist check + `build-trainer.mjs --out` and
+  **blocked the push** on failure. **Codex has no equivalent hook**, so either:
+  1. run the guard manually before each push —
+     `node scripts/check-allowlists.mjs && node build-trainer.mjs --out && rm -f trainer.min.html clerk-auth.min.js`, or
+  2. (recommended) install it as a real git `pre-push` hook so it's agent-independent:
+     `printf '#!/bin/sh\nnode scripts/check-allowlists.mjs && node build-trainer.mjs --out && rm -f trainer.min.html clerk-auth.min.js\n' > .git/hooks/pre-push && chmod +x .git/hooks/pre-push`
+  A forgotten allowlist entry or a broken minify must not reach a PR.
 
 ## Status / next steps (Phase 2 — hard data lockdown)
 

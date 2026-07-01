@@ -14,6 +14,8 @@
 
 import { createClerkClient } from '@clerk/backend';
 import { get } from '@vercel/blob';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
 
 const PLAN_KEY = 'full_access';
 
@@ -56,6 +58,27 @@ const clerk = createClerkClient({
   publishableKey: process.env.CLERK_PUBLISHABLE_KEY,
 });
 
+// Velocity rate limit (anti-bulk-scrape + cost control). Serverless is stateless, so the counter
+// lives in Upstash Redis (atomic sliding window). Keyed by Clerk USER id for authed requests (the
+// real abuse unit — caps how fast one account can pull the ~15 MB library), falling back to IP for
+// the public free-tier path. LAZY + OPTIONAL: only active when the UPSTASH_* env vars are set, so
+// the paywall keeps working before Upstash is provisioned. ~120 asset reqs / 60 s is invisible to a
+// real trainer session but throttles a scraper. Tune once real traffic is observed.
+const RL_WINDOW = [120, '60 s'];
+let _rl = null, _rlInit = false;
+function getRatelimit() {
+  if (_rlInit) return _rl;
+  _rlInit = true;
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    _rl = new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(...RL_WINDOW), prefix: 'asset', analytics: false });
+  }
+  return _rl;
+}
+function clientIp(request) {
+  const xff = request.headers.get('x-forwarded-for') || '';
+  return xff.split(',')[0].trim() || request.headers.get('x-real-ip') || 'unknown';
+}
+
 function compedByEmail(emailAddresses) {
   const allowEmails = COMP_EMAILS.map((e) => e.toLowerCase());
   const allowDomains = COMP_DOMAINS.map((d) => d.toLowerCase().replace(/^@/, ''));
@@ -77,7 +100,9 @@ function compedByEmail(emailAddresses) {
   return false;
 }
 
-async function isAuthorized(request, token) {
+// Returns { ok, userId }. userId is the authenticated Clerk id (or null) — used to key the rate
+// limiter even though `ok` decides access.
+async function authorize(request, token) {
   // Promote the ?t= session token to an Authorization header for networkless verification
   // (falls back to the __session cookie when ?t= is absent).
   const headers = new Headers(request.headers);
@@ -85,16 +110,17 @@ async function isAuthorized(request, token) {
   const req = new Request(request.url, { headers });
   const state = await clerk.authenticateRequest(req, token ? { acceptsToken: 'session_token' } : undefined);
   const auth = state.toAuth();
-  if (!auth || !auth.userId) return false;
+  if (!auth || !auth.userId) return { ok: false, userId: null };
+  const userId = auth.userId;
   // Active subscription (an active trial counts) via Clerk Billing.
-  try { if (auth.has && auth.has({ plan: PLAN_KEY })) return true; } catch { /* fall through */ }
+  try { if (auth.has && auth.has({ plan: PLAN_KEY })) return { ok: true, userId }; } catch { /* fall through */ }
   // Comp tiers.
-  if (COMP_USER_IDS.includes(auth.userId)) return true;
+  if (COMP_USER_IDS.includes(userId)) return { ok: true, userId };
   try {
-    const user = await clerk.users.getUser(auth.userId);
-    if (compedByEmail(user.emailAddresses)) return true;
+    const user = await clerk.users.getUser(userId);
+    if (compedByEmail(user.emailAddresses)) return { ok: true, userId };
   } catch { /* ignore lookup failure -> unauthorized */ }
-  return false;
+  return { ok: false, userId };
 }
 
 const json = (obj, status) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
@@ -109,11 +135,30 @@ export async function GET(request) {
 
   // Public free-tier keys skip the subscription check; everything else stays fail-closed.
   const isPublic = PUBLIC_KEYS.has(key);   // exact match on the already-allowlisted key
+  let userId = null;
   if (!isPublic) {
-    let ok = false;
-    try { ok = await isAuthorized(request, token); }
+    let res;
+    try { res = await authorize(request, token); }
     catch { return json({ error: 'authorization check failed' }, 500); }
-    if (!ok) return json({ error: 'active subscription required' }, 403);
+    if (!res.ok) return json({ error: 'active subscription required' }, 403);
+    userId = res.userId;
+  }
+
+  // Velocity rate limit (after identity, before the expensive blob stream). Authed -> per-user;
+  // public -> per-IP. Fails OPEN on a limiter error / when Upstash isn't configured, so a Redis
+  // blip or an un-provisioned store never takes down paid access (the auth gate still protects content).
+  const rl = getRatelimit();
+  if (rl) {
+    const rlKey = userId ? `u:${userId}` : `ip:${clientIp(request)}`;
+    let r = null;
+    try { r = await rl.limit(rlKey); } catch { /* fail-open */ }
+    if (r && !r.success) {
+      const retry = Math.max(1, Math.ceil((r.reset - Date.now()) / 1000));
+      return new Response(JSON.stringify({ error: 'rate limited' }), {
+        status: 429,
+        headers: { 'content-type': 'application/json', 'Retry-After': String(retry) },
+      });
+    }
   }
 
   let result;

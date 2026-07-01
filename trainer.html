@@ -687,8 +687,15 @@ html:not(.auth-pending) #authGate{display:none}
 .con-pip.done{background:var(--green);border-color:var(--green)}
 .con-plan{margin-left:auto;font-size:10px;color:var(--muted);letter-spacing:.08em}
 /* ── SVG linac gantry visualization ── */
-.con-viz{flex:0 0 132px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px}
+.con-viz{position:relative;flex:0 0 clamp(260px,24vw,340px);min-height:220px;display:flex;align-items:center;justify-content:center;background:#04070b;border:1px solid var(--border2);border-radius:10px;overflow:hidden}
 .con-svg{width:128px;height:116px;display:block}
+.con-gantry3d{position:absolute;inset:0;width:100%;height:100%;display:block;background:radial-gradient(circle at 50% 43%,rgba(45,212,238,.08),transparent 54%)}
+.con-viz.has-3d .con-svg{display:none}
+/* Full Treatment consoles reuse the 3D gantry dial: hide their SVG fallbacks once the 3D model mounts */
+.con-viz.has-3d .cb-acq-svg{display:none}
+.tx-gantry-viz{position:relative;width:100%;max-width:300px;margin:0 auto;aspect-ratio:1/1}
+.tx-gantry-viz.has-3d .tx-gantry-svg{display:none}
+.tx-gantry-viz .con-gantry3d{border-radius:10px}
 /* ── photoreal TrueBeam DRUM (front-on, down the bore) — metal-gradient gantry that rotates about iso ── */
 /* the bore + drum + head/imager fills come from inline SVG gradients (defs in the markup);
    CSS only governs the strokes/colours JS does not paint and the beam-flash visibility. */
@@ -820,7 +827,7 @@ html:not(.auth-pending) #authGate{display:none}
 /* belt-and-suspenders: the console can NEVER render on the fiducial or DIBH cases */
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}.pbtn.room.needroom:not(:disabled){animation:none}}
-@media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
+@media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex:none;width:min(100%,340px);min-height:220px;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
 /* ---- CBCT acquisition console (prostate): rotate gantry to 180 + sweep 360 before the match unlocks ---- */
 .cbct-panes{position:relative}
 /* acquisition console — docked as a STRIP into the imaging layout (panes stay visible above it,
@@ -926,6 +933,150 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .tx-summary .tx-stats{display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
 .tx-summary .tx-stat b{display:block;font-size:22px;color:#eaf1f8}
 .tx-summary .tx-stat span{font-size:11px;color:#9fb3c4;text-transform:uppercase;letter-spacing:.05em}
+/* ===== Debrief Console results overlay ===== */
+/* shell reuses .modal-bg (z-index 100) + .rt-modal (270). Bump above #rtProgModal. */
+.dbf-bg{z-index:300}
+.dbf-card{
+  width:min(680px,94vw);max-height:92vh;overflow:auto;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--border2);border-radius:16px;
+  box-shadow:var(--shadow-card),0 0 0 1px var(--hairline) inset;
+  padding:16px 18px 14px;font-family:var(--mono);color:var(--text);
+  position:relative;overflow-x:hidden;
+  --v:var(--accent);--v-hi:var(--accent-hi);--v-dim:var(--accent-dim);
+  transform:translateY(14px) scale(.985);opacity:0;
+  transition:transform .32s var(--ease),opacity .32s var(--ease)}
+#rtDebrief.open .dbf-card{transform:none;opacity:1}
+.dbf-card[data-verdict="close"],
+.dbf-card[data-verdict="off"],
+.dbf-card[data-verdict="bone"]{--v:var(--accent2);--v-hi:var(--accent2-hi);--v-dim:var(--accent2-dim)}
+.dbf-card:focus{outline:none}
+
+/* ---- letterhead ---- */
+.dbf-bar{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--hairline);position:relative;z-index:4}
+.dbf-chip{font-size:9px;letter-spacing:.18em;padding:3px 7px;border-radius:var(--radius-pill);
+  background:var(--v-dim);color:var(--v-hi);border:1px solid var(--v-dim)}
+.dbf-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dbf-attempt{margin-left:auto;font-size:10px;color:var(--label);letter-spacing:.1em;font-variant-numeric:var(--num);white-space:nowrap}
+.dbf-x{background:none;border:0;color:var(--label);font-size:20px;line-height:1;cursor:pointer;padding:0 2px;box-shadow:none}
+.dbf-x:hover{color:var(--text);background:none}
+.dbf-x:focus-visible{outline:2px solid var(--v-hi);outline-offset:2px}
+
+/* ---- verdict stamp ---- */
+.dbf-verdict-row{display:flex;align-items:center;gap:14px;margin:14px 0;flex-wrap:wrap}
+.dbf-stamp{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:24px;font-weight:800;letter-spacing:.05em;color:var(--v-hi);
+  padding:6px 14px;border:2.5px solid var(--v);border-radius:10px;
+  text-shadow:0 0 18px var(--v-dim);box-shadow:0 0 0 4px var(--v-dim) inset;
+  transform:scale(1.8) rotate(-7deg);opacity:0;
+  animation:dbfStamp .5s var(--ease) .12s forwards}
+.dbf-stamp-tier{font-size:14px;font-weight:800;line-height:1;padding:2px 6px;border-radius:6px;
+  background:var(--v);color:var(--bg);min-width:16px;text-align:center}
+.dbf-stamp-tier:empty{display:none}
+@keyframes dbfStamp{
+  0%{transform:scale(1.8) rotate(-7deg);opacity:0}
+  60%{transform:scale(.92) rotate(-7deg);opacity:1}
+  100%{transform:scale(1) rotate(-4deg);opacity:1}}
+.dbf-sub{font-size:12px;color:var(--label);margin:0;flex:1;min-width:180px}
+
+/* ---- PERSONAL BEST ribbon (single earned-win flourish) ---- */
+.dbf-card::after{content:"PERSONAL BEST";position:absolute;top:16px;right:-46px;
+  transform:rotate(45deg) scale(.4);transform-origin:center;
+  background:linear-gradient(180deg,var(--v),var(--v-hi));color:var(--bg);
+  font-size:9px;font-weight:800;letter-spacing:.14em;padding:5px 48px;
+  box-shadow:0 4px 14px -6px var(--v);opacity:0;pointer-events:none;z-index:3}
+.dbf-card.pb::after{opacity:1;animation:dbfRibbon .5s var(--ease) .25s both}
+@keyframes dbfRibbon{from{transform:rotate(45deg) scale(.4);opacity:0}to{transform:rotate(45deg) scale(1);opacity:1}}
+
+/* ---- gauges ---- */
+.dbf-main{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;margin-top:4px}
+.dbf-gauges{display:flex;flex-direction:column;gap:14px}
+.dbf-gauge svg{width:100%;height:auto;overflow:visible}
+.dbf-gauge.dbf-noval{opacity:.55}
+.g-track{fill:none;stroke:var(--hairline);stroke-width:7;stroke-linecap:round}
+.g-fill{fill:none;stroke:var(--v);stroke-width:7;stroke-linecap:round;
+  stroke-dasharray:157;stroke-dashoffset:157;filter:drop-shadow(0 0 6px var(--v-dim));
+  transition:stroke-dashoffset .9s var(--ease) .15s}
+.g-zone{fill:none;stroke-width:7;stroke-linecap:butt;opacity:.30;stroke-dasharray:157;stroke-dashoffset:157}
+.z-ok{stroke:var(--accent)}
+.z-cl{stroke:var(--accent2)}
+.g-needle{stroke:var(--v-hi);stroke-width:2.5;stroke-linecap:round;
+  transform-box:fill-box;transform-origin:50% 100%;transform:rotate(-90deg);
+  transition:transform .9s var(--ease) .15s}
+.dbf-gauge figcaption{text-align:center;margin-top:2px}
+.dbf-num{display:block;font-size:22px;font-weight:800;color:var(--v-hi);font-variant-numeric:var(--num)}
+.dbf-delta{font-size:10px;color:var(--label)}
+.dbf-delta.good{color:var(--accent)}
+.dbf-gauge em{display:block;font-size:8.5px;letter-spacing:.14em;color:var(--label);margin-top:2px;font-style:normal}
+
+/* ---- per-axis chips ---- */
+.dbf-axes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.dbf-ax{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:6px 4px;text-align:center;opacity:0;transform:translateY(6px);animation:dbfAx .3s var(--ease) forwards}
+.dbf-ax .k{font-size:8px;letter-spacing:.12em;color:var(--label)}
+.dbf-ax .v{font-size:13px;font-weight:700;font-variant-numeric:var(--num)}
+.dbf-ax.good .v{color:var(--accent)}
+.dbf-ax.ok .v{color:var(--accent2-hi)}
+.dbf-ax.bad .v{color:var(--accent2)}
+@keyframes dbfAx{to{opacity:1;transform:none}}
+
+/* ---- xp bar ---- */
+.dbf-xp{margin-top:2px}
+.dbf-xp-head{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--label);margin-bottom:6px}
+.dbf-xp-head b{color:var(--text)}
+.dbf-xp-head .dbf-num{font-size:15px;margin-left:auto}
+.dbf-xp-head em{font-style:normal;font-size:9px;letter-spacing:.12em}
+.dbf-xp-track{height:8px;background:var(--bg);border-radius:var(--radius-pill);overflow:hidden;border:1px solid var(--hairline)}
+.dbf-xp-track i{display:block;height:100%;width:calc(var(--pct)*100%);
+  background:linear-gradient(90deg,var(--v),var(--v-hi));border-radius:inherit;
+  transform-origin:left;transform:scaleX(0);animation:dbfFill .9s var(--ease) .3s forwards}
+@keyframes dbfFill{to{transform:scaleX(1)}}
+.dbf-card.levelup .dbf-xp-track{box-shadow:0 0 0 2px var(--v-dim),0 0 14px var(--v-dim)}
+
+/* ---- reward pills ---- */
+.dbf-rewards{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dbf-pill{font-size:9px;letter-spacing:.06em;padding:4px 8px;border-radius:var(--radius-pill);
+  background:var(--v-dim);color:var(--v-hi);border:1px solid var(--v-dim);
+  transform:scale(.6);opacity:0;animation:dbfPop .3s var(--ease) forwards}
+@keyframes dbfPop{to{transform:scale(1);opacity:1}}
+
+/* ---- previous-runs sparkline ---- */
+.dbf-strip{margin-top:14px;padding-top:10px;border-top:1px solid var(--hairline)}
+.dbf-strip-h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.14em;color:var(--label);margin-bottom:6px}
+.dbf-spark{width:100%;height:52px;display:block;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm)}
+.dbf-spark .dbf-tol{stroke-width:1;opacity:.5}
+.dbf-spark .dbf-tol.t1{stroke:var(--accent)}
+.dbf-spark .dbf-tol.t2{stroke:var(--accent2)}
+.dbf-spark .dbf-line{fill:none;stroke:var(--v-hi);stroke-width:1.6;
+  stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:dbfDraw .7s var(--ease) .2s forwards}
+@keyframes dbfDraw{to{stroke-dashoffset:0}}
+.dbf-spark .dbf-pt{fill:var(--accent)}
+.dbf-spark .dbf-pt.miss{fill:var(--accent2)}
+.dbf-spark .dbf-pt.now{stroke:var(--v-hi);stroke-width:1.5}
+.dbf-spark .dbf-msg{fill:var(--muted);font-size:10px}
+
+/* ---- actions ---- */
+.dbf-actions{display:flex;align-items:center;gap:10px;margin-top:14px}
+.dbf-link{margin-left:auto;font-size:11px;color:var(--v-hi);text-decoration:none;padding:6px 2px}
+.dbf-link:hover{text-decoration:underline}
+
+@media(max-width:560px){.dbf-main{grid-template-columns:1fr}}
+
+/* ---- reduced motion: present the final state, zero motion ---- */
+@media(prefers-reduced-motion:reduce){
+  .dbf-card,.dbf-stamp,.dbf-card::after,.g-fill,.g-needle,.g-zone,
+  .dbf-xp-track i,.dbf-ax,.dbf-pill,.dbf-spark .dbf-line{animation:none!important;transition:none!important}
+  .dbf-card{transform:none;opacity:1}
+  .dbf-stamp{transform:scale(1) rotate(-4deg);opacity:1}
+  .dbf-card.pb::after{transform:rotate(45deg) scale(1);opacity:1}
+  .dbf-ax{transform:none;opacity:1}
+  .dbf-pill{transform:none;opacity:1}
+  .dbf-xp-track i{transform:scaleX(1)}
+  .g-fill{stroke-dashoffset:var(--rmoff,0)}
+  .g-zone{stroke-dashoffset:var(--rmzone,157)}
+  .dbf-spark .dbf-line{stroke-dashoffset:0}
+}
 </style>
 </head>
 <body data-require-auth>
@@ -1307,6 +1458,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     </div>
     <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()">
       <div class="con-viz">
+        <canvas id="cbAcqGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
         <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
           <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
           <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
@@ -1391,6 +1543,8 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <div class="tx-col left">
       <div class="tx-card">
         <h3>Linac &middot; Gantry</h3>
+        <div class="tx-gantry-viz">
+        <canvas id="txGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
         <svg class="tx-gantry-svg" viewBox="0 0 200 200" aria-hidden="true">
           <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
           <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
@@ -1403,6 +1557,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
             <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
           </g>
         </svg>
+        </div>
         <div class="tx-ang" id="txGantryAng">Gantry 180&deg;</div>
         <div class="tx-couch" id="txCouch" aria-label="Treatment couch coordinates">
           <span class="tx-couch-cell"><i>VRT</i><b id="txCouchVrt">-3.20</b></span>
@@ -1564,6 +1719,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
        each radiograph before the marker match unlocks. -->
   <div class="cb-acq hidden" id="fidAcq" onpointerdown="event.stopPropagation()">
     <div class="con-viz">
+      <canvas id="fidAcqGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
       <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
         <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
         <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
@@ -1698,6 +1854,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
   <div class="console-strip hidden ph-acquire" id="consoleStrip" aria-label="IGRT setup console">
     <!-- SVG linac: a rotating gantry rig (head + MV/EPID + kV source/panel) with a beam-fan flash on Acquire -->
     <div class="con-viz">
+      <canvas id="conGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
       <svg viewBox="0 0 128 116" class="con-svg" aria-hidden="true">
         <defs>
           <!-- bore: dark recessed drum interior -->
@@ -1910,7 +2067,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           onpointerdown="CONSOLE.acquireHoldStart()" onpointerup="CONSOLE.acquireHoldCancel()" onpointerleave="CONSOLE.acquireHoldCancel()"
           title="HOLD ~1 s to take the exposure — or hold Enter"><span class="pbtn-lbl" id="conAcqLbl">kV BEAM ON</span><span class="pbtn-key">&crarr; Enter &middot; hold</span><i class="con-acqprog" id="conAcqProg"></i></button>
         <button class="pbtn match" id="conMatchBtn" type="button" onclick="CONSOLE.enterMatch()" disabled style="display:none" title="Both images acquired — start the 2D/2D match"><span class="pbtn-lbl">2D / 2D MATCH</span></button>
-        <button class="pbtn apply" id="conApplyBtn" type="button" onclick="CONSOLE.applyShifts()" disabled title="Apply the matched couch correction (auto-resets when within tolerance)"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+        <button class="pbtn apply" id="conApplyBtn" type="button" onclick="checkMatch()" disabled title="Check the 2D/2D match — shows your residual error and the time"><span class="pbtn-lbl">CHECK MATCH</span></button>
         <button class="pbtn room" id="conRoomBtn" type="button" onclick="CONSOLE.enterRoom()" disabled style="display:none" title="Go into the room and reposition the patient — the correct fix when a gross setup error exceeds the couch action limit"><span class="pbtn-lbl">ENTER ROOM</span><span class="pbtn-key">re-setup</span></button>
       </div>
       <div class="con-msg" id="conMsg">Click an image to select it. HOLD Motion Enable (or SPACE) to drive the gantry to the kV angle, then HOLD kV Beam On (or Enter ~1 s) to expose. AP = G90/270, Lateral = G0/180.</div>
@@ -2112,6 +2269,77 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <div class="rt-body" id="rtProgBody"></div>
   </div>
 </div>
+<!-- ===== Debrief Console results overlay — injected once, right after #rtProgModal ===== -->
+<div class="modal-bg rt-modal dbf-bg" id="rtDebrief" role="dialog" aria-modal="true" aria-labelledby="dbfVerdict" aria-hidden="true">
+  <div class="dbf-card" data-verdict="accept" tabindex="-1">
+    <!-- letterhead / status bar -->
+    <div class="dbf-bar">
+      <span class="dbf-chip" id="dbfMode">CBCT</span>
+      <span class="dbf-title" id="dbfCase">Case</span>
+      <span class="dbf-attempt">RUN&nbsp;#<b id="dbfAttempt">1</b></span>
+      <button class="dbf-x" id="dbfClose" type="button" aria-label="Close debrief">&times;</button>
+    </div>
+    <!-- verdict stamp + one-line live verdict -->
+    <div class="dbf-verdict-row">
+      <div class="dbf-stamp" id="dbfStamp"><span class="dbf-stamp-tier" id="dbfTier" aria-hidden="true"></span><span class="dbf-stamp-tx">ACCEPTED</span></div>
+      <p class="dbf-sub" id="dbfVerdict" aria-live="polite"></p>
+    </div>
+    <!-- MAIN: gauges | telemetry -->
+    <div class="dbf-main">
+      <div class="dbf-gauges">
+        <figure class="dbf-gauge" id="dbfTime">
+          <svg viewBox="0 0 120 78" aria-hidden="true">
+            <path class="g-track" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-fill"  d="M10 70 A50 50 0 0 1 110 70"/>
+            <line class="g-needle" x1="60" y1="70" x2="60" y2="22"/>
+          </svg>
+          <figcaption>
+            <b class="dbf-num" id="dbfTimeNum" data-fmt="time">0:00.0</b>
+            <span class="dbf-delta" id="dbfTimeDelta"></span>
+            <em>MATCH TIME</em>
+          </figcaption>
+        </figure>
+        <figure class="dbf-gauge" id="dbfResid">
+          <svg viewBox="0 0 120 78" aria-hidden="true">
+            <path class="g-zone z-ok" id="dbfZoneOk" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-zone z-cl" id="dbfZoneCl" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-track" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-fill"  d="M10 70 A50 50 0 0 1 110 70"/>
+            <line class="g-needle" x1="60" y1="70" x2="60" y2="22"/>
+          </svg>
+          <figcaption>
+            <b class="dbf-num" id="dbfResidNum" data-fmt="mm">0.0mm</b>
+            <span class="dbf-delta" id="dbfResidBest"></span>
+            <em id="dbfResidTol">RESIDUAL</em>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="dbf-side">
+        <div class="dbf-axes" id="dbfAxes"></div>
+        <div class="dbf-xp">
+          <div class="dbf-xp-head">
+            <span>LEVEL <b id="dbfLvl">1</b></span>
+            <span class="dbf-num" id="dbfXpNum" data-fmt="int">+0</span>
+            <em>XP</em>
+          </div>
+          <div class="dbf-xp-track"><i id="dbfXpFill" style="--pct:0"></i></div>
+        </div>
+        <div class="dbf-rewards" id="dbfRewards"></div>
+      </div>
+    </div>
+    <!-- previous runs: residual-trend sparkline w/ tolerance guide-lines -->
+    <div class="dbf-strip">
+      <div class="dbf-strip-h">PREVIOUS RUNS <span id="dbfTrend"></span></div>
+      <svg class="dbf-spark" id="dbfSpark" viewBox="0 0 320 52" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+    <!-- actions -->
+    <div class="dbf-actions">
+      <button class="btn-primary" id="dbfNew" type="button">New Offset</button>
+      <button class="btn-ghost" id="dbfKeep" type="button">Keep adjusting</button>
+      <a class="dbf-link" id="dbfProg" href="#" role="button">View full progress &rarr;</a>
+    </div>
+  </div>
+</div>
 <div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
 <div class="rt-acct-nudge" id="rtAcctNudge" role="dialog" aria-label="Save your progress" aria-hidden="true">
   <button class="rt-an-x" type="button" onclick="rtDismissNudge()" aria-label="Dismiss">&times;</button>
@@ -2274,9 +2502,8 @@ const CASES = {
   // ray-summed from a clean diagnostic head-and-neck CT (TCIA TCGA-THCA TCGA-DE-A4MA; full cranial
   // vault → cervical spine → shoulders, no de-ID box). Flat (tilt:null) — the cervical spine,
   // mandible and skull base are the bony landmarks. Data in image_data.js (HN_AP_SRC / HN_LAT_SRC).
-  // This case adds the "enter room / re-setup" decision (CONSOLE_PLANS.hn.resetup): a gross setup
-  // error beyond the couch action limit must be fixed by repositioning the patient in the room,
-  // not a couch shift.
+  // (The "enter room / re-setup" decision is DISABLED for now — see CONSOLE_PLANS.hn, where the
+  // `resetup` config is intentionally omitted; the mechanism stays in place but inert.)
   hn:{ name:'Head & Neck · CT DRR (3D)', ap:null, lat:null, latAntRight:false,
        iso:{ ap:{x:0.519,y:0.488}, lat:{x:0.641,y:0.488} }, tilt:null },
   // Breast (left): Varian-style 2D/2D FIELD match. Two treatment fields instead of an
@@ -2994,7 +3221,11 @@ const FID2D=(function(){
       ctx.beginPath();ctx.moveTo(s[0]-9*Z,s[1]);ctx.lineTo(s[0]-3.5*Z,s[1]);ctx.moveTo(s[0]+3.5*Z,s[1]);ctx.lineTo(s[0]+9*Z,s[1]);
       ctx.moveTo(s[0],s[1]-9*Z);ctx.lineTo(s[0],s[1]-3.5*Z);ctx.moveTo(s[0],s[1]+3.5*Z);ctx.lineTo(s[0],s[1]+9*Z);ctx.stroke();}
   }
-  function render(){if(!active())return false;drawView('ap');drawView('lat');return true;}
+  // META (PROSTATE2D) is set by enter()/loadImgs() AFTER the case data finishes loading, but active()
+  // flips true as soon as currentCase is the fiducial case. A render fired in that window (resizeAll /
+  // rAF / a 'resize' event during the async data load) must NOT touch geom() — META is still null and
+  // geom() would throw (reading 'physMm' of null). Bail until the radiographs/geometry are loaded.
+  function render(){if(!active()||!META)return false;drawView('ap');drawView('lat');return true;}
 
   /* ---- kV acquisition console (rotate to AP/Lat, hold-expose each, then unlock the match) ---- */
   function fAcqStopRaf(){if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fMot=false;fExpoHold=false;}
@@ -3006,6 +3237,7 @@ const FID2D=(function(){
     if(!fAcqUses()){wrap.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',fAcqPhase==='ready');
     const rig=document.getElementById('fidAcqRig');if(rig)rig.setAttribute('transform','rotate('+(fGantry-90)+' 100 100)');   // linac viz
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('fidAcqGantry3D',{angle:fGantry,mode:'kv',beamOn:!!fExpoHold,phase:'ACQUIRE'});
     const a=((fGantry%360)+360)%360;
     const grig=document.getElementById('fdaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=document.getElementById('fdaLcdG');if(lg)lg.textContent=fAcqFmtG(fGantry);
@@ -3057,7 +3289,7 @@ const FID2D=(function(){
   function bind(area){
     const el=document.getElementById(area);if(!el)return;
     el.addEventListener('pointerdown',ev=>{
-      if(!active())return;
+      if(!active()||!META)return;   // case selected but data still loading -> geom() has no META yet
       if(!fAcqReady())return;   // acquisition console up: no marker drag until the kV pair is acquired
       const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
       let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
@@ -3469,7 +3701,8 @@ const TXFLOW=(function(){
     if(gid('txMuTxt'))gid('txMuTxt').textContent=Math.round(muTotal)+' / '+totalMU+' MU';
     if(gid('txMuBar'))gid('txMuBar').style.width=Math.min(100,muTotal/totalMU*100)+'%';}
   function drawGantry(){const rig=gid('txGantryRig');if(rig)rig.setAttribute('transform','rotate('+(gantryAngle-180)+' 100 100)');
-    if(gid('txGantryAng'))gid('txGantryAng').textContent='Gantry '+Math.round(((gantryAngle%360)+360)%360)+'°';}
+    if(gid('txGantryAng'))gid('txGantryAng').textContent='Gantry '+Math.round(((gantryAngle%360)+360)%360)+'°';
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{angle:gantryAngle,mode:'mv',beamOn:beamPhase==='on',phase:'TREAT'});}
   function updateReadouts(){const m=measured();
     if(gid('txDriftX'))gid('txDriftX').textContent=(m.x>=0?'+':'')+m.x.toFixed(1);
     if(gid('txDriftY'))gid('txDriftY').textContent=(m.y>=0?'+':'')+m.y.toFixed(1);
@@ -3895,6 +4128,8 @@ window.DIBH=DIBH;
 // Per-case IGRT SETUP data. Keyed by 2D case key. breastDIBH + prostate intentionally ABSENT
 // (DIBH owns the strip on breastDIBH; prostate is fid-mode) -> CONSOLE_PLANS[key] is the visibility test.
 // couch = STARTING absolute couch encoder readout (Varian IEC, HFS supine): vrt/lng/lat cm, rtn couch angle deg.
+// NOTE: couch is now ISO-DERIVED at runtime via seedCouchFromIso() (re-seeded on console enter + every New Offset);
+// the literals here are the per-case BASE at nominal iso 0.5 (and the breast iso:null fallback).
 // views = the orthogonal kV acquisition pair the trainee shoots; slot ('ap'|'lat') drives the valid gantry
 // angles + hidesPortal + the awaiting badge. Because the OBI kV source sits 90° off the gantry head, an AP kV
 // image is taken with the gantry at 90° or 270° and a LATERAL kV image with the gantry at 0° or 180° (VIEW_ANGLES).
@@ -3912,14 +4147,14 @@ const CONSOLE_PLANS={
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
   spine:{plan:'SPINE_SBRT', couch:{vrt: 3.40, lng:88.60, lat:-0.45, rtn:0}, views:[
     {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ]},
-  // Head & Neck: deep Lng (head driven into the bore). Carries the RE-SETUP decision: some daily
-  // setups are GROSS — beyond the couch action limit — and a couch shift can't safely correct a
-  // large/rotated mask setup, so the therapist must ENTER ROOM and reposition the patient.
-  // actionLimitMm = per-axis couch-shift action level (mm); rotLimitDeg = rotation action level;
-  // grossChance = how often applyNewOffset2d rolls a gross (re-setup-required) offset for this case.
+  // Head & Neck: deep Lng (head driven into the bore). A plain orthogonal-pair bony match.
+  // NOTE: the ENTER ROOM / re-setup decision is DISABLED for now — the `resetup` config below is
+  // intentionally omitted, so resetupCfg() returns null (no gross offsets, no ENTER ROOM button,
+  // applyShifts never blocks). The mechanism (CONSOLE.enterRoom / trueErrGross / applyShifts gate /
+  // applyNewOffset2d gross roll) stays in place and inert; to re-enable, restore:
+  //   resetup:{ actionLimitMm:10, rotLimitDeg:3, grossChance:0.45 }
   hn:{plan:'HEAD_NECK_IMRT', couch:{vrt:-2.10, lng:96.80, lat: 0.40, rtn:0}, views:[
-    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ],
-    resetup:{ actionLimitMm:10, rotLimitDeg:3, grossChance:0.45 } },
+    {slot:'ap',  label:'kV AP'}, {slot:'lat', label:'kV Lateral'} ] },
   // Breast tangents are verified with MV (the gantry head / EPID), NOT kV: image each tangent field at its own
   // treatment gantry angle (medial ~G305, lateral ~G125 — parallel-opposed). mv:true + per-view angles override
   // the kV geometry; the acquire fires the MV head→EPID beam and the console reads "MV".
@@ -3991,12 +4226,52 @@ const CONSOLE=(()=>{
          ||Math.abs(hidden.roll)>rl||Math.abs(hidden.pitch)>rl;
   }
 
+  // ---- iso-derived starting couch (2D console cases) ----
+  // BASE = per-case Varian TrueBeam couch readout at nominal iso 0.5, HFS supine.
+  // VERTICAL sign convention (per clinical use): RAISING the table moves the iso DOWN = a NEGATIVE
+  // change. So a SHALLOW iso (table high: brain/hn) reads NEGATIVE Vrt; a DEEP iso (table low:
+  // pelvis/breast/thorax) reads MORE POSITIVE Vrt. LONG is positive head-in (cranial driven deepest
+  // into the bore). LAT is offset off-midline for lateralized targets (left breast, a lung lesion).
+  // Signed delta from the planned iso offset honors the encoder sign rules:
+  //   superior iso (small ap.y)      => LOWER Lng  (couch retracted out of the bore)
+  //   POSTERIOR iso (large lat.x)    => LOWER Vrt  (iso sits nearer the tabletop -> table raised, and
+  //                                                 table-up = iso-down = the negative direction)
+  //   patient-RIGHT iso (small ap.x) => HIGHER Lat
+  // breast iso:null -> BASE literal verbatim (no NaN); non-console key -> null. rtn always 0.
+  const COUCH_ISO_BASE={
+    brain :{vrt:-3.85,lng:96.00,lat: 0.30}, pelvis:{vrt: 6.20,lng:84.00,lat:-0.40},
+    thorax:{vrt: 4.10,lng:88.00,lat: 4.00}, femur :{vrt: 1.55,lng:60.00,lat: 2.60},
+    spine :{vrt: 3.40,lng:86.00,lat:-0.30}, hn    :{vrt:-2.10,lng:94.00,lat: 0.30},
+    breast:{vrt: 5.35,lng:80.00,lat:-4.50} };          // BASE = value at nominal iso fraction 0.5
+  const COUCH_K={lat:4,vrt:4,lng:10};                   // cm per full-frame iso fraction (small, physical)
+  function seedCouchFromIso(key){
+    const b=COUCH_ISO_BASE[key]; if(!b) return null;
+    const c=(typeof CASES!=='undefined')&&CASES[key], iso=c&&c.iso;
+    if(!iso||!iso.ap||!iso.lat||iso.ap.x==null||iso.ap.y==null||iso.lat.x==null)
+      return {vrt:+b.vrt.toFixed(2),lng:+b.lng.toFixed(2),lat:+b.lat.toFixed(2),rtn:0};
+    const lat=b.lat - COUCH_K.lat*(iso.ap.x-0.5);   // patient-RIGHT (ap.x<0.5) => HIGHER Lat (table to patient-left)
+    const vrt=b.vrt - COUCH_K.vrt*(iso.lat.x-0.5);  // POSTERIOR (lat.x>0.5) => LOWER Vrt (table raised = iso down = negative)
+    const lng=b.lng + COUCH_K.lng*(iso.ap.y-0.5);   // SUPERIOR (ap.y<0.5) => LOWER Lng (couch out of bore)
+    return {vrt:+vrt.toFixed(2),lng:+lng.toFixed(2),lat:+lat.toFixed(2),rtn:0};
+  }
+  // STARTING couch for the current setup: the iso-derived PLAN couch shifted by THIS rep's daily setup
+  // error so the readout reflects how the patient actually lies, and driving the matched correction
+  // (Apply Shifts) converges the couch back onto plan. applyShifts adds {-shift.x/10, shift.y/10,
+  // zSign*shift.z/10, shift.roll}; at a clean match shift==hidden, so we pre-offset by the negative of
+  // that. hidden is in mm (x=lat,y=lng,z=vrt) + deg (roll); /10 -> cm. No hidden yet -> plan verbatim.
+  function couchForSetup(key){
+    const plan=seedCouchFromIso(key); if(!plan) return null;
+    if(typeof hidden==='undefined'||!hidden) return plan;
+    const zs=(typeof zSign!=='undefined')?zSign:1;
+    return { lat:+(plan.lat + hidden.x/10).toFixed(2), lng:+(plan.lng - hidden.y/10).toFixed(2),
+             vrt:+(plan.vrt - zs*hidden.z/10).toFixed(2), rtn:+(((plan.rtn||0) - (hidden.roll||0))).toFixed(1) };
+  }
   // ---- lifecycle ----
   function refresh(key){
     if(key==='breastDIBH'||document.body.classList.contains('dibh-mode')||
        document.body.classList.contains('fid-mode')||!CONSOLE_PLANS[key]){ exit(); return; }
     caseKey=key; plan=CONSOLE_PLANS[key]; views=plan.views.slice();
-    couch={...plan.couch}; couch0={...plan.couch};
+    couch0=couchForSetup(key)||{...plan.couch}; couch={...couch0};   // iso-derived plan couch + this setup's error
     gantry=startAngle(); acquired=[false,false]; applied=null; phase='ACQUIRE'; motTarget=null;
     stopMotion(); clearTimeout(resetTmr);
     active=true;
@@ -4056,8 +4331,24 @@ const CONSOLE=(()=>{
       m.setAttribute('transform','rotate('+a+' 64 58)');
       m.setAttribute('class','con-vmark'+(acquired[i]?' done':(v===at?' cur':'')));});
     const mv=el('lampMotion'); if(mv)mv.className='con-lamp'+(motOn?' warn':'');
+    renderGantry3D();
     renderGantryHead();
   }
+  function renderGantry3D(){
+    if(!window.Gantry3D||!window.Gantry3D.update)return;
+    const target = motTarget!=null ? motTarget : nearestAngle(rotateTarget());
+    window.Gantry3D.update({
+      angle: gantry,
+      target,
+      mode: (plan&&(plan.mv||(atViewMv()))) ? 'mv' : 'kv',
+      beamOn: !!acqHold,
+      moving: !!motOn,
+      phase,
+      acquired: acquired.slice(),
+      views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv}))
+    });
+  }
+  function atViewMv(){ const v=viewAtGantry(); return !!(v&&v.mv); }
   // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
   // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
   function renderGantryHead(){
@@ -4093,7 +4384,7 @@ const CONSOLE=(()=>{
     const b=el('conBanner'); if(!b)return;
     b.textContent =
       phase==='ACQUIRE'? (ready?'BOTH IMAGES ACQUIRED — PRESS 2D/2D MATCH (OR RETAKE)':'SETUP — ACQUIRE BOTH IMAGES')
-    : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN APPLY SHIFTS'
+    : phase==='MATCH'?   'IMAGES ACQUIRED — MATCH THE VIEWS, THEN CHECK MATCH'
     :                    'COUCH CORRECTED — WITHIN TOLERANCE · RESETTING';
   }
   function renderButtons(){
@@ -4117,7 +4408,7 @@ const CONSOLE=(()=>{
     if(ap){ ap.classList.toggle('wrong', !!rs&&phase==='MATCH'&&gross); }
     // mirror the action label onto the sidebar Check Match button while the console drives the case
     const cm=el('checkMatchBtn');
-    if(cm)cm.textContent = active ? (phase==='MATCH'?'Apply Shifts':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
+    if(cm)cm.textContent = active ? (phase==='MATCH'?'Check Match':phase==='ACQUIRE'?(ready?'2D/2D Match':'Acquire First'):'Aligned') : 'Check Match';
   }
   function renderLamps(){
     const set=(id,c)=>{const e=el(id);if(e)e.className='con-lamp'+(c?' '+c:'');};
@@ -4228,6 +4519,7 @@ const CONSOLE=(()=>{
     const btn=el('conAcqBtn'); if(btn)btn.classList.toggle('exposing',on);
     const f=el('conKvBeam'); if(f&&f.classList){ if(on)f.classList.add('firing'); else f.classList.remove('firing'); }
     renderAcqProg();
+    renderViz();
   }
   function renderAcqProg(){ const p=el('conAcqProg'); if(p&&p.style)p.style.width=(acqProg*100).toFixed(0)+'%'; }
 
@@ -4235,48 +4527,17 @@ const CONSOLE=(()=>{
     if(!active||phase!=='ACQUIRE'||!bothAcquired())return;
     stopMotion(); cancelAnimationFrame(acqRaf); acqHold=false; acqProg=0; setExposing(false);
     setPhase('MATCH');
-    msg('Matching enabled — drag both views to register, then Apply Shifts.','ok');
+    msg('Matching enabled — drag both views to register, then Check Match.','ok');
   }
 
-  // ---- apply shifts (replaces Check Match while the console is active) ----
-  // Always applies couch += the dialed correction; if the residual is within tolerance -> ALIGNED, else the
-  // residual persists in the (re-acquired) images and the trainee iterates until in tolerance.
+  // ---- Check Match (console) ----
+  // Report-only: the console no longer applies a couch shift, re-images on a miss, or auto-resets the rep.
+  // Check Match just reports the per-axis residual + the match time (handled by the global checkMatch) and
+  // leaves the trainee in MATCH so they can keep adjusting and re-check; New Offset loads a fresh setup.
+  // Kept under the old name for the console button / _dbg compatibility.
   function applyShifts(){
     if(!active||phase!=='MATCH')return;
-    if(typeof shift==='undefined'||typeof hidden==='undefined')return;
-    // RE-SETUP gate: if the TRUE setup error is gross (beyond the couch action limit), a couch shift is
-    // the wrong action — block it and direct the trainee into the room to reposition the patient.
-    if(trueErrGross()){
-      msg('Correction exceeds the '+(plan.resetup.actionLimitMm/10).toFixed(1)+' cm couch action limit — a couch shift can’t safely fix a gross or rotated setup. ENTER ROOM and reposition the patient.','bad');
-      renderButtons();
-      return;
-    }
-    const e={x:shift.x-hidden.x,y:shift.y-hidden.y,z:shift.z-hidden.z,roll:shift.roll-hidden.roll,pitch:shift.pitch-hidden.pitch};
-    const TOL=(typeof rtTol==='function')?rtTol('2d2d',caseKey):{t1:2,t2:4,r1:2,r2:4};
-    const within=Math.abs(e.x)<=TOL.t1&&Math.abs(e.y)<=TOL.t1&&Math.abs(e.z)<=TOL.t1&&Math.abs(e.roll)<=TOL.r1&&Math.abs(e.pitch)<=TOL.r1;
-    // couch correction = the displayed shift the trainee dialed (same signs as the live valX/valY/valZ readouts)
-    const zs=(typeof zSign!=='undefined')?zSign:1;
-    const dLat=-shift.x/10, dLng=shift.y/10, dVrt=zs*shift.z/10, dRtn=shift.roll;
-    couch.lat=+(couch.lat+dLat).toFixed(2); couch.lng=+(couch.lng+dLng).toFixed(2);
-    couch.vrt=+(couch.vrt+dVrt).toFixed(2); couch.rtn=+(couch.rtn+dRtn).toFixed(1);
-    applied={lat:dLat,lng:dLng,vrt:dVrt,rtn:dRtn,pitch:shift.pitch};
-    // the couch physically moved by `shift`, so the remaining true error becomes hidden-shift; reset the dial.
-    hidden={x:hidden.x-shift.x,y:hidden.y-shift.y,z:hidden.z-shift.z,roll:hidden.roll-shift.roll,pitch:hidden.pitch-shift.pitch};
-    shift={x:0,y:0,z:0,roll:0,pitch:0};
-    if(typeof undoStack!=='undefined')undoStack=[];
-    if(typeof refreshReadouts==='function')refreshReadouts();
-    if(typeof clearErrors==='function')clearErrors();
-    if(typeof render==='function')render();
-    if(within){
-      setPhase('ALIGNED'); renderCouch(true);
-      msg('Couch moved ('+fmtDelta(applied)+') — setup ALIGNED within tolerance. Resetting…','ok');
-      scheduleReset();                                    // success -> auto-reset to a fresh rep
-    } else {
-      acquired=[false,false]; gantry=startAngle(); motTarget=null; updateBadges();
-      if(typeof render==='function')render();
-      setPhase('ACQUIRE'); renderCouch(true);
-      msg('Shift applied ('+fmtDelta(applied)+') — residual exceeds tolerance. Re-acquire both views and correct again.','bad');
-    }
+    if(typeof checkMatch==='function') checkMatch();
   }
   function fmtDelta(a){const f=(n,d)=>(n>=0?'+':'')+n.toFixed(d);
     return 'Lat '+f(a.lat,2)+' · Lng '+f(a.lng,2)+' · Vrt '+f(a.vrt,2)+' · Rtn '+f(a.rtn,1)+'°';}
@@ -4310,9 +4571,13 @@ const CONSOLE=(()=>{
     }
   }
 
-  // ---- New Offset / re-image: fresh setup error, re-acquire from scratch (couch unchanged here) ----
+  // ---- New Offset / re-image: fresh setup error, re-acquire from scratch ----
+  // Re-seed the starting couch from the iso-derived plan + THIS rep's fresh setup error (hidden is set
+  // by applyNewOffset2d just before this call), so the readout changes every offset and converges to
+  // plan when the matched shift is applied.
   function reinterlock(){
     if(!active)return;
+    const seed=couchForSetup(caseKey); if(seed){ couch0={...seed}; couch={...seed}; }   // plan couch + this setup's error
     acquired=[false,false]; applied=null; gantry=startAngle(); motTarget=null; stopMotion(); clearTimeout(resetTmr);
     updateBadges(); if(typeof render==='function')render();
     setPhase('ACQUIRE'); msg('New offset — re-acquire both images, then match.','');
@@ -5398,29 +5663,20 @@ function checkMatch(){
   const ok=transOk&&rotOk;
   const close=Math.abs(e.x)<=TOL.t2&&Math.abs(e.y)<=TOL.t2&&Math.abs(e.z)<=TOL.t2;
   const ms=matchTimer2d.elapsed();
-  const timeTag=(ok&&ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // time only counts when within tolerance
+  const timeTag=(ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // always show how long this match took (scoring still only banks a time when accepted)
   if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
   // record this attempt; only document a time when the match is within tolerance
-  rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ok?ms:null});
+  const _id='2d2d:'+currentCase, _pB=RTProfile.get(), _sB=_pB.stats[_id]||{a:0,c:0,bt:null,br:null}, _achB=Object.assign({},_pB.ach), _xpB=_pB.xp||0, _lvlB=rtLevel(_xpB), _mag=Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z);
+  rtRecord('2d2d', currentCase, {accepted:ok, mag:_mag, timeMs:ok?ms:null});
+  const _pA=RTProfile.get(), _sA=_pA.stats[_id]||{a:1,c:0}, _lpA=rtLevelProgress(_pA.xp||0), _axc=id=>{const c=document.getElementById(id).className;return /error-good/.test(c)?'good':/error-ok/.test(c)?'ok':'bad';};
+  rtShowResult({mode:'2d2d',caseKey:currentCase,caseTitle:(((CASE_LISTS['2d2d'].cases.find(c=>c.v===currentCase))||{}).t)||currentCase,accepted:ok,close:close&&!ok,boneMatched:false,residualMm:_mag,timeMs:ok?ms:null,tol:{t1:TOL.t1,t2:TOL.t2,r1:TOL.r1,r2:TOL.r2},axes:[{label:'Lat',val:document.getElementById('errX').textContent,cls:_axc('errX')},{label:'Lng',val:document.getElementById('errY').textContent,cls:_axc('errY')},{label:'Vrt',val:document.getElementById('errZ').textContent,cls:_axc('errZ')},{label:'Roll',val:document.getElementById('errRoll').textContent,cls:_axc('errRoll')},{label:'Pitch',val:document.getElementById('errPitch').textContent,cls:_axc('errPitch')}],xpGained:(_pA.xp||0)-_xpB,xpBefore:_xpB,xpAfter:_pA.xp||0,levelBefore:_lvlB,levelAfter:_lpA.level,levelPct:_lpA.pct,prevBestTimeMs:_sB.bt,prevBestResidMm:_sB.br,isBestTime:ok&&ms!=null&&(_sB.bt==null||ms<_sB.bt),isBestResid:ok&&(_sB.br==null||_mag<_sB.br),isFirstClear:ok&&_sB.c===0,attemptNum:_sA.a,clears:_sA.c,streakCount:_pA.streak.count,newAchievements:RT_ACH.filter(a=>_pA.ach[a.id]&&!_achB[a.id]).map(a=>({icon:a.icon,name:a.name,desc:a.desc})),recentForCase:_pA.recent.filter(r=>r.id===_id).slice(0,8).reverse().map(r=>({ok:r.ok,ms:r.ms,mag:r.mag})),onNewOffset:function(){randomizeShift();}});
   const verdict=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
     :close?'\u26a1 Close \u2014 missed tolerance':'\u2717 Residual error \u2014 outside tolerance')+timeTag;
-  // IGRT console drives the case: "Check Match" becomes APPLY SHIFTS \u2014 move the couch by the matched
-  // correction, then (if still out of tolerance) re-acquire and iterate. Otherwise: normal practice loop.
-  if(window.CONSOLE && CONSOLE.active && CONSOLE.active()){
-    matchTimer2d.reset();
-    CONSOLE.applyShifts();   // reads shift/hidden/zSign; moves couch, then aligns or forces a re-acquire
-    document.getElementById('statusMsg').textContent=verdict;
-  } else {
-    // Check Match resets the clock and loads a fresh offset for the next rep. Keep the verdict and the
-    // per-axis errors on screen (they clear on the first adjustment of the new rep, like a normal move).
-    applyNewOffset2d();
-    matchTimer2d.reset();
-    shift={x:0,y:0,z:0,roll:0,pitch:0};
-    undoStack=[];
-    refreshReadouts();
-    render();
-    document.getElementById('statusMsg').textContent=verdict+'  \u00b7  new offset loaded';
-  }
+  // Report card: Check Match shows the per-axis residual + match time and STOPS. It never moves the
+  // couch, re-images, or loads a new offset \u2014 the clock keeps the elapsed time and the per-axis errors
+  // stay on screen (they clear on your first adjustment). Press New Offset for a fresh setup. The 2D
+  // console keeps its acquire-both-images step but no longer forces a re-acquire when the match is off.
+  document.getElementById('statusMsg').textContent=verdict;
 }
 function clearErrors(){['errX','errY','errZ','errRoll','errPitch'].forEach(id=>{const e=document.getElementById(id);e.textContent='\u2014';e.className='error-val';});}
 // ===== How-to-use guide (launched from the start menu; replaces the old per-tool help) =====
@@ -5599,7 +5855,7 @@ const CASE_LISTS={
     {v:'thorax', t:'Thorax',  d:'CT DRR &middot; orthogonal pair', b:'Register a chest orthogonal pair to the planning DRRs.'},
     {v:'femur',  t:'Femur',   d:'CT DRR &middot; orthogonal pair', b:'Line up the femoral shaft on AP + lateral DRRs of the thigh.'},
     {v:'spine',  t:'Spine SBRT', d:'CT DRR &middot; orthogonal pair', b:'Align the thoracic vertebral column on AP + lateral DRRs — tight SBRT tolerance.'},
-    {v:'hn',     t:'Head &amp; Neck', d:'CT DRR &middot; orthogonal pair', b:'Align the head &amp; neck on AP + lateral DRRs — and decide when a gross error needs a room re-setup, not a couch shift.'},
+    {v:'hn',     t:'Head &amp; Neck', d:'CT DRR &middot; orthogonal pair', b:'Align the head &amp; neck on AP + lateral DRRs — cervical spine, mandible and skull-base bony match.'},
     {v:'breast', t:'Breast L', d:'SCV + medial tangent', b:'Set up a left-breast medial tangent + supraclavicular field, Varian-style.'},
     {v:'breastDIBH', t:'Breast L · DIBH', d:'Voice-coached breath-hold + match', b:'Voice-coach the patient into a breath-hold, then match both breast fields.'},
     {v:'prostate', t:'Prostate', d:'kV &middot; fiducial match', b:'Drag a 3-marker triad onto the implanted gold seeds in both kV views.'},
@@ -5993,6 +6249,210 @@ function rtSetPref(key,val){RTProfile.save(p=>{p.prefs[key]=val;});}
 function rtExport(){const p=RTProfile.get();const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='rt-progress.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 function rtReset(){if(!window.confirm('Reset all training progress, stats and achievements? This cannot be undone.'))return;RTProfile.save(p=>{p.stats={};p.ach={};p.totals={attempts:0,accepts:0};p.xp=0;p.streak={count:0,best:0,last:null};p.recent=[];});rtRenderModal(rtModalTab);rtRefreshProgress();}
 
+/* ===== Debrief Console — results overlay. Entry point: rtShowResult(o) =====
+   Display-only: rtRecord() runs UPSTREAM at each Check-Match call site, which also builds `o`. */
+var DBF_STAMP={accept:'PASS',close:'WITHIN ACTION LEVEL',off:'OFF-TARGET',bone:'BONE-ONLY'};
+
+function dbfVerdictKey(o){
+  if(o.accepted)return 'accept';
+  if(o.boneMatched&&!o.accepted)return 'bone';
+  return o.close?'close':'off';
+}
+
+/* Pure, verdict-gated tier glyph (rationed): accept can never score below A; a miss never S/A. */
+var SG={grade:function(o){
+  if(!o.accepted)return o.close?'C':(o.boneMatched?'C':'D');
+  var rFrac=(o.tol&&o.tol.t1)?o.residualMm/o.tol.t1:1;
+  var fast=o.timeMs!=null&&(o.prevBestTimeMs==null||o.timeMs<=o.prevBestTimeMs);
+  if(rFrac<=0.35&&(fast||o.timeMs==null))return 'S';
+  return 'A';
+}};
+
+function dbfVerdictLine(o,vk){
+  var t1=(o.tol.t1).toFixed(1),r1=o.tol.r1,t2=(o.tol.t2).toFixed(1);
+  if(vk==='accept')return 'Within '+t1+' mm / '+r1+'° tolerance on all axes.';
+  if(vk==='bone')return 'Bony anatomy aligned — soft-tissue target still off. Register the target.';
+  if(vk==='close')return 'Within action level ('+t2+' mm) — tighten the residual.';
+  return 'Outside tolerance — keep fusing the planes and re-check.';
+}
+
+function dbfTrendLabel(runs){
+  var m=(runs||[]).filter(function(r){return r.mag!=null;});
+  if(m.length<2)return '';
+  var d=m[m.length-1].mag-m[m.length-2].mag;
+  if(d<-0.05)return '↓ improving';
+  if(d>0.05)return '↑ drifting';
+  return '→ steady';
+}
+
+function dbfSet(id,tx,goodCls){
+  var el=document.getElementById(id);if(!el)return;
+  el.textContent=tx;
+  if(goodCls!==undefined){el.classList.toggle('good',!!goodCls);}
+}
+
+/* gauge: frac 0..1 -> fill offset + needle -90..+90deg. Stores --rmoff for reduced-motion. */
+function dbfGauge(id,frac){
+  frac=Math.max(0,Math.min(1,frac));
+  var g=document.getElementById(id);if(!g)return;
+  var fill=g.querySelector('.g-fill'),needle=g.querySelector('.g-needle');
+  var off=157*(1-frac);
+  if(fill){fill.style.strokeDashoffset=off;fill.style.setProperty('--rmoff',off);}
+  if(needle)needle.style.transform='rotate('+(-90+frac*180)+'deg)';
+}
+
+/* residual gauge zones: paint accept (0..t1) + close (0..t2) arcs as fractions of 0..2*t1 full-scale. */
+function dbfResidZones(o){
+  var full=o.tol.t1*2;
+  var okFrac=Math.min(1,o.tol.t1/full),clFrac=Math.min(1,o.tol.t2/full);
+  var ok=document.getElementById('dbfZoneOk'),cl=document.getElementById('dbfZoneCl');
+  if(cl){var co=157*(1-clFrac);cl.style.strokeDashoffset=co;cl.style.setProperty('--rmzone',co);}
+  if(ok){var oo=157*(1-okFrac);ok.style.strokeDashoffset=oo;ok.style.setProperty('--rmzone',oo);}
+}
+
+/* residual-trend sparkline w/ tol.t1 (cyan) + tol.t2 (orange) guide-lines. */
+function dbfSpark(o){
+  var svg=document.getElementById('dbfSpark');if(!svg)return;
+  var W=320,H=52,P=6,runs=(o.recentForCase||[]).filter(function(r){return r.mag!=null;});
+  if(runs.length<2){
+    svg.innerHTML='<text class="dbf-msg" x="160" y="30" text-anchor="middle">building history…</text>';
+    return;
+  }
+  var mags=runs.map(function(r){return r.mag;});
+  var max=Math.max(o.tol.t2*1.2,Math.max.apply(null,mags),1);
+  var y=function(v){return (H-P)-(v/max)*(H-2*P);};
+  var x=function(i){return P+i*(W-2*P)/(runs.length-1);};
+  var d=runs.map(function(r,i){return (i?'L':'M')+x(i).toFixed(1)+' '+y(r.mag).toFixed(1);}).join(' ');
+  var len=Math.hypot(W,H)*runs.length;
+  var g='';
+  g+='<line class="dbf-tol t1" x1="0" y1="'+y(o.tol.t1).toFixed(1)+'" x2="'+W+'" y2="'+y(o.tol.t1).toFixed(1)+'"/>';
+  g+='<line class="dbf-tol t2" x1="0" y1="'+y(o.tol.t2).toFixed(1)+'" x2="'+W+'" y2="'+y(o.tol.t2).toFixed(1)+'"/>';
+  g+='<path class="dbf-line" style="--len:'+len.toFixed(0)+'" d="'+d+'"/>';
+  g+=runs.map(function(r,i){
+    var cls='dbf-pt'+(r.ok?'':' miss')+(i===runs.length-1?' now':'');
+    return '<circle class="'+cls+'" cx="'+x(i).toFixed(1)+'" cy="'+y(r.mag).toFixed(1)+'" r="'+(i===runs.length-1?3.2:2.4)+'"/>';
+  }).join('');
+  svg.innerHTML=g;
+}
+
+/* rAF tick-up for the two gauge readouts + XP. Jumps to final under reduced-motion. */
+function dbfRunCounters(o,reduce){
+  function roll(id,to,fmt,prefix){
+    var el=document.getElementById(id);if(!el)return;
+    var dur=reduce?0:700,t0=performance.now();
+    function fmtVal(v){
+      if(fmt==='time')return fmtMatchTime(v);
+      if(fmt==='mm')return v.toFixed(1)+'mm';
+      return (prefix||'')+Math.round(v);
+    }
+    (function tick(now){
+      var k=dur?Math.min(1,(now-t0)/dur):1,e=1-Math.pow(1-k,3),v=to*e;
+      el.textContent=fmtVal(v);
+      if(k<1)requestAnimationFrame(tick);
+    })(t0);
+  }
+  if(o.timeMs!=null)roll('dbfTimeNum',o.timeMs,'time');
+  roll('dbfResidNum',o.residualMm,'mm');
+  roll('dbfXpNum',o.xpGained,'int','+');
+}
+
+/* dismiss wiring — registered ONCE (idempotent), capture phase so it closes BEFORE the app's
+   global Escape handler (tools/solo) fires. Mirrors guideModal/rtProgModal. */
+var _dbfWired=false;
+function dbfWireDismiss(){
+  if(_dbfWired)return;_dbfWired=true;
+  var ov=document.getElementById('rtDebrief');
+  ov.addEventListener('click',function(e){if(e.target===ov)dbfHide();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&ov.classList.contains('open')){e.stopPropagation();dbfHide();}
+  },true);
+}
+
+function dbfHide(){
+  var ov=document.getElementById('rtDebrief');
+  ov.classList.remove('open');ov.setAttribute('aria-hidden','true');
+}
+
+/* MAIN entry point. o = the data contract. Returns the card element (headless tests assert on it). */
+function rtShowResult(o){
+  var ov=document.getElementById('rtDebrief'),card=ov.querySelector('.dbf-card');
+  var reduce=false;try{reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){}
+  var vk=dbfVerdictKey(o);
+  card.dataset.verdict=vk;
+  card.classList.toggle('levelup',o.levelAfter>o.levelBefore);
+  card.classList.toggle('pb',!!(o.isBestTime||o.isBestResid||o.isFirstClear||o.levelAfter>o.levelBefore));
+
+  /* letterhead + verdict */
+  dbfSet('dbfMode',o.mode==='cbct'?'CBCT':'2D/2D');
+  dbfSet('dbfCase',o.caseTitle);
+  dbfSet('dbfAttempt',o.attemptNum);
+  document.getElementById('dbfStamp').querySelector('.dbf-stamp-tx').textContent=DBF_STAMP[vk];
+  document.getElementById('dbfTier').textContent=SG.grade(o);
+  document.getElementById('dbfVerdict').textContent=dbfVerdictLine(o,vk);
+
+  /* residual gauge: 0..2*t1 full-scale, tolerance zones baked from tol */
+  dbfResidZones(o);
+  dbfGauge('dbfResid',o.residualMm/(o.tol.t1*2));
+  dbfSet('dbfResidBest',o.prevBestResidMm!=null?('best '+o.prevBestResidMm.toFixed(1)+'mm'):'first run',o.isBestResid);
+  dbfSet('dbfResidTol','RESIDUAL · tol '+o.tol.t1.toFixed(1)+'mm');
+
+  /* time gauge — null when not banked (fiducial case): dim + em-dash, no needle sweep */
+  var tg=document.getElementById('dbfTime');
+  if(o.timeMs==null){
+    tg.classList.add('dbf-noval');
+    document.getElementById('dbfTimeNum').textContent='—';
+    dbfSet('dbfTimeDelta','not timed');
+    dbfGauge('dbfTime',0);
+  }else{
+    tg.classList.remove('dbf-noval');
+    dbfGauge('dbfTime',o.prevBestTimeMs?Math.min(1,o.timeMs/(o.prevBestTimeMs*1.5)):0.6);
+    var d=o.prevBestTimeMs?(o.timeMs-o.prevBestTimeMs):null;
+    dbfSet('dbfTimeDelta',
+      o.isBestTime?'★ personal best'
+      :d==null?'first timed clear'
+      :(d<0?'−':'+')+Math.abs(d/1000).toFixed(1)+'s vs best',
+      o.isBestTime||(d!=null&&d<0));
+  }
+
+  /* per-axis chips (staggered; handles 5DOF 2D vs 6DOF CBCT) */
+  document.getElementById('dbfAxes').innerHTML=o.axes.map(function(a,i){
+    return '<div class="dbf-ax '+a.cls+'" style="animation-delay:'+(0.15+i*0.05).toFixed(2)+'s">'
+      +'<div class="k">'+a.label+'</div><div class="v">'+a.val+'</div></div>';
+  }).join('');
+
+  /* xp / level */
+  dbfSet('dbfLvl',o.levelAfter);
+  document.getElementById('dbfXpFill').style.setProperty('--pct',o.levelPct);
+
+  /* reward pills */
+  var pills=[];
+  if(o.isFirstClear)pills.push('★ FIRST CLEAR');
+  if(o.isBestTime)pills.push('⏱ BEST TIME');
+  if(o.isBestResid)pills.push('◎ BEST RESIDUAL');
+  if(o.levelAfter>o.levelBefore)pills.push('▲ LEVEL '+o.levelAfter);
+  if(o.streakCount>1)pills.push('🔥 '+o.streakCount+'-DAY STREAK');
+  (o.newAchievements||[]).forEach(function(a){pills.push(a.icon+' '+a.name);});
+  document.getElementById('dbfRewards').innerHTML=pills.map(function(p,i){
+    return '<span class="dbf-pill" style="animation-delay:'+(0.35+i*0.06).toFixed(2)+'s">'+p+'</span>';
+  }).join('');
+
+  /* previous-runs sparkline + trend */
+  dbfSpark(o);
+  dbfSet('dbfTrend',dbfTrendLabel(o.recentForCase));
+
+  /* actions (rebound each open) */
+  document.getElementById('dbfNew').onclick=function(){dbfHide();if(o.onNewOffset)o.onNewOffset();};
+  document.getElementById('dbfKeep').onclick=dbfHide;   /* close ONLY; leaves residuals/couch untouched */
+  document.getElementById('dbfClose').onclick=dbfHide;
+  document.getElementById('dbfProg').onclick=function(e){if(e)e.preventDefault();dbfHide();rtOpenProgress();};
+
+  /* open + focus + counters */
+  ov.classList.add('open');ov.setAttribute('aria-hidden','false');
+  card.focus();
+  dbfWireDismiss();
+  dbfRunCounters(o,reduce);
+  return card;
+}
 // backdrop-click + Esc close for the dashboard (capture phase, like the guide).
 document.getElementById('rtProgModal').addEventListener('click',function(e){if(e.target===this)rtCloseProgress();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('rtProgModal').classList.contains('open')){e.stopPropagation();rtCloseProgress();}},true);
@@ -6161,23 +6621,28 @@ const CBCT=(function(){
             // untouched, and for an emptied bladder the receded part of the planning bladder is repainted as
             // soft tissue (`erase`). The seed drift matches: a fuller bladder pushes the prostate posterior/
             // inferior (+y/-z), an emptier one anterior/superior (-y/+z). |drift.y|>=3 keeps it clearly off-bone
-            // (> t1=2mm). Densities are on the 0..255 atlas scale (urine ~64 = this volume's bladder, erase 55
-            // = peri-bladder soft tissue). Synthetic forward model on the single planning CT.
+            // (> t1=2mm). Densities are on the 0..255 atlas scale (urine ~64 = this volume's bladder, erase 68
+            // = collapsed soft tissue). The resized bladder is clipped to the body mask so it never paints
+            // outside the body contour. Synthetic forward model on the single planning CT.
             offBone:{driftBit:32, hideDens:70, drawDens:255, drift:{x:[1,3], y:[3,5], z:[2,4]},
                      okMsg:'✓ Fiducials aligned — gold seeds within tolerance',
                      hint:'✗ Pelvis bones aligned, but the seeds are off — match the gold fiducials, not the bone',
                      setup:'New setup — the prostate has drifted off the bony pelvis; match the gold fiducials, not the bone',
-                     fill:{bladderBit:4, prostateBit:1, urine:64, erase:55, scenarios:[
-                       {key:'empty',    label:'Empty bladder',     bladderScale:0.62, drift:{x:-1, y:-3, z:2},
+                     // bodyBit clips the resized bladder to the patient (a scaled-up bladder must never spill
+                     // outside the body contour); erase 68 = collapsed soft tissue (NOT fat 55 — that read as a
+                     // dark halo around an emptied bladder). Scales kept modest so a full bladder grows naturally
+                     // instead of ballooning into a flat slab.
+                     fill:{bladderBit:4, prostateBit:1, bodyBit:128, urine:64, erase:68, scenarios:[
+                       {key:'empty',    label:'Empty bladder',     bladderScale:0.65, drift:{x:-1, y:-3, z:2},
                         setup:'Daily CBCT — empty bladder (smaller than plan): the prostate sits anterior/superior. Match the gold fiducials, not the bone.'},
-                       {key:'full',     label:'Full bladder',      bladderScale:1.30, drift:{x:1, y:3, z:-2},
+                       {key:'full',     label:'Full bladder',      bladderScale:1.22, drift:{x:1, y:3, z:-2},
                         setup:'Daily CBCT — full bladder (larger than plan): the prostate is pushed posterior/inferior. Match the gold fiducials, not the bone.'},
-                       {key:'veryfull', label:'Very full bladder', bladderScale:1.55, drift:{x:1, y:4, z:-2},
+                       {key:'veryfull', label:'Very full bladder', bladderScale:1.40, drift:{x:1, y:4, z:-2},
                         setup:'Daily CBCT — very full bladder: the prostate is pushed posterior/inferior. Match the gold fiducials, not the bone.'},
                      ]}}},
     pancreas:{file:'pancreas3d_data.js', get:()=>typeof PANCREAS3D_VOL!=='undefined'?PANCREAS3D_VOL:null, win:{l:40,w:400}, contours:true},  // pancreas SBRT (TCIA Pancreatic-CT-CBCT-SEG): breath-hold abdominal CT, abdomen soft-tissue window. Rigid 6DOF — match the soft-tissue target + OARs (duodenum/stomach/bowel/kidney), not just the spine. Data built by generate_pancreas_cbct.py.
     acousticMR:{file:'acousticmr3d_data.js', get:()=>typeof ACOUSTICMR3D_VOL!=='undefined'?ACOUSTICMR3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},  // MR acoustic neuroma SRS (TCIA Vestibular-Schwannoma-SEG): contrast-T1 planning MR (not CT), percentile-normalised. Real tumour (TV) + cochlea OAR. Tight 6DOF SRS match. autoWin:true => window is auto-fit from the volume histogram on open (the old l100/w700 clipped the brighter half of the brain/tumour to white); the {l,w} here is the matching static fallback before the volume decodes. Data built by generate_vs_mr.py.
-    liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:50,w:350}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py.
+    liver:{file:'liver3d_data.js', get:()=>typeof LIVER3D_VOL!=='undefined'?LIVER3D_VOL:null, win:{l:70,w:500}, contours:true},   // liver SBRT (TCIA Colorectal-Liver-Metastases): contrast CT, liver-focused. Real liver organ + tumour (Mass) DICOM-SEG contours. Soft-tissue 6DOF match on the liver lesion. Data built by generate_liver_sbrt.py. Window widened from the old soft-tissue 50/350 to a contrast-abdomen 70/500: this is a CONTRAST CT (bright aorta/vessels ~280-400 HU sit well above the old +225 HU ceiling), so the narrow window slammed those highlights to pure white — which bloomed in the orange/blue fusion tint and, worse, made the windowed gradient so steep that the clipped highlight edges shimmered/jittered voxel-by-voxel as the couch moved sub-voxel. 70/500 (ceiling +320 HU) keeps the contrast vessels just under clip (white-clipped tissue ~1.6%->0.8%, roughly halved) so the fusion is stable, while the level stays near enhanced liver parenchyma so the hypodense Mass target is still clearly conspicuous.
     gbm:{file:'gbm3d_data.js', get:()=>typeof GBM3D_VOL!=='undefined'?GBM3D_VOL:null, win:{l:410,w:1680}, autoWin:true, contours:true, mr:true},   // GBM cranial (TCIA UPenn-GBM): post-contrast T1 planning MR (not CT), percentile-normalised. Real GTV (enhancing lesion + necrotic core) + peritumoral edema + brain envelope. autoWin fits the window from the histogram on open (mirrors the acoustic-neuroma MR case). 6DOF cranial match. Data built by generate_gbm_mr.py.
     sarcoma:{file:'sarcoma3d_data.js', get:()=>typeof SARCOMA3D_VOL!=='undefined'?SARCOMA3D_VOL:null, win:{l:40,w:400}, contours:true},   // soft-tissue sarcoma (TCIA Soft-tissue-Sarcoma): extremity CT (thigh), real GTV_Mass tumour. Unusual limb anatomy — rigid 6DOF soft-tissue match with the femur as the bony landmark. Data built by generate_sarcoma.py.
     hn:{file:'hn3d_data.js', get:()=>typeof HN3D_VOL!=='undefined'?HN3D_VOL:null, win:{l:40,w:400}, contours:true},   // head & neck (TCGA-THCA TCGA-DE-A4MA): clean full-head CT, neck soft-tissue window. SAME patient as the 2D H&N case. Synthetic BILATERAL cervical-nodal PTV (levels II-IV, cord/airway-sparing horseshoe) — rigid 6DOF daily-IGRT match over the cervical spine / mandible / skull-base bony anatomy. Data built by generate_hn_cbct.py.
@@ -6447,11 +6912,13 @@ const CBCT=(function(){
           // tissue. The prostate gland (bit 1) is skipped so the gold seeds are never covered.
           if(_ob.fill&&curFill&&curFill.bladderScale){
             const F=_ob.fill,s=curFill.bladderScale,an=curIsoIdx();
-            if(gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
+            // Clip to the patient body: a scaled-up bladder must stay inside the body contour (don't paint urine
+            // into the air outside the patient), and never paint over the prostate gland so the gold seeds show.
+            if((!F.bodyBit||gtvOcc(_lbl,gx,gy,gz,F.bodyBit)>=0.5) && gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
               const qx=an[0]+(gx-an[0])/s,qy=an[1]+(gy-an[1])/s,qz=an[2]+(gz-an[2])/s;
               let oS=gtvOcc(_lbl,qx,qy,qz,F.bladderBit);              // inside the resized bladder?
               if(oS>0){oS=oS<0.7?oS*1.4:1; if(oS>1)oS=1; dens=dens+(F.urine-dens)*oS;}
-              else if(s<1){let oO=gtvOcc(_lbl,gx,gy,gz,F.bladderBit); if(oO>0){oO=oO<0.7?oO*1.4:1; if(oO>1)oO=1; dens=dens+(F.erase-dens)*oO;}}   // empty: erase the receded planning bladder
+              else if(s<1){let oO=gtvOcc(_lbl,gx,gy,gz,F.bladderBit); if(oO>0){oO=oO<0.7?oO*1.4:1; if(oO>1)oO=1; dens=dens+(F.erase-dens)*oO;}}   // empty: collapse the receded planning bladder to soft tissue
             }
           }
           // soft (trilinear) occupancy -> blend density by coverage, so the feature has smooth edges
@@ -7431,7 +7898,7 @@ const CBCT=(function(){
     const close=ptvOnly?(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2)
                        :(Math.abs(g.x)<=TOL.t2&&Math.abs(g.y)<=TOL.t2&&Math.abs(g.z)<=TOL.t2&&Math.abs(g.pitch)<=TOL.r2&&Math.abs(g.roll)<=TOL.r2&&Math.abs(g.yaw)<=TOL.r2);
     const ms=cbTimer.elapsed();
-    const tt=(accepted&&ms!==null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // time only counts when within tolerance
+    const tt=(ms!==null)?'  ·  ⏱ '+fmtMatchTime(ms):'';   // always show how long this match took (scoring still only banks a time when accepted)
     // teaching hint: bones lined up but the (drifted) tumour is not
     const boneMatched=targetDrift&&Math.abs(e.x)<=2&&Math.abs(e.y)<=2&&Math.abs(e.z)<=2&&Math.abs(e.pitch)<=1&&Math.abs(e.roll)<=1&&Math.abs(e.yaw)<=1;
     // build the verdict from THIS attempt before loading the next offset
@@ -7444,11 +7911,14 @@ const CBCT=(function(){
     // and DON'T roll a new offset (keep the same setup error so the student keeps trying).
     if(window.TXFLOW&&TXFLOW.active()){const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;TXFLOW.onStageResult('cbct',{accepted:accepted,mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z),res6:{x:g.x,y:g.y,z:g.z,pitch:g.pitch,roll:g.roll,yaw:g.yaw}});return;}
     // record this attempt; only document a time when within tolerance
-    rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:accepted?ms:null});
-    // Check Match resets the clock + loads a fresh offset for the next rep; keep the verdict and the
-    // per-axis errors on screen (they clear on the first adjustment of the new rep).
-    randomize(true);
-    const m=gid('cbStatusMsg');m.textContent=msg+'  ·  new offset loaded';m.style.color=col;
+    const _id='cbct:'+caseKey, _pB=RTProfile.get(), _sB=_pB.stats[_id]||{a:0,c:0,bt:null,br:null}, _achB=Object.assign({},_pB.ach), _xpB=_pB.xp||0, _lvlB=rtLevel(_xpB), _mag=Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z);
+    rtRecord('cbct', caseKey, {accepted:accepted, mag:_mag, timeMs:accepted?ms:null});
+    const _pA=RTProfile.get(), _sA=_pA.stats[_id]||{a:1,c:0}, _lpA=rtLevelProgress(_pA.xp||0), _axc=id=>{const c=gid(id).className;return /error-good/.test(c)?'good':/error-ok/.test(c)?'ok':'bad';}, _rc=ptvOnly?'ok':undefined;
+    rtShowResult({mode:'cbct',caseKey:caseKey,caseTitle:(((CASE_LISTS['cbct'].cases.find(c=>c.v===caseKey))||{}).t)||caseKey,accepted:accepted,close:close&&!accepted,boneMatched:!!(boneMatched&&!accepted),residualMm:_mag,timeMs:accepted?ms:null,tol:{t1:TOL.t1,t2:TOL.t2,r1:TOL.r1,r2:TOL.r2},axes:[{label:'Lat',val:gid('cbErrX').textContent,cls:_axc('cbErrX')},{label:'Lng',val:gid('cbErrY').textContent,cls:_axc('cbErrY')},{label:'Vrt',val:gid('cbErrZ').textContent,cls:_axc('cbErrZ')},{label:'Pitch',val:gid('cbErrPitch').textContent,cls:_rc||_axc('cbErrPitch')},{label:'Roll',val:gid('cbErrRoll').textContent,cls:_rc||_axc('cbErrRoll')},{label:'Yaw',val:gid('cbErrYaw').textContent,cls:_rc||_axc('cbErrYaw')}],xpGained:(_pA.xp||0)-_xpB,xpBefore:_xpB,xpAfter:_pA.xp||0,levelBefore:_lvlB,levelAfter:_lpA.level,levelPct:_lpA.pct,prevBestTimeMs:_sB.bt,prevBestResidMm:_sB.br,isBestTime:accepted&&ms!=null&&(_sB.bt==null||ms<_sB.bt),isBestResid:accepted&&(_sB.br==null||_mag<_sB.br),isFirstClear:accepted&&_sB.c===0,attemptNum:_sA.a,clears:_sA.c,streakCount:_pA.streak.count,newAchievements:RT_ACH.filter(a=>_pA.ach[a.id]&&!_achB[a.id]).map(a=>({icon:a.icon,name:a.name,desc:a.desc})),recentForCase:_pA.recent.filter(r=>r.id===_id).slice(0,8).reverse().map(r=>({ok:r.ok,ms:r.ms,mag:r.mag})),onNewOffset:function(){randomize();}});
+    // Report card: Check Match shows the residual + time and STOPS — it does not load a new offset. The
+    // per-axis errors stay on screen (they clear on your first adjustment) and the clock keeps the elapsed
+    // time; press New Offset for a fresh setup.
+    const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;
   }
 
   /* ---- interaction ---- */
@@ -7714,6 +8184,7 @@ const CBCT=(function(){
     if(!acqUses()){wrap.classList.add('hidden');const rv=gid('cbAcqReveal');if(rv)rv.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',acqPhase==='ready');
     const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');   // linac viz
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('cbAcqGantry3D',{angle:acqAngle,mode:'kv',beamOn:acqPhase==='acquiring',phase:'ACQUIRE'});
     const a=((acqAngle%360)+360)%360;
     const grig=gid('cbaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
@@ -8009,6 +8480,7 @@ requestAnimationFrame(()=>{
 });
 </script>
 <div class="disclaimer-bar" aria-hidden="true"><span>Training simulator · Not for clinical use · Values are fictional</span></div>
+<script type="module" src="/assets/gantry3d.js"></script>
 <script src="/clerk-auth.js"></script>
 </body>
 </html>
