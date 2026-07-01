@@ -262,6 +262,22 @@ class GantryScene {
     this.kvBeam.renderOrder = 4;
     this.rig.add(this.kvBeam);
 
+    // Delivered-arc coverage ring (Full Treatment only, opt-in via state.arcTrail). Mounted on the FIXED
+    // scene (NOT the rig) so it marks the swept gantry range in world space. Backing track + bright arc.
+    this._arcTrackMat = makeMat(0xffffff, { transparent: true, opacity: 0, metalness: 0, roughness: 1, depthWrite: false });
+    this._arcTrack = new THREE.Mesh(new THREE.RingGeometry(1.90, 2.00, 96, 1, 0, Math.PI * 2), this._arcTrackMat);
+    this._arcTrack.position.z = 0.02; this._arcTrack.renderOrder = 3; this._arcTrack.visible = false;
+    this.scene.add(this._arcTrack);
+    this._arcTrailMat = makeMat(0xff9b60, { transparent: true, opacity: 0, metalness: 0, roughness: 1, depthWrite: false, emissive: 0xff5d24, emissiveIntensity: 0.6 });
+    this._arcTrail = new THREE.Mesh(new THREE.RingGeometry(1.90, 2.00, 96, 1, 0, 0.001), this._arcTrailMat);
+    this._arcTrail.position.z = 0.03; this._arcTrail.renderOrder = 4; this._arcTrail.visible = false;
+    this.scene.add(this._arcTrail);
+    this._arcTrailGeoSpan = -1; this._arcTrailGeoStart = 0; this._arcTailFade = 0;
+    this._kvFlashUntil = 0; this._kvFlashSeen = undefined;   // transient kV-beam flash (opt-in via state.kvFlash)
+    this._reduceMotion = false;
+    try { const mq = matchMedia('(prefers-reduced-motion:reduce)'); this._reduceMotion = mq.matches;
+      mq.addEventListener && mq.addEventListener('change', e => { this._reduceMotion = e.matches; }); } catch (e) {}
+
     this.targetMarker = new THREE.Group();
     const targetDot = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 10), this.materials.target);
     targetDot.position.set(0, 2.06, 0.42);
@@ -381,6 +397,13 @@ class GantryScene {
 
   update(state = {}) {
     this.state = { ...this.state, ...state };
+    // Transient kV-beam flash (Full Treatment triggered-kV). Edge-detect a new kvFlash stamp and open a
+    // 600 ms window (timed on THIS scene's clock, robust to the sender's clock base). conGantry3D never
+    // sends kvFlash, so this is inert for the 2D console.
+    if (state && 'kvFlash' in state && state.kvFlash && state.kvFlash !== this._kvFlashSeen) {
+      this._kvFlashSeen = state.kvFlash;
+      this._kvFlashUntil = performance.now() + 600;
+    }
     // On a large commanded jump (reset / case switch) snap the display so it doesn't
     // spin the long way round; small deltas glide via the eased loop below.
     const angle = Number.isFinite(this.state.angle) ? this.state.angle : 0;
@@ -446,16 +469,49 @@ class GantryScene {
 
     const beamOn = !!this.state.beamOn;
     const mode = this.state.mode === 'mv' ? 'mv' : 'kv';
-    const beam = mode === 'mv' ? this.mvBeam : this.kvBeam;
-    const other = mode === 'mv' ? this.kvBeam : this.mvBeam;
-    other.visible = false;
-    beam.visible = beamOn;
+    const now = performance.now();
+    const kvActive = now < this._kvFlashUntil;            // transient kV-beam flash window (Full Treatment)
+    const reduce = this._reduceMotion;
+    const pulse = reduce ? 1 : (0.5 + 0.5 * Math.sin(this.clock / 130));
+    const primary = mode === 'mv' ? this.mvBeam : this.kvBeam;
+    const secondary = mode === 'mv' ? this.kvBeam : this.mvBeam;
+    primary.visible = beamOn;
+    secondary.visible = (mode === 'mv' && kvActive && beamOn);   // show the kV beam ALONGSIDE the MV beam on a flash
     if (beamOn) {
-      // pulse the live beam so an exposure reads as active, not a static cone
-      const p = 0.5 + 0.5 * Math.sin(this.clock / 130);
-      beam.material.opacity = 0.24 + 0.26 * p;
-      beam.material.emissiveIntensity = (mode === 'mv' ? 0.4 : 0.42) + 0.4 * p;
-      beam.scale.setScalar(0.97 + 0.05 * p);
+      primary.material.opacity = reduce ? 0.4 : (0.24 + 0.26 * pulse);
+      primary.material.emissiveIntensity = (mode === 'mv' ? 0.4 : 0.42) + (reduce ? 0.25 : 0.4 * pulse);
+      primary.scale.setScalar(reduce ? 1 : 0.97 + 0.05 * pulse);
+    }
+    if (secondary.visible) {
+      const life = Math.max(0, (this._kvFlashUntil - now) / 600);
+      const k = reduce ? 0.5 : (0.35 + 0.45 * pulse) * life;
+      this.kvBeam.material.opacity = 0.18 + 0.4 * k;
+      this.kvBeam.material.emissiveIntensity = 0.4 + 0.5 * k;
+      this.kvBeam.scale.setScalar(reduce ? 1 : 0.97 + 0.05 * pulse);
+    }
+    if (mode === 'mv' && !kvActive) this.kvBeam.visible = false;   // hide kV once the flash expires (back-compat)
+
+    // Delivered-arc coverage ring (opt-in via state.arcTrail). Grows as the gantry sweeps the arc, so the
+    // beam clearly reads as delivered all the way around; mounted on the fixed scene (world-space gauge).
+    const at = this.state.arcTrail;
+    if (at && (at.active || this._arcTrailMat.opacity > 0.01)) {
+      this._arcTailFade = at.active ? 1 : Math.max(0, this._arcTailFade - dt / 500);
+      const fade = at.active ? 1 : this._arcTailFade;
+      this._arcTrack.visible = true; this._arcTrackMat.opacity = 0.10 * fade;
+      const start = at.start || 0, dir = at.dir < 0 ? -1 : 1, swept = Math.max(0, Math.min(358, at.swept || 0));
+      // rig.rotation.z = -A*DEG with the MV head at +Y ⇒ screen math-angle a(A) = PI/2 - A*DEG
+      const a0 = Math.PI / 2 - start * DEG, len = -dir * swept * DEG;
+      const thetaStart = len < 0 ? a0 + len : a0, thetaLen = Math.max(0.001, Math.abs(len));
+      if (Math.abs(swept - this._arcTrailGeoSpan) > 1.2 || Math.abs(start - this._arcTrailGeoStart) > 1.2) {
+        this._arcTrail.geometry.dispose();   // throttle rebuilds to ~1.2° swept → avoid GPU churn on the long arc
+        this._arcTrail.geometry = new THREE.RingGeometry(1.90, 2.00, Math.max(2, Math.round(swept / 3)), 1, thetaStart, thetaLen);
+        this._arcTrailGeoSpan = swept; this._arcTrailGeoStart = start;
+      }
+      this._arcTrail.visible = swept > 0.5;
+      this._arcTrailMat.opacity = (0.55 + (reduce ? 0 : 0.12 * pulse)) * fade;
+    } else {
+      this._arcTrack.visible = false; this._arcTrail.visible = false;
+      this._arcTrackMat.opacity = 0; this._arcTrailMat.opacity = 0; this._arcTrailGeoSpan = -1;
     }
   }
 
@@ -475,7 +531,11 @@ class GantryScene {
       const tableSettled = Math.abs(gl.x - o.x) < 1e-3 && Math.abs(gl.y - o.y) < 1e-3 &&
         Math.abs(gl.z - o.z) < 1e-3 && Math.abs(gl.rtn - o.rtn) < 1e-3 &&
         Math.abs(this.caseZGoal - this.caseZCur) < 1e-3;
-      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled) { this._raf = null; this.lastT = null; return; }
+      // keep the loop alive while a kV flash is showing or the delivered-arc trail is still fading
+      const kvBusy = performance.now() < this._kvFlashUntil;
+      const at = this.state.arcTrail;
+      const trailBusy = !!(at && at.active) || (this._arcTrailMat && this._arcTrailMat.opacity > 0.01);
+      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && !kvBusy && !trailBusy) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);

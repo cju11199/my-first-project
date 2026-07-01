@@ -899,6 +899,19 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .tx-mu-row{display:flex;justify-content:space-between;font-size:12px;color:#9fb3c4;margin-bottom:5px}
 .tx-mu-bar{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
 .tx-mu-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd23f,#ff8a3a)}
+/* 3-arc VMAT plan list on the console */
+.tx-arclist{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.tx-arc{padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid transparent;transition:border-color .2s,background .2s}
+.tx-arc.active{border-color:rgba(142,240,194,.5);background:rgba(142,240,194,.06)}
+.tx-arc.done{opacity:.7}
+.tx-arc-hd{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.tx-arc-name{font-weight:600;color:#eaf1f8}
+.tx-arc-rng{color:#9fb3c4;font-variant-numeric:tabular-nums;font-size:11px}
+.tx-arc .tx-mu-bar{height:6px}
+.tx-arc.done .tx-mu-bar i{background:linear-gradient(90deg,#8ef0c2,#3ddc97)}
+.tx-arc-mu{font-size:10.5px;color:#9fb3c4;font-variant-numeric:tabular-nums;margin-top:3px}
+.tx-mu-overall{margin-bottom:0}
+@media(prefers-reduced-motion:reduce){.tx-arc{transition:none}}
 .tx-beamline{display:flex;align-items:center;gap:10px;margin-top:12px}
 .tx-beam-state{font-size:13px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:6px}
 .tx-beam-state.on{background:#1d3a30;color:#8ef0c2}
@@ -910,23 +923,18 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .tx-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
 .tx-btn.alarm{background:#ff6b8a;color:#2a0710;border-color:transparent;font-weight:600;animation:txBlink 1s steps(2) infinite}
 .tx-trace-wrap{position:relative}
-#txTrace{width:100%;height:200px;display:block;background:#08111a;border-radius:8px}
-/* kV fiducial monitor: the discrete triggered-kV detector view next to the live trace */
-.tx-monitor{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
-.tx-kv{flex:0 0 250px;display:flex;flex-direction:column;gap:5px;max-width:100%}
+/* kV fiducial monitor: the triggered-kV detector view fills the whole monitoring panel */
+.tx-monitor{display:flex;flex:1;min-height:0}
+.tx-kv{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
 .tx-kv-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:10.5px}
 .tx-kv-ang{font-family:var(--mono),monospace;color:#8ef0c2;letter-spacing:.03em}
 .tx-kv-stamp{font-family:var(--mono),monospace;color:#9fb3c4;text-align:right}
 .tx-kv-stamp.out{color:#ff6b8a}.tx-kv-stamp.in{color:#8ef0c2}
-.tx-kv-view{position:relative;border:1px solid rgba(255,255,255,.10);border-radius:8px;overflow:hidden;background:#06101a;line-height:0}
-.tx-kv-view canvas{display:block;width:100%;height:auto}
+.tx-kv-view{position:relative;flex:1;min-height:0;border:1px solid rgba(255,255,255,.10);border-radius:8px;overflow:hidden;background:#06101a;line-height:0}
+.tx-kv-view canvas{display:block;width:100%;height:100%;object-fit:contain}
 .tx-kv-view.flash::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(180,225,255,.6),rgba(180,225,255,0) 70%);animation:kvFlash .42s ease-out forwards;pointer-events:none}
 @keyframes kvFlash{from{opacity:1}to{opacity:0}}
 @media(prefers-reduced-motion:reduce){.tx-kv-view.flash::after{animation:none;opacity:0}}
-.tx-trace-col{flex:1 1 320px;min-width:280px;display:flex;flex-direction:column}
-.tx-drift{display:flex;gap:18px;margin-top:10px;font-size:13px;font-variant-numeric:tabular-nums}
-.tx-drift b{color:#eaf1f8}
-.tx-drift .lbl{color:#9fb3c4;font-size:11px;display:block}
 .tx-status{margin-top:10px;font-size:13px;color:#9fb3c4;min-height:1.4em}
 .tx-summary{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(7,13,20,.96);text-align:center;padding:24px}
 .tx-summary.hidden{display:none}
@@ -1569,9 +1577,10 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       </div>
       <div class="tx-card">
         <h3>Delivery</h3>
-        <div class="tx-field" id="txFieldLbl">Arc 1 &middot; CW</div>
-        <div class="tx-mu-row"><span>Monitor units</span><span id="txMuTxt">0 / 600 MU</span></div>
-        <div class="tx-mu-bar"><i id="txMuBar"></i></div>
+        <div class="tx-field"><span id="txArcOf">Arc 1 of 3</span></div>
+        <div class="tx-arclist" id="txArcList"></div>
+        <div class="tx-mu-row"><span>Total monitor units</span><span id="txMuTxt">0 / 900 MU</span></div>
+        <div class="tx-mu-bar tx-mu-overall"><i id="txMuBar"></i></div>
         <div class="tx-beamline">
           <span class="tx-beam-state hold" id="txBeamState">READY</span>
           <button class="tx-btn primary" id="txBeamBtn" onclick="TXFLOW.beamBtn()">Beam On</button>
@@ -1585,16 +1594,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <div class="tx-monitor">
           <div class="tx-kv">
             <div class="tx-kv-hd"><span class="tx-kv-ang" id="txKvAngle">kV imager &middot; &mdash;</span><span class="tx-kv-stamp" id="txKvStamp">awaiting first kV</span></div>
-            <div class="tx-kv-view" id="txKvWrap"><canvas id="txKvView" width="250" height="230"></canvas></div>
-          </div>
-          <div class="tx-trace-col">
-            <canvas id="txTrace" width="640" height="230"></canvas>
-            <div class="tx-drift">
-              <div><span class="lbl">Lat</span><b id="txDriftX">0.0</b> mm</div>
-              <div><span class="lbl">AP</span><b id="txDriftY">0.0</b> mm</div>
-              <div><span class="lbl">SI</span><b id="txDriftZ">0.0</b> mm</div>
-              <div><span class="lbl">|offset|</span><b id="txDriftMag">0.0</b> mm</div>
-            </div>
+            <div class="tx-kv-view" id="txKvWrap"><canvas id="txKvView" width="560" height="520"></canvas></div>
           </div>
         </div>
         <div class="tx-status" id="txStatus">Press Beam On to start treatment. A triggered kV every 10 s checks the fiducials.</div>
@@ -3347,6 +3347,7 @@ const TXFLOW=(function(){
   const TX_PLAN={name:'Prostate · VMAT', fields:[
     {name:'Arc 1 · CW',  mu:300, g0:181, dir:1},
     {name:'Arc 2 · CCW', mu:300, g0:179, dir:-1},
+    {name:'Arc 3 · CW',  mu:300, g0:181, dir:1},
   ]};
   const totalMU=TX_PLAN.fields.reduce((a,f)=>a+f.mu,0);
   let running=false, stage=null;
@@ -3355,7 +3356,7 @@ const TXFLOW=(function(){
   let fieldIdx=0, muInField=0, muTotal=0, gantryAngle=180;
   let truePos={x:0,y:0,z:0}, appliedCorr={x:0,y:0,z:0}, bias={x:0,y:0,z:0};
   let holds=0, reimages=0, cbctRes=null, kvRes=null;
-  let trace=[];             // {mag, trig}
+  let kvFlashAt=0;          // timestamp of the last triggered kV (drives the dial's transient kV-beam flash)
   // ---- kV fiducial monitor (the triggered-kV detector view) ----
   // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
   const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
@@ -3437,7 +3438,7 @@ const TXFLOW=(function(){
     gid('txScreen').classList.remove('hidden');
     paintTxCouch();   // carry the accumulated couch position into the treatment screen
     startDelivery();
-    requestAnimationFrame(()=>{ const c=gid('txTrace'); if(c){c.width=c.clientWidth||900;} drawTrace(); });
+    requestAnimationFrame(()=>drawKvView(false));
   }
   // Fallback entry (kept in case CBCT.check / FID2D.check ever route here): just open the apply strip.
   // In Full Treatment there is NO "Check Match" — onMatchStart() opens the strip the moment the match
@@ -3571,12 +3572,25 @@ const TXFLOW=(function(){
     // (always visible to any kV angle) so the projected fiducial reliably leaves the 0.5 cm ring
     // mid-treatment and the student always faces at least one intrafraction re-image.
     bias={x:(0.04+Math.random()*0.05)*sgn(), y:(0.20+Math.random()*0.10)*sgn(), z:(0.08+Math.random()*0.06)*sgn()};
-    trace=[]; lastKv=null; kvBackImg=null;
+    lastKv=null; kvBackImg=null; kvFlashAt=0;
+    buildArcList();
     const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
     const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
     setBeamState('hold','READY'); setBtn('Beam On',false);
     status('Press Beam On to start the VMAT delivery. A triggered kV every 10 s verifies the gold fiducials stay within 0.5 cm.');
     drawGantry(); updateField(); updateReadouts(); updateKvAngle(); drawKvView(false);
+  }
+  // Build the 3-arc plan list once (static plan). Each row: name + wrapped gantry range + per-arc MU bar.
+  function buildArcList(){
+    const el=gid('txArcList'); if(!el)return;
+    const wrap=a=>((a%360)+360)%360;
+    el.innerHTML=TX_PLAN.fields.map((f,i)=>{
+      const g1=Math.round(wrap(f.g0+f.dir*ARC_SPAN)),g0=Math.round(wrap(f.g0)),dir=f.dir<0?'CCW':'CW';
+      return '<div class="tx-arc" data-arc="'+i+'"><div class="tx-arc-hd"><span class="tx-arc-name">'+f.name+
+        '</span><span class="tx-arc-rng">'+g0+'°→'+g1+'° '+dir+'</span></div>'+
+        '<div class="tx-mu-bar"><i id="txArcBar'+i+'"></i></div>'+
+        '<div class="tx-arc-mu"><b id="txArcMu'+i+'">0</b> / '+f.mu+' MU</div></div>';
+    }).join('');
   }
   function beamBtn(){
     if(beamPhase==='done') return;
@@ -3598,12 +3612,9 @@ const TXFLOW=(function(){
     muInField+=MU_RATE*dt; muTotal+=MU_RATE*dt;
     const p=Math.min(1,muInField/f.mu);
     gantryAngle=f.g0+f.dir*ARC_SPAN*p;
-    // push trace sample (live measured offset magnitude)
-    const meas=measured(); trace.push({mag:Math.hypot(meas.x,meas.y,meas.z),trig:false});
-    if(trace.length>600)trace.shift();
     // triggered kV every 10 s of beam-on
     if(simBeamSec-lastTrigSec>=TRIG_MS/1000){ lastTrigSec=simBeamSec; doTrigger(); }
-    drawGantry(); updateField(); updateReadouts(); drawTrace(); updateKvAngle();
+    drawGantry(); updateField(); updateReadouts(); updateKvAngle();
     if(beamPhase!=='on'){raf=0;return;}            // a trigger may have held the beam
     if(p>=1){ fieldIdx++; muInField=0; if(fieldIdx>=TX_PLAN.fields.length){ finish(); return; } gantryAngle=TX_PLAN.fields[fieldIdx].g0; }
     raf=requestAnimationFrame(tick);
@@ -3614,10 +3625,12 @@ const TXFLOW=(function(){
   function kvProject(m,gDeg){const a=gDeg*Math.PI/180; return {u:m.x*Math.sin(a)+m.y*Math.cos(a), v:m.z};}
   function kvAngle(){return Math.round((((gantryAngle+90)%360)+360)%360);}
   function doTrigger(){
-    if(trace.length)trace[trace.length-1].trig=true;
     const m=measured(), pr=kvProject(m,gantryAngle), ringMag=Math.hypot(pr.u,pr.v);
     const out=ringMag>GATE_MM;                       // outside the 0.5 cm ring on the triggered kV
     lastKv={phi:kvAngle(), t:Math.round(simBeamSec), u:pr.u, v:pr.v, out, g:gantryAngle};
+    // fire the dial's transient kV-beam flash now (also works if the beam is about to hold)
+    kvFlashAt=performance.now();
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{kvFlash:kvFlashAt});
     buildKvBackdrop(gantryAngle); flashKv(); drawKvView(true);
     if(out){
       beamPhase='holdtrig'; holds++;
@@ -3674,7 +3687,7 @@ const TXFLOW=(function(){
     const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
     lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM,g:gantryAngle};
     buildKvBackdrop(gantryAngle);
-    drawGantry(); updateReadouts(); drawTrace(); updateKvAngle(); drawKvView(false);
+    drawGantry(); updateReadouts(); updateKvAngle(); drawKvView(false);
   }
 
   /* ---- completion ---- */
@@ -3696,14 +3709,23 @@ const TXFLOW=(function(){
   function setBeamState(cls,txt){const e=gid('txBeamState');if(e){e.className='tx-beam-state '+cls;e.textContent=txt;}const b=gid('txBeam');if(b)b.setAttribute('fill',cls==='on'?'rgba(255,210,63,.5)':'rgba(255,210,63,.15)');}
   function setBtn(txt,dis){const b=gid('txBeamBtn');if(b){b.textContent=txt;b.disabled=!!dis;}}
   function status(t){const e=gid('txStatus');if(e)e.textContent=t;}
-  function updateField(){const f=TX_PLAN.fields[fieldIdx]||TX_PLAN.fields[TX_PLAN.fields.length-1];
-    if(gid('txFieldLbl'))gid('txFieldLbl').textContent=f.name;
+  function updateField(){const n=TX_PLAN.fields.length;
+    if(gid('txArcOf'))gid('txArcOf').textContent='Arc '+(Math.min(fieldIdx,n-1)+1)+' of '+n;
     if(gid('txMuTxt'))gid('txMuTxt').textContent=Math.round(muTotal)+' / '+totalMU+' MU';
-    if(gid('txMuBar'))gid('txMuBar').style.width=Math.min(100,muTotal/totalMU*100)+'%';}
+    if(gid('txMuBar'))gid('txMuBar').style.width=Math.min(100,muTotal/totalMU*100)+'%';
+    for(let i=0;i<n;i++){const f=TX_PLAN.fields[i];
+      const done=(i<fieldIdx)?f.mu:(i===fieldIdx?Math.min(f.mu,muInField):0);
+      const row=document.querySelector('#txArcList .tx-arc[data-arc="'+i+'"]');
+      if(row){row.classList.toggle('done',i<fieldIdx);row.classList.toggle('active',i===fieldIdx&&beamPhase!=='done');}
+      const bar=gid('txArcBar'+i);if(bar)bar.style.width=Math.min(100,done/f.mu*100)+'%';
+      const mu=gid('txArcMu'+i);if(mu)mu.textContent=Math.round(done);}}
   function drawGantry(){const rig=gid('txGantryRig');if(rig)rig.setAttribute('transform','rotate('+(gantryAngle-180)+' 100 100)');
     if(gid('txGantryAng'))gid('txGantryAng').textContent='Gantry '+Math.round(((gantryAngle%360)+360)%360)+'°';
+    const f=TX_PLAN.fields[Math.min(fieldIdx,TX_PLAN.fields.length-1)]||{g0:gantryAngle,dir:1};
+    const swept=(beamPhase==='done')?ARC_SPAN:Math.min(ARC_SPAN,Math.abs(gantryAngle-f.g0));
     if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{angle:gantryAngle,mode:'mv',beamOn:beamPhase==='on',phase:'TREAT',
-      couch:{lat:couch.lat,vrt:couch.vrt-couchBase.vrt,lng:couch.lng-couchBase.lng,rtn:couch.rtn},isoRegion:'pelvis'});}
+      couch:{lat:couch.lat,vrt:couch.vrt-couchBase.vrt,lng:couch.lng-couchBase.lng,rtn:couch.rtn},isoRegion:'pelvis',
+      arcTrail:{start:f.g0,dir:f.dir,swept:swept,active:(beamPhase==='on')},kvFlash:kvFlashAt});}
   function updateReadouts(){const m=measured();
     if(gid('txDriftX'))gid('txDriftX').textContent=(m.x>=0?'+':'')+m.x.toFixed(1);
     if(gid('txDriftY'))gid('txDriftY').textContent=(m.y>=0?'+':'')+m.y.toFixed(1);
@@ -3714,18 +3736,20 @@ const TXFLOW=(function(){
   function flashKv(){const w=gid('txKvWrap');if(!w)return;w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');setTimeout(()=>{if(w)w.classList.remove('flash');},460);}
   function drawKvView(triggered){
     const c=gid('txKvView');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
+    // scale the whole detector view to FILL the panel: 50 mm field spans the smaller dimension.
+    const fit=Math.min(W,H),sc=fit/50,gs=sc/5;   // sc px/mm; gs = glyph scale vs the old 5 px/mm baseline
     ctx.clearRect(0,0,W,H);
     // Real bony-anatomy kV image (ray-sum at the imager angle) with the baked gold seeds suppressed, so
     // the ONLY fiducials shown are the clean overlay seeds inside their 0.5 cm rings. Falls back to a
     // plain detector field until the Stage-1 prostate volume is decoded.
     if(kvBackImg){
-      const s=2*25*KV_SCALE;   // 50 mm field at KV_SCALE px/mm -> fills the panel
+      const s=2*25*sc;   // 50 mm field -> fills the panel
       ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();ctx.drawImage(kvBackImg,cx-s/2,cy-s/2,s,s);ctx.restore();
     } else {
       const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0a1622');bg.addColorStop(1,'#050c14');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
       ctx.strokeStyle='rgba(120,150,180,.07)';ctx.lineWidth=1;
-      for(let g=20;g<W;g+=24){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
-      for(let g=20;g<H;g+=24){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+      for(let g=24;g<W;g+=40){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+      for(let g=24;g<H;g+=40){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
     }
     ctx.strokeStyle='rgba(160,190,220,.18)';ctx.lineWidth=1;   // faint iso crosshair
     ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,H-8);ctx.moveTo(8,cy);ctx.lineTo(W-8,cy);ctx.stroke();
@@ -3740,47 +3764,30 @@ const TXFLOW=(function(){
       : KV_TRIAD.map(s=>({u:s.u,v:-s.v}));
     const SANG=[-0.5,0.4,0.12];   // cosmetic per-seed capsule tilt
     triad.forEach((s,i)=>{
-      const rx=cx+s.u*KV_SCALE, ry=cy-s.v*KV_SCALE;        // planned seed (ring centre) — SI up
-      const sx=cx+(s.u+du)*KV_SCALE, sy=cy-(s.v+dv)*KV_SCALE;// current fiducial reading
+      const rx=cx+s.u*sc, ry=cy-s.v*sc;        // planned seed (ring centre) — SI up
+      const sx=cx+(s.u+du)*sc, sy=cy-(s.v+dv)*sc;// current fiducial reading
       // 0.5 cm tolerance ring
-      ctx.beginPath();ctx.arc(rx,ry,GATE_MM*KV_SCALE,0,7);ctx.setLineDash([4,3]);ctx.strokeStyle=colDim;ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle='rgba(200,220,240,.6)';ctx.beginPath();ctx.arc(rx,ry,1.4,0,7);ctx.fill();   // planned centre dot
+      ctx.beginPath();ctx.arc(rx,ry,GATE_MM*sc,0,7);ctx.setLineDash([5*gs,3*gs]);ctx.strokeStyle=colDim;ctx.lineWidth=1.5*gs;ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(200,220,240,.6)';ctx.beginPath();ctx.arc(rx,ry,1.4*gs,0,7);ctx.fill();   // planned centre dot
       // displacement connector
-      ctx.strokeStyle=colDim;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
+      ctx.strokeStyle=colDim;ctx.lineWidth=1*gs;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
       // the ACTUAL gold seed fiducial — a crisp capsule with a verdict-coloured halo
-      const ang=SANG[i%SANG.length],hx=Math.cos(ang)*7,hy=Math.sin(ang)*7;
+      const ang=SANG[i%SANG.length],hx=Math.cos(ang)*7*gs,hy=Math.sin(ang)*7*gs;
       ctx.save();ctx.lineCap='round';
-      ctx.globalAlpha=.2;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,7.5,0,7);ctx.fill();ctx.globalAlpha=1;   // verdict halo
-      ctx.strokeStyle=col;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // verdict outline
-      ctx.strokeStyle='#ffd23f';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // gold seed
+      ctx.globalAlpha=.2;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,7.5*gs,0,7);ctx.fill();ctx.globalAlpha=1;   // verdict halo
+      ctx.strokeStyle=col;ctx.lineWidth=5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // verdict outline
+      ctx.strokeStyle='#ffd23f';ctx.lineWidth=3*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // gold seed
       ctx.restore();
     });
     // verdict banner
-    ctx.font='600 11px system-ui';ctx.textAlign='left';
-    if(lastKv){ctx.fillStyle=col;ctx.fillText(out?'✗ OUT OF GATE':'✓ IN GATE',8,H-8);}
-    else{ctx.fillStyle='rgba(159,179,196,.8)';ctx.fillText('awaiting first kV',8,H-8);}
-    ctx.textAlign='right';ctx.fillStyle='rgba(159,179,196,.75)';ctx.fillText('0.5 cm gate',W-8,14);
+    const fpx=Math.round(12*gs);ctx.font='600 '+fpx+'px system-ui';ctx.textAlign='left';
+    if(lastKv){ctx.fillStyle=col;ctx.fillText(out?'✗ OUT OF GATE':'✓ IN GATE',10,H-10);}
+    else{ctx.fillStyle='rgba(159,179,196,.8)';ctx.fillText('awaiting first kV',10,H-10);}
+    ctx.textAlign='right';ctx.fillStyle='rgba(159,179,196,.75)';ctx.fillText('0.5 cm gate',W-10,fpx+6);
     // header stamp
     const st=gid('txKvStamp');
     if(st){if(lastKv){st.textContent='G'+lastKv.phi+'° · '+lastKv.t+'s · '+(out?'OUT':'IN');st.className='tx-kv-stamp '+(out?'out':'in');}
       else{st.textContent='awaiting first kV';st.className='tx-kv-stamp';}}
-  }
-  function drawTrace(){
-    const c=gid('txTrace');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height;
-    ctx.clearRect(0,0,W,H);ctx.fillStyle='#08111a';ctx.fillRect(0,0,W,H);
-    const maxMM=12,y=mm=>H-(mm/maxMM)*H;
-    // gate band (±0.5 cm)
-    ctx.fillStyle='rgba(56,232,128,.08)';ctx.fillRect(0,y(GATE_MM),W,H-y(GATE_MM));
-    ctx.strokeStyle='rgba(255,186,107,.6)';ctx.lineWidth=1;ctx.setLineDash([5,4]);
-    ctx.beginPath();ctx.moveTo(0,y(GATE_MM));ctx.lineTo(W,y(GATE_MM));ctx.stroke();ctx.setLineDash([]);
-    ctx.fillStyle='rgba(159,179,196,.8)';ctx.font='10px system-ui';ctx.fillText('0.5 cm gate',6,y(GATE_MM)-4);
-    if(!trace.length)return;
-    const n=trace.length,dx=W/Math.max(120,n);
-    ctx.beginPath();
-    for(let i=0;i<n;i++){const px=i*dx,py=y(Math.min(maxMM,trace[i].mag));if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}
-    ctx.strokeStyle='#46affc';ctx.lineWidth=1.8;ctx.stroke();
-    // trigger ticks
-    for(let i=0;i<n;i++){if(trace[i].trig){const px=i*dx,py=y(Math.min(maxMM,trace[i].mag));ctx.fillStyle=trace[i].mag>GATE_MM?'#ff6b8a':'#8ef0c2';ctx.beginPath();ctx.arc(px,py,3.2,0,7);ctx.fill();}}
   }
   function getBackdrop(){
     if(backdrop)return backdrop;
@@ -3794,7 +3801,7 @@ const TXFLOW=(function(){
   }
 
   return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,beamBtn,startRematch,cbApply,cbMotion,fidApply,fidMotion,
-    _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();drawTrace();},
+    _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
       forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx,lastKv:()=>lastKv?Object.assign({},lastKv):null,
       setGantry:g=>{gantryAngle=g;drawGantry();updateKvAngle();}}};
