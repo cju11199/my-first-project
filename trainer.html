@@ -3369,7 +3369,10 @@ const CONSOLE=(()=>{
       moving: !!motOn,
       phase,
       acquired: acquired.slice(),
-      views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv}))
+      views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv})),
+      // physical couch from the encoder readout: absolute Lat (0=centred) drives lateral shift;
+      // Vrt/Lng are absolute calibration values so pass their deviation from the plan couch; Rtn = turntable.
+      couch:{ lat:couch.lat, vrt:couch.vrt-couch0.vrt, lng:couch.lng-couch0.lng, rtn:couch.rtn }
     });
   }
   function atViewMv(){ const v=viewAtGantry(); return !!(v&&v.mv); }
