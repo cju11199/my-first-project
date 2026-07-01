@@ -23,8 +23,8 @@ class GantryScene {
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(36, 1, 0.1, 30);
-    this.camera.position.set(0.05, 0.02, 6.2);
+    this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
+    this.camera.position.set(0.04, 0.02, 9.0);
     this.camera.lookAt(0, 0, 0);
 
     this.state = { angle: 0, target: null, mode: 'kv', beamOn: false, phase: 'ACQUIRE' };
