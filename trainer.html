@@ -3360,7 +3360,7 @@ const TXFLOW=(function(){
   // ---- kV fiducial monitor (the triggered-kV detector view) ----
   // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
   const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
-  const KV_SCALE=5;         // px per mm in the detector view (0.5 cm ring = 25 px)
+  const KV_HALF_MM=30;      // kV monitor half field-of-view (mm); larger = zoomed out → more anatomy visible
   let lastKv=null;          // {phi, t, u, v, out, g} — the most recent triggered kV reading (g = MV gantry°)
   let backdrop=null;        // synthetic fallback for the re-match panel
   let kvBackImg=null;       // real (seed-free) bony-anatomy kV image for the triggered-kV monitor
@@ -3369,7 +3369,7 @@ const TXFLOW=(function(){
   // so they don't appear twice (the baked blobs are the "other fiducials" we're dropping).
   function buildKvBackdrop(gAngle){
     if(!(window.CBCT&&CBCT.rayDRR&&CBCT.mprCase&&CBCT.mprCase()==='prostate'))return;
-    const url=CBCT.rayDRR(((90-gAngle)%360+360)%360,25,'kv',true); if(!url)return;
+    const url=CBCT.rayDRR(((90-gAngle)%360+360)%360,KV_HALF_MM,'kv',true); if(!url)return;
     const im=new Image(); im.onload=()=>{kvBackImg=im;drawKvView(false);}; im.src=url;
   }
   let motionRaf=0;          // couch-move animation (CBCT shift-apply)
@@ -3737,13 +3737,13 @@ const TXFLOW=(function(){
   function drawKvView(triggered){
     const c=gid('txKvView');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
     // scale the whole detector view to FILL the panel: 50 mm field spans the smaller dimension.
-    const fit=Math.min(W,H),sc=fit/50,gs=sc/5;   // sc px/mm; gs = glyph scale vs the old 5 px/mm baseline
+    const fit=Math.min(W,H),sc=fit/(2*KV_HALF_MM),gs=sc/5;   // sc px/mm (field = 2·KV_HALF_MM); gs = glyph scale
     ctx.clearRect(0,0,W,H);
     // Real bony-anatomy kV image (ray-sum at the imager angle) with the baked gold seeds suppressed, so
     // the ONLY fiducials shown are the clean overlay seeds inside their 0.5 cm rings. Falls back to a
     // plain detector field until the Stage-1 prostate volume is decoded.
     if(kvBackImg){
-      const s=2*25*sc;   // 50 mm field -> fills the panel
+      const s=2*KV_HALF_MM*sc;   // full field -> fills the panel
       ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();ctx.drawImage(kvBackImg,cx-s/2,cy-s/2,s,s);ctx.restore();
     } else {
       const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0a1622');bg.addColorStop(1,'#050c14');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
