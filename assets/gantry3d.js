@@ -11,7 +11,8 @@ function makeMat(color, opts = {}) {
     opacity: opts.opacity ?? 1,
     emissive: opts.emissive ?? 0x000000,
     emissiveIntensity: opts.emissiveIntensity ?? 0,
-    depthWrite: opts.depthWrite ?? true
+    depthWrite: opts.depthWrite ?? true,
+    side: opts.side ?? THREE.FrontSide
   });
 }
 
@@ -26,8 +27,13 @@ class GantryScene {
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
     // 3/4 view: lifted + slightly off-axis so the bore recedes and the couch/patient
     // sit inside a gantry with real depth (dead-on read as a flat SVG-style disc).
-    this.orbitTarget = new THREE.Vector3(0, -0.05, 0.16);
-    this.camera.position.set(1.15, 2.85, 9.15);
+    // The patient lies along Z (the bore axis) and slides head-first into the gantry; the ring
+    // rotates about Z. ISO_Z is the transverse plane (ring centre) where the beams converge.
+    this.ISO_Z = 0.1;
+    // Oblique hero angle: off to the side + above so the ring reads as a ring AND the couch is
+    // seen extending out of the bore toward the viewer (dead-down-the-bore would foreshorten it).
+    this.orbitTarget = new THREE.Vector3(0, -0.05, 0.2);
+    this.camera.position.set(6.4, 3.5, 7.4);
     this.camera.lookAt(this.orbitTarget);
     // drag-to-orbit state: spherical camera about orbitTarget, eased toward the drag goal.
     // theta = azimuth (around +Y), phi = polar from +Y; both eased for smooth, damped motion.
@@ -154,13 +160,19 @@ class GantryScene {
     rim.position.set(3.2, -1.5, 4);
     this.scene.add(rim);
 
-    const bore = new THREE.Mesh(new THREE.CylinderGeometry(2.28, 2.28, 0.24, 96), this.materials.shellDark);
+    // OPEN bore: a tube the couch slides down (axis along Z) with a dark interior + back cap,
+    // so the patient recedes head-first into a visible tunnel instead of sitting on a flat wall.
+    const boreWall = makeMat(0x141d29, { roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide });
+    const bore = new THREE.Mesh(new THREE.CylinderGeometry(2.14, 2.14, 1.8, 96, 1, true), boreWall);
     bore.rotation.x = Math.PI / 2;
-    bore.position.z = -0.34;
+    bore.position.z = -1.05;
     this.scene.add(bore);
+    const boreBack = new THREE.Mesh(new THREE.CircleGeometry(2.14, 96), this.materials.shellDark);
+    boreBack.position.z = -1.92;
+    this.scene.add(boreBack);
 
-    const boreLip = new THREE.Mesh(new THREE.TorusGeometry(2.28, 0.045, 16, 128), this.materials.trim);
-    boreLip.position.z = -0.2;
+    const boreLip = new THREE.Mesh(new THREE.TorusGeometry(2.16, 0.05, 16, 128), this.materials.trim);
+    boreLip.position.z = -0.16;
     this.scene.add(boreLip);
 
     // Cable-wrap HARD STOP at gantry 180° (bottom): a real linac can't transit straight
@@ -224,13 +236,13 @@ class GantryScene {
     this.rig.add(kvPanel);
 
     this.mvBeam = new THREE.Mesh(new THREE.ConeGeometry(0.34, 1.34, 36, 1, true), this.materials.beamMv);
-    this.mvBeam.position.set(0, 0.77, 0.42);
+    this.mvBeam.position.set(0, 0.77, this.ISO_Z);
     this.mvBeam.renderOrder = 4;
     this.rig.add(this.mvBeam);
 
     this.kvBeam = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.36, 36, 1, true), this.materials.beamKv);
     this.kvBeam.rotation.z = -Math.PI / 2;
-    this.kvBeam.position.set(0.78, 0, 0.42);
+    this.kvBeam.position.set(0.78, 0, this.ISO_Z);
     this.kvBeam.renderOrder = 4;
     this.rig.add(this.kvBeam);
 
@@ -249,79 +261,80 @@ class GantryScene {
     this.acqMarkers.forEach(m => this.scene.add(m));
   }
 
-  // Treatment couch: carbon-fibre top plate + mattress pad + side rails + pedestal, running
-  // head-to-foot along X. BODY_Z is the patient centre depth; couch sits just posterior (below +Y).
+  // Treatment couch: carbon-fibre top plate + mattress pad + side rails + pedestal, running along
+  // Z (INTO the bore). It extends from the pedestal outside the bore (+Z, toward camera) through
+  // the ring plane and into the tunnel (-Z). Y is vertical; couch sits just posterior (below +Y).
   buildCouch() {
-    const Z = this.BODY_Z = 0.34;      // patient/couch centre depth (toward camera)
     const g = new THREE.Group();
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.05, 0.66), this.materials.couchTop);
-    plate.position.set(0, -0.255, Z);
+    const zc = -0.15;                    // couch centre depth (spans out toward camera + into bore)
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.05, 3.0), this.materials.couchTop);
+    plate.position.set(0, -0.255, zc);
     g.add(plate);
-    const pad = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.07, 0.58), this.materials.pad);
-    pad.position.set(0, -0.205, Z);
+    const pad = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.07, 2.6), this.materials.pad);
+    pad.position.set(0, -0.205, zc);
     g.add(pad);
-    [-0.31, 0.31].forEach(dz => {                       // side rails
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(2.85, 0.055, 0.04), this.materials.trim);
-      rail.position.set(0, -0.235, Z + dz);
+    [-0.31, 0.31].forEach(dx => {                       // side rails
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 3.0), this.materials.trim);
+      rail.position.set(dx, -0.235, zc);
       g.add(rail);
     });
-    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 0.42), this.materials.couch);
-    pedestal.position.set(0, -0.62, Z - 0.02);
+    // pedestal + base sit at the foot end, OUTSIDE the bore (toward the camera)
+    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.5), this.materials.couch);
+    pedestal.position.set(0, -0.62, 1.2);
     g.add(pedestal);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.1, 0.66), this.materials.couch);
-    base.position.set(0, -0.96, Z - 0.02);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.1, 0.78), this.materials.couch);
+    base.position.set(0, -0.96, 1.2);
     g.add(base);
     this.scene.add(g);
   }
 
-  // Supine patient lying head-to-foot along X, resting on the couch (posterior at -Y), draped in a
-  // gown. Recognisable primitive figure: head, neck, tapered torso, pelvis, two legs, arms at sides.
+  // Supine patient lying head-to-foot along Z, resting on the couch (posterior at -Y), draped in a
+  // gown. Head-first into the bore (-Z), feet out toward the camera (+Z); iso at the mid-torso.
   buildPatient() {
-    const Z = this.BODY_Z, Y = 0.0;    // torso centreline through isocentre (0,0,Z)
+    const Y = 0.0, Z = this.ISO_Z;       // torso centreline through isocentre (0,0,ISO_Z)
     const p = new THREE.Group();
-    const cyl = (rt, rb, len, mat) => {  // capsule-ish limb lying along X
+    const cyl = (rt, rb, len, mat) => {  // capsule-ish limb lying along Z
       const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, 20), mat);
-      m.rotation.z = Math.PI / 2;        // orient length along X
+      m.rotation.x = Math.PI / 2;        // orient length along Z
       return m;
     };
     const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 18), this.materials.skin);
-    head.scale.set(1.15, 1, 0.92);
-    head.position.set(0.96, Y + 0.02, Z);
+    head.scale.set(0.92, 1, 1.15);
+    head.position.set(0, Y + 0.02, Z - 0.86);          // head deepest into the bore
     p.add(head);
-    const neck = cyl(0.07, 0.08, 0.12, this.materials.skin); neck.position.set(0.8, Y, Z); p.add(neck);
-    const torso = cyl(0.2, 0.235, 0.72, this.materials.gown); torso.position.set(0.38, Y, Z); p.add(torso);
+    const neck = cyl(0.07, 0.08, 0.12, this.materials.skin); neck.position.set(0, Y, Z - 0.7); p.add(neck);
+    const torso = cyl(0.2, 0.235, 0.72, this.materials.gown); torso.position.set(0, Y, Z - 0.28); p.add(torso);
     const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.235, 20, 14), this.materials.gown);
-    shoulder.scale.set(0.7, 1, 1.05); shoulder.position.set(0.72, Y, Z); p.add(shoulder);
-    const pelvis = cyl(0.235, 0.2, 0.34, this.materials.gown); pelvis.position.set(-0.15, Y - 0.01, Z); p.add(pelvis);
-    [-1, 1].forEach(s => {                               // legs, separated left/right along Z
+    shoulder.scale.set(1.05, 1, 0.7); shoulder.position.set(0, Y, Z - 0.62); p.add(shoulder);
+    const pelvis = cyl(0.235, 0.2, 0.34, this.materials.gown); pelvis.position.set(0, Y - 0.01, Z + 0.25); p.add(pelvis);
+    [-1, 1].forEach(s => {                               // legs, separated left/right along X
       const thigh = cyl(0.11, 0.085, 0.62, this.materials.gown);
-      thigh.position.set(-0.62, Y - 0.03, Z + s * 0.12); p.add(thigh);
+      thigh.position.set(s * 0.12, Y - 0.03, Z + 0.72); p.add(thigh);
       const shin = cyl(0.075, 0.05, 0.6, this.materials.skin);
-      shin.position.set(-1.2, Y - 0.05, Z + s * 0.11); p.add(shin);
+      shin.position.set(s * 0.11, Y - 0.05, Z + 1.3); p.add(shin);
       const arm = cyl(0.07, 0.06, 0.62, this.materials.gown);
-      arm.position.set(0.42, Y - 0.04, Z + s * 0.27); p.add(arm);
+      arm.position.set(s * 0.27, Y - 0.04, Z - 0.24); p.add(arm);
     });
     this.scene.add(p);
   }
 
-  // Isocentre marked ON the patient at the ring centre: a glowing point where the beams converge,
-  // with a coronal target reticle facing the camera and red room-laser cross-lines through the body.
+  // Isocentre marked ON the patient at the ring centre where the beams converge: a glowing point,
+  // a transverse target reticle encircling the body cross-section, and red room-laser cross-lines
+  // through the body (sup-inf along the bore Z, ant-post Y, lateral X).
   buildIso() {
-    const Z = this.BODY_Z;
     const g = new THREE.Group();
-    g.position.set(0, 0, Z);            // isocentre = (0,0) in the rig plane, at body depth
+    g.position.set(0, 0, this.ISO_Z);
     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), this.materials.iso);
     dot.renderOrder = 6; g.add(dot);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.014, 12, 48), this.materials.iso);
-    ring.renderOrder = 6; g.add(ring);   // coronal reticle in the XY plane (faces camera)
-    // red laser cross-hair: three orthogonal thin lines through iso (sup-inf X, ant-post Y, lat Z)
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.014, 12, 64), this.materials.iso);
+    ring.renderOrder = 6; g.add(ring);   // transverse reticle in the XY plane, encircling the torso
     const line = (len, axis) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, len, 8), this.materials.laser);
       if (axis === 'x') m.rotation.z = Math.PI / 2;
       if (axis === 'z') m.rotation.x = Math.PI / 2;
       m.renderOrder = 5; return m;
     };
-    g.add(line(0.9, 'x'), line(0.62, 'y'), line(0.66, 'z'));
+    g.add(line(0.66, 'x'), line(0.62, 'y'), line(1.0, 'z'));
     this.isoMarker = g;
     this.scene.add(g);
   }
