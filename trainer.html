@@ -3813,13 +3813,14 @@ const TXFLOW=(function(){
       ctx.fillStyle='rgba(200,220,240,.6)';ctx.beginPath();ctx.arc(rx,ry,1.4*gs,0,7);ctx.fill();   // planned centre dot
       // displacement connector
       ctx.strokeStyle=colDim;ctx.lineWidth=1*gs;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
-      // the ACTUAL gold seed fiducial — a crisp capsule with a verdict-coloured halo. Sized LARGE vs the
-      // 0.5 cm ring (radius GATE_MM*sc = 5*sc) so the seed reads clearly against its tolerance circle.
+      // the ACTUAL seed fiducial — a crisp WHITE capsule. Sized LARGE vs the 0.5 cm ring
+      // (radius GATE_MM*sc = 5*sc) so the seed reads clearly against its tolerance circle. The seed
+      // stays neutral white regardless of verdict; only the tolerance ring is coloured green/red.
       const ang=SANG[i%SANG.length],hx=Math.cos(ang)*12*gs,hy=Math.sin(ang)*12*gs;
       ctx.save();ctx.lineCap='round';
-      ctx.globalAlpha=.2;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,12*gs,0,7);ctx.fill();ctx.globalAlpha=1;   // verdict halo
-      ctx.strokeStyle=col;ctx.lineWidth=7.5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // verdict outline
-      ctx.strokeStyle='#ffd23f';ctx.lineWidth=5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // gold seed
+      ctx.globalAlpha=.2;ctx.fillStyle='#ffffff';ctx.beginPath();ctx.arc(sx,sy,12*gs,0,7);ctx.fill();ctx.globalAlpha=1;   // white halo
+      ctx.strokeStyle='rgba(0,0,0,.55)';ctx.lineWidth=7.5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // dark contrast outline
+      ctx.strokeStyle='#ffffff';ctx.lineWidth=5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // white seed core
       ctx.restore();
     });
     // verdict banner
