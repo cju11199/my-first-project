@@ -823,6 +823,150 @@ html:not(.auth-pending) #authGate{display:none}
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}.pbtn.room.needroom:not(:disabled){animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex-basis:auto;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
+/* ===== Debrief Console results overlay ===== */
+/* shell reuses .modal-bg (z-index 100) + .rt-modal (270). Bump above #rtProgModal. */
+.dbf-bg{z-index:300}
+.dbf-card{
+  width:min(680px,94vw);max-height:92vh;overflow:auto;
+  background:linear-gradient(180deg,var(--panel2),var(--panel));
+  border:1px solid var(--border2);border-radius:16px;
+  box-shadow:var(--shadow-card),0 0 0 1px var(--hairline) inset;
+  padding:16px 18px 14px;font-family:var(--mono);color:var(--text);
+  position:relative;overflow-x:hidden;
+  --v:var(--accent);--v-hi:var(--accent-hi);--v-dim:var(--accent-dim);
+  transform:translateY(14px) scale(.985);opacity:0;
+  transition:transform .32s var(--ease),opacity .32s var(--ease)}
+#rtDebrief.open .dbf-card{transform:none;opacity:1}
+.dbf-card[data-verdict="close"],
+.dbf-card[data-verdict="off"],
+.dbf-card[data-verdict="bone"]{--v:var(--accent2);--v-hi:var(--accent2-hi);--v-dim:var(--accent2-dim)}
+.dbf-card:focus{outline:none}
+
+/* ---- letterhead ---- */
+.dbf-bar{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--hairline);position:relative;z-index:4}
+.dbf-chip{font-size:9px;letter-spacing:.18em;padding:3px 7px;border-radius:var(--radius-pill);
+  background:var(--v-dim);color:var(--v-hi);border:1px solid var(--v-dim)}
+.dbf-title{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dbf-attempt{margin-left:auto;font-size:10px;color:var(--label);letter-spacing:.1em;font-variant-numeric:var(--num);white-space:nowrap}
+.dbf-x{background:none;border:0;color:var(--label);font-size:20px;line-height:1;cursor:pointer;padding:0 2px;box-shadow:none}
+.dbf-x:hover{color:var(--text);background:none}
+.dbf-x:focus-visible{outline:2px solid var(--v-hi);outline-offset:2px}
+
+/* ---- verdict stamp ---- */
+.dbf-verdict-row{display:flex;align-items:center;gap:14px;margin:14px 0;flex-wrap:wrap}
+.dbf-stamp{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:24px;font-weight:800;letter-spacing:.05em;color:var(--v-hi);
+  padding:6px 14px;border:2.5px solid var(--v);border-radius:10px;
+  text-shadow:0 0 18px var(--v-dim);box-shadow:0 0 0 4px var(--v-dim) inset;
+  transform:scale(1.8) rotate(-7deg);opacity:0;
+  animation:dbfStamp .5s var(--ease) .12s forwards}
+.dbf-stamp-tier{font-size:14px;font-weight:800;line-height:1;padding:2px 6px;border-radius:6px;
+  background:var(--v);color:var(--bg);min-width:16px;text-align:center}
+.dbf-stamp-tier:empty{display:none}
+@keyframes dbfStamp{
+  0%{transform:scale(1.8) rotate(-7deg);opacity:0}
+  60%{transform:scale(.92) rotate(-7deg);opacity:1}
+  100%{transform:scale(1) rotate(-4deg);opacity:1}}
+.dbf-sub{font-size:12px;color:var(--label);margin:0;flex:1;min-width:180px}
+
+/* ---- PERSONAL BEST ribbon (single earned-win flourish) ---- */
+.dbf-card::after{content:"PERSONAL BEST";position:absolute;top:16px;right:-46px;
+  transform:rotate(45deg) scale(.4);transform-origin:center;
+  background:linear-gradient(180deg,var(--v),var(--v-hi));color:var(--bg);
+  font-size:9px;font-weight:800;letter-spacing:.14em;padding:5px 48px;
+  box-shadow:0 4px 14px -6px var(--v);opacity:0;pointer-events:none;z-index:3}
+.dbf-card.pb::after{opacity:1;animation:dbfRibbon .5s var(--ease) .25s both}
+@keyframes dbfRibbon{from{transform:rotate(45deg) scale(.4);opacity:0}to{transform:rotate(45deg) scale(1);opacity:1}}
+
+/* ---- gauges ---- */
+.dbf-main{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;margin-top:4px}
+.dbf-gauges{display:flex;flex-direction:column;gap:14px}
+.dbf-gauge svg{width:100%;height:auto;overflow:visible}
+.dbf-gauge.dbf-noval{opacity:.55}
+.g-track{fill:none;stroke:var(--hairline);stroke-width:7;stroke-linecap:round}
+.g-fill{fill:none;stroke:var(--v);stroke-width:7;stroke-linecap:round;
+  stroke-dasharray:157;stroke-dashoffset:157;filter:drop-shadow(0 0 6px var(--v-dim));
+  transition:stroke-dashoffset .9s var(--ease) .15s}
+.g-zone{fill:none;stroke-width:7;stroke-linecap:butt;opacity:.30;stroke-dasharray:157;stroke-dashoffset:157}
+.z-ok{stroke:var(--accent)}
+.z-cl{stroke:var(--accent2)}
+.g-needle{stroke:var(--v-hi);stroke-width:2.5;stroke-linecap:round;
+  transform-box:fill-box;transform-origin:50% 100%;transform:rotate(-90deg);
+  transition:transform .9s var(--ease) .15s}
+.dbf-gauge figcaption{text-align:center;margin-top:2px}
+.dbf-num{display:block;font-size:22px;font-weight:800;color:var(--v-hi);font-variant-numeric:var(--num)}
+.dbf-delta{font-size:10px;color:var(--label)}
+.dbf-delta.good{color:var(--accent)}
+.dbf-gauge em{display:block;font-size:8.5px;letter-spacing:.14em;color:var(--label);margin-top:2px;font-style:normal}
+
+/* ---- per-axis chips ---- */
+.dbf-axes{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.dbf-ax{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  padding:6px 4px;text-align:center;opacity:0;transform:translateY(6px);animation:dbfAx .3s var(--ease) forwards}
+.dbf-ax .k{font-size:8px;letter-spacing:.12em;color:var(--label)}
+.dbf-ax .v{font-size:13px;font-weight:700;font-variant-numeric:var(--num)}
+.dbf-ax.good .v{color:var(--accent)}
+.dbf-ax.ok .v{color:var(--accent2-hi)}
+.dbf-ax.bad .v{color:var(--accent2)}
+@keyframes dbfAx{to{opacity:1;transform:none}}
+
+/* ---- xp bar ---- */
+.dbf-xp{margin-top:2px}
+.dbf-xp-head{display:flex;align-items:baseline;gap:8px;font-size:11px;color:var(--label);margin-bottom:6px}
+.dbf-xp-head b{color:var(--text)}
+.dbf-xp-head .dbf-num{font-size:15px;margin-left:auto}
+.dbf-xp-head em{font-style:normal;font-size:9px;letter-spacing:.12em}
+.dbf-xp-track{height:8px;background:var(--bg);border-radius:var(--radius-pill);overflow:hidden;border:1px solid var(--hairline)}
+.dbf-xp-track i{display:block;height:100%;width:calc(var(--pct)*100%);
+  background:linear-gradient(90deg,var(--v),var(--v-hi));border-radius:inherit;
+  transform-origin:left;transform:scaleX(0);animation:dbfFill .9s var(--ease) .3s forwards}
+@keyframes dbfFill{to{transform:scaleX(1)}}
+.dbf-card.levelup .dbf-xp-track{box-shadow:0 0 0 2px var(--v-dim),0 0 14px var(--v-dim)}
+
+/* ---- reward pills ---- */
+.dbf-rewards{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.dbf-pill{font-size:9px;letter-spacing:.06em;padding:4px 8px;border-radius:var(--radius-pill);
+  background:var(--v-dim);color:var(--v-hi);border:1px solid var(--v-dim);
+  transform:scale(.6);opacity:0;animation:dbfPop .3s var(--ease) forwards}
+@keyframes dbfPop{to{transform:scale(1);opacity:1}}
+
+/* ---- previous-runs sparkline ---- */
+.dbf-strip{margin-top:14px;padding-top:10px;border-top:1px solid var(--hairline)}
+.dbf-strip-h{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.14em;color:var(--label);margin-bottom:6px}
+.dbf-spark{width:100%;height:52px;display:block;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm)}
+.dbf-spark .dbf-tol{stroke-width:1;opacity:.5}
+.dbf-spark .dbf-tol.t1{stroke:var(--accent)}
+.dbf-spark .dbf-tol.t2{stroke:var(--accent2)}
+.dbf-spark .dbf-line{fill:none;stroke:var(--v-hi);stroke-width:1.6;
+  stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:dbfDraw .7s var(--ease) .2s forwards}
+@keyframes dbfDraw{to{stroke-dashoffset:0}}
+.dbf-spark .dbf-pt{fill:var(--accent)}
+.dbf-spark .dbf-pt.miss{fill:var(--accent2)}
+.dbf-spark .dbf-pt.now{stroke:var(--v-hi);stroke-width:1.5}
+.dbf-spark .dbf-msg{fill:var(--muted);font-size:10px}
+
+/* ---- actions ---- */
+.dbf-actions{display:flex;align-items:center;gap:10px;margin-top:14px}
+.dbf-link{margin-left:auto;font-size:11px;color:var(--v-hi);text-decoration:none;padding:6px 2px}
+.dbf-link:hover{text-decoration:underline}
+
+@media(max-width:560px){.dbf-main{grid-template-columns:1fr}}
+
+/* ---- reduced motion: present the final state, zero motion ---- */
+@media(prefers-reduced-motion:reduce){
+  .dbf-card,.dbf-stamp,.dbf-card::after,.g-fill,.g-needle,.g-zone,
+  .dbf-xp-track i,.dbf-ax,.dbf-pill,.dbf-spark .dbf-line{animation:none!important;transition:none!important}
+  .dbf-card{transform:none;opacity:1}
+  .dbf-stamp{transform:scale(1) rotate(-4deg);opacity:1}
+  .dbf-card.pb::after{transform:rotate(45deg) scale(1);opacity:1}
+  .dbf-ax{transform:none;opacity:1}
+  .dbf-pill{transform:none;opacity:1}
+  .dbf-xp-track i{transform:scaleX(1)}
+  .g-fill{stroke-dashoffset:var(--rmoff,0)}
+  .g-zone{stroke-dashoffset:var(--rmzone,157)}
+  .dbf-spark .dbf-line{stroke-dashoffset:0}
+}
 </style>
 </head>
 <body data-require-auth>
@@ -1743,6 +1887,77 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <button class="step-btn rt-tab" data-tab="settings" onclick="rtProgTab('settings')">Settings</button>
     </div>
     <div class="rt-body" id="rtProgBody"></div>
+  </div>
+</div>
+<!-- ===== Debrief Console results overlay — injected once, right after #rtProgModal ===== -->
+<div class="modal-bg rt-modal dbf-bg" id="rtDebrief" role="dialog" aria-modal="true" aria-labelledby="dbfVerdict" aria-hidden="true">
+  <div class="dbf-card" data-verdict="accept" tabindex="-1">
+    <!-- letterhead / status bar -->
+    <div class="dbf-bar">
+      <span class="dbf-chip" id="dbfMode">CBCT</span>
+      <span class="dbf-title" id="dbfCase">Case</span>
+      <span class="dbf-attempt">RUN&nbsp;#<b id="dbfAttempt">1</b></span>
+      <button class="dbf-x" id="dbfClose" type="button" aria-label="Close debrief">&times;</button>
+    </div>
+    <!-- verdict stamp + one-line live verdict -->
+    <div class="dbf-verdict-row">
+      <div class="dbf-stamp" id="dbfStamp"><span class="dbf-stamp-tier" id="dbfTier" aria-hidden="true"></span><span class="dbf-stamp-tx">ACCEPTED</span></div>
+      <p class="dbf-sub" id="dbfVerdict" aria-live="polite"></p>
+    </div>
+    <!-- MAIN: gauges | telemetry -->
+    <div class="dbf-main">
+      <div class="dbf-gauges">
+        <figure class="dbf-gauge" id="dbfTime">
+          <svg viewBox="0 0 120 78" aria-hidden="true">
+            <path class="g-track" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-fill"  d="M10 70 A50 50 0 0 1 110 70"/>
+            <line class="g-needle" x1="60" y1="70" x2="60" y2="22"/>
+          </svg>
+          <figcaption>
+            <b class="dbf-num" id="dbfTimeNum" data-fmt="time">0:00.0</b>
+            <span class="dbf-delta" id="dbfTimeDelta"></span>
+            <em>MATCH TIME</em>
+          </figcaption>
+        </figure>
+        <figure class="dbf-gauge" id="dbfResid">
+          <svg viewBox="0 0 120 78" aria-hidden="true">
+            <path class="g-zone z-ok" id="dbfZoneOk" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-zone z-cl" id="dbfZoneCl" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-track" d="M10 70 A50 50 0 0 1 110 70"/>
+            <path class="g-fill"  d="M10 70 A50 50 0 0 1 110 70"/>
+            <line class="g-needle" x1="60" y1="70" x2="60" y2="22"/>
+          </svg>
+          <figcaption>
+            <b class="dbf-num" id="dbfResidNum" data-fmt="mm">0.0mm</b>
+            <span class="dbf-delta" id="dbfResidBest"></span>
+            <em id="dbfResidTol">RESIDUAL</em>
+          </figcaption>
+        </figure>
+      </div>
+      <div class="dbf-side">
+        <div class="dbf-axes" id="dbfAxes"></div>
+        <div class="dbf-xp">
+          <div class="dbf-xp-head">
+            <span>LEVEL <b id="dbfLvl">1</b></span>
+            <span class="dbf-num" id="dbfXpNum" data-fmt="int">+0</span>
+            <em>XP</em>
+          </div>
+          <div class="dbf-xp-track"><i id="dbfXpFill" style="--pct:0"></i></div>
+        </div>
+        <div class="dbf-rewards" id="dbfRewards"></div>
+      </div>
+    </div>
+    <!-- previous runs: residual-trend sparkline w/ tolerance guide-lines -->
+    <div class="dbf-strip">
+      <div class="dbf-strip-h">PREVIOUS RUNS <span id="dbfTrend"></span></div>
+      <svg class="dbf-spark" id="dbfSpark" viewBox="0 0 320 52" preserveAspectRatio="none" aria-hidden="true"></svg>
+    </div>
+    <!-- actions -->
+    <div class="dbf-actions">
+      <button class="btn-primary" id="dbfNew" type="button">New Offset</button>
+      <button class="btn-ghost" id="dbfKeep" type="button">Keep adjusting</button>
+      <a class="dbf-link" id="dbfProg" href="#" role="button">View full progress &rarr;</a>
+    </div>
   </div>
 </div>
 <div class="rt-toast-host" id="rtToast" aria-live="polite"></div>
@@ -4475,7 +4690,10 @@ function checkMatch(){
   const timeTag=(ms!==null)?'  \u00b7  \u23f1 '+fmtMatchTime(ms):'';   // always show how long this match took (scoring still only banks a time when accepted)
   if(ok){const b=document.getElementById('resultBanner');b.textContent='\u2713 Match accepted \u2014 within '+(TOL.t1/10)+'\u202fcm / '+TOL.r1+'\u00b0 in all axes';b.style.display='block';setTimeout(()=>b.style.display='none',3000);}
   // record this attempt; only document a time when the match is within tolerance
-  rtRecord('2d2d', currentCase, {accepted:ok, mag:Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z), timeMs:ok?ms:null});
+  const _id='2d2d:'+currentCase, _pB=RTProfile.get(), _sB=_pB.stats[_id]||{a:0,c:0,bt:null,br:null}, _achB=Object.assign({},_pB.ach), _xpB=_pB.xp||0, _lvlB=rtLevel(_xpB), _mag=Math.sqrt(e.x*e.x+e.y*e.y+e.z*e.z);
+  rtRecord('2d2d', currentCase, {accepted:ok, mag:_mag, timeMs:ok?ms:null});
+  const _pA=RTProfile.get(), _sA=_pA.stats[_id]||{a:1,c:0}, _lpA=rtLevelProgress(_pA.xp||0), _axc=id=>{const c=document.getElementById(id).className;return /error-good/.test(c)?'good':/error-ok/.test(c)?'ok':'bad';};
+  rtShowResult({mode:'2d2d',caseKey:currentCase,caseTitle:(((CASE_LISTS['2d2d'].cases.find(c=>c.v===currentCase))||{}).t)||currentCase,accepted:ok,close:close&&!ok,boneMatched:false,residualMm:_mag,timeMs:ok?ms:null,tol:{t1:TOL.t1,t2:TOL.t2,r1:TOL.r1,r2:TOL.r2},axes:[{label:'Lat',val:document.getElementById('errX').textContent,cls:_axc('errX')},{label:'Lng',val:document.getElementById('errY').textContent,cls:_axc('errY')},{label:'Vrt',val:document.getElementById('errZ').textContent,cls:_axc('errZ')},{label:'Roll',val:document.getElementById('errRoll').textContent,cls:_axc('errRoll')},{label:'Pitch',val:document.getElementById('errPitch').textContent,cls:_axc('errPitch')}],xpGained:(_pA.xp||0)-_xpB,xpBefore:_xpB,xpAfter:_pA.xp||0,levelBefore:_lvlB,levelAfter:_lpA.level,levelPct:_lpA.pct,prevBestTimeMs:_sB.bt,prevBestResidMm:_sB.br,isBestTime:ok&&ms!=null&&(_sB.bt==null||ms<_sB.bt),isBestResid:ok&&(_sB.br==null||_mag<_sB.br),isFirstClear:ok&&_sB.c===0,attemptNum:_sA.a,clears:_sA.c,streakCount:_pA.streak.count,newAchievements:RT_ACH.filter(a=>_pA.ach[a.id]&&!_achB[a.id]).map(a=>({icon:a.icon,name:a.name,desc:a.desc})),recentForCase:_pA.recent.filter(r=>r.id===_id).slice(0,8).reverse().map(r=>({ok:r.ok,ms:r.ms,mag:r.mag})),onNewOffset:function(){randomizeShift();}});
   const verdict=(ok?'\u2713 Match accepted \u2014 within clinical tolerance'
     :close?'\u26a1 Close \u2014 missed tolerance':'\u2717 Residual error \u2014 outside tolerance')+timeTag;
   // Report card: Check Match shows the per-axis residual + match time and STOPS. It never moves the
@@ -5044,6 +5262,210 @@ function rtSetPref(key,val){RTProfile.save(p=>{p.prefs[key]=val;});}
 function rtExport(){const p=RTProfile.get();const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download='rt-progress.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);}
 function rtReset(){if(!window.confirm('Reset all training progress, stats and achievements? This cannot be undone.'))return;RTProfile.save(p=>{p.stats={};p.ach={};p.totals={attempts:0,accepts:0};p.xp=0;p.streak={count:0,best:0,last:null};p.recent=[];});rtRenderModal(rtModalTab);rtRefreshProgress();}
 
+/* ===== Debrief Console — results overlay. Entry point: rtShowResult(o) =====
+   Display-only: rtRecord() runs UPSTREAM at each Check-Match call site, which also builds `o`. */
+var DBF_STAMP={accept:'PASS',close:'WITHIN ACTION LEVEL',off:'OFF-TARGET',bone:'BONE-ONLY'};
+
+function dbfVerdictKey(o){
+  if(o.accepted)return 'accept';
+  if(o.boneMatched&&!o.accepted)return 'bone';
+  return o.close?'close':'off';
+}
+
+/* Pure, verdict-gated tier glyph (rationed): accept can never score below A; a miss never S/A. */
+var SG={grade:function(o){
+  if(!o.accepted)return o.close?'C':(o.boneMatched?'C':'D');
+  var rFrac=(o.tol&&o.tol.t1)?o.residualMm/o.tol.t1:1;
+  var fast=o.timeMs!=null&&(o.prevBestTimeMs==null||o.timeMs<=o.prevBestTimeMs);
+  if(rFrac<=0.35&&(fast||o.timeMs==null))return 'S';
+  return 'A';
+}};
+
+function dbfVerdictLine(o,vk){
+  var t1=(o.tol.t1).toFixed(1),r1=o.tol.r1,t2=(o.tol.t2).toFixed(1);
+  if(vk==='accept')return 'Within '+t1+' mm / '+r1+'° tolerance on all axes.';
+  if(vk==='bone')return 'Bony anatomy aligned — soft-tissue target still off. Register the target.';
+  if(vk==='close')return 'Within action level ('+t2+' mm) — tighten the residual.';
+  return 'Outside tolerance — keep fusing the planes and re-check.';
+}
+
+function dbfTrendLabel(runs){
+  var m=(runs||[]).filter(function(r){return r.mag!=null;});
+  if(m.length<2)return '';
+  var d=m[m.length-1].mag-m[m.length-2].mag;
+  if(d<-0.05)return '↓ improving';
+  if(d>0.05)return '↑ drifting';
+  return '→ steady';
+}
+
+function dbfSet(id,tx,goodCls){
+  var el=document.getElementById(id);if(!el)return;
+  el.textContent=tx;
+  if(goodCls!==undefined){el.classList.toggle('good',!!goodCls);}
+}
+
+/* gauge: frac 0..1 -> fill offset + needle -90..+90deg. Stores --rmoff for reduced-motion. */
+function dbfGauge(id,frac){
+  frac=Math.max(0,Math.min(1,frac));
+  var g=document.getElementById(id);if(!g)return;
+  var fill=g.querySelector('.g-fill'),needle=g.querySelector('.g-needle');
+  var off=157*(1-frac);
+  if(fill){fill.style.strokeDashoffset=off;fill.style.setProperty('--rmoff',off);}
+  if(needle)needle.style.transform='rotate('+(-90+frac*180)+'deg)';
+}
+
+/* residual gauge zones: paint accept (0..t1) + close (0..t2) arcs as fractions of 0..2*t1 full-scale. */
+function dbfResidZones(o){
+  var full=o.tol.t1*2;
+  var okFrac=Math.min(1,o.tol.t1/full),clFrac=Math.min(1,o.tol.t2/full);
+  var ok=document.getElementById('dbfZoneOk'),cl=document.getElementById('dbfZoneCl');
+  if(cl){var co=157*(1-clFrac);cl.style.strokeDashoffset=co;cl.style.setProperty('--rmzone',co);}
+  if(ok){var oo=157*(1-okFrac);ok.style.strokeDashoffset=oo;ok.style.setProperty('--rmzone',oo);}
+}
+
+/* residual-trend sparkline w/ tol.t1 (cyan) + tol.t2 (orange) guide-lines. */
+function dbfSpark(o){
+  var svg=document.getElementById('dbfSpark');if(!svg)return;
+  var W=320,H=52,P=6,runs=(o.recentForCase||[]).filter(function(r){return r.mag!=null;});
+  if(runs.length<2){
+    svg.innerHTML='<text class="dbf-msg" x="160" y="30" text-anchor="middle">building history…</text>';
+    return;
+  }
+  var mags=runs.map(function(r){return r.mag;});
+  var max=Math.max(o.tol.t2*1.2,Math.max.apply(null,mags),1);
+  var y=function(v){return (H-P)-(v/max)*(H-2*P);};
+  var x=function(i){return P+i*(W-2*P)/(runs.length-1);};
+  var d=runs.map(function(r,i){return (i?'L':'M')+x(i).toFixed(1)+' '+y(r.mag).toFixed(1);}).join(' ');
+  var len=Math.hypot(W,H)*runs.length;
+  var g='';
+  g+='<line class="dbf-tol t1" x1="0" y1="'+y(o.tol.t1).toFixed(1)+'" x2="'+W+'" y2="'+y(o.tol.t1).toFixed(1)+'"/>';
+  g+='<line class="dbf-tol t2" x1="0" y1="'+y(o.tol.t2).toFixed(1)+'" x2="'+W+'" y2="'+y(o.tol.t2).toFixed(1)+'"/>';
+  g+='<path class="dbf-line" style="--len:'+len.toFixed(0)+'" d="'+d+'"/>';
+  g+=runs.map(function(r,i){
+    var cls='dbf-pt'+(r.ok?'':' miss')+(i===runs.length-1?' now':'');
+    return '<circle class="'+cls+'" cx="'+x(i).toFixed(1)+'" cy="'+y(r.mag).toFixed(1)+'" r="'+(i===runs.length-1?3.2:2.4)+'"/>';
+  }).join('');
+  svg.innerHTML=g;
+}
+
+/* rAF tick-up for the two gauge readouts + XP. Jumps to final under reduced-motion. */
+function dbfRunCounters(o,reduce){
+  function roll(id,to,fmt,prefix){
+    var el=document.getElementById(id);if(!el)return;
+    var dur=reduce?0:700,t0=performance.now();
+    function fmtVal(v){
+      if(fmt==='time')return fmtMatchTime(v);
+      if(fmt==='mm')return v.toFixed(1)+'mm';
+      return (prefix||'')+Math.round(v);
+    }
+    (function tick(now){
+      var k=dur?Math.min(1,(now-t0)/dur):1,e=1-Math.pow(1-k,3),v=to*e;
+      el.textContent=fmtVal(v);
+      if(k<1)requestAnimationFrame(tick);
+    })(t0);
+  }
+  if(o.timeMs!=null)roll('dbfTimeNum',o.timeMs,'time');
+  roll('dbfResidNum',o.residualMm,'mm');
+  roll('dbfXpNum',o.xpGained,'int','+');
+}
+
+/* dismiss wiring — registered ONCE (idempotent), capture phase so it closes BEFORE the app's
+   global Escape handler (tools/solo) fires. Mirrors guideModal/rtProgModal. */
+var _dbfWired=false;
+function dbfWireDismiss(){
+  if(_dbfWired)return;_dbfWired=true;
+  var ov=document.getElementById('rtDebrief');
+  ov.addEventListener('click',function(e){if(e.target===ov)dbfHide();});
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&ov.classList.contains('open')){e.stopPropagation();dbfHide();}
+  },true);
+}
+
+function dbfHide(){
+  var ov=document.getElementById('rtDebrief');
+  ov.classList.remove('open');ov.setAttribute('aria-hidden','true');
+}
+
+/* MAIN entry point. o = the data contract. Returns the card element (headless tests assert on it). */
+function rtShowResult(o){
+  var ov=document.getElementById('rtDebrief'),card=ov.querySelector('.dbf-card');
+  var reduce=false;try{reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){}
+  var vk=dbfVerdictKey(o);
+  card.dataset.verdict=vk;
+  card.classList.toggle('levelup',o.levelAfter>o.levelBefore);
+  card.classList.toggle('pb',!!(o.isBestTime||o.isBestResid||o.isFirstClear||o.levelAfter>o.levelBefore));
+
+  /* letterhead + verdict */
+  dbfSet('dbfMode',o.mode==='cbct'?'CBCT':'2D/2D');
+  dbfSet('dbfCase',o.caseTitle);
+  dbfSet('dbfAttempt',o.attemptNum);
+  document.getElementById('dbfStamp').querySelector('.dbf-stamp-tx').textContent=DBF_STAMP[vk];
+  document.getElementById('dbfTier').textContent=SG.grade(o);
+  document.getElementById('dbfVerdict').textContent=dbfVerdictLine(o,vk);
+
+  /* residual gauge: 0..2*t1 full-scale, tolerance zones baked from tol */
+  dbfResidZones(o);
+  dbfGauge('dbfResid',o.residualMm/(o.tol.t1*2));
+  dbfSet('dbfResidBest',o.prevBestResidMm!=null?('best '+o.prevBestResidMm.toFixed(1)+'mm'):'first run',o.isBestResid);
+  dbfSet('dbfResidTol','RESIDUAL · tol '+o.tol.t1.toFixed(1)+'mm');
+
+  /* time gauge — null when not banked (fiducial case): dim + em-dash, no needle sweep */
+  var tg=document.getElementById('dbfTime');
+  if(o.timeMs==null){
+    tg.classList.add('dbf-noval');
+    document.getElementById('dbfTimeNum').textContent='—';
+    dbfSet('dbfTimeDelta','not timed');
+    dbfGauge('dbfTime',0);
+  }else{
+    tg.classList.remove('dbf-noval');
+    dbfGauge('dbfTime',o.prevBestTimeMs?Math.min(1,o.timeMs/(o.prevBestTimeMs*1.5)):0.6);
+    var d=o.prevBestTimeMs?(o.timeMs-o.prevBestTimeMs):null;
+    dbfSet('dbfTimeDelta',
+      o.isBestTime?'★ personal best'
+      :d==null?'first timed clear'
+      :(d<0?'−':'+')+Math.abs(d/1000).toFixed(1)+'s vs best',
+      o.isBestTime||(d!=null&&d<0));
+  }
+
+  /* per-axis chips (staggered; handles 5DOF 2D vs 6DOF CBCT) */
+  document.getElementById('dbfAxes').innerHTML=o.axes.map(function(a,i){
+    return '<div class="dbf-ax '+a.cls+'" style="animation-delay:'+(0.15+i*0.05).toFixed(2)+'s">'
+      +'<div class="k">'+a.label+'</div><div class="v">'+a.val+'</div></div>';
+  }).join('');
+
+  /* xp / level */
+  dbfSet('dbfLvl',o.levelAfter);
+  document.getElementById('dbfXpFill').style.setProperty('--pct',o.levelPct);
+
+  /* reward pills */
+  var pills=[];
+  if(o.isFirstClear)pills.push('★ FIRST CLEAR');
+  if(o.isBestTime)pills.push('⏱ BEST TIME');
+  if(o.isBestResid)pills.push('◎ BEST RESIDUAL');
+  if(o.levelAfter>o.levelBefore)pills.push('▲ LEVEL '+o.levelAfter);
+  if(o.streakCount>1)pills.push('🔥 '+o.streakCount+'-DAY STREAK');
+  (o.newAchievements||[]).forEach(function(a){pills.push(a.icon+' '+a.name);});
+  document.getElementById('dbfRewards').innerHTML=pills.map(function(p,i){
+    return '<span class="dbf-pill" style="animation-delay:'+(0.35+i*0.06).toFixed(2)+'s">'+p+'</span>';
+  }).join('');
+
+  /* previous-runs sparkline + trend */
+  dbfSpark(o);
+  dbfSet('dbfTrend',dbfTrendLabel(o.recentForCase));
+
+  /* actions (rebound each open) */
+  document.getElementById('dbfNew').onclick=function(){dbfHide();if(o.onNewOffset)o.onNewOffset();};
+  document.getElementById('dbfKeep').onclick=dbfHide;   /* close ONLY; leaves residuals/couch untouched */
+  document.getElementById('dbfClose').onclick=dbfHide;
+  document.getElementById('dbfProg').onclick=function(e){if(e)e.preventDefault();dbfHide();rtOpenProgress();};
+
+  /* open + focus + counters */
+  ov.classList.add('open');ov.setAttribute('aria-hidden','false');
+  card.focus();
+  dbfWireDismiss();
+  dbfRunCounters(o,reduce);
+  return card;
+}
 // backdrop-click + Esc close for the dashboard (capture phase, like the guide).
 document.getElementById('rtProgModal').addEventListener('click',function(e){if(e.target===this)rtCloseProgress();});
 document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.getElementById('rtProgModal').classList.contains('open')){e.stopPropagation();rtCloseProgress();}},true);
@@ -6414,7 +6836,10 @@ const CBCT=(function(){
     else if(close){msg='⚡ Close — fine-tune the residual'+tt;col='var(--accent2-hi)';}
     else{msg='✗ Residual error — keep fusing the planes'+tt;col='var(--accent2)';}
     // record this attempt; only document a time when within tolerance
-    rtRecord('cbct', caseKey, {accepted:accepted, mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z), timeMs:accepted?ms:null});
+    const _id='cbct:'+caseKey, _pB=RTProfile.get(), _sB=_pB.stats[_id]||{a:0,c:0,bt:null,br:null}, _achB=Object.assign({},_pB.ach), _xpB=_pB.xp||0, _lvlB=rtLevel(_xpB), _mag=Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z);
+    rtRecord('cbct', caseKey, {accepted:accepted, mag:_mag, timeMs:accepted?ms:null});
+    const _pA=RTProfile.get(), _sA=_pA.stats[_id]||{a:1,c:0}, _lpA=rtLevelProgress(_pA.xp||0), _axc=id=>{const c=gid(id).className;return /error-good/.test(c)?'good':/error-ok/.test(c)?'ok':'bad';}, _rc=ptvOnly?'ok':undefined;
+    rtShowResult({mode:'cbct',caseKey:caseKey,caseTitle:(((CASE_LISTS['cbct'].cases.find(c=>c.v===caseKey))||{}).t)||caseKey,accepted:accepted,close:close&&!accepted,boneMatched:!!(boneMatched&&!accepted),residualMm:_mag,timeMs:accepted?ms:null,tol:{t1:TOL.t1,t2:TOL.t2,r1:TOL.r1,r2:TOL.r2},axes:[{label:'Lat',val:gid('cbErrX').textContent,cls:_axc('cbErrX')},{label:'Lng',val:gid('cbErrY').textContent,cls:_axc('cbErrY')},{label:'Vrt',val:gid('cbErrZ').textContent,cls:_axc('cbErrZ')},{label:'Pitch',val:gid('cbErrPitch').textContent,cls:_rc||_axc('cbErrPitch')},{label:'Roll',val:gid('cbErrRoll').textContent,cls:_rc||_axc('cbErrRoll')},{label:'Yaw',val:gid('cbErrYaw').textContent,cls:_rc||_axc('cbErrYaw')}],xpGained:(_pA.xp||0)-_xpB,xpBefore:_xpB,xpAfter:_pA.xp||0,levelBefore:_lvlB,levelAfter:_lpA.level,levelPct:_lpA.pct,prevBestTimeMs:_sB.bt,prevBestResidMm:_sB.br,isBestTime:accepted&&ms!=null&&(_sB.bt==null||ms<_sB.bt),isBestResid:accepted&&(_sB.br==null||_mag<_sB.br),isFirstClear:accepted&&_sB.c===0,attemptNum:_sA.a,clears:_sA.c,streakCount:_pA.streak.count,newAchievements:RT_ACH.filter(a=>_pA.ach[a.id]&&!_achB[a.id]).map(a=>({icon:a.icon,name:a.name,desc:a.desc})),recentForCase:_pA.recent.filter(r=>r.id===_id).slice(0,8).reverse().map(r=>({ok:r.ok,ms:r.ms,mag:r.mag})),onNewOffset:function(){randomize();}});
     // Report card: Check Match shows the residual + time and STOPS — it does not load a new offset. The
     // per-axis errors stay on screen (they clear on your first adjustment) and the clock keeps the elapsed
     // time; press New Offset for a fresh setup.
