@@ -3128,8 +3128,18 @@ const TXFLOW=(function(){
   // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
   const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
   const KV_SCALE=5;         // px per mm in the detector view (0.5 cm ring = 25 px)
-  let lastKv=null;          // {phi, t, u, v, out} — the most recent triggered kV reading
-  let backdrop=null;
+  let lastKv=null;          // {phi, t, u, v, out, g} — the most recent triggered kV reading (g = MV gantry°)
+  let backdrop=null;        // synthetic fallback for the re-match panel
+  let kvBackImg=null;       // real kV DRR backdrop for the triggered-kV monitor (rebuilt each trigger)
+  // Ray-sum a real bony-anatomy kV image of the pelvis volume at the imager geometry and cache it as the
+  // monitor backdrop. θ=90−gantry maps the DRR's detector u-axis onto kvProject's u (Lat·sinα+AP·cosα),
+  // so the θ-projected seeds land on the baked fiducials. Built only at a trigger (≈every 10 s), never
+  // per frame. No-op until the Stage-1 CBCT prostate volume is decoded (then falls back to the grid).
+  function buildKvBackdrop(gAngle){
+    if(!(window.CBCT&&CBCT.rayDRR&&CBCT.mprCase&&CBCT.mprCase()==='prostate'))return;
+    const url=CBCT.rayDRR(((90-gAngle)%360+360)%360,25,'kv'); if(!url)return;
+    const im=new Image(); im.onload=()=>{kvBackImg=im;drawKvView(false);}; im.src=url;
+  }
   let motionRaf=0;          // couch-move animation (CBCT shift-apply)
   const couchBase={vrt:-3.20,lng:24.50,lat:0.10,rtn:0};   // planned couch encoder readout (prostate)
   // ONE running couch position carried across all three stages: it starts at the plan, and each stage's
@@ -3330,7 +3340,7 @@ const TXFLOW=(function(){
     // (always visible to any kV angle) so the projected fiducial reliably leaves the 0.5 cm ring
     // mid-treatment and the student always faces at least one intrafraction re-image.
     bias={x:(0.04+Math.random()*0.05)*sgn(), y:(0.20+Math.random()*0.10)*sgn(), z:(0.08+Math.random()*0.06)*sgn()};
-    trace=[]; lastKv=null;
+    trace=[]; lastKv=null; kvBackImg=null;
     const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
     const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
     setBeamState('hold','READY'); setBtn('Beam On',false);
@@ -3376,8 +3386,8 @@ const TXFLOW=(function(){
     if(trace.length)trace[trace.length-1].trig=true;
     const m=measured(), pr=kvProject(m,gantryAngle), ringMag=Math.hypot(pr.u,pr.v);
     const out=ringMag>GATE_MM;                       // outside the 0.5 cm ring on the triggered kV
-    lastKv={phi:kvAngle(), t:Math.round(simBeamSec), u:pr.u, v:pr.v, out};
-    flashKv(); drawKvView(true);
+    lastKv={phi:kvAngle(), t:Math.round(simBeamSec), u:pr.u, v:pr.v, out, g:gantryAngle};
+    buildKvBackdrop(gantryAngle); flashKv(); drawKvView(true);
     if(out){
       beamPhase='holdtrig'; holds++;
       if(raf){cancelAnimationFrame(raf);raf=0;}
@@ -3428,7 +3438,8 @@ const TXFLOW=(function(){
       const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
       status('✓ Re-matched — couch corrected ('+r.transErr.toFixed(1)+' mm residual). Press Beam On to resume.');
       const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
-      lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM};
+      lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM,g:gantryAngle};
+      buildKvBackdrop(gantryAngle);
       drawGantry(); updateReadouts(); drawTrace(); updateKvAngle(); drawKvView(false);
     } else {
       if(sm){sm.textContent='✗ Residual '+r.transErr.toFixed(1)+' mm / '+r.rotErr.toFixed(1)+'° — seat all three markers on the seeds, then Check Match.';sm.style.color='var(--accent2)';}
@@ -3471,27 +3482,39 @@ const TXFLOW=(function(){
   function drawKvView(triggered){
     const c=gid('txKvView');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
     ctx.clearRect(0,0,W,H);
-    const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0a1622');bg.addColorStop(1,'#050c14');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-    // faint detector grid + iso crosshair
-    ctx.strokeStyle='rgba(120,150,180,.08)';ctx.lineWidth=1;
-    for(let g=20;g<W;g+=24){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
-    for(let g=20;g<H;g+=24){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
-    ctx.strokeStyle='rgba(160,190,220,.22)';ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,H-8);ctx.moveTo(8,cy);ctx.lineTo(W-8,cy);ctx.stroke();
+    if(kvBackImg){                                          // real bony-anatomy kV image (ray-sum at the imager angle)
+      const s=2*25*KV_SCALE;                                // 50 mm field at KV_SCALE px/mm -> fills the panel width
+      ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();ctx.drawImage(kvBackImg,cx-s/2,cy-s/2,s,s);ctx.restore();
+    } else {                                                // fallback until the volume is decoded
+      const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0a1622');bg.addColorStop(1,'#050c14');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      ctx.strokeStyle='rgba(120,150,180,.08)';ctx.lineWidth=1;
+      for(let g=20;g<W;g+=24){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+      for(let g=20;g<H;g+=24){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    }
+    ctx.strokeStyle='rgba(160,190,220,.2)';ctx.lineWidth=1;   // faint iso crosshair
+    ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,H-8);ctx.moveTo(8,cy);ctx.lineTo(W-8,cy);ctx.stroke();
     const out=!!(lastKv&&lastKv.out), du=lastKv?lastKv.u:0, dv=lastKv?lastKv.v:0;
-    const col=out?'#ff5a6a':'#38e880', colDim=out?'rgba(255,90,106,.55)':'rgba(56,232,128,.5)';
-    KV_TRIAD.forEach(s=>{
-      const rx=cx+s.u*KV_SCALE, ry=cy+s.v*KV_SCALE;        // planned seed (ring centre)
-      const sx=cx+(s.u+du)*KV_SCALE, sy=cy+(s.v+dv)*KV_SCALE;// current (drifted) seed
+    const col=out?'#ff5a6a':'#38e880', colDim=out?'rgba(255,90,106,.6)':'rgba(56,232,128,.55)';
+    // Project the planning fiducial triad onto the detector at the imager angle so the gate rings land on
+    // the baked seeds in the ray-summed backdrop (v = SI, superior up). Fall back to the fixed schematic
+    // triad only when there's no real backdrop / 2D fiducial data yet.
+    const a=(lastKv&&lastKv.g!=null?lastKv.g:0)*Math.PI/180, sA=Math.sin(a), cA=Math.cos(a);
+    const triad=(kvBackImg&&typeof PROSTATE2D!=='undefined'&&PROSTATE2D.fiducials)
+      ? PROSTATE2D.fiducials.map(p=>({u:p[0]*sA+p[1]*cA, v:p[2]}))
+      : KV_TRIAD.map(s=>({u:s.u,v:-s.v}));
+    triad.forEach(s=>{
+      const rx=cx+s.u*KV_SCALE, ry=cy-s.v*KV_SCALE;        // planned seed (ring centre) — SI up
+      const sx=cx+(s.u+du)*KV_SCALE, sy=cy-(s.v+dv)*KV_SCALE;// current (drifted) reading
       // 0.5 cm tolerance ring
       ctx.beginPath();ctx.arc(rx,ry,GATE_MM*KV_SCALE,0,7);ctx.setLineDash([4,3]);ctx.strokeStyle=colDim;ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);
-      ctx.fillStyle='rgba(160,190,220,.5)';ctx.beginPath();ctx.arc(rx,ry,1.6,0,7);ctx.fill();   // planned centre dot
+      ctx.fillStyle='rgba(200,220,240,.7)';ctx.beginPath();ctx.arc(rx,ry,1.6,0,7);ctx.fill();   // planned centre dot
       // displacement connector
       ctx.strokeStyle=colDim;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
-      // gold seed (capsule) with verdict-coloured halo
+      // current tracked seed position: verdict-coloured crosshair + halo (the baked reference seed is in the image)
       ctx.save();ctx.translate(sx,sy);
-      ctx.fillStyle=col;ctx.globalAlpha=.22;ctx.beginPath();ctx.arc(0,0,6.5,0,7);ctx.fill();ctx.globalAlpha=1;
-      ctx.strokeStyle=col;ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-1.5,-4);ctx.lineTo(1.5,4);ctx.stroke();
-      ctx.strokeStyle='#ffd23f';ctx.lineWidth=3.4;ctx.beginPath();ctx.moveTo(-1.2,-3.2);ctx.lineTo(1.2,3.2);ctx.stroke();
+      ctx.fillStyle=col;ctx.globalAlpha=.2;ctx.beginPath();ctx.arc(0,0,6.5,0,7);ctx.fill();ctx.globalAlpha=1;
+      ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(-5.5,0);ctx.lineTo(-2,0);ctx.moveTo(2,0);ctx.lineTo(5.5,0);ctx.moveTo(0,-5.5);ctx.lineTo(0,-2);ctx.moveTo(0,2);ctx.lineTo(0,5.5);ctx.stroke();
       ctx.restore();
     });
     // verdict banner
