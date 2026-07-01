@@ -3,7 +3,9 @@ import * as THREE from './vendor/three.module.min.js';
 const DEG = Math.PI / 180;
 
 function makeMat(color, opts = {}) {
-  return new THREE.MeshStandardMaterial({
+  // MeshPhysicalMaterial so covers can carry a clearcoat — moulded fibreglass has a subtle
+  // lacquer sheen over a diffuse base, which reads far more "real machine" than plain standard.
+  const m = new THREE.MeshPhysicalMaterial({
     color,
     roughness: opts.roughness ?? 0.34,
     metalness: opts.metalness ?? 0.45,
@@ -14,6 +16,8 @@ function makeMat(color, opts = {}) {
     depthWrite: opts.depthWrite ?? true,
     side: opts.side ?? THREE.FrontSide
   });
+  if (opts.clearcoat) { m.clearcoat = opts.clearcoat; m.clearcoatRoughness = opts.clearcoatRoughness ?? 0.45; }
+  return m;
 }
 
 // A camera-facing text label (canvas texture on a Sprite), so it stays upright + readable from any
@@ -49,14 +53,67 @@ function setLabel(sprite, text, color) {
   sprite.material.map.needsUpdate = true;
 }
 
+// Rounded-rectangle Shape (for extruded moulded covers with soft corners).
+function roundedRect(w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+
+// Flat decal plane with canvas-drawn text (the trueBEAM wordmark on the covers).
+function makeWordmark(text, w) {
+  const cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 96;
+  const ctx = cv.getContext('2d');
+  ctx.font = 'italic 600 58px system-ui, Arial, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(72,78,86,0.9)';
+  ctx.fillText(text, 256, 50);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 96 / 512),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  m.userData.noShadow = true;
+  return m;
+}
+
 class GantryScene {
   constructor(canvas) {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Photographic response: filmic tone mapping stops the ivory covers clipping to flat white,
+    // and soft shadow maps anchor the machine to the floor like a product shot.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.scene = new THREE.Scene();
+    // Procedural studio environment (no HDR asset): a few emissive softbox planes PMREM'd into an
+    // env map — gives the physical materials real reflections/sheen instead of flat shading.
+    try {
+      const env = new THREE.Scene();
+      const box = (c, i, w, h, x, y, z, rx, ry) => {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+          new THREE.MeshBasicMaterial({ color: c }));
+        p.material.color.multiplyScalar(i);
+        p.position.set(x, y, z); p.rotation.set(rx || 0, ry || 0, 0); env.add(p);
+      };
+      env.background = new THREE.Color(0x0b0f15);
+      box(0xfff4e4, 5, 8, 4, 0, 6, 0, Math.PI / 2, 0);        // warm overhead softbox
+      box(0xdfe9f4, 2.2, 5, 3, -7, 2, 2, 0, Math.PI / 2.3);   // cool side fill
+      box(0xfff0dc, 1.4, 4, 2.5, 6, 1, -3, 0, -Math.PI / 2.6); // warm rim card
+      box(0x2a3340, 0.8, 10, 10, 0, -4, 0, -Math.PI / 2, 0);  // dim floor bounce
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      this.scene.environment = pmrem.fromScene(env, 0.04).texture;
+      pmrem.dispose();
+    } catch (e) { /* env is a nicety — flat lighting still works */ }
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
     // 3/4 view: lifted + slightly off-axis so the bore recedes and the couch/patient
     // sit inside a gantry with real depth (dead-on read as a flat SVG-style disc).
@@ -95,11 +152,12 @@ class GantryScene {
     this.lastH = 0;
 
     this.materials = {
-      // TrueBeam-style moulded fibreglass covers: warm ivory/pearl with warm-gray + charcoal details.
-      ivory: makeMat(0xe9e4d8, { roughness: 0.55, metalness: 0.06 }),
-      ivoryBright: makeMat(0xf4f0e6, { roughness: 0.5, metalness: 0.05 }),
-      warmGray: makeMat(0xb3b7bd, { roughness: 0.42, metalness: 0.3 }),
-      charcoal: makeMat(0x24272c, { roughness: 0.5, metalness: 0.3 }),
+      // TrueBeam-style moulded fibreglass covers: warm ivory/pearl with a lacquer clearcoat,
+      // machined warm-gray metal, and charcoal trim — tuned for the PMREM studio environment.
+      ivory: makeMat(0xe9e4d8, { roughness: 0.48, metalness: 0.03, clearcoat: 0.55, clearcoatRoughness: 0.42 }),
+      ivoryBright: makeMat(0xf4f0e6, { roughness: 0.44, metalness: 0.03, clearcoat: 0.6, clearcoatRoughness: 0.38 }),
+      warmGray: makeMat(0xb3b7bd, { roughness: 0.32, metalness: 0.65 }),
+      charcoal: makeMat(0x24272c, { roughness: 0.42, metalness: 0.35, clearcoat: 0.25 }),
       shell: makeMat(0x5e7692, { roughness: 0.28, metalness: 0.7 }),
       shellDark: makeMat(0x1d2b3c, { roughness: 0.45, metalness: 0.45 }),
       trim: makeMat(0xa8b9cf, { roughness: 0.22, metalness: 0.8 }),
@@ -257,21 +315,35 @@ class GantryScene {
   }
 
   build() {
-    // Warm-neutral studio light so the ivory covers read as fibreglass white, not blue plastic.
-    this.scene.add(new THREE.HemisphereLight(0xf1ece1, 0x0a0e14, 1.7));
-    const key = new THREE.DirectionalLight(0xfff3e2, 2.3);
-    key.position.set(-2.8, 3.8, 5.2);
+    // Warm-neutral studio light (the PMREM environment supplies the ambience/reflections; the
+    // directionals shape form). The key light casts the soft grounding shadow.
+    this.scene.add(new THREE.HemisphereLight(0xf1ece1, 0x0a0e14, 0.55));
+    const key = new THREE.DirectionalLight(0xfff3e2, 1.9);
+    key.position.set(-3.4, 5.2, 4.6);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.camera.near = 1; key.shadow.camera.far = 18;
+    key.shadow.camera.left = key.shadow.camera.bottom = -4.5;
+    key.shadow.camera.right = key.shadow.camera.top = 4.5;
+    key.shadow.bias = -0.002; key.shadow.radius = 4;
     this.scene.add(key);
-    const rim = new THREE.DirectionalLight(0x73d8ff, 0.55);
+    const rim = new THREE.DirectionalLight(0x73d8ff, 0.4);
     rim.position.set(3.2, -1.5, 4);
     this.scene.add(rim);
 
     // TrueBeam STAND (fixed): an upright sculpted ivory tower — NOT a CT-style drum. The C-arm
     // (on the rig) emerges from a circular hub on its face and sweeps around the patient. Side
     // pods at couch height are where the kV imaging arms stow; a low plinth grounds it.
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.7, 4.05, 0.95), this.materials.ivory);
-    tower.position.set(0, -0.12, -2.15);
+    const tower = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(1.7, 4.05, 0.3),
+        { depth: 0.8, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.09, bevelSegments: 3, curveSegments: 24 }),
+      this.materials.ivory);
+    tower.position.set(0, -0.12, -2.62);   // extrudes toward the couch; soft moulded corners
     this.scene.add(tower);
+    // trueBEAM wordmark on the stand face (per the reference photos)
+    const mark = makeWordmark('trueBEAM', 1.05);
+    mark.position.set(0, 1.05, -1.58);
+    this.scene.add(mark);
     const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.6, 0.85), this.materials.ivoryBright);
     shoulderL.position.set(-1.05, 0.4, -2.12);
     this.scene.add(shoulderL);
@@ -338,18 +410,23 @@ class GantryScene {
     hub.position.z = -1.62;
     this.rig.add(hub);
 
-    // C-ARM — the TrueBeam's signature swoosh: a wide curved arm sweeping (in the beam plane) from
-    // the hub up and over to the treatment head. Approximated as chamfer-tilted ivory segments;
-    // at G0 it curves in the Y–Z plane and the whole arm rotates about the bore axis with the rig.
-    const seg = (w, h, d, x, y, z, rx) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.materials.ivory);
-      m.position.set(x, y, z); m.rotation.x = rx || 0;
-      this.rig.add(m); return m;
-    };
-    seg(1.05, 0.95, 0.42, 0, 0.5, -1.5, 0);             // root, growing off the hub
-    seg(1.05, 0.62, 0.62, 0, 1.02, -1.3, -0.5);         // lower bend
-    this.mvArm = seg(1.05, 0.56, 0.74, 0, 1.5, -0.94, -0.85);  // upper bend (shoulder)
-    seg(1.0, 0.52, 1.15, 0, 1.86, -0.35, 0);            // horizontal neck reaching over the head
+    // C-ARM — the TrueBeam's signature swoosh: ONE smooth curved arm swept from the hub up and
+    // over to the treatment head. Built as an annular-arc profile in the beam (Y–Z) plane and
+    // extruded across the arm's width with a soft bevel, so it reads as a moulded cover, not
+    // stacked boxes. At G0 it curves in Y–Z; the whole arm rotates about the bore axis with the rig.
+    const armShape = new THREE.Shape();
+    const AC = { x: -0.55, y: 0.6 }, R2 = 1.58, R1 = 0.92;   // shape-x = machine Z, shape-y = machine Y
+    const a1 = 58 * DEG, a2 = 205 * DEG;                      // head-top → over the top → down to the hub
+    armShape.absarc(AC.x, AC.y, R2, a1, a2, false);
+    armShape.absarc(AC.x, AC.y, R1, a2, a1, true);
+    armShape.closePath();
+    this.mvArm = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(armShape,
+        { depth: 0.92, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 3, curveSegments: 48 }),
+      this.materials.ivory);
+    this.mvArm.rotation.y = -Math.PI / 2;   // shape plane → machine Y–Z; extrusion spans machine X
+    this.mvArm.position.x = 0.54;
+    this.rig.add(this.mvArm);
 
     // TREATMENT HEAD — big two-tier cylinder aimed down the beam, with a machined warm-gray
     // collimator plate and charcoal light-field window on its face (per the reference photos).
@@ -365,6 +442,13 @@ class GantryScene {
     this.mvColl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.3), this.materials.charcoal);
     this.mvColl.position.set(0, 0.915, this.ISO_Z);
     this.rig.add(this.mvColl);
+    // graticule crosshair on the light-field window (the fine cross visible in the photos)
+    const cross1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.008, 0.006), this.materials.warmGray);
+    cross1.position.set(0, 0.882, this.ISO_Z);
+    this.rig.add(cross1);
+    const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.008, 0.26), this.materials.warmGray);
+    cross2.position.set(0, 0.882, this.ISO_Z);
+    this.rig.add(cross2);
 
     // ── Retractable imaging arms (Varian Exact™ robotic arms) ─────────────────────────────
     // On the real TrueBeam the kV source + kV flat panel attach to the ROTATING gantry on
@@ -506,6 +590,16 @@ class GantryScene {
 
     this.buildFloor();
     this.buildTurntable();
+
+    // Shadow pass: every opaque mesh casts + receives the key light's soft shadow (beams, lasers
+    // and other transparent effects are excluded so they stay pure light).
+    this.scene.traverse(o => {
+      if (o.isMesh && !o.userData.noShadow) {
+        const t = !!(o.material && o.material.transparent);
+        o.castShadow = !t;
+        o.receiveShadow = true;
+      }
+    });
   }
 
   // Depth polish: a dark floor plane + faint room grid + a soft contact shadow under the couch. The
