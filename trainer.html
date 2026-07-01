@@ -691,6 +691,11 @@ html:not(.auth-pending) #authGate{display:none}
 .con-svg{width:128px;height:116px;display:block}
 .con-gantry3d{position:absolute;inset:0;width:100%;height:100%;display:block;background:radial-gradient(circle at 50% 43%,rgba(45,212,238,.08),transparent 54%)}
 .con-viz.has-3d .con-svg{display:none}
+/* Full Treatment consoles reuse the 3D gantry dial: hide their SVG fallbacks once the 3D model mounts */
+.con-viz.has-3d .cb-acq-svg{display:none}
+.tx-gantry-viz{position:relative;width:100%;max-width:300px;margin:0 auto;aspect-ratio:1/1}
+.tx-gantry-viz.has-3d .tx-gantry-svg{display:none}
+.tx-gantry-viz .con-gantry3d{border-radius:10px}
 /* ── photoreal TrueBeam DRUM (front-on, down the bore) — metal-gradient gantry that rotates about iso ── */
 /* the bore + drum + head/imager fills come from inline SVG gradients (defs in the markup);
    CSS only governs the strokes/colours JS does not paint and the beam-flash visibility. */
@@ -823,6 +828,125 @@ html:not(.auth-pending) #authGate{display:none}
 body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(prefers-reduced-motion:reduce){.con-lamp.beam i{animation:none}.con-beamfan.fire{animation:none}.con-couch .con-cell.flash b{animation:none}.pbtn.match.ready{animation:none}.con-gauge.moving{animation:none}.pbtn.motion.needmove:not(:disabled){animation:none}.pbtn.room.needroom:not(:disabled){animation:none}}
 @media(max-width:880px){.console-strip{flex-direction:column}.con-viz{flex:none;width:min(100%,340px);min-height:220px;align-self:center}.con-side{flex-basis:auto}.con-lamps{grid-template-columns:1fr 1fr 1fr}}
+/* ---- CBCT acquisition console (prostate): rotate gantry to 180 + sweep 360 before the match unlocks ---- */
+.cbct-panes{position:relative}
+/* acquisition console — docked as a STRIP into the imaging layout (panes stay visible above it,
+   exactly like the 2D/2D .console-strip), NOT a full-screen overlay. Used by CBCT + kV fiducial. */
+.cbct-pane-col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.cbct-pane-col .cbct-panes{flex:1;min-height:0}
+.cb-acq{display:flex;align-items:stretch;gap:12px;background:linear-gradient(180deg,var(--panel),var(--panel2));border-top:1px solid var(--border2);padding:10px 12px;flex:0 0 auto;color:#eaf1f8}
+.cb-acq.hidden{display:none}
+.cb-acq-viz{flex:0 0 96px;display:flex;flex-direction:column;align-items:center;gap:2px;background:#04070b;border:1px solid var(--border2);border-radius:10px;padding:6px 4px}
+.cb-acq-svg{width:78px;height:78px;display:block}
+.cb-acq-side{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.cb-acq-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cb-acq-title{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:#9fb3c4;font-weight:600}
+.cb-acq-ang{font-variant-numeric:tabular-nums;font-size:11px;color:#8ef0c2;letter-spacing:.03em}
+.cb-acq-lamp{font-size:10.5px;letter-spacing:.09em;font-weight:700;padding:2px 10px;border-radius:20px;background:rgba(255,255,255,.08);color:#9fb3c4;border:1px solid rgba(255,255,255,.12)}
+.cb-acq-lamp.ready{background:#1d3a30;color:#8ef0c2;border-color:transparent}
+.cb-acq-lamp.live{background:#3a2a14;color:#ffba6b;border-color:transparent;animation:txBlink 1s steps(2) infinite}
+.cb-acq-sub{font-size:12px;color:#9fb3c4;line-height:1.4;min-height:1.1em}
+.cb-acq-bar{width:100%;max-width:340px;height:8px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden}
+.cb-acq-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#46affc,#8ef0c2)}
+.cb-acq-btns{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.cb-acq-btn{font:inherit;font-size:12.5px;padding:7px 15px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer;touch-action:none;user-select:none}
+.cb-acq-btn:disabled{opacity:.4;cursor:default}
+.cb-acq-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
+.cb-acq-btn.motion{background:#1d3346}
+.fid-cap{display:flex;align-items:center;gap:6px;font-size:12px;color:#9fb3c4}
+.cap-dot{width:11px;height:11px;border-radius:50%;border:1.5px solid #5a6b7c;display:inline-block}
+.cap-dot.on{background:#8ef0c2;border-color:#8ef0c2}
+.cb-acq-row{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--label)}
+.cb-acq-row input{margin:0}
+@media(prefers-reduced-motion:reduce){.cb-acq-bar i{transition:none}}
+@media(max-width:880px){.cb-acq{flex-wrap:wrap}.cb-acq-viz{flex-basis:auto;align-self:center}}
+/* CBCT reconstruction reveal: opaque until acquired, wiped away clockwise as the gantry circles */
+.cb-acq-reveal{position:absolute;inset:0;z-index:21;pointer-events:none;display:flex;align-items:center;justify-content:center;background:transparent}
+.cb-acq-reveal.hidden{display:none}
+.cb-acq-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.cb-acq-reveal-lbl{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.14em;color:#8ef0c2;background:rgba(2,6,10,.55);padding:5px 14px;border-radius:20px;border:1px solid rgba(142,240,194,.25)}
+/* CBCT shift-apply strip: couch encoder turns gold + pulses while the couch is moving */
+#cbaplCouch.couch-moving,#fdaplCouch.couch-moving{box-shadow:0 0 0 1px var(--gold,#e6c25a)}
+#cbaplCouch.couch-moving .con-cell b,#fdaplCouch.couch-moving .con-cell b{color:var(--gold,#e6c25a)}
+.con-couch .con-arrow{grid-column:4;justify-self:start;align-self:baseline;font-family:var(--mono),monospace;font-size:13px;font-weight:600;color:var(--gold,#e6c25a);font-variant-numeric:tabular-nums;white-space:nowrap;animation:conArrowIn .3s ease}
+@keyframes conArrowIn{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+.tx-couch{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.tx-couch-cell{display:flex;flex-direction:column;align-items:center;background:rgba(8,11,16,.5);border:1px solid var(--border2);border-radius:6px;padding:3px 8px;min-width:48px}
+.tx-couch-cell i{font-size:8px;letter-spacing:.06em;color:var(--muted);font-style:normal;text-transform:uppercase}
+.tx-couch-cell b{font-family:var(--mono),monospace;font-size:14px;color:var(--green);font-variant-numeric:tabular-nums;transition:color .3s ease}
+#txCouch.couch-moving .tx-couch-cell b{color:var(--gold,#e6c25a)}
+.tx-btn.needmove{animation:txBlink 1s steps(2) infinite}
+.con-msg.warn{color:var(--accent2,#ff8a4d)}
+/* ===== Full Treatment mode: stage stepper + treatment-delivery screen ===== */
+.tx-stepper{position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:120;display:flex;gap:8px;align-items:center;padding:6px 14px;background:rgba(10,18,26,.92);border:1px solid rgba(255,255,255,.10);border-top:none;border-radius:0 0 12px 12px;font-size:12px;color:#9fb3c4;backdrop-filter:blur(4px)}
+.tx-stepper.hidden{display:none}
+.tx-step{display:flex;align-items:center;gap:6px;opacity:.5}
+.tx-step .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.12);font-size:11px;font-weight:600}
+.tx-step.active{opacity:1;color:#eaf1f8}
+.tx-step.active .n{background:#8ef0c2;color:#06241a}
+.tx-step.done{opacity:.85;color:#8ef0c2}
+.tx-step.done .n{background:#1d3a30;color:#8ef0c2}
+.tx-step-sep{opacity:.4}
+.tx-screen{position:fixed;inset:0;z-index:60;background:#070d14;color:#eaf1f8;display:flex;flex-direction:column}
+.tx-screen.hidden{display:none}
+.tx-main{flex:1;display:flex;gap:16px;padding:16px;min-height:0}
+.tx-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.tx-col.left{flex:0 0 360px}
+.tx-col.right{flex:1}
+.tx-card{background:#0d1722;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px}
+.tx-card h3{margin:0 0 10px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:#9fb3c4;font-weight:600}
+.tx-gantry-svg{width:100%;max-width:300px;display:block;margin:0 auto}
+.tx-ang{text-align:center;font-variant-numeric:tabular-nums;font-size:13px;color:#8ef0c2;margin-top:4px}
+.tx-field{font-size:14px;font-weight:600;margin-bottom:6px}
+.tx-mu-row{display:flex;justify-content:space-between;font-size:12px;color:#9fb3c4;margin-bottom:5px}
+.tx-mu-bar{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.tx-mu-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd23f,#ff8a3a)}
+/* 3-arc VMAT plan list on the console */
+.tx-arclist{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.tx-arc{padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid transparent;transition:border-color .2s,background .2s}
+.tx-arc.active{border-color:rgba(142,240,194,.5);background:rgba(142,240,194,.06)}
+.tx-arc.done{opacity:.7}
+.tx-arc-hd{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.tx-arc-name{font-weight:600;color:#eaf1f8}
+.tx-arc-rng{color:#9fb3c4;font-variant-numeric:tabular-nums;font-size:11px}
+.tx-arc .tx-mu-bar{height:6px}
+.tx-arc.done .tx-mu-bar i{background:linear-gradient(90deg,#8ef0c2,#3ddc97)}
+.tx-arc-mu{font-size:10.5px;color:#9fb3c4;font-variant-numeric:tabular-nums;margin-top:3px}
+.tx-mu-overall{margin-bottom:0}
+@media(prefers-reduced-motion:reduce){.tx-arc{transition:none}}
+.tx-beamline{display:flex;align-items:center;gap:10px;margin-top:12px}
+.tx-beam-state{font-size:13px;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:6px}
+.tx-beam-state.on{background:#1d3a30;color:#8ef0c2}
+.tx-beam-state.hold{background:#3a2a14;color:#ffba6b}
+.tx-beam-state.alarm{background:#3a1620;color:#ff6b8a;animation:txBlink 1s steps(2) infinite}
+@keyframes txBlink{50%{opacity:.4}}
+.tx-btn{font:inherit;font-size:13px;padding:8px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer}
+.tx-btn:disabled{opacity:.4;cursor:default}
+.tx-btn.primary{background:#8ef0c2;color:#06241a;border-color:transparent;font-weight:600}
+.tx-btn.alarm{background:#ff6b8a;color:#2a0710;border-color:transparent;font-weight:600;animation:txBlink 1s steps(2) infinite}
+.tx-trace-wrap{position:relative}
+/* kV fiducial monitor: the triggered-kV detector view fills the whole monitoring panel */
+.tx-monitor{display:flex;flex:1;min-height:0}
+.tx-kv{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.tx-kv-hd{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:10.5px}
+.tx-kv-ang{font-family:var(--mono),monospace;color:#8ef0c2;letter-spacing:.03em}
+.tx-kv-stamp{font-family:var(--mono),monospace;color:#9fb3c4;text-align:right}
+.tx-kv-stamp.out{color:#ff6b8a}.tx-kv-stamp.in{color:#8ef0c2}
+.tx-kv-zoom{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono),monospace}
+.tx-kv-zoom button{width:20px;height:20px;line-height:1;padding:0;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer;font-size:13px}
+.tx-kv-zoom b{min-width:34px;text-align:center;color:#9fb3c4;font-size:10.5px}
+.tx-kv-view{position:relative;flex:1;min-height:0;border:1px solid rgba(255,255,255,.10);border-radius:8px;overflow:hidden;background:#06101a;line-height:0}
+.tx-kv-view canvas{display:block;width:100%;height:100%;object-fit:contain}
+.tx-kv-view.flash::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(180,225,255,.6),rgba(180,225,255,0) 70%);animation:kvFlash .42s ease-out forwards;pointer-events:none}
+@keyframes kvFlash{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.tx-kv-view.flash::after{animation:none;opacity:0}}
+.tx-status{margin-top:10px;font-size:13px;color:#9fb3c4;min-height:1.4em}
+.tx-summary{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:rgba(7,13,20,.96);text-align:center;padding:24px}
+.tx-summary.hidden{display:none}
+.tx-summary h2{margin:0;font-size:20px;color:#8ef0c2}
+.tx-summary .tx-stats{display:flex;gap:26px;flex-wrap:wrap;justify-content:center}
+.tx-summary .tx-stat b{display:block;font-size:22px;color:#eaf1f8}
+.tx-summary .tx-stat span{font-size:11px;color:#9fb3c4;text-transform:uppercase;letter-spacing:.05em}
 /* ===== Debrief Console results overlay ===== */
 /* shell reuses .modal-bg (z-index 100) + .rt-modal (270). Bump above #rtProgModal. */
 .dbf-bg{z-index:300}
@@ -1033,6 +1157,19 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
       <div class="sc-title">CBCT</div>
       <div class="sc-desc">Cone-beam CT volumetric registration in three planes (axial, coronal, sagittal) with 6DOF couch correction.</div>
     </div>
+    <div class="start-card" id="modeTx" onclick="pickMode('tx')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();pickMode('tx');}">
+      <span class="sc-badge ready">New</span>
+      <div class="sc-icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7">
+          <circle cx="16" cy="16" r="12"/>
+          <path d="M16 4v6M16 22v6M4 16h6M22 16h6" opacity=".55"/>
+          <circle cx="16" cy="16" r="3.2"/>
+          <path d="M16 4a12 12 0 0 1 10.4 6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="sc-title">Full Treatment</div>
+      <div class="sc-desc">A whole fraction start to finish &mdash; CBCT setup &rarr; kV fiducial verify &rarr; treat with intrafraction monitoring.</div>
+    </div>
     <div class="start-card guide-card" id="modeGuide" onclick="openGuide()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openGuide();}">
       <span class="sc-badge guide-badge">Guide</span>
       <div class="sc-icon">
@@ -1161,6 +1298,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
             <option value="veryfull">Very full</option>
           </select>
         </div></div>
+        <div class="cbct-dof-row" id="cbAcqRow" style="display:none"><label class="cb-acq-row" title="Simulate the cone-beam acquisition (rotate to 180° and scan) before each match. Turn off for quick match-only practice."><input type="checkbox" id="cbAcqToggle" checked onchange="CBCT.toggleAcq(this.checked)">Acquisition console</label></div>
         <div class="ctrl-actions">
           <button class="btn-warn" onclick="CBCT.reset()">Reset</button>
           <button class="btn-primary" onclick="CBCT.randomize()">New Offset</button>
@@ -1177,10 +1315,14 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         </div>
         <div class="status-msg" id="cbStatusMsg">Fuse all three planes to the reference</div>
         <div class="match-timer" id="cbMatchTimerDisp" title="Match time — starts on your first adjustment, resets each Check Match">&#9201; 0:00.0</div>
-        <button class="btn-primary" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
+        <button class="btn-primary" id="cbCheckBtn" onclick="CBCT.check()" style="font-size:11px;padding:5px 16px;">Check Match</button>
       </div>
     </div>
+    <div class="cbct-pane-col">
     <div class="cbct-panes">
+      <!-- reconstruction reveal: hides the volume until the cone-beam is acquired, then wipes it in
+           clockwise as the gantry circles the patient (synced to the sweep progress) -->
+      <div class="cb-acq-reveal hidden" id="cbAcqReveal"><canvas class="cb-acq-canvas" id="cbAcqCanvas"></canvas><div class="cb-acq-reveal-lbl" id="cbAcqRevealLbl">CONE-BEAM NOT ACQUIRED</div></div>
       <div class="cb-wl left" id="cbWLleft" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-col">
           <div class="cb-wl-lbl">LEVEL</div>
@@ -1308,8 +1450,176 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
           <button class="tt-btn" onclick="CBCT.undo()" title="Undo">&#8630;</button>
         </div>
       </div>
+    </div><!-- /.cbct-panes -->
+    <!-- Full Treatment only: after the CBCT match, APPLY SHIFTS then MOTION ENABLE moves the couch.
+         Non-gating — it alerts the residual but lets you proceed to the kV stage out of tolerance. -->
+    <div class="cb-acq hidden" id="cbAppl" onpointerdown="event.stopPropagation()">
+      <div class="con-couch" aria-label="Couch coordinates" id="cbaplCouch">
+        <span class="con-couch-ttl">COUCH</span>
+        <div class="con-cell"><span class="cl">VRT</span><b id="cbaplVrt">-3.20</b><span class="u">cm</span><span class="con-arrow" id="cbaplVrtA" style="display:none"></span></div>
+        <div class="con-cell"><span class="cl">LNG</span><b id="cbaplLng">24.50</b><span class="u">cm</span><span class="con-arrow" id="cbaplLngA" style="display:none"></span></div>
+        <div class="con-cell"><span class="cl">LAT</span><b id="cbaplLat">0.10</b><span class="u">cm</span><span class="con-arrow" id="cbaplLatA" style="display:none"></span></div>
+        <div class="con-cell"><span class="cl">RTN</span><b id="cbaplRtn">0.0</b><span class="u">&deg;</span><span class="con-arrow" id="cbaplRtnA" style="display:none"></span></div>
+      </div>
+      <div class="con-side con-pendant">
+        <div class="con-pendant-hd"><span class="con-pendant-ttl">COUCH SHIFT &middot; APPLY</span><span class="con-pendant-sn" id="cbaplState">MATCH REVIEW</span></div>
+        <div class="con-msg" id="cbaplMsg">Check the CBCT match, then apply the couch shift.</div>
+        <div class="con-pendant-btns">
+          <button class="pbtn apply" id="cbaplApply" type="button" disabled onclick="TXFLOW.cbApply()" title="Apply the matched couch correction"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+          <button class="pbtn motion" id="cbaplMotion" type="button" disabled onclick="TXFLOW.cbMotion()" title="Move the couch to the corrected position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">move couch</span></button>
+        </div>
+      </div>
     </div>
+    <div class="cb-acq hidden" id="cbAcq" onpointerdown="event.stopPropagation()">
+      <div class="con-viz">
+        <canvas id="cbAcqGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
+        <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+          <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+          <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+          <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+          <g id="cbAcqRig">
+            <polygon id="cbAcqBeam" points="100,32 82,168 118,168" fill="rgba(120,200,255,.16)"/>
+            <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
+            <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
+            <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+          </g>
+        </svg>
+      </div>
+      <div class="con-couch" aria-label="Couch coordinates">
+        <span class="con-couch-ttl">COUCH</span>
+        <div class="con-cell"><span class="cl">VRT</span><b>-3.20</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LNG</span><b>24.50</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">LAT</span><b>0.10</b><span class="u">cm</span></div>
+        <div class="con-cell"><span class="cl">RTN</span><b>0.0</b><span class="u">&deg;</span></div>
+      </div>
+      <div class="con-side con-pendant">
+        <div class="con-pendant-hd"><span class="con-pendant-ttl">CONE-BEAM CT CONSOLE</span><span class="con-pendant-sn">OBI &middot; CBCT</span></div>
+        <div class="con-pendant-screen">
+          <div class="con-gauge off" id="cbaGauge">
+            <svg viewBox="0 0 46 46" class="con-headsvg" aria-hidden="true">
+              <circle class="con-gauge-ring" cx="23" cy="23" r="19"/>
+              <line class="con-gauge-tick" x1="23" y1="2" x2="23" y2="7"/>
+              <line class="con-gauge-tick" x1="44" y1="23" x2="39" y2="23"/>
+              <line class="con-gauge-tick" x1="23" y1="44" x2="23" y2="39"/>
+              <line class="con-gauge-tick" x1="2" y1="23" x2="7" y2="23"/>
+              <g id="cbaGaugeRig" transform="rotate(90 23 23)">
+                <line class="con-headarm" x1="23" y1="23" x2="23" y2="9"/>
+                <rect class="con-headblk" x="18" y="4" width="10" height="6" rx="1.5"/>
+              </g>
+              <circle class="con-gauge-pt" cx="23" cy="23" r="3.4"/>
+            </svg>
+          </div>
+          <div class="con-lcd">
+            <div class="con-lcd-row"><span class="lk">GANTRY</span><b id="cbaLcdG">090.0&deg;</b></div>
+            <div class="con-lcd-row"><b class="con-lcd-st off" id="cbaLcdSt">ROTATE &rarr; G180</b></div>
+            <div class="con-lcd-leds">
+              <span class="con-lamp" id="cbaLampRot"><i></i>ROT</span>
+              <span class="con-lamp" id="cbaLampAcq"><i></i>ACQ</span>
+              <span class="con-lamp" id="cbaLampReady"><i></i>READY</span>
+            </div>
+          </div>
+        </div>
+        <div class="con-pendant-btns">
+          <button class="pbtn motion" id="cbAcqMotion" type="button" onpointerdown="CBCT.acqMotionStart(event)" onpointerup="CBCT.acqMotionStop()" onpointerleave="CBCT.acqMotionStop()" onpointercancel="CBCT.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the 180&deg; cone-beam start"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
+          <button class="pbtn kvbeam" id="cbAcqGo" type="button" disabled onpointerdown="CBCT.acqSweepStart(event)" onpointerup="CBCT.acqSweepStop()" onpointerleave="CBCT.acqSweepStop()" onpointercancel="CBCT.acqSweepStop()" title="PRESS (or Enter) to auto-acquire — the gantry circles the patient and reconstructs"><span class="pbtn-lbl">CONE-BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="cbAcqBar"></i></button>
+          <button class="pbtn match" id="cbAcqMatch" type="button" style="display:none;grid-column:1/3" onclick="CBCT.acqStartMatch()" title="Start the 3D/3D volumetric registration"><span class="pbtn-lbl">3D / 3D MATCH</span></button>
+        </div>
+        <div class="con-msg" id="cbAcqMsg">Hold MOTION ENABLE to rotate the gantry to the 180&deg; cone-beam start position.</div>
+      </div>
+    </div>
+    </div><!-- /.cbct-pane-col -->
     <div class="shift-tab" onclick="toggleCbShifts()" title="Show / hide the couch-correction panel (the views go full-width when hidden)"><span class="chev" id="cbShiftChev">&#10094;</span>SHIFTS</div>
+  </main>
+</div>
+<!-- Full Treatment mode: stage stepper (floats above whichever stage screen is active) -->
+<div class="tx-stepper hidden" id="txStepper">
+  <div class="tx-step" id="txStepCbct"><span class="n">1</span>CBCT</div>
+  <span class="tx-step-sep">&rsaquo;</span>
+  <div class="tx-step" id="txStepKv"><span class="n">2</span>kV Fiducial</div>
+  <span class="tx-step-sep">&rsaquo;</span>
+  <div class="tx-step" id="txStepTreat"><span class="n">3</span>Treat</div>
+</div>
+<!-- Full Treatment mode: treatment-delivery screen (Stage 3) -->
+<div class="tx-screen hidden" id="txScreen">
+  <header>
+    <div class="header-left">
+      <div class="logo">RT Image Match</div>
+      <div class="divider-v"></div>
+      <span class="mode-chip">Treatment</span>
+      <span class="case-label" id="txCaseLbl">Prostate &middot; VMAT</span>
+    </div>
+    <div class="header-controls">
+      <button class="btn-ghost" onclick="backToMenu()">&#8249;&nbsp;Menu</button>
+    </div>
+  </header>
+  <main class="tx-main">
+    <div class="tx-col left">
+      <div class="tx-card">
+        <h3>Linac &middot; Gantry</h3>
+        <div class="tx-gantry-viz">
+        <canvas id="txGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
+        <svg class="tx-gantry-svg" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+          <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+          <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+          <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+          <g id="txGantryRig">
+            <polygon id="txBeam" points="100,32 86,168 114,168" fill="rgba(255,210,63,.18)"/>
+            <rect x="84" y="13" width="32" height="22" rx="3" fill="#cfe2f0"/>
+            <text x="100" y="29" text-anchor="middle" font-size="10" fill="#0b1a26">MV</text>
+            <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+          </g>
+        </svg>
+        </div>
+        <div class="tx-ang" id="txGantryAng">Gantry 180&deg;</div>
+        <div class="tx-couch" id="txCouch" aria-label="Treatment couch coordinates">
+          <span class="tx-couch-cell"><i>VRT</i><b id="txCouchVrt">-3.20</b></span>
+          <span class="tx-couch-cell"><i>LNG</i><b id="txCouchLng">24.50</b></span>
+          <span class="tx-couch-cell"><i>LAT</i><b id="txCouchLat">0.10</b></span>
+          <span class="tx-couch-cell"><i>RTN</i><b id="txCouchRtn">0.0</b></span>
+        </div>
+      </div>
+      <div class="tx-card">
+        <h3>Delivery</h3>
+        <div class="tx-field"><span id="txArcOf">Arc 1 of 3</span></div>
+        <div class="tx-arclist" id="txArcList"></div>
+        <div class="tx-mu-row"><span>Total monitor units</span><span id="txMuTxt">0 / 900 MU</span></div>
+        <div class="tx-mu-bar tx-mu-overall"><i id="txMuBar"></i></div>
+        <div class="tx-beamline">
+          <span class="tx-beam-state hold" id="txBeamState">READY</span>
+          <button class="tx-btn primary" id="txBeamBtn" onclick="TXFLOW.beamBtn()">Beam On</button>
+          <button class="tx-btn alarm" id="txRematchBtn" style="display:none" onclick="TXFLOW.startRematch()">kV&ndash;MV Re-match</button>
+          <button class="tx-btn primary" id="txMotionBtn" style="display:none" onclick="TXFLOW.txMotion()">Motion Enable</button>
+        </div>
+      </div>
+    </div>
+    <div class="tx-col right">
+      <div class="tx-card tx-trace-wrap" style="flex:1;display:flex;flex-direction:column">
+        <h3>Intrafraction kV monitoring &middot; gold fiducials (gate &plusmn;0.5 cm)</h3>
+        <div class="tx-monitor">
+          <div class="tx-kv">
+            <div class="tx-kv-hd"><span class="tx-kv-ang" id="txKvAngle">kV imager &middot; &mdash;</span>
+              <span class="tx-kv-zoom" role="group" aria-label="kV zoom"><button type="button" title="Zoom out" onclick="TXFLOW.kvZoomBy(1/1.25)">&minus;</button><b id="txKvZoom">100%</b><button type="button" title="Zoom in" onclick="TXFLOW.kvZoomBy(1.25)">+</button></span>
+              <span class="tx-kv-stamp" id="txKvStamp">awaiting first kV</span></div>
+            <div class="tx-kv-view" id="txKvWrap" onwheel="TXFLOW.kvZoomWheel(event)"><canvas id="txKvView" width="560" height="520"></canvas></div>
+          </div>
+        </div>
+        <div class="tx-status" id="txStatus">Press Beam On to start treatment. A triggered kV every 10 s checks the fiducials.</div>
+        <div class="tx-summary hidden" id="txSummary">
+          <h2 id="txSumTitle">Fraction complete</h2>
+          <div class="tx-stats">
+            <div class="tx-stat"><b id="txSumHolds">0</b><span>Beam holds</span></div>
+            <div class="tx-stat"><b id="txSumReimg">0</b><span>kV&ndash;MV re-matches</span></div>
+            <div class="tx-stat"><b id="txSumScore">100</b><span>Workflow score</span></div>
+          </div>
+          <div style="display:flex;gap:12px">
+            <button class="tx-btn primary" onclick="TXFLOW.restart()">Treat another fraction</button>
+            <button class="tx-btn" onclick="backToMenu()">Back to menu</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 </div>
 <header>
@@ -1411,6 +1721,85 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     </div>
     <div class="tt-group">
       <button class="tt-btn" onclick="undo()" title="Undo">&#8630; Undo</button>
+    </div>
+  </div>
+  <!-- kV fiducial acquisition console (prostate fiducial match): a strip docked below the kV panes
+       (panes stay visible, like the 2D console-strip). Rotate to AP/Lat kV positions and hold-expose
+       each radiograph before the marker match unlocks. -->
+  <div class="cb-acq hidden" id="fidAcq" onpointerdown="event.stopPropagation()">
+    <div class="con-viz">
+      <canvas id="fidAcqGantry3D" class="con-gantry3d" aria-hidden="true"></canvas>
+      <svg class="cb-acq-svg" viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,.10)" stroke-width="11"/>
+        <rect x="62" y="150" width="76" height="8" rx="2" fill="#2a3a4a"/>
+        <ellipse cx="100" cy="104" rx="29" ry="17" fill="#3a4b5c"/>
+        <circle cx="100" cy="104" r="3.4" fill="#8ef0c2"/>
+        <g id="fidAcqRig">
+          <polygon id="fidAcqBeam" points="100,32 84,168 116,168" fill="rgba(120,200,255,.16)"/>
+          <rect x="85" y="13" width="30" height="21" rx="3" fill="#cfe2f0"/>
+          <text x="100" y="28" text-anchor="middle" font-size="10" fill="#0b1a26">kV</text>
+          <rect x="83" y="167" width="34" height="14" rx="2" fill="#5a6b7c"/>
+        </g>
+      </svg>
+    </div>
+    <div class="con-couch" aria-label="Couch coordinates">
+      <span class="con-couch-ttl">COUCH</span>
+      <div class="con-cell"><span class="cl">VRT</span><b>-3.20</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">LNG</span><b>24.50</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">LAT</span><b>0.10</b><span class="u">cm</span></div>
+      <div class="con-cell"><span class="cl">RTN</span><b>0.0</b><span class="u">&deg;</span></div>
+    </div>
+    <div class="con-side con-pendant">
+      <div class="con-pendant-hd"><span class="con-pendant-ttl">kV FIDUCIAL CONSOLE</span><span class="con-pendant-sn">OBI &middot; kV/kV</span></div>
+      <div class="con-pendant-screen">
+        <div class="con-gauge off" id="fdaGauge">
+          <svg viewBox="0 0 46 46" class="con-headsvg" aria-hidden="true">
+            <circle class="con-gauge-ring" cx="23" cy="23" r="19"/>
+            <line class="con-gauge-tick" x1="23" y1="2" x2="23" y2="7"/>
+            <line class="con-gauge-tick" x1="44" y1="23" x2="39" y2="23"/>
+            <line class="con-gauge-tick" x1="23" y1="44" x2="23" y2="39"/>
+            <line class="con-gauge-tick" x1="2" y1="23" x2="7" y2="23"/>
+            <g id="fdaGaugeRig" transform="rotate(90 23 23)">
+              <line class="con-headarm" x1="23" y1="23" x2="23" y2="9"/>
+              <rect class="con-headblk" x="18" y="4" width="10" height="6" rx="1.5"/>
+            </g>
+            <circle class="con-gauge-pt" cx="23" cy="23" r="3.4"/>
+          </svg>
+        </div>
+        <div class="con-lcd">
+          <div class="con-lcd-row"><span class="lk">GANTRY</span><b id="fdaLcdG">090.0&deg;</b></div>
+          <div class="con-lcd-row"><b class="con-lcd-st off" id="fdaLcdSt">ROTATE &rarr; G0 (AP)</b></div>
+          <div class="con-lcd-leds">
+            <span class="con-lamp" id="fdaLampAP"><i></i>AP</span>
+            <span class="con-lamp" id="fdaLampLat"><i></i>LAT</span>
+            <span class="con-lamp" id="fdaLampReady"><i></i>READY</span>
+          </div>
+        </div>
+      </div>
+      <div class="con-pendant-btns">
+        <button class="pbtn motion" id="fidAcqMotion" type="button" onpointerdown="FID2D.acqMotionStart(event)" onpointerup="FID2D.acqMotionStop()" onpointerleave="FID2D.acqMotionStop()" onpointercancel="FID2D.acqMotionStop()" title="HOLD (or hold SPACE) to drive the gantry to the kV imaging position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">SPACE</span></button>
+        <button class="pbtn kvbeam" id="fidAcqGo" type="button" disabled onpointerdown="FID2D.acqBeamStart(event)" onpointerup="FID2D.acqBeamStop()" onpointerleave="FID2D.acqBeamStop()" onpointercancel="FID2D.acqBeamStop()" title="HOLD (or hold Enter) to take the kV exposure"><span class="pbtn-lbl">kV BEAM ON</span><span class="pbtn-key">&crarr; Enter</span><i class="con-acqprog" id="fidAcqBar"></i></button>
+        <button class="pbtn match" id="fidAcqMatch" type="button" style="display:none;grid-column:1/3" onclick="FID2D.acqStartMatch()" title="Start placing the fiducial markers"><span class="pbtn-lbl">FIDUCIAL 2D / 2D MATCH</span></button>
+      </div>
+      <div class="con-msg" id="fidAcqMsg">Hold MOTION ENABLE to rotate the gantry to the AP kV imaging position.</div>
+    </div>
+  </div>
+  <!-- Full Treatment only: after the kV fiducial match, APPLY SHIFTS then MOTION ENABLE moves the couch. -->
+  <div class="cb-acq hidden" id="fidAppl" onpointerdown="event.stopPropagation()">
+    <div class="con-couch" aria-label="Couch coordinates" id="fdaplCouch">
+      <span class="con-couch-ttl">COUCH</span>
+      <div class="con-cell"><span class="cl">VRT</span><b id="fdaplVrt">-3.20</b><span class="u">cm</span><span class="con-arrow" id="fdaplVrtA" style="display:none"></span></div>
+      <div class="con-cell"><span class="cl">LNG</span><b id="fdaplLng">24.50</b><span class="u">cm</span><span class="con-arrow" id="fdaplLngA" style="display:none"></span></div>
+      <div class="con-cell"><span class="cl">LAT</span><b id="fdaplLat">0.10</b><span class="u">cm</span><span class="con-arrow" id="fdaplLatA" style="display:none"></span></div>
+      <div class="con-cell"><span class="cl">RTN</span><b id="fdaplRtn">0.0</b><span class="u">&deg;</span><span class="con-arrow" id="fdaplRtnA" style="display:none"></span></div>
+    </div>
+    <div class="con-side con-pendant">
+      <div class="con-pendant-hd"><span class="con-pendant-ttl">COUCH SHIFT &middot; APPLY</span><span class="con-pendant-sn" id="fdaplState">MATCH REVIEW</span></div>
+      <div class="con-msg" id="fdaplMsg">Fiducials matched &mdash; apply the couch shift.</div>
+      <div class="con-pendant-btns">
+        <button class="pbtn apply" id="fdaplApply" type="button" disabled onclick="TXFLOW.fidApply()" title="Apply the matched couch correction"><span class="pbtn-lbl">APPLY SHIFTS</span></button>
+        <button class="pbtn motion" id="fdaplMotion" type="button" disabled onclick="TXFLOW.fidMotion()" title="Move the couch to the corrected position"><span class="pbtn-lbl">MOTION ENABLE</span><span class="pbtn-key">move couch</span></button>
+      </div>
     </div>
   </div>
   <!-- DIBH breath-hold coaching strip: breathing trace + coaching buttons, docked at the bottom
@@ -2278,6 +2667,7 @@ function applyCase(key){
   }
   document.body.classList.remove('fid-mode');
   FID2D.fidPanel(false);   // restore the 5DOF panel labels when leaving a fid case
+  {const _fa=document.getElementById('fidAcq');if(_fa)_fa.classList.add('hidden');}   // hide the kV acquisition console when leaving the fiducial case
   views.ap.iso={...c.iso.ap};
   views.lat.iso={...c.iso.lat};
   loadTiltStacks(c);   // 3D-tilt cases load re-projected frame stacks; others clear v.tilt
@@ -2590,7 +2980,26 @@ function renderView(v, key){
 const FID2D=(function(){
   let P=[],M=[],Qtrue=[],hiddenE=null,started=false,META=null;
   const apImg=new Image(),latImg=new Image(); let imgReady=false,imgN=0;
-  function active(){return currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch;}
+  // Per-view beam angle (gantry °, rotation about the SI/longitudinal axis). AP=0°, Lateral=90°
+  // is the standard fiducial case; an injected external session (the Full Treatment intrafraction
+  // kV–MV re-match) can set arbitrary orthogonal angles so the SAME projection math serves any pair.
+  let viewTheta={ap:0,lat:90};
+  // External session (Full Treatment re-match): when set, FID2D runs on injected images/geometry and
+  // hands the result to ext.onCheck instead of the normal record+new-offset loop.
+  let ext=null;
+  // Linked offset (Full Treatment): the next randomize() uses this exact hidden offset (the residual
+  // carried over from the CBCT match) instead of a fresh random one, so the same seeds are off by the
+  // same amount on the kV pair. {t:[Lat,AP,SI] mm, r:[rx,ry,rz] deg}. One-shot (cleared on use).
+  let pendingOffset=null;
+  function setPendingOffset(o){pendingOffset=o;}
+  function active(){return ext?true:(currentMode==='2d2d'&&CASES[currentCase]&&CASES[currentCase].fidMatch);}
+  // kV fiducial acquisition console: rotate to the AP kV position, hold to expose, rotate to Lateral,
+  // hold to expose — THEN the markers/match unlock. Mirrors the CBCT acquisition console. Skipped for
+  // the external re-match (that already represents taking a kV–MV pair). Forced ON in Full Treatment.
+  let fAcqEnabled=true, fAcqForce=false, fAcqPhase='ready', fGantry=90, fRaf=0, fMot=false, fExpoP=0, fExpoHold=false, fCap={ap:false,lat:false};
+  const F_ROT=20, F_EXPO_MS=1000;   // gantry °/s (matches the 2D console) ; ~1 s hold-to-expose per kV image
+  function fAcqUses(){return !ext && currentMode==='2d2d' && CASES[currentCase] && CASES[currentCase].fidMatch && (fAcqForce||fAcqEnabled);}
+  function fAcqReady(){return !fAcqUses() || fAcqPhase==='ready';}
   function setMsg(t,c){const m=document.getElementById('statusMsg');if(m){m.textContent=t;m.style.color=c==='ok'?'var(--accent)':c==='bad'?'var(--accent2)':'var(--label)';}}
 
   /* ---- linear algebra: rigid fit P->M via Horn's quaternion (3 point pairs) ---- */
@@ -2652,11 +3061,11 @@ const FID2D=(function(){
     const z=v.zoom||1,cx=v.W/2,cy=v.H/2,px=v.panX||0,py=v.panY||0;
     const ox=cx+px+z*(ox0-cx),oy=cy+py+z*(oy0-cy),dw=dw0*z,dh=dh0*z,s=s0*z;
     return {s,ox,oy,dw,dh,isx:ox+iso[0]*dw,isy:oy+iso[1]*dh};}
-  // AP: screen-x = +Lat (patient L to the right), screen-y = -SI (sup up).
-  // LAT: screen-x = +AP (posterior to the right, anterior left — matches the ray-sum backdrop),
-  //      screen-y = -SI. Markers and the drawn seeds both use this, so the match is self-consistent.
-  function proj(key,p){const g=geom(key);
-    return key==='ap'?[g.isx+p[0]*g.s,g.isy-p[2]*g.s]:[g.isx+p[1]*g.s,g.isy-p[2]*g.s];}
+  // Generalized projection at gantry angle θ (rotation about the SI axis): the detector's horizontal
+  // axis sees Lat·cos θ + AP·sin θ; vertical is always −SI (gantry spin doesn't change SI→vertical).
+  // θ=0  → screen-x = +Lat  (AP view); θ=90 → screen-x = +AP (Lateral view) — the standard case.
+  function proj(key,p){const g=geom(key),t=(viewTheta[key]||0)*Math.PI/180,c=Math.cos(t),sn=Math.sin(t);
+    return [g.isx+(p[0]*c+p[1]*sn)*g.s, g.isy-p[2]*g.s];}
 
   /* ---- state ---- */
   function loadImgs(){if(typeof PROSTATE2D==='undefined')return false;META=PROSTATE2D;
@@ -2673,34 +3082,74 @@ const FID2D=(function(){
   function fidTol(){return (typeof rtTol==='function')?rtTol('2d2d',currentCase):{t1:2,r1:3};}
   function fidRotTol(){return fidTol().r1;}     // rotation accept (deg)
   function fidTransTol(){return fidTol().t1;}   // translation accept (mm) — markers must be seated too
-  function randomize(keepResult){const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
-    const tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
-    // Per-axis rotation (3–5°). Across 3 axes the total compounds to ~5–8.5°; force the total to
-    // comfortably clear *twice* the accept tolerance so a translate-only (plain drag) solution can
-    // never seat all three markers — the student MUST Ctrl+drag one or two seeds to rotate the triad.
-    let rv=[rr(3,5)*sg(),rr(3,5)*sg(),rr(3,5)*sg()];
-    const need=fidRotTol()*2,tot=Math.hypot(rv[0],rv[1],rv[2]);
-    if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
+  function randomize(keepResult){if(ext)return;const rr=(a,b)=>Math.random()*(b-a)+a,sg=()=>Math.random()<.5?-1:1;
+    let tt,rv;
+    if(pendingOffset){tt=pendingOffset.t.slice();rv=pendingOffset.r.slice();pendingOffset=null;}   // Full Treatment: inherit the residual left after the CBCT match (same seeds, same offset)
+    else{
+      tt=[rr(4,12)*sg(),rr(4,12)*sg(),rr(4,12)*sg()];
+      // Per-axis rotation (4–8°). Across 3 axes the total compounds to ~7–14°, forced to clear FOUR
+      // times the accept tolerance — large enough that the seeds visibly swing off their marks and a
+      // translate-only (plain drag) solution can NOT seat all three: the student MUST rotate the triad.
+      rv=[rr(4,8)*sg(),rr(4,8)*sg(),rr(4,8)*sg()];
+      const need=fidRotTol()*4,tot=Math.hypot(rv[0],rv[1],rv[2]);
+      if(tot<need){const k=need/tot;rv=rv.map(x=>x*k);}
+    }
     const R=eulerR(rv[0],rv[1],rv[2]);Qtrue=P.map(p=>applyR(R,tt,p));
     hiddenE={t:tt,r:rv};M=P.map(p=>p.slice());
-    if(!keepResult)setMsg('Drag the markers onto the seeds in both views — '+KMOD+'+drag a single marker to rotate the triad','label');
+    if(!keepResult){setMsg('Drag the markers onto the seeds in both views — '+KMOD+'+drag a single marker to rotate the triad','label');fAcqArm();}
     solve();render();}
   function reset(){M=P.map(p=>p.slice());setMsg('Markers reset to plan — drag them onto the seeds','label');solve();render();}
 
   function solve(){const f=fit(P,M);writeReadout(f);return f;}
+  /* ---- external session: Full Treatment intrafraction kV–MV re-match at an arbitrary beam angle ----
+     cfg = {ap:{theta,physMm:[w,h],isoFrac:[fx,fy],img}, lat:{...}, fiducials:[[Lat,AP,SI]..],
+            hidden:{t:[x,y,z]mm, r:[rx,ry,rz]deg}, onCheck:fn({rotErr,transErr,correction}), msg } */
+  function enterExternal(cfg){
+    ext=cfg; META={physMm:{ap:cfg.ap.physMm,lat:cfg.lat.physMm},isoFrac:{ap:cfg.ap.isoFrac,lat:cfg.lat.isoFrac}};
+    viewTheta={ap:cfg.ap.theta,lat:cfg.lat.theta};
+    imgReady=false;imgN=0;
+    apImg.onload=()=>{if(++imgN>=2)imgReady=true;render();};apImg.src=cfg.ap.img;
+    latImg.onload=()=>{if(++imgN>=2)imgReady=true;render();};latImg.src=cfg.lat.img;
+    P=cfg.fiducials.map(p=>p.slice());
+    const R=eulerR(cfg.hidden.r[0],cfg.hidden.r[1],cfg.hidden.r[2]);
+    Qtrue=P.map(p=>applyR(R,cfg.hidden.t,p));
+    hiddenE={t:cfg.hidden.t.slice(),r:cfg.hidden.r.slice()};M=P.map(p=>p.slice());
+    ['ap','lat'].forEach(k=>{const v=views[k];if(v){v.ready=false;v.uzoom=1;v.fitZoom=1;v.zoom=1;v.panX=0;v.panY=0;updateZoomLabel(k);}});
+    fidPanel(true);solve();render();requestAnimationFrame(()=>{resizeAll();});
+    if(cfg.msg)setMsg(cfg.msg,'label');
+  }
+  function exitExternal(){ext=null;viewTheta={ap:0,lat:90};fidPanel(false);}
+  // A marker is "green" when it overlaps its seed in a view (same test drawView uses). The match is
+  // accepted as soon as ALL three markers sit on their seeds (green) in BOTH views.
+  function allGreen(){
+    for(const key of ['ap','lat']){const Z=(views[key]&&views[key].zoom)||1;
+      for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
+        if(Math.hypot(s[0]-ss[0],s[1]-ss[1])>4.5*Z)return false;}}   // a little more margin to turn green (kept == the draw threshold)
+    return true;
+  }
   function check(){
+    if(ext){                               // re-match: grade residual + hand the correction back to TXFLOW
+      const r=fit(M,Qtrue),f=fit(P,M);
+      const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]),transErr=Math.hypot(r.t[0],r.t[1],r.t[2]);
+      if(ext.onCheck)ext.onCheck({rotErr,transErr,correction:f,residual:r,allGreen:allGreen()});
+      return;
+    }
+    if(!fAcqReady()){setMsg('Acquire the kV pair first — rotate to each imaging position and expose.','bad');return;}
     const f=fit(P,M);                      // recovered couch correction (shown in the readout)
     const r=fit(M,Qtrue);                  // residual misregistration: placed markers -> true seeds
     const rotErr=Math.hypot(r.r[0],r.r[1],r.r[2]);   // residual rotation (deg)
     const transErr=Math.hypot(r.t[0],r.t[1],r.t[2]); // residual translation (mm)
     const rotTol=fidRotTol(),transTol=fidTransTol();
-    const ok=rotErr<=rotTol && transErr<=transTol;
-    const close=rotErr<=rotTol*1.8 && transErr<=transTol*1.8;
+    // Accepted as soon as all three markers are green (nested on their seeds) in both views.
+    const ok=allGreen();
+    const close=!ok && rotErr<=rotTol*1.8 && transErr<=transTol*1.8;
     const tag='';   // 2D fiducial case: match time is not tracked
     let msg,cls;
-    if(ok){msg='✓ Fiducials matched — residual rotation '+rotErr.toFixed(1)+'° (≤'+rotTol.toFixed(1)+'° tol)'+tag;cls='ok';}
-    else if(close){msg='⚡ Close — residual rotation '+rotErr.toFixed(1)+'°, need ≤'+rotTol.toFixed(1)+'°; '+KMOD+'+drag to rotate'+tag;cls='label';}
-    else{msg='✗ Rotate the triad onto the seeds — residual '+rotErr.toFixed(1)+'° / '+transErr.toFixed(1)+' mm'+tag;cls='bad';}
+    if(ok){msg='✓ Fiducials matched — all three seeds aligned'+tag;cls='ok';}
+    else if(close){msg='⚡ Close — nest all three markers on the seeds until they turn green; '+KMOD+'+drag to rotate'+tag;cls='label';}
+    else{msg='✗ Drag each marker onto its seed in both views until all three are green'+tag;cls='bad';}
+    // Full Treatment Stage 2: TXFLOW owns progression — advance only on accept, keep the same offset otherwise.
+    if(window.TXFLOW&&TXFLOW.active()){setMsg(msg,cls);TXFLOW.onStageResult('kv',{accepted:ok,mag:transErr,shift:{x:f.t[0],y:f.t[2],z:f.t[1],yaw:f.r[1]}});return;}
     if(typeof rtRecord==='function')rtRecord('2d2d',currentCase,{accepted:ok,mag:transErr,timeMs:null});
     // Check Match resets the clock + loads a fresh offset for the next rep, then shows the verdict
     matchTimer2d.reset();
@@ -2708,6 +3157,13 @@ const FID2D=(function(){
     setMsg(msg+'  ·  new offset loaded',cls);
   }
 
+  // Side-effect-free getter for Full Treatment APPLY: the recovered couch shift + whether all seeds are
+  // green. shift is in FID2D patient coords mapped to couch axes (x=Lat, y=SI/Lng, z=AP/Vrt, yaw).
+  function matchResult(){
+    const f=fit(P,M), r=fit(M,Qtrue);
+    return {accepted:allGreen(), transErr:Math.hypot(r.t[0],r.t[1],r.t[2]),
+      shift:{x:f.t[0],y:f.t[2],z:f.t[1],yaw:f.r[1]}};
+  }
   /* ---- readout (inject a Yaw row + relabel rotations for 6DOF while in this case) ---- */
   function fidPanel(on){
     // relabel the two rotation rows + add Yaw, both in the live panel and error display
@@ -2768,7 +3224,7 @@ const FID2D=(function(){
     // so you nest it on the seed. RED while off the seed, GREEN once it overlaps the fiducial.
     ctx.lineCap='butt';
     for(let i=0;i<M.length;i++){const s=proj(key,M[i]),ss=proj(key,Qtrue[i]);
-      const touching=Math.hypot(s[0]-ss[0],s[1]-ss[1])<=4.5*Z;
+      const touching=Math.hypot(s[0]-ss[0],s[1]-ss[1])<=4.5*Z;   // green threshold == allGreen() accept threshold
       ctx.strokeStyle=touching?'rgba(56,232,128,0.98)':'rgba(255,72,72,0.96)';ctx.lineWidth=1.2*Z;
       ctx.beginPath();ctx.arc(s[0],s[1],1.8*Z,0,7);ctx.stroke();
       ctx.beginPath();ctx.moveTo(s[0]-9*Z,s[1]);ctx.lineTo(s[0]-3.5*Z,s[1]);ctx.moveTo(s[0]+3.5*Z,s[1]);ctx.lineTo(s[0]+9*Z,s[1]);
@@ -2780,18 +3236,76 @@ const FID2D=(function(){
   // geom() would throw (reading 'physMm' of null). Bail until the radiographs/geometry are loaded.
   function render(){if(!active()||!META)return false;drawView('ap');drawView('lat');return true;}
 
+  /* ---- kV acquisition console (rotate to AP/Lat, hold-expose each, then unlock the match) ---- */
+  function fAcqStopRaf(){if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fMot=false;fExpoHold=false;}
+  // true when the gantry is already at target angle t (wrap-aware, ~0.5° tol) → no needless rotate
+  function fAcqAtTgt(t){let d=((t-fGantry+540)%360)-180;return Math.abs(d)<0.5;}
+  function fAcqArm(){fAcqStopRaf();fExpoP=0;fCap={ap:false,lat:false};
+    // Begin AT the AP kV imaging angle (0°) so the first exposure needs no rotation; only skip to the
+    // rotate step if the gantry isn't already there.
+    if(fAcqUses()){fGantry=0;fAcqPhase=fAcqAtTgt(0)?'armAP':'rotAP';}else{fAcqPhase='ready';}
+    fAcqRender();}
+  function fAcqLamp(id,on,kind){const e=document.getElementById(id);if(e)e.className='con-lamp'+(on?' '+(kind||'on'):'');}
+  function fAcqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
+  function fAcqRender(){
+    const wrap=document.getElementById('fidAcq');if(!wrap)return;
+    if(!fAcqUses()){wrap.classList.add('hidden');return;}
+    wrap.classList.toggle('hidden',fAcqPhase==='ready');
+    const rig=document.getElementById('fidAcqRig');if(rig)rig.setAttribute('transform','rotate('+(fGantry-90)+' 100 100)');   // linac viz
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('fidAcqGantry3D',{angle:fGantry,mode:'kv',beamOn:!!fExpoHold,phase:'ACQUIRE',isoRegion:'pelvis'});
+    const a=((fGantry%360)+360)%360;
+    const grig=document.getElementById('fdaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
+    const lg=document.getElementById('fdaLcdG');if(lg)lg.textContent=fAcqFmtG(fGantry);
+    const rot=(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'),arm=(fAcqPhase==='armAP'||fAcqPhase==='armLAT'),prompt=(fAcqPhase==='matchprompt');
+    const gauge=document.getElementById('fdaGauge');if(gauge)gauge.className='con-gauge '+(fExpoHold?'moving':(arm||prompt)?'ok':'off');
+    const mot=document.getElementById('fidAcqMotion');if(mot){mot.style.display=prompt?'none':'';mot.disabled=!rot;mot.classList.toggle('needmove',rot&&!fMot);mot.classList.toggle('moving',fMot);}
+    const go=document.getElementById('fidAcqGo');if(go){go.style.display=prompt?'none':'';go.disabled=!arm;}
+    const mb=document.getElementById('fidAcqMatch');if(mb)mb.style.display=prompt?'':'none';
+    const bar=document.getElementById('fidAcqBar');if(bar)bar.style.width=Math.round(fExpoP*100)+'%';
+    // AP/LAT lamps: amber while that view is the active target, green once its exposure is captured
+    const apActive=(fAcqPhase==='rotAP'||fAcqPhase==='armAP'),latActive=(fAcqPhase==='rotLAT'||fAcqPhase==='armLAT');
+    fAcqLamp('fdaLampAP',fCap.ap||apActive,fCap.ap?'on':'warn');
+    fAcqLamp('fdaLampLat',fCap.lat||latActive,fCap.lat?'on':'warn');
+    fAcqLamp('fdaLampReady',prompt,'on');
+    const which=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?'AP':'Lateral',tgt=(fAcqPhase==='rotAP'||fAcqPhase==='armAP')?0:90;
+    const st=document.getElementById('fdaLcdSt');
+    if(st){let t,c;if(rot){t='ROTATE → G'+tgt+' ('+which+')';c='off';}else if(prompt){t='kV PAIR READY';c='ok';}else{t=fExpoHold?('EXPOSING '+which+'…'):('AT G'+tgt+' · EXPOSE '+which);c=fExpoHold?'moving':'ok';}st.textContent=t;st.className='con-lcd-st '+c;}
+    const msg=document.getElementById('fidAcqMsg');
+    if(msg)msg.textContent=rot?('Hold MOTION ENABLE to rotate the gantry to the '+which+' kV imaging position (G'+tgt+').')
+      :prompt?('kV pair acquired — press FIDUCIAL 2D/2D MATCH to start placing the markers.')
+      :fExpoHold?('Exposing the '+which+' radiograph — keep holding…'):('Gantry at G'+tgt+'. Hold kV BEAM ON to acquire the '+which+' radiograph.');
+  }
+  function fMotStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();const tgt=fAcqPhase==='rotAP'?0:fAcqPhase==='rotLAT'?90:null;if(tgt===null)return;fAcqStopRaf();fMot=true;let last=performance.now();
+    const step=(t)=>{if(!fMot){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;let d=tgt-fGantry;if(d>180)d-=360;if(d<-180)d+=360;const s=F_ROT*dt*(d>=0?1:-1);
+      if(Math.abs(s)>=Math.abs(d)){fGantry=tgt;fMot=false;fRaf=0;fAcqPhase=(fAcqPhase==='rotAP')?'armAP':'armLAT';fAcqRender();return;}
+      fGantry+=s;fAcqRender();fRaf=requestAnimationFrame(step);};
+    fRaf=requestAnimationFrame(step);}
+  function fMotStop(){if(fAcqPhase==='rotAP'||fAcqPhase==='rotLAT'){fMot=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}}}
+  function fExpoStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(fAcqPhase!=='armAP'&&fAcqPhase!=='armLAT')return;fAcqStopRaf();fExpoHold=true;let last=performance.now();
+    const step=(t)=>{if(!fExpoHold){fRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;fExpoP=Math.min(1,fExpoP+dt*1000/F_EXPO_MS);fAcqRender();
+      if(fExpoP>=1){fExpoHold=false;fRaf=0;fExpoP=0;if(fAcqPhase==='armAP'){fCap.ap=true;fAcqPhase='rotLAT';}else{fCap.lat=true;fAcqPhase='matchprompt';render();}fAcqRender();return;}   // both kV images taken — wait for "START FIDUCIAL 2D/2D MATCH"
+      fRaf=requestAnimationFrame(step);};
+    fRaf=requestAnimationFrame(step);fAcqRender();}
+  function fExpoStop(){if(fExpoHold){fExpoHold=false;if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fAcqRender();}}
+  function fStartMatch(){if(fAcqPhase!=='matchprompt')return;fAcqPhase='ready';fAcqRender();render();   // "FIDUCIAL 2D/2D MATCH" — unlock the marker drag
+    if(window.TXFLOW&&TXFLOW.active()&&TXFLOW.onMatchStart)TXFLOW.onMatchStart('kv');}   // Full Treatment: open the APPLY console now
+  function fToggleAcq(on){fAcqEnabled=!!on;if(fAcqUses()){if(fAcqPhase==='ready')fAcqArm();}else{fAcqPhase='ready';fAcqStopRaf();}fAcqRender();}
+  function fSetAcqForce(on){fAcqForce=!!on;if(!fAcqUses()){fAcqStopRaf();fAcqPhase='ready';fAcqRender();}}
+
   /* ---- interaction ---- */
   function vKey(area){return area==='apArea'?'ap':area==='latArea'?'lat':null;}
   function localXY(v,ev){const r=document.getElementById(v.area).getBoundingClientRect();return [ev.clientX-r.left,ev.clientY-r.top];}
   function nearestMarker(key,sx,sy){let best=-1,bd=1e9;for(let i=0;i<M.length;i++){const s=proj(key,M[i]),d=Math.hypot(s[0]-sx,s[1]-sy);if(d<bd){bd=d;best=i;}}return {i:best,d:bd};}
-  function applyDelta(key,one,dxpx,dypx){const g=geom(key);
-    const dA=dxpx/g.s,dB=-dypx/g.s;            // in-view mm deltas
-    const upd=(m)=>{if(key==='ap'){m[0]+=dA;m[2]+=dB;}else{m[1]+=dA;m[2]+=dB;}};  // ap: Lat,SI ; lat: AP,SI
+  function applyDelta(key,one,dxpx,dypx){const g=geom(key),t=(viewTheta[key]||0)*Math.PI/180,c=Math.cos(t),sn=Math.sin(t);
+    const dsx=dxpx/g.s,dB=-dypx/g.s;           // in-view horizontal + SI mm deltas
+    // back-project the horizontal drag onto patient Lat/AP for this beam angle (θ=0: Lat; θ=90: AP)
+    const upd=(m)=>{m[0]+=dsx*c;m[1]+=dsx*sn;m[2]+=dB;};
     if(one>=0)upd(M[one]); else M.forEach(upd);}
   function bind(area){
     const el=document.getElementById(area);if(!el)return;
     el.addEventListener('pointerdown',ev=>{
       if(!active()||!META)return;   // case selected but data still loading -> geom() has no META yet
+      if(!fAcqReady())return;   // acquisition console up: no marker drag until the kV pair is acquired
       const key=vKey(area),v=views[key];const [sx,sy]=localXY(v,ev);
       let px=sx,py=sy;try{el.setPointerCapture(ev.pointerId);}catch(_){}
       // Middle-mouse, Shift+drag while zoomed, or the Pan tool: PAN the view (instead of moving markers).
@@ -2819,10 +3333,523 @@ const FID2D=(function(){
     err:()=>{let d=0;for(let i=0;i<3;i++)d+=Math.hypot(M[i][0]-Qtrue[i][0],M[i][1]-Qtrue[i][1],M[i][2]-Qtrue[i][2]);return d/3;},
     hiddenDeg:()=>fit(P,Qtrue).r.map(x=>+x.toFixed(2)),                              // per-axis hidden rotation
     residDeg:()=>{const r=fit(M,Qtrue);return +Math.hypot(r.r[0],r.r[1],r.r[2]).toFixed(2);},
-    rotTol:fidRotTol};
-  return {active,enter,reset,randomize,check,render,fidPanel,resize:()=>{if(active())render();},_dbg};
+    rotTol:fidRotTol,setTheta:t=>{viewTheta=Object.assign({},viewTheta,t);render();},theta:()=>Object.assign({},viewTheta),ext:()=>!!ext,
+    acqPhase:()=>fAcqPhase,forceReady:()=>{fAcqStopRaf();fCap={ap:true,lat:true};fAcqPhase='ready';fAcqRender();render();},acqReady:fAcqReady,allGreen};
+  return {active,enter,reset,randomize,check,render,fidPanel,enterExternal,exitExternal,isExternal:()=>!!ext,
+    acqMotionStart:fMotStart,acqMotionStop:fMotStop,acqBeamStart:fExpoStart,acqBeamStop:fExpoStop,acqStartMatch:fStartMatch,toggleAcq:fToggleAcq,setAcqForce:fSetAcqForce,acqReady:fAcqReady,setPendingOffset,matchResult,
+    resize:()=>{if(active())render();},_dbg};
 })();
 window.FID2D=FID2D;
+
+/* ============================================================================
+   TXFLOW — "Full Treatment" mode: one complete prostate fraction, start to finish.
+   A self-driving stage machine that SEQUENCES the existing matchers (it does not
+   re-implement them):
+     Stage 1  CBCT     — CBCT.applyCase('prostate') with the acquisition console forced ON.
+     Stage 2  kV       — the FID2D gold-fiducial triad match (verification).
+     Stage 3  Treat    — multi-arc VMAT delivery (MU ramp + gantry rotation) with
+                         intrafraction kV monitoring: a triggered kV every 10 s; if the
+                         fiducials drift past a 0.5 cm gate the beam holds and the student
+                         re-matches a kV–MV pair at the current gantry angle (FID2D external).
+   CBCT.check / FID2D.check hand control back here via onStageResult() when TXFLOW.active().
+   ============================================================================ */
+const TXFLOW=(function(){
+  const TRIG_MS=10000;      // triggered kV cadence (intrafraction imaging)
+  const GATE_MM=5;          // 0.5 cm fiducial action margin
+  const MU_RATE=12;         // MU per second
+  const ARC_SPAN=358;       // degrees swept per arc
+  const TX_PLAN={name:'Prostate · VMAT', fields:[
+    {name:'Arc 1 · CW',  mu:300, g0:181, dir:1},
+    {name:'Arc 2 · CCW', mu:300, g0:179, dir:-1},
+    {name:'Arc 3 · CW',  mu:300, g0:181, dir:1},
+  ]};
+  const totalMU=TX_PLAN.fields.reduce((a,f)=>a+f.mu,0);
+  let running=false, stage=null;
+  let beamPhase='idle';     // idle | on | hold | holdtrig | rematch | done
+  let raf=0, lastT=0, simBeamSec=0, lastTrigSec=-999;
+  let fieldIdx=0, muInField=0, muTotal=0, gantryAngle=180;
+  let truePos={x:0,y:0,z:0}, appliedCorr={x:0,y:0,z:0}, bias={x:0,y:0,z:0};
+  let holds=0, reimages=0, cbctRes=null, kvRes=null;
+  let kvFlashAt=0;          // timestamp of the last triggered kV (drives the dial's transient kV-beam flash)
+  let pendingRematch=null;  // recovered shift from an intrafraction re-match, held until MOTION ENABLE moves the couch
+  let kvZoom=1;             // intrafraction kV monitor zoom (1 = full field-of-view; up to 3× in)
+  // ---- kV fiducial monitor (the triggered-kV detector view) ----
+  // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
+  const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
+  const KV_HALF_MM=50;      // kV monitor base half field-of-view (mm) at 1× — a wide view showing lots of anatomy
+  let lastKv=null;          // {phi, t, u, v, out, g} — the most recent triggered kV reading (g = MV gantry°)
+  let backdrop=null;        // synthetic fallback for the re-match panel
+  let kvBackImg=null;       // real (seed-free) bony-anatomy kV image for the triggered-kV monitor
+  // Ray-sum a real bony-anatomy kV image of the pelvis at the imager angle, WITHOUT the baked gold
+  // seeds (noSeeds=true): the DRR is anatomy only, and the actual seeds are drawn as the clean overlay
+  // so they don't appear twice (the baked blobs are the "other fiducials" we're dropping).
+  function buildKvBackdrop(gAngle){
+    if(!(window.CBCT&&CBCT.rayDRR&&CBCT.mprCase&&CBCT.mprCase()==='prostate'))return;
+    const url=CBCT.rayDRR(((90-gAngle)%360+360)%360,KV_HALF_MM,'kv',true); if(!url)return;
+    const im=new Image(); im.onload=()=>{kvBackImg=im;drawKvView(false);}; im.src=url;
+  }
+  let motionRaf=0;          // couch-move animation (CBCT shift-apply)
+  const couchBase={vrt:-3.20,lng:24.50,lat:0.10,rtn:0};   // planned couch encoder readout (prostate)
+  // ONE running couch position carried across all three stages: it starts at the plan, and each stage's
+  // applied shift accumulates into it so CBCT → kV → treatment always show consistent encoder values.
+  let couch={...couchBase};
+  let pendingTarget=null;   // the new couch values an APPLY loaded; MOTION ENABLE drives the couch to it
+  const CB_IDS={vrt:'cbaplVrt',lng:'cbaplLng',lat:'cbaplLat',rtn:'cbaplRtn',vrtA:'cbaplVrtA',lngA:'cbaplLngA',latA:'cbaplLatA',rtnA:'cbaplRtnA'};
+  const FD_IDS={vrt:'fdaplVrt',lng:'fdaplLng',lat:'fdaplLat',rtn:'fdaplRtn',vrtA:'fdaplVrtA',lngA:'fdaplLngA',latA:'fdaplLatA',rtnA:'fdaplRtnA'};
+  const gid=id=>document.getElementById(id);
+
+  function active(){return running;}
+  // ---- shared couch readouts ----
+  function paintCouch(ids,c){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e(ids.vrt,c.vrt,2);e(ids.lng,c.lng,2);e(ids.lat,c.lat,2);e(ids.rtn,c.rtn,1);}
+  function showArrows(ids,t){const s=(id,v,d)=>{const el=gid(id);if(el){el.textContent='→ '+(v>=0?'+':'')+v.toFixed(d);el.style.display='';}};s(ids.vrtA,t.vrt,2);s(ids.lngA,t.lng,2);s(ids.latA,t.lat,2);s(ids.rtnA,t.rtn,1);}
+  function hideArrows(ids){[ids.vrtA,ids.lngA,ids.latA,ids.rtnA].forEach(id=>{const el=gid(id);if(el)el.style.display='none';});}
+  function paintTxCouch(){const e=(id,v,d)=>{const el=gid(id);if(el)el.textContent=v.toFixed(d);};e('txCouchVrt',couch.vrt,2);e('txCouchLng',couch.lng,2);e('txCouchLat',couch.lat,2);e('txCouchRtn',couch.rtn,1);}
+  // SPACE always drives whichever couch-move MOTION ENABLE is currently armed (in either apply strip).
+  function spaceMotion(){if(!running)return false;for(const id of ['cbaplMotion','fdaplMotion','txMotionBtn']){const mo=gid(id);if(mo&&!mo.disabled&&mo.offsetParent!==null){mo.click();return true;}}return false;}
+
+  /* ---- stage machine ---- */
+  function enter(){
+    running=true; holds=0; reimages=0; cbctRes=null; kvRes=null;
+    couch={...couchBase}; pendingTarget=null;   // fresh fraction starts at the planned couch
+    showStepper(true); goCbct();
+  }
+  function goCbct(){
+    stage='cbct'; updateStepper();
+    currentMode='cbct';
+    const cm=gid('cbCheckBtn'); if(cm)cm.style.display='none';   // Full Treatment uses APPLY only — no Check Match
+    const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');   // the shift-apply strip opens when the 3D/3D match starts
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    gid('startScreen').classList.add('hidden');
+    gid('txScreen').classList.add('hidden');
+    gid('cbctScreen').classList.remove('hidden');
+    CBCT.setAcqForce(true); CBCT.enter(); CBCT.applyCase('prostate');   // force the acquisition console ON for the treatment fraction
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  }
+  function goKv(){
+    if(!running) return;   // a deferred couch-move callback must not advance a flow the student already exited
+    stage='kv'; updateStepper();
+    gid('cbctScreen').classList.add('hidden');
+    gid('txScreen').classList.add('hidden');
+    currentMode='2d2d';
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='none';   // Full Treatment uses APPLY only — no Check Match
+    if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(true);   // force the kV acquisition console for the fraction
+    // Link the seeds: the kV pair starts off by the SAME residual the student left after the CBCT match.
+    // CBCT axes (x=Lat, y=Lng/SI, z=Vrt/AP; pitch/roll/yaw) → FID2D patient coords (t=[Lat,AP,SI], r=[rx,ry,rz]=[Roll,Yaw,Pitch]).
+    if(window.FID2D&&FID2D.setPendingOffset&&cbctRes&&cbctRes.res6){const g=cbctRes.res6;
+      // Translation stays exact (same distance off); amplify + floor the carried rotation so the kV
+      // verification clearly requires a 6DOF correction (CBCT prostate doesn't grade rotation).
+      const GR=3;let r=[g.roll*GR,g.yaw*GR,g.pitch*GR];const tot=Math.hypot(r[0],r[1],r[2]),flo=10;
+      if(tot<flo){r=(tot>0.5)?r.map(x=>x*flo/tot):[6,-5,5];}
+      FID2D.setPendingOffset({t:[g.x,g.z,g.y],r});}
+    applyCase('prostate');   // global 2D applyCase routes to FID2D.enter() (fidMatch) + sets fid-mode
+    requestAnimationFrame(()=>resizeAll());
+  }
+  function goTreat(){
+    if(!running) return;   // a deferred couch-move callback must not advance a flow the student already exited
+    stage='treat'; updateStepper();
+    if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);   // kV stage done — release the forced console
+    document.body.classList.remove('fid-mode');
+    gid('cbctScreen').classList.add('hidden');
+    currentMode='tx';
+    gid('txScreen').classList.remove('hidden');
+    paintTxCouch();   // carry the accumulated couch position into the treatment screen
+    startDelivery();
+    requestAnimationFrame(()=>drawKvView(false));
+  }
+  // Fallback entry (kept in case CBCT.check / FID2D.check ever route here): just open the apply strip.
+  // In Full Treatment there is NO "Check Match" — onMatchStart() opens the strip the moment the match
+  // begins, and APPLY reads the live residual itself.
+  function onStageResult(which,res){
+    if(!running) return;
+    if(which==='cbct'){ cbctRes=res; showCbApply(); }
+    else if(which==='kv'){ kvRes=res; showFidApply(); }
+  }
+  // Called by CBCT.acqStartMatch / FID2D.acqStartMatch (the 3D/3D MATCH · FIDUCIAL MATCH buttons) when
+  // the registration unlocks, so the APPLY console is live from the start of the match.
+  function onMatchStart(which){ if(!running)return; if(which==='cbct')showCbApply(); else if(which==='kv')showFidApply(); }
+
+  /* ---- CBCT shift-apply sub-flow (Full Treatment): register → APPLY (loads new couch values + arrow)
+     → MOTION ENABLE / SPACE (couch drives to the new values) → kV stage. No Check Match. ---- */
+  function showCbApply(){
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    pendingTarget=null;
+    const strip=gid('cbAppl'); if(strip)strip.classList.remove('hidden');
+    const c=gid('cbaplCouch'); if(c)c.classList.remove('couch-moving');
+    hideArrows(CB_IDS); paintCouch(CB_IDS,couch);
+    const stt=gid('cbaplState'); if(stt)stt.textContent='REGISTER → APPLY';
+    const msg=gid('cbaplMsg'); if(msg){msg.textContent='Register the cone-beam to the plan, then APPLY to load the couch shift.';msg.className='con-msg';}
+    const ap=gid('cbaplApply'); if(ap)ap.disabled=false;
+    const mo=gid('cbaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    requestAnimationFrame(()=>{try{window.dispatchEvent(new Event('resize'));}catch(e){}});
+  }
+  function cbApply(){
+    if(!running)return;
+    const res=(typeof CBCT!=='undefined'&&CBCT.residual)?CBCT.residual():null;
+    cbctRes=res||{accepted:false,mag:0,res6:{x:0,y:0,z:0,pitch:0,roll:0,yaw:0}};
+    const sh=(typeof CBCT!=='undefined'&&CBCT._dbg&&CBCT._dbg.shift)?CBCT._dbg.shift():{x:0,y:0,z:0,yaw:0};
+    pendingTarget={vrt:couch.vrt+(sh.z||0)/10,lng:couch.lng+(sh.y||0)/10,lat:couch.lat+(sh.x||0)/10,rtn:couch.rtn+(sh.yaw||0)};
+    showArrows(CB_IDS,pendingTarget);
+    const ap=gid('cbaplApply'); if(ap)ap.disabled=true;
+    const mo=gid('cbaplMotion'); if(mo){mo.disabled=false;mo.classList.add('needmove');}
+    const stt=gid('cbaplState'); if(stt)stt.textContent='MOTION ENABLE';
+    const acc=!!cbctRes.accepted, mag=cbctRes.mag||0;
+    const msg=gid('cbaplMsg'); if(msg){msg.innerHTML='Residual <b>'+mag.toFixed(1)+' mm</b> ('+(acc?'in tolerance':'out of tolerance — you may still proceed')+'). New couch values shown — hold MOTION ENABLE or SPACE to move.';msg.className='con-msg'+(acc?'':' warn');}
+  }
+  function cbMotion(){
+    if(!pendingTarget)return;
+    const mo=gid('cbaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    const from={...couch}, target=pendingTarget;
+    const c=gid('cbaplCouch'); if(c)c.classList.add('couch-moving');
+    const stt=gid('cbaplState'); if(stt)stt.textContent='COUCH MOVING…';
+    const msg=gid('cbaplMsg'); if(msg)msg.textContent='Couch moving to the corrected position…';
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    const t0=performance.now(),dur=1500;
+    const step=(t)=>{const p=Math.min(1,(t-t0)/dur);
+      paintCouch(CB_IDS,{vrt:from.vrt+(target.vrt-from.vrt)*p,lng:from.lng+(target.lng-from.lng)*p,lat:from.lat+(target.lat-from.lat)*p,rtn:from.rtn+(target.rtn-from.rtn)*p});
+      if(p<1){motionRaf=requestAnimationFrame(step);}
+      else{motionRaf=0;couch={...target};pendingTarget=null;hideArrows(CB_IDS);if(c)c.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — proceeding to kV fiducial imaging…';
+        setTimeout(()=>{if(!running)return;const s=gid('cbAppl');if(s)s.classList.add('hidden');goKv();},800);}};
+    motionRaf=requestAnimationFrame(step);
+  }
+  /* ---- kV fiducial shift-apply sub-flow: drag triad → APPLY → MOTION ENABLE / SPACE → treat ---- */
+  function showFidApply(){
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    pendingTarget=null;
+    const strip=gid('fidAppl'); if(strip)strip.classList.remove('hidden');
+    const c=gid('fdaplCouch'); if(c)c.classList.remove('couch-moving');
+    hideArrows(FD_IDS); paintCouch(FD_IDS,couch);
+    const stt=gid('fdaplState'); if(stt)stt.textContent='REGISTER → APPLY';
+    const msg=gid('fdaplMsg'); if(msg){msg.textContent='Drag the triad onto the seeds (all green), then APPLY to load the couch shift.';msg.className='con-msg';}
+    const ap=gid('fdaplApply'); if(ap)ap.disabled=false;
+    const mo=gid('fdaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    requestAnimationFrame(()=>resizeAll());
+  }
+  function fidApply(){
+    if(!running)return;
+    const mr=(window.FID2D&&FID2D.matchResult)?FID2D.matchResult():null;
+    kvRes=mr||{accepted:false,transErr:0,shift:{x:0,y:0,z:0,yaw:0}};
+    const sh=kvRes.shift||{x:0,y:0,z:0,yaw:0};
+    pendingTarget={vrt:couch.vrt+(sh.z||0)/10,lng:couch.lng+(sh.y||0)/10,lat:couch.lat+(sh.x||0)/10,rtn:couch.rtn+(sh.yaw||0)};
+    showArrows(FD_IDS,pendingTarget);
+    const ap=gid('fdaplApply'); if(ap)ap.disabled=true;
+    const mo=gid('fdaplMotion'); if(mo){mo.disabled=false;mo.classList.add('needmove');}
+    const stt=gid('fdaplState'); if(stt)stt.textContent='MOTION ENABLE';
+    const grn=!!kvRes.accepted;
+    const msg=gid('fdaplMsg'); if(msg){msg.innerHTML=(grn?'All three seeds aligned. ':'Triad placed. ')+'New couch values shown — hold MOTION ENABLE or SPACE to move.';msg.className='con-msg'+(grn?'':' warn');}
+  }
+  function fidMotion(){
+    if(!pendingTarget)return;
+    const mo=gid('fdaplMotion'); if(mo){mo.disabled=true;mo.classList.remove('needmove');}
+    const from={...couch}, target=pendingTarget;
+    const c=gid('fdaplCouch'); if(c)c.classList.add('couch-moving');
+    const stt=gid('fdaplState'); if(stt)stt.textContent='COUCH MOVING…';
+    const msg=gid('fdaplMsg'); if(msg)msg.textContent='Couch moving to the corrected position…';
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    const t0=performance.now(),dur=1500;
+    const step=(t)=>{const p=Math.min(1,(t-t0)/dur);
+      paintCouch(FD_IDS,{vrt:from.vrt+(target.vrt-from.vrt)*p,lng:from.lng+(target.lng-from.lng)*p,lat:from.lat+(target.lat-from.lat)*p,rtn:from.rtn+(target.rtn-from.rtn)*p});
+      if(p<1){motionRaf=requestAnimationFrame(step);}
+      else{motionRaf=0;couch={...target};pendingTarget=null;hideArrows(FD_IDS);if(c)c.classList.remove('couch-moving');if(stt)stt.textContent='ALIGNED';if(msg)msg.textContent='Couch aligned — beginning treatment delivery…';
+        setTimeout(()=>{if(!running)return;const s=gid('fidAppl');if(s)s.classList.add('hidden');goTreat();},800);}};
+    motionRaf=requestAnimationFrame(step);
+  }
+  function exit(){
+    running=false; stage=null; beamPhase='idle';
+    if(raf){cancelAnimationFrame(raf);raf=0;}
+    if(motionRaf){cancelAnimationFrame(motionRaf);motionRaf=0;}
+    if(window.FID2D&&FID2D.isExternal&&FID2D.isExternal())FID2D.exitExternal();
+    if(window.FID2D&&FID2D.setAcqForce)FID2D.setAcqForce(false);
+    showStepper(false);
+    const ap=gid('cbAppl'); if(ap)ap.classList.add('hidden');
+    const fa=gid('fidAppl'); if(fa)fa.classList.add('hidden');
+    const sc=gid('txScreen'); if(sc)sc.classList.add('hidden');
+    hideArrows(CB_IDS); hideArrows(FD_IDS); pendingTarget=null;
+    const cb=gid('cbCheckBtn'); if(cb)cb.style.display='';        // restore Check Match for standalone CBCT
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';     // restore Check Match for standalone 2D
+  }
+  function restart(){ const sm=gid('txSummary'); if(sm)sm.classList.add('hidden'); enter(); }
+
+  /* ---- stepper ---- */
+  function showStepper(on){const s=gid('txStepper');if(s)s.classList.toggle('hidden',!on);}
+  function updateStepper(){
+    const order=['cbct','kv','treat'],idx=order.indexOf(stage);
+    [['cbct','txStepCbct'],['kv','txStepKv'],['treat','txStepTreat']].forEach(([k,id],i)=>{
+      const el=gid(id);if(!el)return;el.classList.toggle('active',i===idx);el.classList.toggle('done',i<idx);
+    });
+  }
+
+  /* ---- Stage 3: delivery + intrafraction monitoring ---- */
+  function startDelivery(){
+    beamPhase='idle'; simBeamSec=0; lastTrigSec=-999;
+    fieldIdx=0; muInField=0; muTotal=0; gantryAngle=TX_PLAN.fields[0].g0;
+    truePos={x:0,y:0,z:0}; appliedCorr={x:0,y:0,z:0};
+    const sgn=()=>Math.random()<.5?-1:1;
+    // per-fraction systematic drift (mm/s): AP-dominant (rectal/bladder filling) + a real SI component
+    // (always visible to any kV angle) so the projected fiducial reliably leaves the 0.5 cm ring
+    // mid-treatment and the student always faces at least one intrafraction re-image.
+    bias={x:(0.04+Math.random()*0.05)*sgn(), y:(0.20+Math.random()*0.10)*sgn(), z:(0.08+Math.random()*0.06)*sgn()};
+    lastKv=null; kvBackImg=null; kvFlashAt=0; pendingRematch=null; kvZoom=1;
+    {const z=gid('txKvZoom');if(z)z.textContent='100%';}
+    buildArcList();
+    const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
+    const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
+    const mb=gid('txMotionBtn'); if(mb){mb.style.display='none';mb.classList.remove('needmove');}
+    setBeamState('hold','READY'); setBtn('Beam On',false);
+    status('Press Beam On to start the VMAT delivery. A triggered kV every 10 s verifies the gold fiducials stay within 0.5 cm.');
+    drawGantry(); updateField(); updateReadouts(); updateKvAngle(); drawKvView(false);
+  }
+  // Build the 3-arc plan list once (static plan). Each row: name + wrapped gantry range + per-arc MU bar.
+  function buildArcList(){
+    const el=gid('txArcList'); if(!el)return;
+    const wrap=a=>((a%360)+360)%360;
+    el.innerHTML=TX_PLAN.fields.map((f,i)=>{
+      const g1=Math.round(wrap(f.g0+f.dir*ARC_SPAN)),g0=Math.round(wrap(f.g0)),dir=f.dir<0?'CCW':'CW';
+      return '<div class="tx-arc" data-arc="'+i+'"><div class="tx-arc-hd"><span class="tx-arc-name">'+f.name+
+        '</span><span class="tx-arc-rng">'+g0+'°→'+g1+'° '+dir+'</span></div>'+
+        '<div class="tx-mu-bar"><i id="txArcBar'+i+'"></i></div>'+
+        '<div class="tx-arc-mu"><b id="txArcMu'+i+'">0</b> / '+f.mu+' MU</div></div>';
+    }).join('');
+  }
+  function beamBtn(){
+    if(beamPhase==='done') return;
+    if(beamPhase==='holdtrig') return;             // must re-match first
+    if(beamPhase==='holdmove') return;             // must motion-enable the couch first
+    if(beamPhase==='on'){ beamPhase='hold'; if(raf){cancelAnimationFrame(raf);raf=0;} setBeamState('hold','HOLD'); setBtn('Beam On',false); return; }
+    // idle / hold -> resume
+    beamPhase='on'; lastT=performance.now(); setBeamState('on','BEAM ON'); setBtn('Beam Hold',false);
+    if(!raf) raf=requestAnimationFrame(tick);
+  }
+  // Enter on the treatment screen toggles the beam (guarded by beamBtn's interlocks). Returns true if handled.
+  function enterBeam(){
+    if(!running||stage!=='treat') return false;
+    const sc=gid('txScreen'); if(!sc||sc.classList.contains('hidden')) return false;
+    beamBtn(); return true;
+  }
+  // ---- intrafraction kV monitor zoom (mouse wheel / +/- buttons over the kV panel) ----
+  function kvZoomBy(f){kvZoom=Math.max(1,Math.min(3,kvZoom*f));const z=gid('txKvZoom');if(z)z.textContent=Math.round(kvZoom*100)+'%';drawKvView(false);}
+  function kvZoomWheel(e){if(e&&e.preventDefault)e.preventDefault();kvZoomBy((e&&e.deltaY<0)?1.15:1/1.15);}
+  function tick(t){
+    if(beamPhase!=='on'){raf=0;return;}
+    const dt=Math.min(0.05,(t-lastT)/1000); lastT=t; simBeamSec+=dt;
+    // advance the (hidden) true fiducial position: systematic drift + small physiologic noise
+    truePos.x+=bias.x*dt+(Math.random()-0.5)*0.04;
+    truePos.y+=bias.y*dt+(Math.random()-0.5)*0.04;
+    truePos.z+=bias.z*dt+(Math.random()-0.5)*0.04;
+    // advance MU + gantry within the current arc
+    const f=TX_PLAN.fields[fieldIdx];
+    muInField+=MU_RATE*dt; muTotal+=MU_RATE*dt;
+    const p=Math.min(1,muInField/f.mu);
+    gantryAngle=f.g0+f.dir*ARC_SPAN*p;
+    // triggered kV every 10 s of beam-on
+    if(simBeamSec-lastTrigSec>=TRIG_MS/1000){ lastTrigSec=simBeamSec; doTrigger(); }
+    drawGantry(); updateField(); updateReadouts(); updateKvAngle();
+    if(beamPhase!=='on'){raf=0;return;}            // a trigger may have held the beam
+    if(p>=1){ fieldIdx++; muInField=0; if(fieldIdx>=TX_PLAN.fields.length){ finish(); return; } gantryAngle=TX_PLAN.fields[fieldIdx].g0; }
+    raf=requestAnimationFrame(tick);
+  }
+  function measured(){return {x:truePos.x-appliedCorr.x,y:truePos.y-appliedCorr.y,z:truePos.z-appliedCorr.z};}
+  // Project the 3D fiducial offset onto the kV detector at the current gantry angle. The kV imager sits
+  // 90° off the MV beam; its detector sees the in-plane component along the MV axis (u) and SI (v).
+  function kvProject(m,gDeg){const a=gDeg*Math.PI/180; return {u:m.x*Math.sin(a)+m.y*Math.cos(a), v:m.z};}
+  function kvAngle(){return Math.round((((gantryAngle+90)%360)+360)%360);}
+  function doTrigger(){
+    const m=measured(), pr=kvProject(m,gantryAngle), ringMag=Math.hypot(pr.u,pr.v);
+    const out=ringMag>GATE_MM;                       // outside the 0.5 cm ring on the triggered kV
+    lastKv={phi:kvAngle(), t:Math.round(simBeamSec), u:pr.u, v:pr.v, out, g:gantryAngle};
+    // fire the dial's transient kV-beam flash now (also works if the beam is about to hold)
+    kvFlashAt=performance.now();
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{kvFlash:kvFlashAt});
+    buildKvBackdrop(gantryAngle); flashKv(); drawKvView(true);
+    if(out){
+      beamPhase='holdtrig'; holds++;
+      if(raf){cancelAnimationFrame(raf);raf=0;}
+      setBeamState('alarm','BEAM HOLD'); setBtn('Beam On',true);
+      const rb=gid('txRematchBtn'); if(rb)rb.style.display='';
+      status('⚠ Triggered kV @ '+kvAngle()+'°: a fiducial is OUTSIDE its 0.5 cm ring ('+ringMag.toFixed(1)+' mm). Beam held — take a kV–MV pair and re-match.');
+    } else {
+      status('✓ Triggered kV @ '+kvAngle()+'° ('+Math.round(simBeamSec)+' s) — all fiducials inside the 0.5 cm ring ('+ringMag.toFixed(1)+' mm). Delivery continues.');
+    }
+  }
+
+  /* ---- intrafraction kV–MV re-match (reuses the 2D screen + FID2D external session) ---- */
+  function startRematch(){
+    if(beamPhase!=='holdtrig') return;
+    beamPhase='rematch';
+    gid('txScreen').classList.add('hidden');
+    currentMode='2d2d'; document.body.classList.add('fid-mode');
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';   // the intrafraction re-match applies the recovered shift
+    if(cm)cm.textContent='Apply Shifts';
+    const gMV=((gantryAngle%360)+360)%360, m=measured(), sg=()=>Math.random()<.5?-1:1;
+    // Real bony-anatomy kV–MV pair: ray-sum the loaded pelvis volume at the beam angle (MV beam's-eye
+    // view) + the orthogonal kV (OBI), iso-centred. The seeds are θ-projected over genuine pelvic bone
+    // instead of the old synthetic ellipse. Falls back to the synthetic backdrop only if the 3D volume
+    // isn't decoded yet (it is, after the Stage-1 CBCT setup on the prostate volume).
+    const HALF=80, real=(window.CBCT&&CBCT.rayDRR&&CBCT.mprCase&&CBCT.mprCase()==='prostate');
+    const mvImg=real?CBCT.rayDRR(gMV,HALF,'mv',true):null;          // seed-free anatomy: the draggable
+    const kvImg=real?CBCT.rayDRR((gMV+90)%360,HALF,'kv',true):null; // seeds are FID2D's overlay, not baked
+    const bd=getBackdrop(), fov=[2*HALF,2*HALF];
+    FID2D.enterExternal({
+      lat:{theta:gMV,            physMm:(mvImg?fov:[110,110]), isoFrac:[0.5,0.5], img:mvImg||bd},   // MV beam's-eye-view at the beam angle
+      ap :{theta:(gMV+90)%360,   physMm:(kvImg?fov:[110,110]), isoFrac:[0.5,0.5], img:kvImg||bd},   // orthogonal kV (OBI)
+      fiducials:PROSTATE2D.fiducials,
+      hidden:{t:[m.x,m.y,m.z], r:[(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg()]},
+      onCheck:onRematchCheck,
+      msg:'kV–MV pair at gantry '+Math.round(gMV)+'° — drag the triad onto the drifted seeds in both views, then Apply Shifts.'
+    });
+    requestAnimationFrame(()=>resizeAll());
+  }
+  // Apply Shifts on the intrafraction kV–MV re-match: LOAD the recovered couch correction, return to the
+  // delivery screen, and require a MOTION ENABLE to physically move the couch before the beam can resume
+  // (the shift isn't live until the couch has moved — mirrors a real interlock).
+  function onRematchCheck(r){
+    pendingRematch=r.correction;   // held until the couch is motion-enabled
+    reimages++;
+    FID2D.exitExternal(); document.body.classList.remove('fid-mode');
+    currentMode='tx'; gid('txScreen').classList.remove('hidden');
+    beamPhase='holdmove'; setBeamState('alarm','MOVE COUCH'); setBtn('Beam On',true);
+    const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
+    const mb=gid('txMotionBtn'); if(mb){mb.style.display='';mb.classList.add('needmove');}
+    status('✓ Re-matched ('+r.transErr.toFixed(1)+' mm residual). MOTION ENABLE (or SPACE) to move the couch to the corrected position, then resume.');
+    drawGantry(); updateKvAngle(); drawKvView(false);
+  }
+  // Motion Enable after a re-match: move the couch by the pending shift (couch + drift now realign),
+  // then let the student resume the beam. SPACE also triggers this (see TXFLOW.spaceMotion).
+  function txMotion(){
+    if(beamPhase!=='holdmove'||!pendingRematch) return;
+    const r=pendingRematch; pendingRematch=null;
+    appliedCorr.x+=r.t[0]; appliedCorr.y+=r.t[1]; appliedCorr.z+=r.t[2];
+    // FID2D coords (t=[Lat,AP,SI], r=[Roll,Yaw,Pitch]) -> couch (Vrt=AP, Lng=SI, Lat, RTN=Yaw), cm
+    couch.vrt+=r.t[1]/10; couch.lng+=r.t[2]/10; couch.lat+=r.t[0]/10; couch.rtn+=r.r[1];
+    const mb=gid('txMotionBtn'); if(mb){mb.style.display='none';mb.classList.remove('needmove');}
+    const cc=gid('txCouch'); if(cc){cc.classList.add('couch-moving');setTimeout(()=>{if(cc)cc.classList.remove('couch-moving');},1200);}
+    beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
+    status('Couch moved to the corrected position — press Beam On to resume delivery.');
+    paintTxCouch();
+    const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
+    lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM,g:gantryAngle};
+    buildKvBackdrop(gantryAngle);
+    drawGantry(); updateReadouts(); updateKvAngle(); drawKvView(false);
+  }
+
+  /* ---- completion ---- */
+  function finish(){
+    beamPhase='done'; if(raf){cancelAnimationFrame(raf);raf=0;}
+    setBeamState('on','COMPLETE'); setBtn('Beam On',true);
+    const m=measured(),finalMag=Math.hypot(m.x,m.y,m.z);
+    const score=Math.round(Math.max(40,100-holds*6-(cbctRes?cbctRes.mag*1.5:0)-(kvRes?kvRes.mag*1.5:0)));
+    if(gid('txSumHolds'))gid('txSumHolds').textContent=holds;
+    if(gid('txSumReimg'))gid('txSumReimg').textContent=reimages;
+    if(gid('txSumScore'))gid('txSumScore').textContent=score;
+    if(gid('txSumTitle'))gid('txSumTitle').textContent='Fraction complete — '+totalMU+' MU delivered';
+    const sm=gid('txSummary'); if(sm)sm.classList.remove('hidden');
+    if(typeof rtRecord==='function')rtRecord('tx','prostate',{accepted:true,mag:finalMag,timeMs:null});
+    stage='done'; updateStepper();
+  }
+
+  /* ---- rendering helpers ---- */
+  function setBeamState(cls,txt){const e=gid('txBeamState');if(e){e.className='tx-beam-state '+cls;e.textContent=txt;}const b=gid('txBeam');if(b)b.setAttribute('fill',cls==='on'?'rgba(255,210,63,.5)':'rgba(255,210,63,.15)');}
+  function setBtn(txt,dis){const b=gid('txBeamBtn');if(b){b.textContent=txt;b.disabled=!!dis;}}
+  function status(t){const e=gid('txStatus');if(e)e.textContent=t;}
+  function updateField(){const n=TX_PLAN.fields.length;
+    if(gid('txArcOf'))gid('txArcOf').textContent='Arc '+(Math.min(fieldIdx,n-1)+1)+' of '+n;
+    if(gid('txMuTxt'))gid('txMuTxt').textContent=Math.round(muTotal)+' / '+totalMU+' MU';
+    if(gid('txMuBar'))gid('txMuBar').style.width=Math.min(100,muTotal/totalMU*100)+'%';
+    for(let i=0;i<n;i++){const f=TX_PLAN.fields[i];
+      const done=(i<fieldIdx)?f.mu:(i===fieldIdx?Math.min(f.mu,muInField):0);
+      const row=document.querySelector('#txArcList .tx-arc[data-arc="'+i+'"]');
+      if(row){row.classList.toggle('done',i<fieldIdx);row.classList.toggle('active',i===fieldIdx&&beamPhase!=='done');}
+      const bar=gid('txArcBar'+i);if(bar)bar.style.width=Math.min(100,done/f.mu*100)+'%';
+      const mu=gid('txArcMu'+i);if(mu)mu.textContent=Math.round(done);}}
+  function drawGantry(){const rig=gid('txGantryRig');if(rig)rig.setAttribute('transform','rotate('+(gantryAngle-180)+' 100 100)');
+    if(gid('txGantryAng'))gid('txGantryAng').textContent='Gantry '+Math.round(((gantryAngle%360)+360)%360)+'°';
+    const f=TX_PLAN.fields[Math.min(fieldIdx,TX_PLAN.fields.length-1)]||{g0:gantryAngle,dir:1};
+    const swept=(beamPhase==='done')?ARC_SPAN:Math.min(ARC_SPAN,Math.abs(gantryAngle-f.g0));
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('txGantry3D',{angle:gantryAngle,mode:'mv',beamOn:beamPhase==='on',phase:'TREAT',
+      couch:{lat:couch.lat,vrt:couch.vrt-couchBase.vrt,lng:couch.lng-couchBase.lng,rtn:couch.rtn},isoRegion:'pelvis',
+      arcTrail:{start:f.g0,dir:f.dir,swept:swept,active:(beamPhase==='on')},kvFlash:kvFlashAt});}
+  function updateReadouts(){const m=measured();
+    if(gid('txDriftX'))gid('txDriftX').textContent=(m.x>=0?'+':'')+m.x.toFixed(1);
+    if(gid('txDriftY'))gid('txDriftY').textContent=(m.y>=0?'+':'')+m.y.toFixed(1);
+    if(gid('txDriftZ'))gid('txDriftZ').textContent=(m.z>=0?'+':'')+m.z.toFixed(1);
+    if(gid('txDriftMag'))gid('txDriftMag').textContent=Math.hypot(m.x,m.y,m.z).toFixed(1);}
+  // ---- kV fiducial monitor view ----
+  function updateKvAngle(){const e=gid('txKvAngle');if(e)e.textContent='kV imager · '+kvAngle()+'°';}
+  function flashKv(){const w=gid('txKvWrap');if(!w)return;w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');setTimeout(()=>{if(w)w.classList.remove('flash');},460);}
+  function drawKvView(triggered){
+    const c=gid('txKvView');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
+    // scale the detector view to FILL the panel; kvZoom (1..3) magnifies about isocentre by shrinking the
+    // effective field. gs (glyph scale) is tied to the panel size so line-weights stay sane at any zoom.
+    const effHalf=KV_HALF_MM/kvZoom, fit=Math.min(W,H),sc=fit/(2*effHalf),gs=Math.max(1,fit/300);
+    ctx.clearRect(0,0,W,H);
+    // Real bony-anatomy kV image (ray-sum at the imager angle) with the baked gold seeds suppressed, so
+    // the ONLY fiducials shown are the clean overlay seeds inside their 0.5 cm rings. Falls back to a
+    // plain detector field until the Stage-1 prostate volume is decoded.
+    if(kvBackImg){
+      const s=2*KV_HALF_MM*sc;   // full field -> fills the panel
+      ctx.save();ctx.beginPath();ctx.rect(0,0,W,H);ctx.clip();ctx.drawImage(kvBackImg,cx-s/2,cy-s/2,s,s);ctx.restore();
+    } else {
+      const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#0a1622');bg.addColorStop(1,'#050c14');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      ctx.strokeStyle='rgba(120,150,180,.07)';ctx.lineWidth=1;
+      for(let g=24;g<W;g+=40){ctx.beginPath();ctx.moveTo(g,0);ctx.lineTo(g,H);ctx.stroke();}
+      for(let g=24;g<H;g+=40){ctx.beginPath();ctx.moveTo(0,g);ctx.lineTo(W,g);ctx.stroke();}
+    }
+    ctx.strokeStyle='rgba(160,190,220,.18)';ctx.lineWidth=1;   // faint iso crosshair
+    ctx.beginPath();ctx.moveTo(cx,8);ctx.lineTo(cx,H-8);ctx.moveTo(8,cy);ctx.lineTo(W-8,cy);ctx.stroke();
+    const out=!!(lastKv&&lastKv.out), du=lastKv?lastKv.u:0, dv=lastKv?lastKv.v:0;
+    const col=out?'#ff5a6a':'#38e880', colDim=out?'rgba(255,90,106,.6)':'rgba(56,232,128,.55)';
+    // Project the planning fiducial triad onto the detector at the imager angle (v = SI, superior up) so
+    // the triad geometry reflects the current gantry angle; fall back to the schematic triad if the 2D
+    // fiducial geometry isn't available.
+    const a=(lastKv&&lastKv.g!=null?lastKv.g:0)*Math.PI/180, sA=Math.sin(a), cA=Math.cos(a);
+    const triad=(typeof PROSTATE2D!=='undefined'&&PROSTATE2D.fiducials)
+      ? PROSTATE2D.fiducials.map(p=>({u:p[0]*sA+p[1]*cA, v:p[2]}))
+      : KV_TRIAD.map(s=>({u:s.u,v:-s.v}));
+    const SANG=[-0.5,0.4,0.12];   // cosmetic per-seed capsule tilt
+    triad.forEach((s,i)=>{
+      const rx=cx+s.u*sc, ry=cy-s.v*sc;        // planned seed (ring centre) — SI up
+      const sx=cx+(s.u+du)*sc, sy=cy-(s.v+dv)*sc;// current fiducial reading
+      // 0.5 cm tolerance ring
+      ctx.beginPath();ctx.arc(rx,ry,GATE_MM*sc,0,7);ctx.setLineDash([5*gs,3*gs]);ctx.strokeStyle=colDim;ctx.lineWidth=1.5*gs;ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='rgba(200,220,240,.6)';ctx.beginPath();ctx.arc(rx,ry,1.4*gs,0,7);ctx.fill();   // planned centre dot
+      // displacement connector
+      ctx.strokeStyle=colDim;ctx.lineWidth=1*gs;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(sx,sy);ctx.stroke();
+      // the ACTUAL gold seed fiducial — a crisp capsule with a verdict-coloured halo. Sized LARGE vs the
+      // 0.5 cm ring (radius GATE_MM*sc = 5*sc) so the seed reads clearly against its tolerance circle.
+      const ang=SANG[i%SANG.length],hx=Math.cos(ang)*12*gs,hy=Math.sin(ang)*12*gs;
+      ctx.save();ctx.lineCap='round';
+      ctx.globalAlpha=.2;ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,12*gs,0,7);ctx.fill();ctx.globalAlpha=1;   // verdict halo
+      ctx.strokeStyle=col;ctx.lineWidth=7.5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke();   // verdict outline
+      ctx.strokeStyle='#ffd23f';ctx.lineWidth=5*gs;ctx.beginPath();ctx.moveTo(sx-hx/2,sy-hy/2);ctx.lineTo(sx+hx/2,sy+hy/2);ctx.stroke(); // gold seed
+      ctx.restore();
+    });
+    // verdict banner
+    const fpx=Math.round(12*gs);ctx.font='600 '+fpx+'px system-ui';ctx.textAlign='left';
+    if(lastKv){ctx.fillStyle=col;ctx.fillText(out?'✗ OUT OF GATE':'✓ IN GATE',10,H-10);}
+    else{ctx.fillStyle='rgba(159,179,196,.8)';ctx.fillText('awaiting first kV',10,H-10);}
+    ctx.textAlign='right';ctx.fillStyle='rgba(159,179,196,.75)';ctx.fillText('0.5 cm gate',W-10,fpx+6);
+    // header stamp
+    const st=gid('txKvStamp');
+    if(st){if(lastKv){st.textContent='G'+lastKv.phi+'° · '+lastKv.t+'s · '+(out?'OUT':'IN');st.className='tx-kv-stamp '+(out?'out':'in');}
+      else{st.textContent='awaiting first kV';st.className='tx-kv-stamp';}}
+  }
+  function getBackdrop(){
+    if(backdrop)return backdrop;
+    const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
+    const g=x.createRadialGradient(128,128,20,128,128,150);g.addColorStop(0,'#1a232c');g.addColorStop(1,'#070b10');
+    x.fillStyle=g;x.fillRect(0,0,256,256);
+    // faint pelvic-ish silhouette so the kV–MV panel doesn't read as empty
+    x.fillStyle='rgba(120,140,160,.10)';x.beginPath();x.ellipse(128,140,86,70,0,0,7);x.fill();
+    x.strokeStyle='rgba(160,180,200,.07)';x.lineWidth=2;for(let r=30;r<120;r+=18){x.beginPath();x.ellipse(128,140,r,r*0.8,0,0,7);x.stroke();}
+    backdrop=c.toDataURL('image/png');return backdrop;
+  }
+
+  return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,enterBeam,kvZoomBy,kvZoomWheel,beamBtn,startRematch,txMotion,cbApply,cbMotion,fidApply,fidMotion,
+    _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();},
+      truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
+      forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx,lastKv:()=>lastKv?Object.assign({},lastKv):null,
+      setGantry:g=>{gantryAngle=g;drawGantry();updateKvAngle();}}};
+})();
+window.TXFLOW=TXFLOW;
 
 /* ============================================================================
    DIBH — deep-inspiration breath-hold coaching (Breast L · DIBH case).
@@ -4935,6 +5962,11 @@ const CASE_LISTS={
     // retroperitoneal fat. Off-bone: the mass drifts with respiration off the spine. Data by generate_adrenal_cbct.py.
     {v:'adrenal',t:'Adrenal &middot; off-bone', d:'CBCT &middot; abdomen &middot; mass drifts off spine', b:'Register a respiration-shifted adrenal mass &mdash; the bony spine match leaves the target off.'},
   ]},
+  'tx':{label:'Full Treatment', icon:'✛', cases:[
+    // Full Treatment: one complete prostate fraction — CBCT volumetric setup → kV gold-fiducial verify
+    // → VMAT delivery with intrafraction kV monitoring (re-match a kV–MV pair if the seeds drift off).
+    {v:'prostate', t:'Prostate · VMAT', d:'CBCT → kV fiducial → treat', b:'Run a whole prostate fraction: CBCT setup, kV fiducial verification, then treat with intrafraction monitoring.'},
+  ]},
 };
 function pickMode(mode){
   const list=CASE_LISTS[mode]; if(!list) return;
@@ -5001,6 +6033,8 @@ function launchCase(mode, key){
     });
     return;
   }
+  // Full Treatment: a self-driving stage machine (TXFLOW owns screen switching + case loading).
+  if(mode==='tx'){ chooseMode('tx'); return; }
   chooseMode(mode);
   if(mode==='cbct') CBCT.applyCase(key); else applyCase(key);
 }
@@ -5011,6 +6045,9 @@ function chooseMode(mode){
     document.getElementById('cbctScreen').classList.remove('hidden');
     CBCT.enter();
     setTimeout(()=>window.dispatchEvent(new Event('resize')),0);
+  }else if(mode==='tx'){
+    document.getElementById('cbctScreen').classList.add('hidden');
+    if(window.TXFLOW) TXFLOW.enter();   // TXFLOW drives Stage 1 (CBCT) → 2 (kV) → 3 (treat)
   }else{
     document.getElementById('cbctScreen').classList.add('hidden');
     // canvases were laid out under the overlay; re-measure now that it is gone
@@ -5105,6 +6142,7 @@ const CASE_TOL={
   'cbct:sarcoma':   {t1:2, t2:5,   r1:2, r2:4},    // extremity soft-tissue sarcoma — soft-tissue limb match
   'cbct:hn':        {t1:3, t2:6,   r1:3, r2:5},    // head & neck — conventional daily-IGRT match (mask immobilisation; register the rigid head & neck)
   'cbct:adrenal':   {t1:3, t2:7,   r1:2, r2:4},    // adrenal — off-bone abdominal soft-tissue match (mass drifts vs spine; translation-graded)
+  'tx:prostate':    {t1:2, t2:5,   r1:3, r2:4},    // full-treatment prostate: re-match accept tolerance (mirrors cbct:prostate fiducial tol)
 };
 const RT_TOL_DEFAULT={t1:3,t2:7,r1:2,r2:4};   // conventional-IGRT fallback for any unlisted case
 function rtTol(mode,caseKey){return CASE_TOL[mode+':'+caseKey]||RT_TOL_DEFAULT;}
@@ -5493,7 +6531,10 @@ function backToMenu(){
   currentMode=null;
   DIBH.exit();   // stop the breath-hold animation + hide its overlay if it was open
   if(window.CONSOLE) CONSOLE.exit();   // hide the delivery console + stop its MU ramp on return to the picker
+  if(window.TXFLOW) TXFLOW.exit();     // stop the Full Treatment stage machine + delivery loop
+  if(typeof CBCT!=='undefined' && CBCT.setAcqForce) CBCT.setAcqForce(false);   // release the forced CBCT acquisition console
   document.body.classList.remove('fid-mode');   // clear the fiducial-case UI state
+  document.getElementById('txScreen').classList.add('hidden');
   document.getElementById('cbctScreen').classList.add('hidden');
   const ss=document.getElementById('startScreen');
   ss.classList.remove('hidden');
@@ -5544,6 +6585,21 @@ const CBCT=(function(){
   let curFill=null;        // active rectum/bladder filling scenario (prostate); drives the visible rectum density + the seed drift
   let pendingFill=null;    // Filling picker selection: a scenario key to force, or null = random each New Offset
   let active='axial', fusion=false, caseKey='cervix', started=false, undoStack=[], primaryPlane='axial', contoursOn=false, panMode=false, spyMode=false, crossMode=false;
+  /* ---- acquisition console (prostate only): a gantry sweep gates the match ----
+     Standalone CBCT: optional (skip toggle, default on). Full Treatment Stage 1: forced on.
+     phase: park (drive to 180°) -> armed (at 180°) -> acquiring (360° sweep) -> ready (match unlocked). */
+  let acqEnabled=true, acqForce=false, acqPhase='ready', acqAngle=90, acqRaf=0, acqMotion=false, acqSweepP=0, acqSweepHold=false;
+  // "Backprojection Accretion" reconstruction reveal: a per-pane filtered-backprojection illusion — a
+  // persistent accumulation canvas gathers angle-locked projection rays as the gantry circles, and that
+  // accumulation erases a dark mask (destination-out) so each MPR pane resolves centre-outward.
+  let acqCv=null, acqCtx=null, acqAcc=null, acqAccCtx=null, acqCvW=0, acqCvH=0, acqDpr=1, acqPaneRects=null;
+  const ACQ_RM=(()=>{try{return matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){return false;}})();
+  const acqSS=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t);};   // smoothstep
+  const ACQ_ROT=20;          // deg/sec while holding Motion Enable (rotate to 180° start) — matches the 2D console gantry speed
+  const ACQ_SWEEP_MS=12000;  // full 360° cone-beam acquisition (~30°/s; only advances while Cone-Beam On is held)
+  const ACQ_START=180;       // cone-beam acquisition start angle (gantry 180°)
+  function acqUses(){return caseKey==='prostate' && (acqForce||acqEnabled);}
+  function acqReady(){return !acqUses() || acqPhase==='ready';}
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
     axial:   {cv:'cbAxial',    pane:'cbPaneAxial',    sl:'cbBlendAxial',    sx:'x', sy:'z', rot:'roll',  fx:1, fy:-1},
@@ -5781,6 +6837,65 @@ const CBCT=(function(){
     const c11=data[b1+r1+x0]+(data[b1+r1+x1]-data[b1+r1+x0])*fx;
     const c0=c00+(c01-c00)*fy,c1=c10+(c11-c10)*fy;
     return c0+(c1-c0)*fz;
+  }
+  // ── Real-anatomy DRR ray-sum at an arbitrary gantry angle (rotation about the SI/longitudinal axis),
+  // iso-centred over a ±halfMm square detector. Feeds the Full Treatment intrafraction kV–MV re-match
+  // with GENUINE bony anatomy from the loaded 3D volume (replacing the old synthetic ellipse backdrop).
+  // Beam axis w=(−sinθ,cosθ,0); detector horizontal u=(cosθ,sinθ,0), vertical v=+SI — the SAME θ
+  // convention as FID2D.proj(), so the θ-projected gold seeds land on the pelvic bone. kind: 'kv' =
+  // crisp bone-bright OBI look; 'mv' = flat, hazy megavoltage (EPID). Cheap enough to build on demand
+  // (a deliberate, occasional action); returns a PNG data-URL, or null if no volume is decoded yet.
+  const _MU16=(function(){const t=new Float32Array(256);for(let d=0;d<256;d++)t[d]=Math.pow(d/255,1.6);return t;})();
+  function rayDRR(thetaDeg,halfMm,kind,noSeeds){
+    if(!V3||!V3.data)return null;
+    const N=180,sp=V3.sp,X=V3.X,Y=V3.Y,Z=V3.Z,data=V3.data,XY=X*Y;
+    const iso=curIsoIdx(),ix=iso[0],iy=iso[1],iz=iso[2];
+    const th=thetaDeg*Math.PI/180,c=Math.cos(th),s=Math.sin(th);
+    // noSeeds: suppress the baked gold-fiducial voxels (density near the 255 ceiling) so the DRR shows
+    // ONLY bony anatomy — the seeds are drawn cleanly as the overlay instead of blooming into blobs.
+    const SEED_T=210,SOFT=95,mu=noSeeds?(idx=>{const d=data[idx];return _MU16[d>=SEED_T?SOFT:d];}):(idx=>_MU16[data[idx]]);
+    const depthMm=200,dStep=sp,acc=new Float32Array(N*N);let mx=0;   // step at the voxel pitch — fine enough to avoid streaks
+    for(let vi=0;vi<N;vi++){
+      const vmm=halfMm-(2*halfMm)*vi/(N-1);                 // detector vertical: top row = +SI (superior up)
+      const kk=(vmm/sp+iz+0.5)|0;                           // SI voxel — constant along the beam for this row
+      if(kk<0||kk>=Z)continue;                              // outside the volume in SI -> leave the row black
+      const kb=kk*XY,row=vi*N;
+      for(let ui=0;ui<N;ui++){
+        const umm=-halfMm+(2*halfMm)*ui/(N-1);
+        let sum=0;
+        for(let w=-depthMm/2;w<depthMm/2;w+=dStep){
+          const fi=(umm*c-w*s)/sp+ix, fj=(umm*s+w*c)/sp+iy;
+          if(fi<0||fj<0||fi>=X-1||fj>=Y-1)continue;
+          // bilinear in-plane on the bone-emphasised (μ¹·⁶) densities, then integrate — smooth, no aliasing
+          const i0=fi|0,j0=fj|0,gx=fi-i0,gy=fj-j0,b=kb+j0*X+i0;
+          const s0=mu(b)+(mu(b+1)-mu(b))*gx;
+          const s1=mu(b+X)+(mu(b+X+1)-mu(b+X))*gx;
+          sum+=s0+(s1-s0)*gy;
+        }
+        acc[row+ui]=sum;if(sum>mx)mx=sum;
+      }
+    }
+    if(mx<=0)return null;
+    // Percentile stretch (p45..p99.5) via a 256-bin histogram: windows overlapping soft tissue toward
+    // black so the cortical bone reads as the bright landmark (same recipe as the offline kV generator).
+    const H=new Int32Array(258);for(let p=0;p<acc.length;p++)H[(acc[p]/mx*256)|0]++;
+    const tot=acc.length;let cum=0,loB=0,hiB=256;
+    for(let b=0;b<=256;b++){cum+=H[b];if(cum>=tot*0.45){loB=b;break;}}
+    cum=0;for(let b=0;b<=256;b++){cum+=H[b];if(cum>=tot*0.995){hiB=b;break;}}
+    const lo=loB/256*mx,hi=Math.max(hiB/256*mx,lo+1e-6);
+    const cn=document.createElement('canvas');cn.width=cn.height=N;
+    const cx2=cn.getContext('2d'),id=cx2.createImageData(N,N),px=id.data;
+    for(let p=0;p<acc.length;p++){
+      let a=(acc[p]-lo)/(hi-lo);a=a<0?0:a>1?1:a;
+      let g;
+      if(kind==='mv'){a=0.5+(a-0.42)*0.7;a=a<0?0:a>1?1:a;g=(a*255)|0;}   // MV/EPID: compressed contrast, mid-grey
+      else{g=(Math.pow(a,0.85)*255)|0;}                                  // kV: gentle gamma, bone-bright
+      const o=p*4;px[o]=px[o+1]=px[o+2]=g;px[o+3]=255;
+    }
+    cx2.putImageData(id,0,0);
+    // Soften residual ray-sum grain: kV stays crisp (0.5 px), MV gets EPID unsharpness (1.1 px).
+    const c2=document.createElement('canvas');c2.width=c2.height=N;const x2=c2.getContext('2d');
+    x2.filter='blur('+(kind==='mv'?1.1:0.5)+'px)';x2.drawImage(cn,0,0);return c2.toDataURL('image/png');
   }
   // screen(u=+right mm, v=+down mm) + depth(mm) -> world (Wx,Wy,Wz), matching pane labels
   function planeWorld(name,u,v,dep){
@@ -6686,9 +7801,9 @@ const CBCT=(function(){
   function pushUndo(){undoStack.push(JSON.stringify(shift));if(undoStack.length>80)undoStack.shift();}
   function undo(){if(!undoStack.length)return;shift=JSON.parse(undoStack.pop());clearErrors();refreshReadouts();render();}
   const cbTimer=makeMatchTimer();   // hidden timer: first directional move -> Check Match
-  function adj(axis,delta){cbTimer.onMove();pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
+  function adj(axis,delta){if(!acqReady())return;cbTimer.onMove();pushUndo();shift[axis]=+(shift[axis]+delta).toFixed(1);clearErrors();refreshReadouts();render();}
   function slStart(){pushUndo();}
-  function slide(axis,val){cbTimer.onMove();shift[axis]=+parseFloat(val).toFixed(1);clearErrors();refreshReadouts();render();}
+  function slide(axis,val){if(!acqReady())return;cbTimer.onMove();shift[axis]=+parseFloat(val).toFixed(1);clearErrors();refreshReadouts();render();}
   function setBlend(name,val){ST[name].blend=+val;drawPlane(name);}
   // single CT<->CBCT blend that drives all three planes (slider lives on the main pane only)
   function setBlendAll(val){val=+val;Object.keys(PLANES).forEach(name=>{ST[name].blend=val;const sl=gid(PLANES[name].sl);if(sl)sl.value=val;});render();}
@@ -6817,10 +7932,24 @@ const CBCT=(function(){
       const m=gid('cbStatusMsg');
       m.textContent = setupMsg;
       m.style.color='var(--label)';
+      acqArm();   // a fresh fraction re-interlocks the acquisition console (prostate)
     }
     render();
   }
+  // Side-effect-free residual getter for Full Treatment APPLY (mirrors check()'s grading, no UI writes,
+  // no new offset). res6 is the gradable residual (translation onto the target for off-bone cases).
+  function residual(){
+    const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));
+    const g={x:e.x,y:e.y,z:e.z,pitch:e.pitch,roll:e.roll,yaw:e.yaw};
+    if(targetDrift){g.x=+(e.x-targetDrift.x).toFixed(1);g.y=+(e.y-targetDrift.y).toFixed(1);g.z=+(e.z-targetDrift.z).toFixed(1);}
+    const TOL=rtTol('cbct',caseKey), ptvOnly=!!targetDrift;
+    const tOk=Math.abs(g.x)<=TOL.t1&&Math.abs(g.y)<=TOL.t1&&Math.abs(g.z)<=TOL.t1,
+          rOk=Math.abs(g.pitch)<=TOL.r1&&Math.abs(g.roll)<=TOL.r1&&Math.abs(g.yaw)<=TOL.r1;
+    return {accepted:ptvOnly?tOk:(tOk&&rOk), mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z),
+      res6:{x:g.x,y:g.y,z:g.z,pitch:g.pitch,roll:g.roll,yaw:g.yaw}};
+  }
   function check(){
+    if(!acqReady()){const m=gid('cbStatusMsg');if(m){m.textContent='Acquire the cone-beam first — rotate to 180° and scan around the patient.';m.style.color='var(--accent2)';}return;}
     const e={};ORDER.forEach(k=>e[k]=+(shift[k]-hidden[k]).toFixed(1));   // bony residual
     // Grade against the TARGET: for the lung case the GTV sits at bone+drift, so the gradable
     // residual is the bony residual minus the drift on the translation axes.
@@ -6852,6 +7981,9 @@ const CBCT=(function(){
     else if(boneMatched&&!accepted){msg=(_ob?_ob.hint:'✗ Bones aligned, but the target is off')+tt;col='var(--accent2)';}
     else if(close){msg='⚡ Close — fine-tune the residual'+tt;col='var(--accent2-hi)';}
     else{msg='✗ Residual error — keep fusing the planes'+tt;col='var(--accent2)';}
+    // Full Treatment Stage 1: TXFLOW owns progression — show the verdict, advance only on accept,
+    // and DON'T roll a new offset (keep the same setup error so the student keeps trying).
+    if(window.TXFLOW&&TXFLOW.active()){const m=gid('cbStatusMsg');m.textContent=msg;m.style.color=col;TXFLOW.onStageResult('cbct',{accepted:accepted,mag:Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z),res6:{x:g.x,y:g.y,z:g.z,pitch:g.pitch,roll:g.roll,yaw:g.yaw}});return;}
     // record this attempt; only document a time when within tolerance
     const _id='cbct:'+caseKey, _pB=RTProfile.get(), _sB=_pB.stats[_id]||{a:0,c:0,bt:null,br:null}, _achB=Object.assign({},_pB.ach), _xpB=_pB.xp||0, _lvlB=rtLevel(_xpB), _mag=Math.sqrt(g.x*g.x+g.y*g.y+g.z*g.z);
     rtRecord('cbct', caseKey, {accepted:accepted, mag:_mag, timeMs:accepted?ms:null});
@@ -6933,6 +8065,7 @@ const CBCT=(function(){
     });
     el.addEventListener('pointerdown',ev=>{
       if(ev.target.closest('.view-blend')||ev.target.closest('.cb-zoom-bar')||ev.target.closest('.cb-view-bar'))return;
+      if(!acqReady())return;   // acquisition console up: panes are not interactable until the cone-beam is acquired
       select(name);
       if(crossMode){
         // Grab the split ONLY when pressing on a crosshair line; press elsewhere drags the image.
@@ -7071,6 +8204,8 @@ const CBCT=(function(){
     const hasFill=!!(vc&&vc.offBone&&vc.offBone.fill);
     pendingFill=null; const fr=gid('cbFillRow'); if(fr)fr.style.display=hasFill?'':'none';
     const fs=gid('cbFillSelect'); if(fs)fs.value='random';
+    const ar=gid('cbAcqRow'); if(ar)ar.style.display=(key==='prostate')?'':'none';   // acquisition-console toggle: prostate only
+    const at=gid('cbAcqToggle'); if(at)at.checked=acqEnabled;
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
     if(hasVol(key)&&mprCase!==key){V3=null;mprReady=false;_invCaches();_invContours();}
     // per-case default CT window
@@ -7107,14 +8242,176 @@ const CBCT=(function(){
   // Touch nudge pad: drive the SELECTED plane's in-plane axes / Vrt / rotation, same path the CBCT
   // arrow/Q-E keys use (0.5 mm or 0.5° per tap). axis: 'x'|'y'|'z'|'rot'.
   function cbNudge(axis,dir){
+    if(!acqReady())return;   // no couch nudges until the cone-beam is acquired
     const P=PLANES[active];
     if(axis==='rot'){ adj(P.rot, (P.rot==='pitch'?-1:1)*dir*0.5); return; }
     if(axis==='z'){ adj('z', dir*0.5); return; }
     if(axis==='x'){ const fxe=(mprReady&&active==='sagittal')?-P.fx:P.fx; adj(P.sx, dir*0.5*fxe); return; }
     if(axis==='y'){ adj(P.sy, dir*0.5*P.fy); return; }
   }
-  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,timerMs:()=>cbTimer.elapsed(),
-    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode}};
+  /* ---- acquisition console rendering + control ---- */
+  function acqStopRaf(){if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqMotion=false;acqSweepHold=false;}
+  function acqLamp(id,on,kind){const e=gid(id);if(e)e.className='con-lamp'+(on?' '+(kind||'on'):'');}
+  function acqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
+  // ---- "Backprojection Accretion" reconstruction reveal helpers ----
+  function acqAccClear(){if(acqAccCtx){acqAccCtx.setTransform(1,0,0,1,0,0);acqAccCtx.clearRect(0,0,acqAcc.width,acqAcc.height);acqAccCtx.setTransform(acqDpr,0,0,acqDpr,0,0);}}
+  function acqEnsureCanvas(){
+    acqCv=acqCv||gid('cbAcqCanvas'); if(!acqCv||!acqCv.getContext)return false;
+    const host=acqCv.parentNode; const w=host.clientWidth,h=host.clientHeight;
+    if(w<=0||h<=0)return false;                                   // hidden / zero-size
+    if(w!==acqCvW||h!==acqCvH){
+      acqDpr=Math.min(2,window.devicePixelRatio||1);
+      acqCv.width=Math.round(w*acqDpr);acqCv.height=Math.round(h*acqDpr);
+      acqCtx=acqCv.getContext('2d');acqCtx.setTransform(acqDpr,0,0,acqDpr,0,0);
+      acqAcc=acqAcc||document.createElement('canvas');
+      acqAcc.width=acqCv.width;acqAcc.height=acqCv.height;
+      acqAccCtx=acqAcc.getContext('2d');acqAccCtx.setTransform(acqDpr,0,0,acqDpr,0,0);
+      acqCvW=w;acqCvH=h;acqPaneRects=null;acqAccClear();          // size change → recompute rects, reset integral
+    }
+    return true;
+  }
+  function acqComputePaneRects(){
+    const host=acqCv.parentNode,ob=host.getBoundingClientRect();  // #cbAcqReveal (inset:0 of .cbct-panes)
+    const cont=host.parentNode;                                   // .cbct-panes (the panes are siblings of the reveal)
+    const panes=cont?[].slice.call(cont.querySelectorAll('.cbct-pane')).filter(p=>p.offsetParent!==null):[];
+    acqPaneRects=panes.length?panes.map(p=>{const r=p.getBoundingClientRect();return {x:r.left-ob.left,y:r.top-ob.top,w:r.width,h:r.height};})
+                            :[{x:0,y:0,w:acqCvW,h:acqCvH}];       // fallback: whole overlay as one pane
+  }
+  function acqRevDraw(){
+    if(!acqEnsureCanvas())return;
+    if(!acqPaneRects)acqComputePaneRects();
+    const p=Math.max(0,Math.min(1,acqSweepP)),acquiring=(acqPhase==='acquiring'),ctx=acqCtx,R=acqPaneRects;
+    const MASK='rgba(2,6,10,.94)';
+    if(ACQ_RM){                                                   // reduced motion: calm centre-out dissolve, no rotation
+      ctx.clearRect(0,0,acqCvW,acqCvH);
+      const e=acquiring?(p*p*(3-2*p)):0;
+      for(let i=0;i<R.length;i++){const q=R[i],cx=q.x+q.w/2,cy=q.y+q.h/2,maxR=0.5*Math.hypot(q.w,q.h)*1.12,rr=e*maxR;
+        const g=ctx.createRadialGradient(cx,cy,0,cx,cy,maxR),f=Math.max(0,(rr-0.18*maxR)/maxR);
+        g.addColorStop(0,'rgba(2,6,10,0)');g.addColorStop(Math.min(f,0.999),'rgba(2,6,10,0)');
+        g.addColorStop(Math.min(rr/maxR,1),MASK);g.addColorStop(1,MASK);
+        ctx.fillStyle=g;ctx.fillRect(q.x,q.y,q.w,q.h);}
+      return;
+    }
+    // STEP A — stamp new angle-locked projection rays into the persistent accumulation (while acquiring)
+    if(acquiring){
+      const th=acqAngle*Math.PI/180,rdx=-Math.sin(th),rdy=Math.cos(th),ndx=Math.cos(th),ndy=Math.sin(th);
+      const A=0.05+0.06*p,ac=acqAccCtx;
+      ac.globalCompositeOperation='lighter';ac.strokeStyle='rgba(255,255,255,'+A.toFixed(3)+')';ac.lineWidth=1.5;
+      for(let i=0;i<R.length;i++){const q=R[i],cx=q.x+q.w/2,cy=q.y+q.h/2,L=Math.hypot(q.w,q.h);
+        for(let k=-1;k<=1;k++){const off=k*4+(Math.random()*3-1.5),ox=cx+ndx*off,oy=cy+ndy*off;
+          ac.beginPath();ac.moveTo(ox-rdx*L,oy-rdy*L);ac.lineTo(ox+rdx*L,oy+rdy*L);ac.stroke();}}
+      const floorA=acqSS(0.75,1,p)*0.16;                         // guaranteed clear over the final quarter (frame-rate safe)
+      if(floorA>0){ac.fillStyle='rgba(255,255,255,'+floorA.toFixed(3)+')';ac.fillRect(0,0,acqCvW,acqCvH);}
+      ac.globalCompositeOperation='source-over';
+    }
+    // STEP B — composite the dark mask minus the accumulation (anatomy shows where many angles crossed)
+    ctx.clearRect(0,0,acqCvW,acqCvH);ctx.globalCompositeOperation='source-over';ctx.fillStyle=MASK;
+    for(let i=0;i<R.length;i++){const q=R[i];ctx.fillRect(q.x,q.y,q.w,q.h);}   // per-pane so grid gaps stay clear
+    ctx.globalCompositeOperation='destination-out';ctx.drawImage(acqAcc,0,0,acqCvW,acqCvH);
+    ctx.globalCompositeOperation='source-over';
+    // STEP C — flourishes (only while acquiring): teal leading beam at the live angle + closing progress ring
+    if(acquiring){const th=acqAngle*Math.PI/180;
+      for(let i=0;i<R.length;i++){const q=R[i],cx=q.x+q.w/2,cy=q.y+q.h/2,rad=Math.min(q.w,q.h)/2-8,rr=Math.min(q.w,q.h)/2*0.9;
+        const bx=cx+Math.cos(th)*rr,by=cy+Math.sin(th)*rr,bg=ctx.createLinearGradient(bx,by,cx,cy);
+        bg.addColorStop(0,'rgba(142,240,194,.5)');bg.addColorStop(1,'rgba(142,240,194,0)');
+        ctx.strokeStyle=bg;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(cx,cy);ctx.stroke();
+        ctx.globalCompositeOperation='screen';const hg=ctx.createRadialGradient(bx,by,0,bx,by,7);
+        hg.addColorStop(0,'rgba(190,255,244,.6)');hg.addColorStop(1,'rgba(142,240,194,0)');
+        ctx.fillStyle=hg;ctx.beginPath();ctx.arc(bx,by,7,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
+        if(rad>4){ctx.strokeStyle='rgba(142,240,194,.12)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.stroke();
+          ctx.strokeStyle='rgba(142,240,194,.55)';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.arc(cx,cy,rad,-Math.PI/2,-Math.PI/2+p*Math.PI*2);ctx.stroke();ctx.lineCap='butt';}}
+    }
+  }
+  function acqRender(){
+    const wrap=gid('cbAcq');if(!wrap)return;
+    if(!acqUses()){wrap.classList.add('hidden');const rv=gid('cbAcqReveal');if(rv)rv.classList.add('hidden');return;}
+    wrap.classList.toggle('hidden',acqPhase==='ready');
+    const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');   // linac viz
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('cbAcqGantry3D',{angle:acqAngle,mode:'kv',beamOn:acqPhase==='acquiring',phase:'ACQUIRE',isoRegion:'pelvis'});
+    const a=((acqAngle%360)+360)%360;
+    const grig=gid('cbaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
+    const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
+    const prompt=(acqPhase==='matchprompt');
+    const gauge=gid('cbaGauge');if(gauge)gauge.className='con-gauge '+(acqPhase==='acquiring'?'moving':(acqPhase==='armed'||prompt)?'ok':'off');
+    const mot=gid('cbAcqMotion');if(mot){mot.style.display=prompt?'none':'';mot.disabled=(acqPhase!=='park');mot.classList.toggle('needmove',acqPhase==='park'&&!acqMotion);mot.classList.toggle('moving',acqMotion);}
+    const go=gid('cbAcqGo');if(go){go.style.display=prompt?'none':'';go.disabled=(acqPhase!=='armed');}
+    const mb=gid('cbAcqMatch');if(mb)mb.style.display=prompt?'':'none';
+    const bar=gid('cbAcqBar');if(bar)bar.style.width=Math.round(acqSweepP*100)+'%';
+    acqLamp('cbaLampRot',acqPhase==='park'||acqPhase==='armed','warn');
+    acqLamp('cbaLampAcq',acqPhase==='acquiring','beam');
+    acqLamp('cbaLampReady',prompt,'on');
+    const st=gid('cbaLcdSt');
+    if(st){let t,c;if(acqPhase==='park'){t='ROTATE → G180';c='off';}else if(acqPhase==='armed'){t='AT G180 · ACQUIRE';c='ok';}else if(prompt){t='RECONSTRUCTED';c='ok';}else{t='ACQUIRING…';c='moving';}st.textContent=t;st.className='con-lcd-st '+c;}
+    const msg=gid('cbAcqMsg');
+    if(msg)msg.textContent=acqPhase==='park'?'Hold MOTION ENABLE (or SPACE) to rotate the gantry to the 180° cone-beam start position.'
+      :acqPhase==='armed'?'Gantry at 180°. Press CONE-BEAM ON (or Enter) — the gantry circles the patient and reconstructs automatically.'
+      :prompt?'Cone-beam reconstructed — press 3D / 3D MATCH to start registering the volume.'
+      :'Acquiring cone-beam — the gantry is circling the patient…';
+    // reconstruction reveal: per-pane filtered-backprojection accretion (acqRevDraw), gone once acquired
+    const rev=gid('cbAcqReveal');
+    if(rev){
+      if(acqPhase==='ready'||prompt){rev.classList.add('hidden');acqAccClear();acqPaneRects=null;}
+      else{rev.classList.remove('hidden');acqRevDraw();
+        const rl=gid('cbAcqRevealLbl');if(rl)rl.textContent=(acqPhase==='acquiring')?('RECONSTRUCTING… '+Math.round(acqSweepP*100)+'%'):'CONE-BEAM NOT ACQUIRED';}
+    }
+  }
+  function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;acqAccClear();acqPaneRects=null;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
+  function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqStopRaf();acqMotion=true;let last=performance.now();
+    const step=(t)=>{if(!acqMotion){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
+      let d=180-acqAngle;if(d>180)d-=360;if(d<-180)d+=360;
+      const stepDeg=ACQ_ROT*dt*(d>=0?1:-1);
+      if(Math.abs(stepDeg)>=Math.abs(d)){acqAngle=180;acqMotion=false;acqPhase='armed';acqRaf=0;acqRender();return;}
+      acqAngle+=stepDeg;acqRender();acqRaf=requestAnimationFrame(step);};
+    acqRaf=requestAnimationFrame(step);}
+  function acqMotionStop(){if(acqPhase==='park'){acqMotion=false;if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}}}
+  // Cone-beam acquisition: HOLD-driven (like the 2D console's beam-on). The 360° sweep only advances
+  // while the button is held; releasing pauses it. Reaching 100% reconstructs and unlocks the match.
+  // AUTO-acquire: a single Beam On press starts the scan and it runs to completion on its own
+  // (the gantry circles the patient automatically) — no continuous hold required.
+  function acqSweepStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();
+    if(acqPhase!=='armed')return;   // one-shot from armed; ignore re-press while acquiring
+    acqStopRaf();acqPhase='acquiring';acqSweepHold=true;acqAccClear();acqPaneRects=null;let last=performance.now();
+    const step=(t)=>{const dt=Math.min(0.05,(t-last)/1000);last=t;
+      acqSweepP=Math.min(1,acqSweepP+dt*1000/ACQ_SWEEP_MS);acqAngle=ACQ_START+acqSweepP*360;acqRender();
+      if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='matchprompt';acqRender();return;}   // reconstructed — wait for "START 3D/3D MATCH"
+      acqRaf=requestAnimationFrame(step);};
+    acqRaf=requestAnimationFrame(step);acqRender();}
+  function acqSweepStop(){}   // auto-acquire: Beam On runs the full sweep; release/keyup is a no-op
+  function acqStartMatch(){if(acqPhase!=='matchprompt')return;acqPhase='ready';acqRender();render();   // "3D/3D MATCH" — unlock the registration
+    if(window.TXFLOW&&TXFLOW.active()&&TXFLOW.onMatchStart)TXFLOW.onMatchStart('cbct');}   // Full Treatment: open the APPLY console now
+  function toggleAcq(on){acqEnabled=!!on;if(acqUses()){if(acqPhase==='ready')acqArm();}else{acqPhase='ready';acqStopRaf();}acqRender();}
+  function setAcqForce(on){acqForce=!!on;if(!acqUses()){acqStopRaf();}}
+  function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
+  return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,rayDRR,mprCase:()=>mprCase,timerMs:()=>cbTimer.elapsed(),
+    toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,acqStartMatch,setAcqForce,acqReady,residual,
+    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm,acqSet:(ph,p)=>{acqPhase=ph;if(p!=null)acqSweepP=p;acqAngle=ACQ_START+acqSweepP*360;acqRender();}}};
+})();
+window.CBCT=CBCT;
+/* Acquisition-console keyboard deadman (matches the 2D console): SPACE = Motion Enable (hold),
+   Enter = Cone-Beam/kV beam on (hold). Only fires while a CBCT or kV-fiducial acquisition console
+   is actually up (acqReady()===false); auto-repeat is ignored so the hold timer advances normally. */
+(function(){
+  const cbctUp=()=>typeof CBCT!=='undefined'&&CBCT.acqReady&&!CBCT.acqReady();
+  const fidUp =()=>typeof FID2D!=='undefined'&&FID2D.acqReady&&!FID2D.acqReady();
+  document.addEventListener('keydown',function(e){
+    if(e.repeat)return;
+    if(e.code==='Space'||e.key===' '){
+      if(cbctUp()){e.preventDefault();CBCT.acqMotionStart(e);}
+      else if(fidUp()){e.preventDefault();FID2D.acqMotionStart(e);}
+      // SPACE is ALWAYS a motion-enable: when no acquisition console is up, drive a loaded couch shift.
+      else if(typeof TXFLOW!=='undefined'&&TXFLOW.spaceMotion&&TXFLOW.spaceMotion()){e.preventDefault();}
+    }else if(e.key==='Enter'){
+      // Enter = Beam On/Hold on the treatment delivery screen (checked first; only fires when that
+      // screen is visible, which is exclusive with the acquisition consoles).
+      if(typeof TXFLOW!=='undefined'&&TXFLOW.enterBeam&&TXFLOW.enterBeam()){e.preventDefault();}
+      else if(cbctUp()){e.preventDefault();CBCT.acqSweepStart(e);}
+      else if(fidUp()){e.preventDefault();FID2D.acqBeamStart(e);}
+    }
+  });
+  document.addEventListener('keyup',function(e){
+    if(e.code==='Space'||e.key===' '){if(typeof CBCT!=='undefined')CBCT.acqMotionStop();if(typeof FID2D!=='undefined')FID2D.acqMotionStop();}
+    else if(e.key==='Enter'){if(typeof CBCT!=='undefined')CBCT.acqSweepStop();if(typeof FID2D!=='undefined')FID2D.acqBeamStop();}
+  });
 })();
 
 /* ======================= CBCT 3D volume raycaster (WebGL2) =======================

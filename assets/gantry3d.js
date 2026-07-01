@@ -380,6 +380,21 @@ class GantryScene {
     this.kvBeam.renderOrder = 4;
     this.rig.add(this.kvBeam);
 
+    // Delivered-arc coverage ring (Full Treatment only, opt-in via state.arcTrail). Mounted on the FIXED
+    // scene (NOT the rig) so it marks the swept gantry range in world space. Backing track + bright arc.
+    this._arcTrackMat = makeMat(0xffffff, { transparent: true, opacity: 0, metalness: 0, roughness: 1, depthWrite: false });
+    this._arcTrack = new THREE.Mesh(new THREE.RingGeometry(1.90, 2.00, 96, 1, 0, Math.PI * 2), this._arcTrackMat);
+    this._arcTrack.position.z = 0.02; this._arcTrack.renderOrder = 3; this._arcTrack.visible = false;
+    this.scene.add(this._arcTrack);
+    this._arcTrailMat = makeMat(0xff9b60, { transparent: true, opacity: 0, metalness: 0, roughness: 1, depthWrite: false, emissive: 0xff5d24, emissiveIntensity: 0.6 });
+    this._arcTrail = new THREE.Mesh(new THREE.RingGeometry(1.90, 2.00, 96, 1, 0, 0.001), this._arcTrailMat);
+    this._arcTrail.position.z = 0.03; this._arcTrail.renderOrder = 4; this._arcTrail.visible = false;
+    this.scene.add(this._arcTrail);
+    this._arcTrailGeoSpan = -1; this._arcTrailGeoStart = 0; this._arcTailFade = 0;
+    this._kvFlashUntil = 0; this._kvFlashSeen = undefined;   // transient kV-beam flash (opt-in via state.kvFlash)
+    this._reduceMotion = false;
+    try { const mq = matchMedia('(prefers-reduced-motion:reduce)'); this._reduceMotion = mq.matches;
+      mq.addEventListener && mq.addEventListener('change', e => { this._reduceMotion = e.matches; }); } catch (e) {}
     // MV treatment field aperture at the head — collimator jaw frame + a few MLC leaves shaping an
     // irregular opening. Built lazily per case (configureAperture); shown only for MV cases beaming.
     this.apertureGroup = new THREE.Group();
@@ -600,6 +615,13 @@ class GantryScene {
 
   update(state = {}) {
     this.state = { ...this.state, ...state };
+    // Transient kV-beam flash (Full Treatment triggered-kV). Edge-detect a new kvFlash stamp and open a
+    // 600 ms window (timed on THIS scene's clock, robust to the sender's clock base). conGantry3D never
+    // sends kvFlash, so this is inert for the 2D console.
+    if (state && 'kvFlash' in state && state.kvFlash && state.kvFlash !== this._kvFlashSeen) {
+      this._kvFlashSeen = state.kvFlash;
+      this._kvFlashUntil = performance.now() + 600;
+    }
     // On a large commanded jump (reset / case switch) snap the display so it doesn't
     // spin the long way round; small deltas glide via the eased loop below.
     const angle = Number.isFinite(this.state.angle) ? this.state.angle : 0;
@@ -692,6 +714,9 @@ class GantryScene {
     const beamOn = !!this.state.beamOn;
     const mode = this.state.mode === 'mv' ? 'mv' : 'kv';
     const kv = mode === 'kv';
+    const now = performance.now();
+    const kvActive = now < this._kvFlashUntil;            // transient kV-beam flash window (Full Treatment)
+    const reduce = this._reduceMotion;
 
     // Both the kV (OBI source+panel) and MV (head+EPID) imaging chains stay visible at all times;
     // `mode` still drives which beam fires, which detector glows, and the collision cue below.
@@ -708,12 +733,21 @@ class GantryScene {
     const beam = kv ? this.kvBeam : this.mvBeam;
     const other = kv ? this.mvBeam : this.kvBeam;
     const p = 0.5 + 0.5 * Math.sin(this.clock / 130);   // shared beam/aperture/detector pulse phase
-    other.visible = false;
     beam.visible = beamOn;
+    // Full Treatment: on a triggered kV, flash the kV beam ALONGSIDE the MV beam (else the off-beam hides).
+    const kvFlashShow = (!kv && kvActive && beamOn);
+    other.visible = kvFlashShow;
     if (beamOn) {
       beam.material.opacity = 0.24 + 0.26 * p;
       beam.material.emissiveIntensity = (kv ? 0.62 : 0.6) + 0.4 * p;
       beam.scale.setScalar(0.97 + 0.05 * p);
+    }
+    if (kvFlashShow) {
+      const life = Math.max(0, (this._kvFlashUntil - now) / 600);
+      const k = (0.35 + 0.45 * p) * life;
+      this.kvBeam.material.opacity = 0.18 + 0.4 * k;
+      this.kvBeam.material.emissiveIntensity = 0.4 + 0.5 * k;
+      this.kvBeam.scale.setScalar(0.97 + 0.05 * p);
     }
 
     // Field aperture — MV cases only, visible while beaming; leaves pulse with the beam.
@@ -734,6 +768,29 @@ class GantryScene {
     det.material.emissiveIntensity = this.detectorGlow * (0.9 + 0.5 * p);
     detOff.material.emissiveIntensity = 0;
     this.lastBeamOn = beamOn;
+
+    // Delivered-arc coverage ring (opt-in via state.arcTrail). Grows as the gantry sweeps the arc, so the
+    // beam clearly reads as delivered all the way around; mounted on the fixed scene (world-space gauge).
+    const at = this.state.arcTrail;
+    if (at && (at.active || this._arcTrailMat.opacity > 0.01)) {
+      this._arcTailFade = at.active ? 1 : Math.max(0, this._arcTailFade - dt / 500);
+      const fade = at.active ? 1 : this._arcTailFade;
+      this._arcTrack.visible = true; this._arcTrackMat.opacity = 0.10 * fade;
+      const start = at.start || 0, dir = at.dir < 0 ? -1 : 1, swept = Math.max(0, Math.min(358, at.swept || 0));
+      // rig.rotation.z = -A*DEG with the MV head at +Y ⇒ screen math-angle a(A) = PI/2 - A*DEG
+      const a0 = Math.PI / 2 - start * DEG, len = -dir * swept * DEG;
+      const thetaStart = len < 0 ? a0 + len : a0, thetaLen = Math.max(0.001, Math.abs(len));
+      if (Math.abs(swept - this._arcTrailGeoSpan) > 1.2 || Math.abs(start - this._arcTrailGeoStart) > 1.2) {
+        this._arcTrail.geometry.dispose();   // throttle rebuilds to ~1.2° swept → avoid GPU churn on the long arc
+        this._arcTrail.geometry = new THREE.RingGeometry(1.90, 2.00, Math.max(2, Math.round(swept / 3)), 1, thetaStart, thetaLen);
+        this._arcTrailGeoSpan = swept; this._arcTrailGeoStart = start;
+      }
+      this._arcTrail.visible = swept > 0.5;
+      this._arcTrailMat.opacity = (0.55 + (reduce ? 0 : 0.12 * p)) * fade;
+    } else {
+      this._arcTrack.visible = false; this._arcTrail.visible = false;
+      this._arcTrackMat.opacity = 0; this._arcTrailMat.opacity = 0; this._arcTrailGeoSpan = -1;
+    }
   }
 
   ensureLoop() {
@@ -755,7 +812,11 @@ class GantryScene {
       // detector-glow fade-out + amber ease must finish before the loop parks the GPU
       const fxSettled = this.detectorGlow < 1e-3 &&
         Math.abs(Math.max(0, (Math.cos((this.dispAngle - 180) * DEG) - 0.4) / 0.6) - this.amberGlow) < 1e-3;
-      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled) { this._raf = null; this.lastT = null; return; }
+      // also keep the loop alive while a kV flash is showing or the delivered-arc trail is still fading
+      const kvBusy = performance.now() < this._kvFlashUntil;
+      const at = this.state.arcTrail;
+      const trailBusy = !!(at && at.active) || (this._arcTrailMat && this._arcTrailMat.opacity > 0.01);
+      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled && !kvBusy && !trailBusy) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);
@@ -774,30 +835,44 @@ function angDiff(a, b) { let d = (a - b) % 360; if (d > 180) d -= 360; if (d <= 
 const SITE_LOCAL = { head: -0.86, neck: -0.70, chest: -0.28, abdomen: 0, pelvis: 0.25, thigh: 0.72, knee: 1.3 };
 
 const api = {
-  instance: null,
-  init() {
-    const canvas = document.getElementById('conGantry3D');
-    if (!canvas || this.instance) return;
+  instances: {},
+  // Lazily create (or fetch) a GantryScene bound to the canvas with id `canvasId`. Multiple canvases
+  // are supported so the 3D gantry can appear in the 2D/2D console AND every Full Treatment console.
+  _get(canvasId) {
+    if (this.instances[canvasId]) return this.instances[canvasId];
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
     try {
-      this.instance = new GantryScene(canvas);
-      const viz = canvas.closest('.con-viz');
+      const inst = new GantryScene(canvas);
+      this.instances[canvasId] = inst;
+      const viz = canvas.closest('.con-viz') || canvas.parentElement;
       if (viz) viz.classList.add('has-3d');
-      if (window.CONSOLE && window.CONSOLE._dbg && window.CONSOLE._dbg.state) {
-        const s = window.CONSOLE._dbg.state();
-        const views = window.CONSOLE._dbg.views ? window.CONSOLE._dbg.views().map(v => ({
-          slot: v.slot,
-          label: v.label,
-          angle: (v.angles && v.angles[0]) || (window.CONSOLE._dbg.viewAngles[v.slot] || [0])[0]
-        })) : [];
-        this.update({ angle: s.gantry || 0, target: s.motTarget, phase: s.phase, acquired: s.acquired, views });
-      }
+      return inst;
     } catch (err) {
       console.warn('3D gantry unavailable; using SVG fallback.', err);
+      this.instances[canvasId] = null;   // don't retry a context that can't be created
+      return null;
     }
   },
-  update(state) {
-    if (!this.instance) this.init();
-    if (this.instance) this.instance.update(state);
+  init() {
+    const inst = this._get('conGantry3D');   // the 2D/2D delivery console gantry (default)
+    if (inst && window.CONSOLE && window.CONSOLE._dbg && window.CONSOLE._dbg.state) {
+      const s = window.CONSOLE._dbg.state();
+      const views = window.CONSOLE._dbg.views ? window.CONSOLE._dbg.views().map(v => ({
+        slot: v.slot,
+        label: v.label,
+        angle: (v.angles && v.angles[0]) || (window.CONSOLE._dbg.viewAngles[v.slot] || [0])[0]
+      })) : [];
+      inst.update({ angle: s.gantry || 0, target: s.motTarget, phase: s.phase, acquired: s.acquired, views });
+    }
+  },
+  update(state) {           // back-compat: drives the default 2D/2D console gantry
+    const inst = this._get('conGantry3D');
+    if (inst) inst.update(state);
+  },
+  updateOn(canvasId, state) {   // drive any other gantry canvas (Full Treatment consoles)
+    const inst = this._get(canvasId);
+    if (inst) inst.update(state);
   }
 };
 
