@@ -3185,7 +3185,10 @@ const CONSOLE_PLANS={
   // Breast tangents/SCV are verified with MV (gantry head/EPID), at the planned beam angles — NOT kV
   // OBI geometry. The 'ap' pane is the SCV / supraclav field at gantry 0; the 'lat' pane is the medial
   // tangent at gantry ~305 (matches the case's viewTags 'Supraclav · G0' / 'Medial tangent · G305').
-  breast:{plan:'BREAST_L_MONO', couch:{vrt: 5.35, lng:84.75, lat:-1.20, rtn:0}, mv:true, views:[
+  breast:{plan:'BREAST_L_MONO', couch:{vrt: 5.35, lng:84.75, lat:-1.20, rtn:0}, mv:true,
+    // MV treatment-field aperture shown at the head while beaming (MLC-shaped tangent field).
+    fieldAperture:{colW:0.52, colH:0.44, leaves:[{x:-0.16,width:0.1},{x:-0.04,width:0.12},{x:0.12,width:0.14}]},
+    views:[
     {slot:'ap',  label:'MV Supraclav', mv:true, angles:[0]},
     {slot:'lat', label:'MV Med Tan',   mv:true, angles:[305]} ]}
 };
@@ -3361,6 +3364,11 @@ const CONSOLE=(()=>{
   function renderGantry3D(){
     if(!window.Gantry3D||!window.Gantry3D.update)return;
     const target = motTarget!=null ? motTarget : nearestAngle(rotateTarget());
+    // Couch offset relative to the ALIGNED plan (error-free) so the dial shows the daily setup error
+    // and, on APPLY (phase ALIGNED), physically drives the couch/patient onto isocentre. Lat keeps
+    // its absolute value (a case can be off-centre when aligned, e.g. femur); Vrt/Lng show deviation.
+    const planC = seedCouchFromIso(caseKey) || couch0;
+    const cc = (phase==='ALIGNED') ? planC : couch;   // apply → target the plan; the dial eases there
     window.Gantry3D.update({
       angle: gantry,
       target,
@@ -3370,13 +3378,13 @@ const CONSOLE=(()=>{
       phase,
       acquired: acquired.slice(),
       views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv})),
-      // physical couch from the encoder readout: absolute Lat (0=centred) drives lateral shift;
-      // Vrt/Lng are absolute calibration values so pass their deviation from the plan couch; Rtn = turntable.
-      couch:{ lat:couch.lat, vrt:couch.vrt-couch0.vrt, lng:couch.lng-couch0.lng, rtn:couch.rtn },
+      couch:{ lat:cc.lat, vrt:cc.vrt-planC.vrt, lng:cc.lng-planC.lng, rtn:cc.rtn },
       // per-case treatment site → the 3D dial slides the patient so this anatomy is at isocentre;
       // extremity setups (femur) are imaged feet-first (leg driven into the bore, head out).
       isoRegion: ISO_REGION[caseKey] || 'pelvis',
-      feetFirst: caseKey==='femur'
+      feetFirst: caseKey==='femur',
+      // MV treatment-field aperture (MLC) for MV cases; null → plain cone beam.
+      fieldAperture: (plan && plan.fieldAperture) || null
     });
   }
   // maps each 2D setup-console case to the body region its isocentre sits in (drives the 3D patient slide)
