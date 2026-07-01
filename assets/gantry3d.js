@@ -63,6 +63,7 @@ class GantryScene {
     // The patient lies along Z (the bore axis) and slides head-first into the gantry; the ring
     // rotates about Z. ISO_Z is the transverse plane (ring centre) where the beams converge.
     this.ISO_Z = 0.1;
+    this.FLOOR_Y = -2.15;   // floor sits below the gantry's lowest point (ring bottom ~ −1.9)
     // Oblique hero angle: off to the side + above so the ring reads as a ring AND the couch is
     // seen extending out of the bore toward the viewer (dead-down-the-bore would foreshorten it).
     this.orbitTarget = new THREE.Vector3(0, -0.05, 0.2);
@@ -428,15 +429,16 @@ class GantryScene {
     this.buildTurntable();
   }
 
-  // Depth polish: a dark floor plane + faint room grid + a soft contact shadow under the couch.
+  // Depth polish: a dark floor plane + faint room grid + a soft contact shadow under the couch. The
+  // floor sits BELOW the whole gantry (ring bottom ~ −1.9) so the head doesn't punch through it at G180.
   buildFloor() {
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(9, 7), makeMat(0x121722, { roughness: 0.96, metalness: 0 }));
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(11, 9), makeMat(0x121722, { roughness: 0.96, metalness: 0 }));
     floor.rotation.x = -Math.PI / 2;
-    floor.position.y = -1.22;
+    floor.position.y = this.FLOOR_Y;
     floor.renderOrder = 0;
     this.scene.add(floor);
-    const grid = new THREE.GridHelper(8, 20, 0x2a3a4c, 0x1c2836);
-    grid.position.y = -1.2;
+    const grid = new THREE.GridHelper(10, 24, 0x2a3a4c, 0x1c2836);
+    grid.position.y = this.FLOOR_Y + 0.02;
     grid.material.transparent = true; grid.material.opacity = 0.35; grid.material.depthWrite = false;
     this.scene.add(grid);
     // contact shadow: radial-gradient sprite that tracks the couch translation (not rotation)
@@ -447,7 +449,7 @@ class GantryScene {
     g2.fillStyle = grd; g2.fillRect(0, 0, 128, 128);
     this.contactShadow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
     this.contactShadow.scale.set(2.4, 1.3, 1);
-    this.contactShadow.position.set(0, -1.19, 0.3);
+    this.contactShadow.position.set(0, this.FLOOR_Y + 0.03, 0.3);
     this.contactShadow.material.rotation = Math.PI / 2;   // long axis along the couch (Z)
     this.contactShadow.renderOrder = 1;
     this.scene.add(this.contactShadow);
@@ -458,11 +460,11 @@ class GantryScene {
   buildTurntable() {
     this.turntableArc = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.05, 8, 48, 0.001), this.materials.green);
     this.turntableArc.rotation.x = -Math.PI / 2;
-    this.turntableArc.position.set(0, -1.18, 0.3);
+    this.turntableArc.position.set(0, this.FLOOR_Y + 0.04, 0.3);
     this.turntableArc.visible = false;
     this.scene.add(this.turntableArc);
     this.turntableLabel = makeLabel('', '#5fe0a0', 0.5);
-    this.turntableLabel.position.set(0, -1.0, 1.5);
+    this.turntableLabel.position.set(0, this.FLOOR_Y + 0.35, 1.5);
     this.turntableLabel.visible = false;
     this.scene.add(this.turntableLabel);
   }
@@ -509,12 +511,14 @@ class GantryScene {
     this.slider.add(g);  // couch TOP (plate/pad/rails) slides with the patient (telescopes through the pedestal)
 
     // pedestal + base are floor-fixed at the foot end (the couch top telescopes in/out of them), so
-    // they do NOT slide with the per-case longitudinal position or the couch encoder offset.
-    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.5), this.materials.couch);
-    pedestal.position.set(0, -0.62, 1.2);
+    // they do NOT slide with the per-case longitudinal position or the couch encoder offset. The
+    // column runs from just under the couch top down to the floor (like a real treatment-couch stand).
+    const topY = -0.28, floorY = this.FLOOR_Y, colH = topY - (floorY + 0.1);
+    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.42, colH, 0.5), this.materials.couch);
+    pedestal.position.set(0, (topY + floorY + 0.1) / 2, 1.2);
     this.scene.add(pedestal);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.1, 0.78), this.materials.couch);
-    base.position.set(0, -0.96, 1.2);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.couch);
+    base.position.set(0, floorY + 0.06, 1.2);
     this.scene.add(base);
   }
 
