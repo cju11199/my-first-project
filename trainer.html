@@ -932,6 +932,9 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 .tx-kv-ang{font-family:var(--mono),monospace;color:#8ef0c2;letter-spacing:.03em}
 .tx-kv-stamp{font-family:var(--mono),monospace;color:#9fb3c4;text-align:right}
 .tx-kv-stamp.out{color:#ff6b8a}.tx-kv-stamp.in{color:#8ef0c2}
+.tx-kv-zoom{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono),monospace}
+.tx-kv-zoom button{width:20px;height:20px;line-height:1;padding:0;border-radius:5px;border:1px solid rgba(255,255,255,.18);background:#14222f;color:#eaf1f8;cursor:pointer;font-size:13px}
+.tx-kv-zoom b{min-width:34px;text-align:center;color:#9fb3c4;font-size:10.5px}
 .tx-kv-view{position:relative;flex:1;min-height:0;border:1px solid rgba(255,255,255,.10);border-radius:8px;overflow:hidden;background:#06101a;line-height:0}
 .tx-kv-view canvas{display:block;width:100%;height:100%;object-fit:contain}
 .tx-kv-view.flash::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(180,225,255,.6),rgba(180,225,255,0) 70%);animation:kvFlash .42s ease-out forwards;pointer-events:none}
@@ -1596,8 +1599,10 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
         <h3>Intrafraction kV monitoring &middot; gold fiducials (gate &plusmn;0.5 cm)</h3>
         <div class="tx-monitor">
           <div class="tx-kv">
-            <div class="tx-kv-hd"><span class="tx-kv-ang" id="txKvAngle">kV imager &middot; &mdash;</span><span class="tx-kv-stamp" id="txKvStamp">awaiting first kV</span></div>
-            <div class="tx-kv-view" id="txKvWrap"><canvas id="txKvView" width="560" height="520"></canvas></div>
+            <div class="tx-kv-hd"><span class="tx-kv-ang" id="txKvAngle">kV imager &middot; &mdash;</span>
+              <span class="tx-kv-zoom" role="group" aria-label="kV zoom"><button type="button" title="Zoom out" onclick="TXFLOW.kvZoomBy(1/1.25)">&minus;</button><b id="txKvZoom">100%</b><button type="button" title="Zoom in" onclick="TXFLOW.kvZoomBy(1.25)">+</button></span>
+              <span class="tx-kv-stamp" id="txKvStamp">awaiting first kV</span></div>
+            <div class="tx-kv-view" id="txKvWrap" onwheel="TXFLOW.kvZoomWheel(event)"><canvas id="txKvView" width="560" height="520"></canvas></div>
           </div>
         </div>
         <div class="tx-status" id="txStatus">Press Beam On to start treatment. A triggered kV every 10 s checks the fiducials.</div>
@@ -3367,10 +3372,11 @@ const TXFLOW=(function(){
   let holds=0, reimages=0, cbctRes=null, kvRes=null;
   let kvFlashAt=0;          // timestamp of the last triggered kV (drives the dial's transient kV-beam flash)
   let pendingRematch=null;  // recovered shift from an intrafraction re-match, held until MOTION ENABLE moves the couch
+  let kvZoom=1;             // intrafraction kV monitor zoom (1 = full field-of-view; up to 3× in)
   // ---- kV fiducial monitor (the triggered-kV detector view) ----
   // Planned gold-seed triad on the kV detector, in mm (u = horizontal, v = vertical/SI).
   const KV_TRIAD=[{u:0,v:-11},{u:-9,v:7},{u:9,v:6}];
-  const KV_HALF_MM=30;      // kV monitor half field-of-view (mm); larger = zoomed out → more anatomy visible
+  const KV_HALF_MM=50;      // kV monitor base half field-of-view (mm) at 1× — a wide view showing lots of anatomy
   let lastKv=null;          // {phi, t, u, v, out, g} — the most recent triggered kV reading (g = MV gantry°)
   let backdrop=null;        // synthetic fallback for the re-match panel
   let kvBackImg=null;       // real (seed-free) bony-anatomy kV image for the triggered-kV monitor
@@ -3582,7 +3588,8 @@ const TXFLOW=(function(){
     // (always visible to any kV angle) so the projected fiducial reliably leaves the 0.5 cm ring
     // mid-treatment and the student always faces at least one intrafraction re-image.
     bias={x:(0.04+Math.random()*0.05)*sgn(), y:(0.20+Math.random()*0.10)*sgn(), z:(0.08+Math.random()*0.06)*sgn()};
-    lastKv=null; kvBackImg=null; kvFlashAt=0; pendingRematch=null;
+    lastKv=null; kvBackImg=null; kvFlashAt=0; pendingRematch=null; kvZoom=1;
+    {const z=gid('txKvZoom');if(z)z.textContent='100%';}
     buildArcList();
     const sm=gid('txSummary'); if(sm)sm.classList.add('hidden');
     const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
@@ -3612,6 +3619,15 @@ const TXFLOW=(function(){
     beamPhase='on'; lastT=performance.now(); setBeamState('on','BEAM ON'); setBtn('Beam Hold',false);
     if(!raf) raf=requestAnimationFrame(tick);
   }
+  // Enter on the treatment screen toggles the beam (guarded by beamBtn's interlocks). Returns true if handled.
+  function enterBeam(){
+    if(!running||stage!=='treat') return false;
+    const sc=gid('txScreen'); if(!sc||sc.classList.contains('hidden')) return false;
+    beamBtn(); return true;
+  }
+  // ---- intrafraction kV monitor zoom (mouse wheel / +/- buttons over the kV panel) ----
+  function kvZoomBy(f){kvZoom=Math.max(1,Math.min(3,kvZoom*f));const z=gid('txKvZoom');if(z)z.textContent=Math.round(kvZoom*100)+'%';drawKvView(false);}
+  function kvZoomWheel(e){if(e&&e.preventDefault)e.preventDefault();kvZoomBy((e&&e.deltaY<0)?1.15:1/1.15);}
   function tick(t){
     if(beamPhase!=='on'){raf=0;return;}
     const dt=Math.min(0.05,(t-lastT)/1000); lastT=t; simBeamSec+=dt;
@@ -3761,8 +3777,9 @@ const TXFLOW=(function(){
   function flashKv(){const w=gid('txKvWrap');if(!w)return;w.classList.remove('flash');void w.offsetWidth;w.classList.add('flash');setTimeout(()=>{if(w)w.classList.remove('flash');},460);}
   function drawKvView(triggered){
     const c=gid('txKvView');if(!c)return;const ctx=c.getContext('2d');const W=c.width,H=c.height,cx=W/2,cy=H/2;
-    // scale the whole detector view to FILL the panel: 50 mm field spans the smaller dimension.
-    const fit=Math.min(W,H),sc=fit/(2*KV_HALF_MM),gs=sc/5;   // sc px/mm (field = 2·KV_HALF_MM); gs = glyph scale
+    // scale the detector view to FILL the panel; kvZoom (1..3) magnifies about isocentre by shrinking the
+    // effective field. gs (glyph scale) is tied to the panel size so line-weights stay sane at any zoom.
+    const effHalf=KV_HALF_MM/kvZoom, fit=Math.min(W,H),sc=fit/(2*effHalf),gs=Math.max(1,fit/300);
     ctx.clearRect(0,0,W,H);
     // Real bony-anatomy kV image (ray-sum at the imager angle) with the baked gold seeds suppressed, so
     // the ONLY fiducials shown are the clean overlay seeds inside their 0.5 cm rings. Falls back to a
@@ -3826,7 +3843,7 @@ const TXFLOW=(function(){
     backdrop=c.toDataURL('image/png');return backdrop;
   }
 
-  return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,beamBtn,startRematch,txMotion,cbApply,cbMotion,fidApply,fidMotion,
+  return {enter,exit,restart,active,onStageResult,onMatchStart,spaceMotion,enterBeam,kvZoomBy,kvZoomWheel,beamBtn,startRematch,txMotion,cbApply,cbMotion,fidApply,fidMotion,
     _dbg:{stage:()=>stage,beamPhase:()=>beamPhase,setDrift:d=>{truePos=Object.assign({},truePos,d);updateReadouts();},
       truePos:()=>Object.assign({},truePos),measured,trigger:doTrigger,holds:()=>holds,reimages:()=>reimages,
       forceFinish:finish,goTreat,fieldIdx:()=>fieldIdx,lastKv:()=>lastKv?Object.assign({},lastKv):null,
@@ -8376,7 +8393,10 @@ window.CBCT=CBCT;
       // SPACE is ALWAYS a motion-enable: when no acquisition console is up, drive a loaded couch shift.
       else if(typeof TXFLOW!=='undefined'&&TXFLOW.spaceMotion&&TXFLOW.spaceMotion()){e.preventDefault();}
     }else if(e.key==='Enter'){
-      if(cbctUp()){e.preventDefault();CBCT.acqSweepStart(e);}
+      // Enter = Beam On/Hold on the treatment delivery screen (checked first; only fires when that
+      // screen is visible, which is exclusive with the acquisition consoles).
+      if(typeof TXFLOW!=='undefined'&&TXFLOW.enterBeam&&TXFLOW.enterBeam()){e.preventDefault();}
+      else if(cbctUp()){e.preventDefault();CBCT.acqSweepStart(e);}
       else if(fidUp()){e.preventDefault();FID2D.acqBeamStart(e);}
     }
   });
