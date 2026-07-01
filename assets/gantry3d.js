@@ -87,6 +87,7 @@ class GantryScene {
     this.lastBeamOn = false;
     this.fieldAperture = null; this.apertureLeaves = []; this.apertureCfgKey = '';  // MLC field aperture
     this.amberGlow = 0;    // 0..1 collision-clearance tint on the MV head
+    this.armDeploy = { kv: 1, epid: 1 };   // 0=retracted flat against the gantry, 1=extended for imaging
     this.lastRtn = 0;      // last drawn couch turntable angle (rebuild the arc only on change)
     this.liveAngleKey = -1; // last gantry integer drawn on the live readout sprite
     this.lastT = null;
@@ -94,6 +95,11 @@ class GantryScene {
     this.lastH = 0;
 
     this.materials = {
+      // TrueBeam-style moulded fibreglass covers: warm ivory/pearl with warm-gray + charcoal details.
+      ivory: makeMat(0xe9e4d8, { roughness: 0.55, metalness: 0.06 }),
+      ivoryBright: makeMat(0xf4f0e6, { roughness: 0.5, metalness: 0.05 }),
+      warmGray: makeMat(0xb3b7bd, { roughness: 0.42, metalness: 0.3 }),
+      charcoal: makeMat(0x24272c, { roughness: 0.5, metalness: 0.3 }),
       shell: makeMat(0x5e7692, { roughness: 0.28, metalness: 0.7 }),
       shellDark: makeMat(0x1d2b3c, { roughness: 0.45, metalness: 0.45 }),
       trim: makeMat(0xa8b9cf, { roughness: 0.22, metalness: 0.8 }),
@@ -251,28 +257,41 @@ class GantryScene {
   }
 
   build() {
-    this.scene.add(new THREE.HemisphereLight(0xd9eefc, 0x071019, 1.6));
-    const key = new THREE.DirectionalLight(0xffffff, 2.2);
+    // Warm-neutral studio light so the ivory covers read as fibreglass white, not blue plastic.
+    this.scene.add(new THREE.HemisphereLight(0xf1ece1, 0x0a0e14, 1.7));
+    const key = new THREE.DirectionalLight(0xfff3e2, 2.3);
     key.position.set(-2.8, 3.8, 5.2);
     this.scene.add(key);
-    const rim = new THREE.DirectionalLight(0x73d8ff, 0.75);
+    const rim = new THREE.DirectionalLight(0x73d8ff, 0.55);
     rim.position.set(3.2, -1.5, 4);
     this.scene.add(rim);
 
-    // OPEN bore: a tube the couch slides down (axis along Z) with a dark interior + back cap,
-    // so the patient recedes head-first into a visible tunnel instead of sitting on a flat wall.
-    const boreWall = makeMat(0x141d29, { roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide });
-    const bore = new THREE.Mesh(new THREE.CylinderGeometry(2.14, 2.14, 1.8, 96, 1, true), boreWall);
-    bore.rotation.x = Math.PI / 2;
-    bore.position.z = -1.05;
-    this.scene.add(bore);
-    const boreBack = new THREE.Mesh(new THREE.CircleGeometry(2.14, 96), this.materials.shellDark);
-    boreBack.position.z = -1.92;
-    this.scene.add(boreBack);
-
-    const boreLip = new THREE.Mesh(new THREE.TorusGeometry(2.16, 0.05, 16, 128), this.materials.trim);
-    boreLip.position.z = -0.16;
-    this.scene.add(boreLip);
+    // TrueBeam STAND (fixed): an upright sculpted ivory tower — NOT a CT-style drum. The C-arm
+    // (on the rig) emerges from a circular hub on its face and sweeps around the patient. Side
+    // pods at couch height are where the kV imaging arms stow; a low plinth grounds it.
+    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.7, 4.05, 0.95), this.materials.ivory);
+    tower.position.set(0, -0.12, -2.15);
+    this.scene.add(tower);
+    const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.6, 0.85), this.materials.ivoryBright);
+    shoulderL.position.set(-1.05, 0.4, -2.12);
+    this.scene.add(shoulderL);
+    const shoulderR = shoulderL.clone();
+    shoulderR.position.x = 1.05;
+    this.scene.add(shoulderR);
+    // kV stow pods hugging the lower sides (the arms fold out of these)
+    const podL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.05, 0.75), this.materials.ivory);
+    podL.position.set(-0.95, -1.15, -2.0);
+    this.scene.add(podL);
+    const podR = podL.clone();
+    podR.position.x = 0.95;
+    this.scene.add(podR);
+    const plinth = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.22, 1.3), this.materials.charcoal);
+    plinth.position.set(0, -2.05, -2.1);
+    this.scene.add(plinth);
+    // fixed hub collar on the stand face — the circular seam the C-arm root rotates within
+    const hubCollar = new THREE.Mesh(new THREE.TorusGeometry(0.86, 0.05, 12, 64), this.materials.warmGray);
+    hubCollar.position.z = -1.64;
+    this.scene.add(hubCollar);
 
     // Cable-wrap HARD STOP at gantry 180° (bottom): a real linac can't transit straight
     // down through the couch — mark the no-go zone with a red hazard arc + centre pip.
@@ -312,55 +331,97 @@ class GantryScene {
     this.rig = new THREE.Group();
     this.scene.add(this.rig);
 
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.72, 0.18, 24, 128), this.materials.shell);
-    ring.position.z = 0.04;
-    this.rig.add(ring);
+    // ROTATING HUB — the disc on the stand face the C-arm root grows out of (its circular seam
+    // sits inside the fixed hubCollar on the stand).
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.82, 0.14, 48), this.materials.ivoryBright);
+    hub.rotation.x = Math.PI / 2;
+    hub.position.z = -1.62;
+    this.rig.add(hub);
 
-    const inner = new THREE.Mesh(new THREE.TorusGeometry(1.27, 0.035, 12, 96), this.materials.trim);
-    inner.position.z = 0.16;
-    this.rig.add(inner);
+    // C-ARM — the TrueBeam's signature swoosh: a wide curved arm sweeping (in the beam plane) from
+    // the hub up and over to the treatment head. Approximated as chamfer-tilted ivory segments;
+    // at G0 it curves in the Y–Z plane and the whole arm rotates about the bore axis with the rig.
+    const seg = (w, h, d, x, y, z, rx) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.materials.ivory);
+      m.position.set(x, y, z); m.rotation.x = rx || 0;
+      this.rig.add(m); return m;
+    };
+    seg(1.05, 0.95, 0.42, 0, 0.5, -1.5, 0);             // root, growing off the hub
+    seg(1.05, 0.62, 0.62, 0, 1.02, -1.3, -0.5);         // lower bend
+    this.mvArm = seg(1.05, 0.56, 0.74, 0, 1.5, -0.94, -0.85);  // upper bend (shoulder)
+    seg(1.0, 0.52, 1.15, 0, 1.86, -0.35, 0);            // horizontal neck reaching over the head
 
-    // Rig components promoted to instance fields: kv-vs-mv chain visibility toggles them, and the
-    // beam-on gating glows the opposing detector. Detector meshes get a cloned material so pulsing
-    // their emissive doesn't light up every other mesh sharing this.materials.shell.
-    this.mvArm = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.48, 0.22), this.materials.shell);
-    this.mvArm.position.set(0, 1.33, 0.18);
-    this.rig.add(this.mvArm);
-    this.mvHead = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.42, 0.5), this.materials.shell.clone());
-    this.mvHead.position.set(0, 1.79, 0.28);
+    // TREATMENT HEAD — big two-tier cylinder aimed down the beam, with a machined warm-gray
+    // collimator plate and charcoal light-field window on its face (per the reference photos).
+    this.mvHead = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.62, 40), this.materials.ivoryBright.clone());
+    this.mvHead.position.set(0, 1.32, this.ISO_Z);
     this.rig.add(this.mvHead);
-    this.mvColl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.38), this.materials.shellDark);
-    this.mvColl.position.set(0, 1.5, 0.38);
+    const headCap = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.5, 40), this.materials.ivory);
+    headCap.position.set(0, 1.76, this.ISO_Z);
+    this.rig.add(headCap);
+    const collFace = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.44, 0.1, 40), this.materials.warmGray);
+    collFace.position.set(0, 0.97, this.ISO_Z);
+    this.rig.add(collFace);
+    this.mvColl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.3), this.materials.charcoal);
+    this.mvColl.position.set(0, 0.915, this.ISO_Z);
     this.rig.add(this.mvColl);
 
-    this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.56, 0.18), this.materials.shell);
-    this.epidArm.position.set(0, -1.29, 0.12);
-    this.rig.add(this.epidArm);
-    this.epid = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.18, 0.48), this.materials.shell.clone());
-    this.epid.position.set(0, -1.8, 0.22);
-    this.rig.add(this.epid);
+    // ── Retractable imaging arms (Varian Exact™ robotic arms) ─────────────────────────────
+    // On the real TrueBeam the kV source + kV flat panel attach to the ROTATING gantry on
+    // motorised three-pivot robotic arms, and the EPID rides its own E-arm opposite the head.
+    // They EXTEND for imaging and RETRACT flat against the gantry face for treatment. Modelled
+    // here as hinged groups anchored at their gantry mounts: children are built in the DEPLOYED
+    // pose; apply() swings each group about its hinge (+ a small pull-in) by the eased deploy
+    // fraction in this.armDeploy — kV pair out in kV mode, EPID out in MV mode.
+    const armMount = (x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); this.rig.add(g); return g; };
+    const rel = (mesh, gx, gy, gz, grp) => { mesh.position.set(gx - grp.position.x, gy - grp.position.y, gz - grp.position.z); grp.add(mesh); return mesh; };
 
-    this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.12, 0.18), this.materials.shell);
-    this.kvArm.position.set(1.31, 0, 0.16);
-    this.rig.add(this.kvArm);
-    this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.46, 0.36), this.materials.shell);
-    this.kvSource.position.set(1.76, 0, 0.25);
-    this.rig.add(this.kvSource);
+    // EPID (MV portal imager) opposite the head: charcoal panel + ivory tray on an angled E-arm.
+    this.epidGroup = armMount(0, -0.85, -1.35);
+    this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.9, 0.26), this.materials.ivory);
+    rel(this.epidArm, 0, -1.0, -0.75, this.epidGroup);
+    this.epidArm.rotation.x = Math.atan2(1.55, -1.05);   // long axis runs hub → panel
+    this.epid = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.09, 0.72), this.materials.charcoal.clone());
+    rel(this.epid, 0, -1.62, this.ISO_Z, this.epidGroup);
+    const epidTray = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.78), this.materials.ivory);
+    rel(epidTray, 0, -1.69, this.ISO_Z, this.epidGroup);
 
-    this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.1, 0.16), this.materials.shell);
-    this.kvPanelArm.position.set(-1.31, 0, 0.12);
-    this.rig.add(this.kvPanelArm);
-    this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.78, 0.42), this.materials.shell.clone());
-    this.kvPanel.position.set(-1.82, 0, 0.2);
-    this.rig.add(this.kvPanel);
+    // kV source arm (+X): straight deployed Exact arm with a warm-gray elbow + source cowl.
+    const kvTilt = Math.atan2(0.75, 1.45);   // arm run: (±0.75, 0, +1.45) from mount to couch level
+    this.kvSGroup = armMount(0.9, 0, -1.35);
+    this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
+    rel(this.kvArm, 1.17, 0, -0.78, this.kvSGroup);
+    this.kvArm.rotation.y = kvTilt;
+    const kvElbow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 12), this.materials.warmGray);
+    rel(kvElbow, 1.5, 0, -0.05, this.kvSGroup);
+    this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.6, 0.44), this.materials.ivory);
+    rel(this.kvSource, 1.6, 0, this.ISO_Z + 0.02, this.kvSGroup);
+    const kvWindow = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.22), this.materials.charcoal);
+    rel(kvWindow, 1.41, 0, this.ISO_Z, this.kvSGroup);
 
-    // Component labels — ride the rig so they follow the MV treatment head + kV source as it rotates.
-    this.mvLabel = makeLabel('MV', '#f0cc66', 0.46);
-    this.mvLabel.position.set(0, 1.36, 0.62);
+    // kV detector arm (−X): beige flat panel + ivory back on the mirrored Exact arm.
+    this.kvDGroup = armMount(-0.9, 0, -1.35);
+    this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
+    rel(this.kvPanelArm, -1.17, 0, -0.78, this.kvDGroup);
+    this.kvPanelArm.rotation.y = -kvTilt;
+    this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.98, 0.72),
+      makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }));   // beige detector face (per photos)
+    rel(this.kvPanel, -1.7, 0, this.ISO_Z, this.kvDGroup);
+    const kvPanelBack = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.03, 0.78), this.materials.ivory);
+    rel(kvPanelBack, -1.77, 0, this.ISO_Z, this.kvDGroup);
+
+    // Component labels — ride the arm groups so they follow deploy/retract + gantry rotation.
+    this.mvLabel = makeLabel('MV', '#c99b28', 0.46);
+    this.mvLabel.position.set(0, 1.32, 0.78);
     this.rig.add(this.mvLabel);
-    this.kvLabel = makeLabel('kV', '#5fdcf0', 0.46);
-    this.kvLabel.position.set(1.34, 0, 0.62);
-    this.rig.add(this.kvLabel);
+    this.kvLabel = makeLabel('kV', '#2fb9d8', 0.46);
+    rel(this.kvLabel, 1.6, 0, 0.72, this.kvSGroup);
+
+    // Deploy-mechanics tooltips on the arm links themselves.
+    const armTip = 'Exact™ robotic arm — motorised pivots extend the imager for imaging and retract it flat against the gantry for treatment.';
+    this.epidArm.userData.tip = armTip;
+    this.kvArm.userData.tip = armTip;
+    this.kvPanelArm.userData.tip = armTip;
 
     // Click-to-identify tooltips: tag components; the raycaster walks up to the nearest .tip.
     this.mvHead.userData.tip = 'MV treatment head — the linac gantry head delivering the treatment beam.';
@@ -398,7 +459,8 @@ class GantryScene {
     // MV treatment field aperture at the head — collimator jaw frame + a few MLC leaves shaping an
     // irregular opening. Built lazily per case (configureAperture); shown only for MV cases beaming.
     this.apertureGroup = new THREE.Group();
-    this.apertureGroup.position.set(0, 1.02, 0.42);   // just below the MV head, along the beam
+    this.apertureGroup.position.set(0, 0.76, this.ISO_Z);   // just below the collimator snout
+    this.apertureGroup.rotation.x = -Math.PI / 2;            // jaw frame ⟂ to the beam (faces iso)
     this.apertureGroup.visible = false;
     this.rig.add(this.apertureGroup);
 
@@ -432,7 +494,7 @@ class GantryScene {
       const s = makeLabel(String(deg), '#6f8299', 0.26);
       s.position.set(ux * 2.28, uy * 2.28, 0.14);
       this.scene.add(s);
-      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.03), this.materials.trim);
+      const tick = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.03), this.materials.charcoal);
       tick.position.set(ux * 2.0, uy * 2.0, 0.12);
       tick.rotation.z = -deg * DEG;
       this.scene.add(tick);
@@ -531,43 +593,64 @@ class GantryScene {
     // they do NOT slide with the per-case longitudinal position or the couch encoder offset. The
     // column runs from just under the couch top down to the floor (like a real treatment-couch stand).
     const topY = -0.28, floorY = this.FLOOR_Y, colH = topY - (floorY + 0.1);
-    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.42, colH, 0.5), this.materials.couch);
+    // PerfectPitch-style stand: ivory moulded pedestal column + charcoal floor base.
+    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.32, colH, 0.42), this.materials.ivory);
     pedestal.position.set(0, (topY + floorY + 0.1) / 2, 1.2);
     this.scene.add(pedestal);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.couch);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.charcoal);
     base.position.set(0, floorY + 0.06, 1.2);
     this.scene.add(base);
+    // couch turntable — the flush ivory disc in the floor the whole couch kicks (Rtn) about
+    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.05, 48), this.materials.ivoryBright);
+    turntable.position.set(0, floorY + 0.03, 1.2);
+    this.scene.add(turntable);
   }
 
   // Supine patient lying head-to-foot along Z, resting on the couch (posterior at -Y), draped in a
   // gown. Head-first into the bore (-Z), feet out toward the camera (+Z); iso at the mid-torso.
   buildPatient() {
     // Built in LOCAL coords inside patientGroup (which is pivoted at ISO_Z); Z is the offset from
-    // isocentre along the bore (−Z into the machine). SITE_LOCAL mirrors these offsets so any site
-    // can be slid onto iso, and patientGroup can rotate 180° about ISO_Z for feet-first.
-    const Y = 0.0, Z = 0;
+    // isocentre along the bore (−Z into the machine, head-first). SITE_LOCAL mirrors these offsets
+    // so any site can be slid onto iso, and patientGroup can rotate 180° for feet-first.
+    // Sculpted supine figure: cranium + jaw + nose, sloped shoulders, ribcage→waist→hip masses under
+    // the gown, arms bent at the sides with skin forearms, knees, and upturned feet — the silhouette
+    // cues that read "person lying on the couch" instead of a pill mannequin.
     const p = new THREE.Group();
-    const cyl = (rt, rb, len, mat) => {  // capsule-ish limb lying along Z
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, 20), mat);
-      m.rotation.x = Math.PI / 2;        // orient length along Z
-      return m;
+    const skin = this.materials.skin, gown = this.materials.gown;
+    const hair = makeMat(0x39302a, { roughness: 0.85, metalness: 0.02 });
+    const cap = (r, len, mat, x, y, z, rx = Math.PI / 2) => {   // capsule lying along Z (default)
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 16), mat);
+      m.rotation.x = rx; m.position.set(x, y, z); p.add(m); return m;
     };
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 18), this.materials.skin);
-    head.scale.set(0.92, 1, 1.15);
-    head.position.set(0, Y + 0.02, Z - 0.86);          // head deepest into the bore
-    p.add(head);
-    const neck = cyl(0.07, 0.08, 0.12, this.materials.skin); neck.position.set(0, Y, Z - 0.7); p.add(neck);
-    const torso = cyl(0.2, 0.235, 0.72, this.materials.gown); torso.position.set(0, Y, Z - 0.28); p.add(torso);
-    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.235, 20, 14), this.materials.gown);
-    shoulder.scale.set(1.05, 1, 0.7); shoulder.position.set(0, Y, Z - 0.62); p.add(shoulder);
-    const pelvis = cyl(0.235, 0.2, 0.34, this.materials.gown); pelvis.position.set(0, Y - 0.01, Z + 0.25); p.add(pelvis);
-    [-1, 1].forEach(s => {                               // legs, separated left/right along X
-      const thigh = cyl(0.11, 0.085, 0.62, this.materials.gown);
-      thigh.position.set(s * 0.12, Y - 0.03, Z + 0.72); p.add(thigh);
-      const shin = cyl(0.075, 0.05, 0.6, this.materials.skin);
-      shin.position.set(s * 0.11, Y - 0.05, Z + 1.3); p.add(shin);
-      const arm = cyl(0.07, 0.06, 0.62, this.materials.gown);
-      arm.position.set(s * 0.27, Y - 0.04, Z - 0.24); p.add(arm);
+    const blob = (r, sx, sy, sz, mat, x, y, z) => {             // scaled-sphere body mass
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), mat);
+      m.scale.set(sx, sy, sz); m.position.set(x, y, z); p.add(m); return m;
+    };
+    // HEAD — face up: cranium, hair cap toward the machine, jaw, nose bump, ears.
+    blob(0.145, 0.88, 0.82, 1.05, skin, 0, 0.03, -0.88);        // cranium
+    blob(0.148, 0.9, 0.8, 0.95, hair, 0, 0.02, -0.94);          // hair wraps the back of the head
+    blob(0.1, 0.76, 0.6, 0.95, skin, 0, 0.0, -0.75);            // jaw / chin
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.05, 12), skin);
+    nose.position.set(0, 0.145, -0.85); p.add(nose);            // nose points at the ceiling
+    blob(0.032, 0.6, 1, 1, skin, -0.13, 0.02, -0.87);           // ears
+    blob(0.032, 0.6, 1, 1, skin, 0.13, 0.02, -0.87);
+    cap(0.055, 0.1, skin, 0, -0.01, -0.7);                      // neck
+    // TORSO under the gown — supine masses: shoulder girdle, risen chest, waist dip, hips.
+    blob(0.16, 1.55, 0.6, 0.85, gown, 0, 0.0, -0.58);           // sloped shoulders
+    blob(0.2, 1.15, 0.68, 1.5, gown, 0, 0.02, -0.36);           // ribcage (chest rises when supine)
+    blob(0.17, 1.02, 0.58, 1.4, gown, 0, -0.02, -0.06);         // abdomen / waist
+    blob(0.18, 1.18, 0.6, 1.1, gown, 0, -0.02, 0.22);           // pelvis / hips
+    [-1, 1].forEach(s => {
+      // ARMS at the sides — gown sleeve upper arm, bare forearm + hand resting by the hip.
+      cap(0.052, 0.24, gown, s * 0.28, -0.05, -0.44);
+      cap(0.044, 0.24, skin, s * 0.285, -0.08, -0.13);
+      blob(0.05, 1, 0.5, 1.3, skin, s * 0.285, -0.09, 0.06);    // hand
+      // LEGS — gown to the knee, bare shins, feet pointing up (the classic supine cue).
+      cap(0.085, 0.4, gown, s * 0.11, -0.045, 0.52);
+      blob(0.075, 1, 0.75, 1, skin, s * 0.11, -0.03, 0.78);     // knee
+      cap(0.058, 0.42, skin, s * 0.105, -0.065, 1.05);
+      const foot = cap(0.05, 0.12, skin, s * 0.105, 0.02, 1.31, 0);   // upright capsule = raised foot
+      foot.rotation.z = -s * 0.14;                              // slight natural outward splay
     });
     this.patientGroup.add(p);
   }
@@ -721,14 +804,34 @@ class GantryScene {
     // Both the kV (OBI source+panel) and MV (head+EPID) imaging chains stay visible at all times;
     // `mode` still drives which beam fires, which detector glows, and the collision cue below.
 
+    // Exact-arm deploy/retract: the kV pair extends for kV imaging, the EPID for MV portal work;
+    // the off-duty imager folds flat against the gantry face, like the real motorised arms. Travel
+    // is rate-limited (~1.8 s full swing) so the arms read as slow robotics, not a toggle.
+    // state.arms {kv,epid} overrides the mode-based inference when a console wants manual control.
+    const armGoal = this.state.arms || { kv: kv, epid: !kv };
+    this._armGoal = armGoal;
+    const rate = dt / 1800;
+    for (const k of ['kv', 'epid']) {
+      const g = armGoal[k] ? 1 : 0, cur = this.armDeploy[k];
+      this.armDeploy[k] = reduce ? g : Math.max(0, Math.min(1, cur + Math.sign(g - cur) * Math.min(rate, Math.abs(g - cur))));
+    }
+    const easeArm = t => t * t * (3 - 2 * t);   // smoothstep so the swing starts/ends softly
+    const tk = easeArm(this.armDeploy.kv), te = easeArm(this.armDeploy.epid);
+    this.kvSGroup.rotation.x = (1 - tk) * 1.32;               // swing down flat against the face
+    this.kvDGroup.rotation.x = (1 - tk) * 1.32;
+    this.kvSGroup.position.z = this.kvDGroup.position.z = -1.35 - 0.15 * (1 - tk);   // slight pull-in
+    this.epidGroup.rotation.x = (1 - te) * 0.49;              // tuck up + in toward the stand
+    this.epidGroup.position.y = -0.85 + 0.5 * (1 - te);
+    this.epidGroup.position.z = -1.35 - 0.6 * (1 - te);
+
     // Collision-clearance cue: amber-tint the MV head as it swings toward the couch/patient near the
     // 180° region (steep posterior-oblique angles). Subtle, non-alarming; eased.
     const near = Math.cos((this.dispAngle - 180) * DEG);            // 1 at G180 (head at the couch), −1 at G0
     const amberT = Math.max(0, (near - 0.4) / 0.6);                 // ramps in over the last ~53° toward 180
     this.amberGlow += (amberT - this.amberGlow) * Math.min(1, kc);
     this.mvHead.material.emissive.setHex(0x5a2e00);
-    this.mvHead.material.emissiveIntensity = 0.15 + 0.85 * this.amberGlow;
-    this.mvHead.material.color.setHex(this.amberGlow > 0.5 ? 0xff9c3a : 0x5e7692);
+    this.mvHead.material.emissiveIntensity = 0.06 + 0.9 * this.amberGlow;
+    this.mvHead.material.color.setHex(this.amberGlow > 0.5 ? 0xff9c3a : 0xf4f0e6);   // ivory cowl at rest
 
     const beam = kv ? this.kvBeam : this.mvBeam;
     const other = kv ? this.mvBeam : this.kvBeam;
@@ -816,7 +919,11 @@ class GantryScene {
       const kvBusy = performance.now() < this._kvFlashUntil;
       const at = this.state.arcTrail;
       const trailBusy = !!(at && at.active) || (this._arcTrailMat && this._arcTrailMat.opacity > 0.01);
-      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled && !kvBusy && !trailBusy) { this._raf = null; this.lastT = null; return; }
+      // …and while the Exact imaging arms are still swinging to their deploy/retract pose
+      const ag = this._armGoal || { kv: true, epid: true };
+      const armsSettled = Math.abs(this.armDeploy.kv - (ag.kv ? 1 : 0)) < 1e-3 &&
+        Math.abs(this.armDeploy.epid - (ag.epid ? 1 : 0)) < 1e-3;
+      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled && !kvBusy && !trailBusy && armsSettled) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);
@@ -832,7 +939,7 @@ function angDiff(a, b) { let d = (a - b) % 360; if (d > 180) d -= 360; if (d <= 
 
 // Local Z of each anatomical site along the built patient (relative to ISO_Z; -Z = into the bore).
 // Matches the body-part positions in buildPatient(); used to slide the treated site onto isocentre.
-const SITE_LOCAL = { head: -0.86, neck: -0.70, chest: -0.28, abdomen: 0, pelvis: 0.25, thigh: 0.72, knee: 1.3 };
+const SITE_LOCAL = { head: -0.86, neck: -0.70, chest: -0.36, abdomen: -0.06, pelvis: 0.22, thigh: 0.52, knee: 0.78 };
 
 const api = {
   instances: {},

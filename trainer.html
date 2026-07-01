@@ -6606,7 +6606,10 @@ const CBCT=(function(){
   const ACQ_ROT=20;          // deg/sec while holding Motion Enable (rotate to 180° start) — matches the 2D console gantry speed
   const ACQ_SWEEP_MS=12000;  // full 360° cone-beam acquisition (~30°/s; only advances while Cone-Beam On is held)
   const ACQ_START=180;       // cone-beam acquisition start angle (gantry 180°)
-  function acqUses(){return caseKey==='prostate' && (acqForce||acqEnabled);}
+  // The cone-beam acquisition console + 3D gantry dial run on every CBCT case (toggleable per user);
+  // acqForce is Full Treatment's override. Each case's iso sits in its own body region for the dial.
+  const ACQ_REGION={cervix:'pelvis', brain:'head', breast:'chest', spine:'chest', lung:'chest', prostate:'pelvis'};
+  function acqUses(){return acqForce||acqEnabled;}
   function acqReady(){return !acqUses() || acqPhase==='ready';}
   const PLANE_ORDER=['axial','coronal','sagittal'];
   const PLANES={
@@ -8216,7 +8219,7 @@ const CBCT=(function(){
     const hasFill=!!(vc&&vc.offBone&&vc.offBone.fill);
     pendingFill=null; const fr=gid('cbFillRow'); if(fr)fr.style.display=hasFill?'':'none';
     const fs=gid('cbFillSelect'); if(fs)fs.value='random';
-    const ar=gid('cbAcqRow'); if(ar)ar.style.display=(key==='prostate')?'':'none';   // acquisition-console toggle: prostate only
+    const ar=gid('cbAcqRow'); if(ar)ar.style.display='';   // acquisition-console toggle available on every CBCT case
     const at=gid('cbAcqToggle'); if(at)at.checked=acqEnabled;
     // switching to a different volume case -> drop the old volume so panes don't show stale anatomy
     if(hasVol(key)&&mprCase!==key){V3=null;mprReady=false;_invCaches();_invContours();}
@@ -8339,7 +8342,7 @@ const CBCT=(function(){
     if(!acqUses()){wrap.classList.add('hidden');const rv=gid('cbAcqReveal');if(rv)rv.classList.add('hidden');return;}
     wrap.classList.toggle('hidden',acqPhase==='ready');
     const rig=gid('cbAcqRig');if(rig)rig.setAttribute('transform','rotate('+(acqAngle-90)+' 100 100)');   // linac viz
-    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('cbAcqGantry3D',{angle:acqAngle,mode:'kv',beamOn:acqPhase==='acquiring',phase:'ACQUIRE',isoRegion:'pelvis'});
+    if(window.Gantry3D&&Gantry3D.updateOn)Gantry3D.updateOn('cbAcqGantry3D',{angle:acqAngle,mode:'kv',beamOn:acqPhase==='acquiring',phase:'ACQUIRE',isoRegion:ACQ_REGION[caseKey]||'pelvis'});
     const a=((acqAngle%360)+360)%360;
     const grig=gid('cbaGaugeRig');if(grig)grig.setAttribute('transform','rotate('+a.toFixed(1)+' 23 23)');   // gantry dial
     const lg=gid('cbaLcdG');if(lg)lg.textContent=acqFmtG(acqAngle);
