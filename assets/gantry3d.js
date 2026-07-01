@@ -409,15 +409,17 @@ class GantryScene {
       s.position.set(x, y, 0.14);
       this.scene.add(s);
     });
-    // Minor 45° ticks + labels (secondary style) between the cardinals.
-    [['45', 45], ['135', 135], ['225', 225], ['315', 315]].forEach(([t, deg]) => {
-      const a = -deg * DEG, ux = Math.sin(a + Math.PI / 2), uy = Math.cos(a + Math.PI / 2); // top(0)=+Y
-      const s = makeLabel(t, '#6f8299', 0.26);
+    // Minor 45° ticks + labels (secondary style) between the cardinals. Gantry angle θ maps to
+    // (sinθ, cosθ)·r — same as the cardinals (G0 top, G90 right, G180 bottom, G270 left) — so 45 sits
+    // between G0/G90, 135 between G90/G180, 225 between G180/G270, 315 between G270/G0.
+    [45, 135, 225, 315].forEach(deg => {
+      const ux = Math.sin(deg * DEG), uy = Math.cos(deg * DEG);
+      const s = makeLabel(String(deg), '#6f8299', 0.26);
       s.position.set(ux * 2.28, uy * 2.28, 0.14);
       this.scene.add(s);
       const tick = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.12, 0.03), this.materials.trim);
       tick.position.set(ux * 2.0, uy * 2.0, 0.12);
-      tick.rotation.z = a;
+      tick.rotation.z = -deg * DEG;
       this.scene.add(tick);
     });
     // Live gantry-angle readout — a sprite near the top of the ring whose texture we repaint on change.
