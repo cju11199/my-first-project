@@ -610,31 +610,47 @@ class GantryScene {
   // gown. Head-first into the bore (-Z), feet out toward the camera (+Z); iso at the mid-torso.
   buildPatient() {
     // Built in LOCAL coords inside patientGroup (which is pivoted at ISO_Z); Z is the offset from
-    // isocentre along the bore (−Z into the machine). SITE_LOCAL mirrors these offsets so any site
-    // can be slid onto iso, and patientGroup can rotate 180° about ISO_Z for feet-first.
-    const Y = 0.0, Z = 0;
+    // isocentre along the bore (−Z into the machine, head-first). SITE_LOCAL mirrors these offsets
+    // so any site can be slid onto iso, and patientGroup can rotate 180° for feet-first.
+    // Sculpted supine figure: cranium + jaw + nose, sloped shoulders, ribcage→waist→hip masses under
+    // the gown, arms bent at the sides with skin forearms, knees, and upturned feet — the silhouette
+    // cues that read "person lying on the couch" instead of a pill mannequin.
     const p = new THREE.Group();
-    const cyl = (rt, rb, len, mat) => {  // capsule-ish limb lying along Z
-      const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, 20), mat);
-      m.rotation.x = Math.PI / 2;        // orient length along Z
-      return m;
+    const skin = this.materials.skin, gown = this.materials.gown;
+    const hair = makeMat(0x39302a, { roughness: 0.85, metalness: 0.02 });
+    const cap = (r, len, mat, x, y, z, rx = Math.PI / 2) => {   // capsule lying along Z (default)
+      const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 6, 16), mat);
+      m.rotation.x = rx; m.position.set(x, y, z); p.add(m); return m;
     };
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.15, 24, 18), this.materials.skin);
-    head.scale.set(0.92, 1, 1.15);
-    head.position.set(0, Y + 0.02, Z - 0.86);          // head deepest into the bore
-    p.add(head);
-    const neck = cyl(0.07, 0.08, 0.12, this.materials.skin); neck.position.set(0, Y, Z - 0.7); p.add(neck);
-    const torso = cyl(0.2, 0.235, 0.72, this.materials.gown); torso.position.set(0, Y, Z - 0.28); p.add(torso);
-    const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.235, 20, 14), this.materials.gown);
-    shoulder.scale.set(1.05, 1, 0.7); shoulder.position.set(0, Y, Z - 0.62); p.add(shoulder);
-    const pelvis = cyl(0.235, 0.2, 0.34, this.materials.gown); pelvis.position.set(0, Y - 0.01, Z + 0.25); p.add(pelvis);
-    [-1, 1].forEach(s => {                               // legs, separated left/right along X
-      const thigh = cyl(0.11, 0.085, 0.62, this.materials.gown);
-      thigh.position.set(s * 0.12, Y - 0.03, Z + 0.72); p.add(thigh);
-      const shin = cyl(0.075, 0.05, 0.6, this.materials.skin);
-      shin.position.set(s * 0.11, Y - 0.05, Z + 1.3); p.add(shin);
-      const arm = cyl(0.07, 0.06, 0.62, this.materials.gown);
-      arm.position.set(s * 0.27, Y - 0.04, Z - 0.24); p.add(arm);
+    const blob = (r, sx, sy, sz, mat, x, y, z) => {             // scaled-sphere body mass
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 18), mat);
+      m.scale.set(sx, sy, sz); m.position.set(x, y, z); p.add(m); return m;
+    };
+    // HEAD — face up: cranium, hair cap toward the machine, jaw, nose bump, ears.
+    blob(0.145, 0.88, 0.82, 1.05, skin, 0, 0.03, -0.88);        // cranium
+    blob(0.148, 0.9, 0.8, 0.95, hair, 0, 0.02, -0.94);          // hair wraps the back of the head
+    blob(0.1, 0.76, 0.6, 0.95, skin, 0, 0.0, -0.75);            // jaw / chin
+    const nose = new THREE.Mesh(new THREE.ConeGeometry(0.024, 0.05, 12), skin);
+    nose.position.set(0, 0.145, -0.85); p.add(nose);            // nose points at the ceiling
+    blob(0.032, 0.6, 1, 1, skin, -0.13, 0.02, -0.87);           // ears
+    blob(0.032, 0.6, 1, 1, skin, 0.13, 0.02, -0.87);
+    cap(0.055, 0.1, skin, 0, -0.01, -0.7);                      // neck
+    // TORSO under the gown — supine masses: shoulder girdle, risen chest, waist dip, hips.
+    blob(0.16, 1.55, 0.6, 0.85, gown, 0, 0.0, -0.58);           // sloped shoulders
+    blob(0.2, 1.15, 0.68, 1.5, gown, 0, 0.02, -0.36);           // ribcage (chest rises when supine)
+    blob(0.17, 1.02, 0.58, 1.4, gown, 0, -0.02, -0.06);         // abdomen / waist
+    blob(0.18, 1.18, 0.6, 1.1, gown, 0, -0.02, 0.22);           // pelvis / hips
+    [-1, 1].forEach(s => {
+      // ARMS at the sides — gown sleeve upper arm, bare forearm + hand resting by the hip.
+      cap(0.052, 0.24, gown, s * 0.28, -0.05, -0.44);
+      cap(0.044, 0.24, skin, s * 0.285, -0.08, -0.13);
+      blob(0.05, 1, 0.5, 1.3, skin, s * 0.285, -0.09, 0.06);    // hand
+      // LEGS — gown to the knee, bare shins, feet pointing up (the classic supine cue).
+      cap(0.085, 0.4, gown, s * 0.11, -0.045, 0.52);
+      blob(0.075, 1, 0.75, 1, skin, s * 0.11, -0.03, 0.78);     // knee
+      cap(0.058, 0.42, skin, s * 0.105, -0.065, 1.05);
+      const foot = cap(0.05, 0.12, skin, s * 0.105, 0.02, 1.31, 0);   // upright capsule = raised foot
+      foot.rotation.z = -s * 0.14;                              // slight natural outward splay
     });
     this.patientGroup.add(p);
   }
@@ -923,7 +939,7 @@ function angDiff(a, b) { let d = (a - b) % 360; if (d > 180) d -= 360; if (d <= 
 
 // Local Z of each anatomical site along the built patient (relative to ISO_Z; -Z = into the bore).
 // Matches the body-part positions in buildPatient(); used to slide the treated site onto isocentre.
-const SITE_LOCAL = { head: -0.86, neck: -0.70, chest: -0.28, abdomen: 0, pelvis: 0.25, thigh: 0.72, knee: 1.3 };
+const SITE_LOCAL = { head: -0.86, neck: -0.70, chest: -0.36, abdomen: -0.06, pelvis: 0.22, thigh: 0.52, knee: 0.78 };
 
 const api = {
   instances: {},
