@@ -415,9 +415,11 @@ class GantryScene {
     this.resize();   // cheap no-op unless the panel actually reflowed (fixes reflow-without-window-resize)
 
     const angle = Number.isFinite(this.state.angle) ? this.state.angle : 0;
-    // ease the displayed angle toward the commanded gantry (shortest wrap-aware arc)
+    // ease the displayed angle toward the commanded gantry (shortest wrap-aware arc).
+    // NOTE: angDiff(angle, dispAngle) = angle − dispAngle, i.e. points TOWARD the target; the
+    // reversed form pushes it away and combines with the >90° snap into a visible stutter.
     const k = 1 - Math.pow(0.0025, dt / 1000);   // ~frame-rate-independent smoothing
-    this.dispAngle += angDiff(this.dispAngle, angle) * Math.min(1, k);
+    this.dispAngle = this.dispAngle + angDiff(angle, this.dispAngle) * Math.min(1, k);
     this.rig.rotation.z = -this.dispAngle * DEG;
 
     // ease the couch toward its encoder offset so New Offset / corrections glide, not pop
