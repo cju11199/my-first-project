@@ -64,7 +64,7 @@ class GantryScene {
       skin: makeMat(0xd8a07e, { roughness: 0.72, metalness: 0.02 }),
       gown: makeMat(0xcfd9e6, { roughness: 0.86, metalness: 0.02 }),
       iso: makeMat(0xfff3c4, { roughness: 0.3, metalness: 0.1, emissive: 0xffd45a, emissiveIntensity: 0.9 }),
-      laser: makeMat(0xff3b3b, { roughness: 0.5, metalness: 0, transparent: true, opacity: 0.9, emissive: 0xff2020, emissiveIntensity: 0.9, depthWrite: false }),
+      laser: makeMat(0x2bff77, { roughness: 0.5, metalness: 0, transparent: true, opacity: 0.92, emissive: 0x18ff5a, emissiveIntensity: 1.05, depthWrite: false }),
       kv: makeMat(0x43d6ed, { roughness: 0.25, metalness: 0.35, emissive: 0x0c5a66, emissiveIntensity: 0.25 }),
       mv: makeMat(0xe8c25a, { roughness: 0.28, metalness: 0.35, emissive: 0x5f4200, emissiveIntensity: 0.22 }),
       green: makeMat(0x3ddc97, { roughness: 0.35, metalness: 0.2, emissive: 0x0b4c31, emissiveIntensity: 0.32 }),
@@ -325,7 +325,7 @@ class GantryScene {
   }
 
   // Isocentre marked ON the patient at the ring centre where the beams converge: a glowing point,
-  // a transverse target reticle encircling the body cross-section, and red room-laser cross-lines
+  // a transverse target reticle encircling the body cross-section, and green room-laser cross-lines
   // through the body (sup-inf along the bore Z, ant-post Y, lateral X).
   buildIso() {
     const g = new THREE.Group();
