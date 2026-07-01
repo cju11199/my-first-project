@@ -5703,6 +5703,13 @@ function rtUpdateTimerDisplays(){
 setInterval(rtUpdateTimerDisplays,100);
 function checkMatch(){
   if(FID2D.active()){ FID2D.check(); return; }
+  // Full Treatment owns its own APPLY / kV–MV re-match flow. Never fall through to the standalone 2D
+  // debrief (the results overlay + New Offset) while a fraction is running, even if the fiducial
+  // session isn't currently active at this instant (e.g. mid re-match hand-off). That standalone
+  // overlay firing mid-fraction is the reported "hitting Apply on the MV–kV re-match popped the
+  // closing overview page while the case was still ongoing". FID2D.check() and CBCT.check() already
+  // carry the same TXFLOW.active() guard; this closes the equivalent gap on the global entry point.
+  if(window.TXFLOW && TXFLOW.active && TXFLOW.active()) return;
   if(window.DIBH && DIBH.acquiring && DIBH.acquiring()){            // DIBH: must acquire both fields before matching
     document.getElementById('statusMsg').textContent='Acquire both fields (coach a breath-hold → Beam On) before matching.';
     return;
