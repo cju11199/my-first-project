@@ -195,6 +195,16 @@ class GantryScene {
     this.scene.add(this.table);
     this.tableOff = { x: 0, y: 0, z: 0, rtn: 0 };   // current (eased) couch offset, scene units
     this.tableGoal = { x: 0, y: 0, z: 0, rtn: 0 };  // target from the couch encoder state
+    this.caseZCur = 0;   // eased per-case longitudinal slide (puts the treated site at iso)
+    this.caseZGoal = 0;
+    this.feetFirst = false;   // per-case patient orientation (extremities are feet-first)
+    // slider = couch top + patient, telescoping along the bore per case; patientGroup can flip
+    // 180° for feet-first, pivoting about ISO_Z so the treated site still lands on isocentre.
+    this.slider = new THREE.Group();
+    this.table.add(this.slider);
+    this.patientGroup = new THREE.Group();
+    this.patientGroup.position.z = this.ISO_Z;
+    this.slider.add(this.patientGroup);
     this.buildCouch();
     this.buildPatient();
     this.buildIso();
@@ -284,20 +294,25 @@ class GantryScene {
       rail.position.set(dx, -0.235, zc);
       g.add(rail);
     });
-    // pedestal + base sit at the foot end, OUTSIDE the bore (toward the camera)
+    this.slider.add(g);  // couch TOP (plate/pad/rails) slides with the patient (telescopes through the pedestal)
+
+    // pedestal + base are floor-fixed at the foot end (the couch top telescopes in/out of them), so
+    // they do NOT slide with the per-case longitudinal position or the couch encoder offset.
     const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.7, 0.5), this.materials.couch);
     pedestal.position.set(0, -0.62, 1.2);
-    g.add(pedestal);
+    this.scene.add(pedestal);
     const base = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.1, 0.78), this.materials.couch);
     base.position.set(0, -0.96, 1.2);
-    g.add(base);
-    this.table.add(g);
+    this.scene.add(base);
   }
 
   // Supine patient lying head-to-foot along Z, resting on the couch (posterior at -Y), draped in a
   // gown. Head-first into the bore (-Z), feet out toward the camera (+Z); iso at the mid-torso.
   buildPatient() {
-    const Y = 0.0, Z = this.ISO_Z;       // torso centreline through isocentre (0,0,ISO_Z)
+    // Built in LOCAL coords inside patientGroup (which is pivoted at ISO_Z); Z is the offset from
+    // isocentre along the bore (−Z into the machine). SITE_LOCAL mirrors these offsets so any site
+    // can be slid onto iso, and patientGroup can rotate 180° about ISO_Z for feet-first.
+    const Y = 0.0, Z = 0;
     const p = new THREE.Group();
     const cyl = (rt, rb, len, mat) => {  // capsule-ish limb lying along Z
       const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, 20), mat);
@@ -321,7 +336,7 @@ class GantryScene {
       const arm = cyl(0.07, 0.06, 0.62, this.materials.gown);
       arm.position.set(s * 0.27, Y - 0.04, Z - 0.24); p.add(arm);
     });
-    this.table.add(p);
+    this.patientGroup.add(p);
   }
 
   // Isocentre marked ON the patient at the ring centre where the beams converge: a glowing point,
@@ -332,8 +347,8 @@ class GantryScene {
     g.position.set(0, 0, this.ISO_Z);
     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 14), this.materials.iso);
     dot.renderOrder = 6; g.add(dot);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.28, 0.014, 12, 64), this.materials.iso);
-    ring.renderOrder = 6; g.add(ring);   // transverse reticle in the XY plane, encircling the torso
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.011, 12, 64), this.materials.iso);
+    ring.renderOrder = 6; g.add(ring);   // small transverse reticle in the XY plane, marking iso
     const line = (len, axis) => {
       const m = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, len, 8), this.materials.laser);
       if (axis === 'x') m.rotation.z = Math.PI / 2;
@@ -382,6 +397,16 @@ class GantryScene {
       this.tableGoal.z = clamp((c.lng || 0) * LNG, 0.9);
       this.tableGoal.rtn = (c.rtn || 0) * DEG;
     }
+
+    // Per-case isocentre site: slide the couch top + patient along the bore so the treated anatomy
+    // (head for brain, pelvis for pelvis, thigh for femur…) sits under the fixed machine isocentre /
+    // lasers. caseZ cancels the site's local offset; feet-first (extremities) flips the patient 180°
+    // about ISO_Z, so the offset's sign flips too.
+    if (this.state.isoRegion !== undefined) {
+      this.feetFirst = !!this.state.feetFirst;
+      const local = SITE_LOCAL[this.state.isoRegion] ?? 0;
+      this.caseZGoal = this.feetFirst ? local : -local;
+    }
     this.ensureLoop();
   }
 
@@ -398,8 +423,11 @@ class GantryScene {
     // ease the couch toward its encoder offset so New Offset / corrections glide, not pop
     const o = this.tableOff, gl = this.tableGoal, kc = Math.min(1, 1 - Math.pow(0.02, dt / 1000));
     o.x += (gl.x - o.x) * kc; o.y += (gl.y - o.y) * kc; o.z += (gl.z - o.z) * kc; o.rtn += (gl.rtn - o.rtn) * kc;
+    this.caseZCur += (this.caseZGoal - this.caseZCur) * kc;   // ease the per-case longitudinal slide
     this.table.position.set(o.x, o.y, o.z);
     this.table.rotation.y = o.rtn;
+    this.slider.position.z = this.caseZCur;                   // couch top + patient telescope per case
+    this.patientGroup.rotation.y = this.feetFirst ? Math.PI : 0;   // head-first vs feet-first
 
     const showTarget = this.state.target !== null && this.state.target !== undefined && this.state.phase === 'ACQUIRE';
     this.targetMarker.visible = showTarget;
@@ -445,7 +473,8 @@ class GantryScene {
       const gantrySettled = Math.abs(angDiff(this.dispAngle, this.state.angle || 0)) < 0.05;
       const o = this.tableOff, gl = this.tableGoal;
       const tableSettled = Math.abs(gl.x - o.x) < 1e-3 && Math.abs(gl.y - o.y) < 1e-3 &&
-        Math.abs(gl.z - o.z) < 1e-3 && Math.abs(gl.rtn - o.rtn) < 1e-3;
+        Math.abs(gl.z - o.z) < 1e-3 && Math.abs(gl.rtn - o.rtn) < 1e-3 &&
+        Math.abs(this.caseZGoal - this.caseZCur) < 1e-3;
       if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
@@ -459,6 +488,10 @@ class GantryScene {
 
 // shortest signed angular difference b→a in degrees, in (-180, 180]
 function angDiff(a, b) { let d = (a - b) % 360; if (d > 180) d -= 360; if (d <= -180) d += 360; return d; }
+
+// Local Z of each anatomical site along the built patient (relative to ISO_Z; -Z = into the bore).
+// Matches the body-part positions in buildPatient(); used to slide the treated site onto isocentre.
+const SITE_LOCAL = { head: -0.86, neck: -0.70, chest: -0.28, abdomen: 0, pelvis: 0.25, thigh: 0.72, knee: 1.3 };
 
 const api = {
   instance: null,

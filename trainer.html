@@ -3372,9 +3372,15 @@ const CONSOLE=(()=>{
       views: views.map(v=>({slot:v.slot,label:v.label,angle:viewAngles(v)[0]||0,mv:!!v.mv})),
       // physical couch from the encoder readout: absolute Lat (0=centred) drives lateral shift;
       // Vrt/Lng are absolute calibration values so pass their deviation from the plan couch; Rtn = turntable.
-      couch:{ lat:couch.lat, vrt:couch.vrt-couch0.vrt, lng:couch.lng-couch0.lng, rtn:couch.rtn }
+      couch:{ lat:couch.lat, vrt:couch.vrt-couch0.vrt, lng:couch.lng-couch0.lng, rtn:couch.rtn },
+      // per-case treatment site → the 3D dial slides the patient so this anatomy is at isocentre;
+      // extremity setups (femur) are imaged feet-first (leg driven into the bore, head out).
+      isoRegion: ISO_REGION[caseKey] || 'pelvis',
+      feetFirst: caseKey==='femur'
     });
   }
+  // maps each 2D setup-console case to the body region its isocentre sits in (drives the 3D patient slide)
+  const ISO_REGION={ brain:'head', hn:'neck', thorax:'chest', spine:'chest', breast:'chest', breastDIBH:'chest', pelvis:'pelvis', femur:'thigh' };
   function atViewMv(){ const v=viewAtGantry(); return !!(v&&v.mv); }
   // gantry-head indicator (replaces the ROTATE button): a mini head pointing at the live gantry angle, green when
   // parked at a valid acquire angle, amber when you must motion-enable (hold SPACE) to reach the target.
