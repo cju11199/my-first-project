@@ -52,11 +52,14 @@ ap_b64, ap_sz  = upscale_png(ap)
 lat_b64, lat_sz = upscale_png(lat)
 print(f'AP {ap_sz}  LAT {lat_sz}')
 
-# Planning fiducial triad (3 gold seeds in the prostate) — same voxels as the CBCT case.
-ISO = np.array([99, 76, 32], float)                 # iso voxel
-# Spread in all 3 axes (base / mid / apex, varying L-R and A-P) so the triad is non-degenerate
-# in BOTH projections — required for a well-conditioned 6DOF fit.
-SEEDS = np.array([[95,72,37],[104,80,33],[98,74,27]], float)
+# Planning fiducial triad (3 gold seeds in the prostate) — read the SAME iso + seed voxels
+# generate_prostate_fiducials.py baked into the CBCT case, so the 2D triad and the 3D seeds
+# are guaranteed identical (base / mid / apex, spread in all 3 axes -> well-conditioned 6DOF fit).
+_ljs = open('prostate3d_labels_data.js').read()
+ISO = np.array([int(v) for v in re.search(r'"isoIdx":\s*\[(\d+),\s*(\d+),\s*(\d+)\]', _ljs).groups()], float)
+SEEDS = np.array([[int(a), int(b), int(c)] for a, b, c in
+                  re.findall(r'\[(\d+),\s*(\d+),\s*(\d+)\]', re.search(r'"seeds":\s*(\[\[.*?\]\])', _ljs)[1])], float)
+print('iso', ISO.tolist(), 'seeds', SEEDS.tolist())
 # patient mm relative to iso: (Lat=+Left=x, AP=+Post=y, SI=+Sup=z)
 fid_mm = ((SEEDS - ISO) * SP)
 fid_list = [[round(float(c),2) for c in p] for p in fid_mm]
@@ -74,6 +77,10 @@ print('phys', phys, 'iso_frac', iso_frac)
 meta = (f'{{"physMm": {phys}, "isoFrac": {iso_frac}, "fiducials": {fid_list}, '
         f'"spacingMm": {SP}}}'.replace("'", '"'))
 with open('prostate2d_data.js', 'w') as f:
+    f.write('// Source: prostate_anatomical_edge_cases (via NCI Imaging Data Commons, s3://idc-open-data).\n')
+    f.write('// Licence: CC BY 4.0 (commercial use permitted with attribution).\n')
+    f.write('// Attribution: Prostate Anatomical Edge Cases, The Cancer Imaging Archive, doi:10.7937/qstf-st65.\n')
+    f.write('// Ray-summed from the Prostate-AEC-124 pelvis planning CT (via pelvis3d).\n')
     f.write('// 2D/2D prostate fiducial-match case: kV-style AP + Lateral pelvis radiographs (ray-sum of\n')
     f.write('// the pelvis CT) + planning fiducial-triad geometry (patient mm rel. iso) for the 6DOF solve.\n')
     f.write(f'const PROSTATE2D={meta};\n')
