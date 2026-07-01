@@ -861,8 +861,9 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
 @media(prefers-reduced-motion:reduce){.cb-acq-bar i{transition:none}}
 @media(max-width:880px){.cb-acq{flex-wrap:wrap}.cb-acq-viz{flex-basis:auto;align-self:center}}
 /* CBCT reconstruction reveal: opaque until acquired, wiped away clockwise as the gantry circles */
-.cb-acq-reveal{position:absolute;inset:0;z-index:21;pointer-events:none;display:flex;align-items:center;justify-content:center;background:rgba(2,6,10,.94)}
+.cb-acq-reveal{position:absolute;inset:0;z-index:21;pointer-events:none;display:flex;align-items:center;justify-content:center;background:transparent}
 .cb-acq-reveal.hidden{display:none}
+.cb-acq-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .cb-acq-reveal-lbl{font-family:var(--mono),monospace;font-size:12px;letter-spacing:.14em;color:#8ef0c2;background:rgba(2,6,10,.55);padding:5px 14px;border-radius:20px;border:1px solid rgba(142,240,194,.25)}
 /* CBCT shift-apply strip: couch encoder turns gold + pulses while the couch is moving */
 #cbaplCouch.couch-moving,#fdaplCouch.couch-moving{box-shadow:0 0 0 1px var(--gold,#e6c25a)}
@@ -1308,7 +1309,7 @@ body.fid-mode .console-strip,body.dibh-mode .console-strip{display:none}
     <div class="cbct-panes">
       <!-- reconstruction reveal: hides the volume until the cone-beam is acquired, then wipes it in
            clockwise as the gantry circles the patient (synced to the sweep progress) -->
-      <div class="cb-acq-reveal hidden" id="cbAcqReveal"><div class="cb-acq-reveal-lbl" id="cbAcqRevealLbl">CONE-BEAM NOT ACQUIRED</div></div>
+      <div class="cb-acq-reveal hidden" id="cbAcqReveal"><canvas class="cb-acq-canvas" id="cbAcqCanvas"></canvas><div class="cb-acq-reveal-lbl" id="cbAcqRevealLbl">CONE-BEAM NOT ACQUIRED</div></div>
       <div class="cb-wl left" id="cbWLleft" onpointerdown="event.stopPropagation()">
         <div class="cb-wl-col">
           <div class="cb-wl-lbl">LEVEL</div>
@@ -6520,6 +6521,12 @@ const CBCT=(function(){
      Standalone CBCT: optional (skip toggle, default on). Full Treatment Stage 1: forced on.
      phase: park (drive to 180°) -> armed (at 180°) -> acquiring (360° sweep) -> ready (match unlocked). */
   let acqEnabled=true, acqForce=false, acqPhase='ready', acqAngle=90, acqRaf=0, acqMotion=false, acqSweepP=0, acqSweepHold=false;
+  // "Backprojection Accretion" reconstruction reveal: a per-pane filtered-backprojection illusion — a
+  // persistent accumulation canvas gathers angle-locked projection rays as the gantry circles, and that
+  // accumulation erases a dark mask (destination-out) so each MPR pane resolves centre-outward.
+  let acqCv=null, acqCtx=null, acqAcc=null, acqAccCtx=null, acqCvW=0, acqCvH=0, acqDpr=1, acqPaneRects=null;
+  const ACQ_RM=(()=>{try{return matchMedia('(prefers-reduced-motion:reduce)').matches;}catch(e){return false;}})();
+  const acqSS=(a,b,x)=>{let t=(x-a)/(b-a);t=t<0?0:t>1?1:t;return t*t*(3-2*t);};   // smoothstep
   const ACQ_ROT=20;          // deg/sec while holding Motion Enable (rotate to 180° start) — matches the 2D console gantry speed
   const ACQ_SWEEP_MS=12000;  // full 360° cone-beam acquisition (~30°/s; only advances while Cone-Beam On is held)
   const ACQ_START=180;       // cone-beam acquisition start angle (gantry 180°)
@@ -8178,6 +8185,75 @@ const CBCT=(function(){
   function acqStopRaf(){if(acqRaf){cancelAnimationFrame(acqRaf);acqRaf=0;}acqMotion=false;acqSweepHold=false;}
   function acqLamp(id,on,kind){const e=gid(id);if(e)e.className='con-lamp'+(on?' '+(kind||'on'):'');}
   function acqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
+  // ---- "Backprojection Accretion" reconstruction reveal helpers ----
+  function acqAccClear(){if(acqAccCtx){acqAccCtx.setTransform(1,0,0,1,0,0);acqAccCtx.clearRect(0,0,acqAcc.width,acqAcc.height);acqAccCtx.setTransform(acqDpr,0,0,acqDpr,0,0);}}
+  function acqEnsureCanvas(){
+    acqCv=acqCv||gid('cbAcqCanvas'); if(!acqCv||!acqCv.getContext)return false;
+    const host=acqCv.parentNode; const w=host.clientWidth,h=host.clientHeight;
+    if(w<=0||h<=0)return false;                                   // hidden / zero-size
+    if(w!==acqCvW||h!==acqCvH){
+      acqDpr=Math.min(2,window.devicePixelRatio||1);
+      acqCv.width=Math.round(w*acqDpr);acqCv.height=Math.round(h*acqDpr);
+      acqCtx=acqCv.getContext('2d');acqCtx.setTransform(acqDpr,0,0,acqDpr,0,0);
+      acqAcc=acqAcc||document.createElement('canvas');
+      acqAcc.width=acqCv.width;acqAcc.height=acqCv.height;
+      acqAccCtx=acqAcc.getContext('2d');acqAccCtx.setTransform(acqDpr,0,0,acqDpr,0,0);
+      acqCvW=w;acqCvH=h;acqPaneRects=null;acqAccClear();          // size change → recompute rects, reset integral
+    }
+    return true;
+  }
+  function acqComputePaneRects(){
+    const host=acqCv.parentNode,ob=host.getBoundingClientRect();  // #cbAcqReveal (inset:0 of .cbct-panes)
+    const cont=host.parentNode;                                   // .cbct-panes (the panes are siblings of the reveal)
+    const panes=cont?[].slice.call(cont.querySelectorAll('.cbct-pane')).filter(p=>p.offsetParent!==null):[];
+    acqPaneRects=panes.length?panes.map(p=>{const r=p.getBoundingClientRect();return {x:r.left-ob.left,y:r.top-ob.top,w:r.width,h:r.height};})
+                            :[{x:0,y:0,w:acqCvW,h:acqCvH}];       // fallback: whole overlay as one pane
+  }
+  function acqRevDraw(){
+    if(!acqEnsureCanvas())return;
+    if(!acqPaneRects)acqComputePaneRects();
+    const p=Math.max(0,Math.min(1,acqSweepP)),acquiring=(acqPhase==='acquiring'),ctx=acqCtx,R=acqPaneRects;
+    const MASK='rgba(2,6,10,.94)';
+    if(ACQ_RM){                                                   // reduced motion: calm centre-out dissolve, no rotation
+      ctx.clearRect(0,0,acqCvW,acqCvH);
+      const e=acquiring?(p*p*(3-2*p)):0;
+      for(let i=0;i<R.length;i++){const q=R[i],cx=q.x+q.w/2,cy=q.y+q.h/2,maxR=0.5*Math.hypot(q.w,q.h)*1.12,rr=e*maxR;
+        const g=ctx.createRadialGradient(cx,cy,0,cx,cy,maxR),f=Math.max(0,(rr-0.18*maxR)/maxR);
+        g.addColorStop(0,'rgba(2,6,10,0)');g.addColorStop(Math.min(f,0.999),'rgba(2,6,10,0)');
+        g.addColorStop(Math.min(rr/maxR,1),MASK);g.addColorStop(1,MASK);
+        ctx.fillStyle=g;ctx.fillRect(q.x,q.y,q.w,q.h);}
+      return;
+    }
+    // STEP A — stamp new angle-locked projection rays into the persistent accumulation (while acquiring)
+    if(acquiring){
+      const th=acqAngle*Math.PI/180,rdx=-Math.sin(th),rdy=Math.cos(th),ndx=Math.cos(th),ndy=Math.sin(th);
+      const A=0.05+0.06*p,ac=acqAccCtx;
+      ac.globalCompositeOperation='lighter';ac.strokeStyle='rgba(255,255,255,'+A.toFixed(3)+')';ac.lineWidth=1.5;
+      for(let i=0;i<R.length;i++){const q=R[i],cx=q.x+q.w/2,cy=q.y+q.h/2,L=Math.hypot(q.w,q.h);
+        for(let k=-1;k<=1;k++){const off=k*4+(Math.random()*3-1.5),ox=cx+ndx*off,oy=cy+ndy*off;
+          ac.beginPath();ac.moveTo(ox-rdx*L,oy-rdy*L);ac.lineTo(ox+rdx*L,oy+rdy*L);ac.stroke();}}
+      const floorA=acqSS(0.75,1,p)*0.16;                         // guaranteed clear over the final quarter (frame-rate safe)
+      if(floorA>0){ac.fillStyle='rgba(255,255,255,'+floorA.toFixed(3)+')';ac.fillRect(0,0,acqCvW,acqCvH);}
+      ac.globalCompositeOperation='source-over';
+    }
+    // STEP B — composite the dark mask minus the accumulation (anatomy shows where many angles crossed)
+    ctx.clearRect(0,0,acqCvW,acqCvH);ctx.globalCompositeOperation='source-over';ctx.fillStyle=MASK;
+    for(let i=0;i<R.length;i++){const q=R[i];ctx.fillRect(q.x,q.y,q.w,q.h);}   // per-pane so grid gaps stay clear
+    ctx.globalCompositeOperation='destination-out';ctx.drawImage(acqAcc,0,0,acqCvW,acqCvH);
+    ctx.globalCompositeOperation='source-over';
+    // STEP C — flourishes (only while acquiring): teal leading beam at the live angle + closing progress ring
+    if(acquiring){const th=acqAngle*Math.PI/180;
+      for(let i=0;i<R.length;i++){const q=R[i],cx=q.x+q.w/2,cy=q.y+q.h/2,rad=Math.min(q.w,q.h)/2-8,rr=Math.min(q.w,q.h)/2*0.9;
+        const bx=cx+Math.cos(th)*rr,by=cy+Math.sin(th)*rr,bg=ctx.createLinearGradient(bx,by,cx,cy);
+        bg.addColorStop(0,'rgba(142,240,194,.5)');bg.addColorStop(1,'rgba(142,240,194,0)');
+        ctx.strokeStyle=bg;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(cx,cy);ctx.stroke();
+        ctx.globalCompositeOperation='screen';const hg=ctx.createRadialGradient(bx,by,0,bx,by,7);
+        hg.addColorStop(0,'rgba(190,255,244,.6)');hg.addColorStop(1,'rgba(142,240,194,0)');
+        ctx.fillStyle=hg;ctx.beginPath();ctx.arc(bx,by,7,0,Math.PI*2);ctx.fill();ctx.globalCompositeOperation='source-over';
+        if(rad>4){ctx.strokeStyle='rgba(142,240,194,.12)';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,rad,0,Math.PI*2);ctx.stroke();
+          ctx.strokeStyle='rgba(142,240,194,.55)';ctx.lineWidth=2;ctx.lineCap='round';ctx.beginPath();ctx.arc(cx,cy,rad,-Math.PI/2,-Math.PI/2+p*Math.PI*2);ctx.stroke();ctx.lineCap='butt';}}
+    }
+  }
   function acqRender(){
     const wrap=gid('cbAcq');if(!wrap)return;
     if(!acqUses()){wrap.classList.add('hidden');const rv=gid('cbAcqReveal');if(rv)rv.classList.add('hidden');return;}
@@ -8203,18 +8279,15 @@ const CBCT=(function(){
       :acqPhase==='armed'?'Gantry at 180°. Press CONE-BEAM ON (or Enter) — the gantry circles the patient and reconstructs automatically.'
       :prompt?'Cone-beam reconstructed — press 3D / 3D MATCH to start registering the volume.'
       :'Acquiring cone-beam — the gantry is circling the patient…';
-    // reconstruction reveal: opaque until acquired, then wiped in clockwise with the gantry sweep
+    // reconstruction reveal: per-pane filtered-backprojection accretion (acqRevDraw), gone once acquired
     const rev=gid('cbAcqReveal');
     if(rev){
-      if(acqPhase==='ready'||prompt){rev.classList.add('hidden');}
-      else{rev.classList.remove('hidden');
-        const deg=(acqPhase==='acquiring')?acqSweepP*360:0;
-        rev.style.background='conic-gradient(from -90deg, rgba(2,6,10,0) 0deg, rgba(2,6,10,0) '+deg.toFixed(1)+'deg, rgba(2,6,10,.94) '+deg.toFixed(1)+'deg)';
-        const rl=gid('cbAcqRevealLbl');if(rl)rl.textContent=(acqPhase==='acquiring')?('RECONSTRUCTING… '+Math.round(acqSweepP*100)+'%'):'CONE-BEAM NOT ACQUIRED';
-      }
+      if(acqPhase==='ready'||prompt){rev.classList.add('hidden');acqAccClear();acqPaneRects=null;}
+      else{rev.classList.remove('hidden');acqRevDraw();
+        const rl=gid('cbAcqRevealLbl');if(rl)rl.textContent=(acqPhase==='acquiring')?('RECONSTRUCTING… '+Math.round(acqSweepP*100)+'%'):'CONE-BEAM NOT ACQUIRED';}
     }
   }
-  function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
+  function acqArm(){acqStopRaf();acqSweepP=0;acqSweepHold=false;acqAccClear();acqPaneRects=null;if(acqUses()){acqPhase='park';acqAngle=90;}else{acqPhase='ready';}acqRender();}
   function acqMotionStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();if(acqPhase!=='park')return;acqStopRaf();acqMotion=true;let last=performance.now();
     const step=(t)=>{if(!acqMotion){acqRaf=0;return;}const dt=Math.min(0.05,(t-last)/1000);last=t;
       let d=180-acqAngle;if(d>180)d-=360;if(d<-180)d+=360;
@@ -8229,7 +8302,7 @@ const CBCT=(function(){
   // (the gantry circles the patient automatically) — no continuous hold required.
   function acqSweepStart(ev){if(ev&&ev.preventDefault)ev.preventDefault();
     if(acqPhase!=='armed')return;   // one-shot from armed; ignore re-press while acquiring
-    acqStopRaf();acqPhase='acquiring';acqSweepHold=true;let last=performance.now();
+    acqStopRaf();acqPhase='acquiring';acqSweepHold=true;acqAccClear();acqPaneRects=null;let last=performance.now();
     const step=(t)=>{const dt=Math.min(0.05,(t-last)/1000);last=t;
       acqSweepP=Math.min(1,acqSweepP+dt*1000/ACQ_SWEEP_MS);acqAngle=ACQ_START+acqSweepP*360;acqRender();
       if(acqSweepP>=1){acqSweepHold=false;acqRaf=0;acqAngle=ACQ_START;acqPhase='matchprompt';acqRender();return;}   // reconstructed — wait for "START 3D/3D MATCH"
@@ -8243,7 +8316,7 @@ const CBCT=(function(){
   function acqForceReady(){acqStopRaf();acqSweepP=1;acqPhase='ready';acqRender();}
   return {enter,applyCase,setBlend,setBlendAll,toggleFusion,togglePan,toggleSpy,toggleCross,toggleContours,toggleContourMenu,toggleStruct,reset,randomize,setFill,check,undo,slide,slStart,cyclePrimary,cbNudge,cbZoom,cbZoomReset,setWindow,toggleWindowing,setWinPreset,autoWindow,winPresetMenu,cur3DVol,cbSolo,loadRealPelvis,rayDRR,mprCase:()=>mprCase,timerMs:()=>cbTimer.elapsed(),
     toggleAcq,acqMotionStart,acqMotionStop,acqSweepStart,acqSweepStop,acqStartMatch,setAcqForce,acqReady,residual,
-    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm}};
+    _dbg:{shift:()=>Object.assign({},shift),cross:n=>Object.assign({},ST[n]&&ST[n].cross),spy:n=>Object.assign({},ST[n]&&ST[n].spy),caseKey:()=>caseKey,spyMode:()=>spyMode,crossMode:()=>crossMode,acqPhase:()=>acqPhase,forceReady:acqForceReady,acqArm:acqArm,acqSet:(ph,p)=>{acqPhase=ph;if(p!=null)acqSweepP=p;acqAngle=ACQ_START+acqSweepP*360;acqRender();}}};
 })();
 window.CBCT=CBCT;
 /* Acquisition-console keyboard deadman (matches the 2D console): SPACE = Motion Enable (hold),
