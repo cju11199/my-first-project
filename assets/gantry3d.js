@@ -16,6 +16,29 @@ function makeMat(color, opts = {}) {
   });
 }
 
+// A camera-facing text label (canvas texture on a Sprite), so it stays upright + readable from any
+// orbit angle and through the gantry. `w` is the world width; height follows the 2:1 canvas aspect.
+function makeLabel(text, color, w = 0.5) {
+  const cw = 256, ch = 128;
+  const cv = document.createElement('canvas');
+  cv.width = cw; cv.height = ch;
+  const ctx = cv.getContext('2d');
+  ctx.font = 'bold 78px system-ui, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = color;
+  ctx.fillText(text, cw / 2, ch / 2 + 4);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false }));
+  sp.scale.set(w, w * ch / cw, 1);
+  sp.renderOrder = 12;
+  return sp;
+}
+
 class GantryScene {
   constructor(canvas) {
     this.canvas = canvas;
@@ -251,6 +274,14 @@ class GantryScene {
     kvPanel.position.set(-1.82, 0, 0.2);
     this.rig.add(kvPanel);
 
+    // Component labels — ride the rig so they follow the MV treatment head + kV source as it rotates.
+    const mvLabel = makeLabel('MV', '#f0cc66', 0.46);
+    mvLabel.position.set(0, 1.36, 0.62);
+    this.rig.add(mvLabel);
+    const kvLabel = makeLabel('kV', '#5fdcf0', 0.46);
+    kvLabel.position.set(1.34, 0, 0.62);
+    this.rig.add(kvLabel);
+
     this.mvBeam = new THREE.Mesh(new THREE.ConeGeometry(0.34, 1.34, 36, 1, true), this.materials.beamMv);
     this.mvBeam.position.set(0, 0.77, this.ISO_Z);
     this.mvBeam.renderOrder = 4;
@@ -275,6 +306,15 @@ class GantryScene {
       this.makeViewMarker(this.materials.kv)
     ];
     this.acqMarkers.forEach(m => this.scene.add(m));
+
+    // Fixed gantry-angle scale around the ring (space, not the rig): G0 top, G90 right, G180 bottom
+    // (the cable-wrap hard stop), G270 left. rig.rotation.z = −angle·DEG maps these to these spots.
+    const scale = '#c2d2e6';
+    [['G0', 0, 2.32], ['G90', 2.32, 0], ['G180', 0, -2.32], ['G270', -2.32, 0]].forEach(([t, x, y]) => {
+      const s = makeLabel(t, scale, 0.42);
+      s.position.set(x, y, 0.14);
+      this.scene.add(s);
+    });
   }
 
   // Treatment couch: carbon-fibre top plate + mattress pad + side rails + pedestal, running along
