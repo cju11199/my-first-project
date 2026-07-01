@@ -687,15 +687,13 @@ class GantryScene {
     const mode = this.state.mode === 'mv' ? 'mv' : 'kv';
     const kv = mode === 'kv';
 
-    // Imaging-chain visibility: show only the chain the case actually uses (kV OBI source+panel, or
-    // MV head+EPID). Toggle before the glow so a just-hidden detector can't keep glowing.
-    this.kvSource.visible = this.kvArm.visible = this.kvPanel.visible = this.kvPanelArm.visible = this.kvLabel.visible = kv;
-    this.mvHead.visible = this.mvArm.visible = this.mvColl.visible = this.epid.visible = this.epidArm.visible = this.mvLabel.visible = !kv;
+    // Both the kV (OBI source+panel) and MV (head+EPID) imaging chains stay visible at all times;
+    // `mode` still drives which beam fires, which detector glows, and the collision cue below.
 
     // Collision-clearance cue: amber-tint the MV head as it swings toward the couch/patient near the
     // 180° region (steep posterior-oblique angles). Subtle, non-alarming; eased.
     const near = Math.cos((this.dispAngle - 180) * DEG);            // 1 at G180 (head at the couch), −1 at G0
-    const amberT = !kv ? Math.max(0, (near - 0.4) / 0.6) : 0;       // ramps in over the last ~53° toward 180
+    const amberT = Math.max(0, (near - 0.4) / 0.6);                 // ramps in over the last ~53° toward 180
     this.amberGlow += (amberT - this.amberGlow) * Math.min(1, kc);
     this.mvHead.material.emissive.setHex(0x5a2e00);
     this.mvHead.material.emissiveIntensity = 0.15 + 0.85 * this.amberGlow;
@@ -749,8 +747,8 @@ class GantryScene {
         Math.abs(gl.z - o.z) < 1e-3 && Math.abs(gl.rtn - o.rtn) < 1e-3 &&
         Math.abs(this.caseZGoal - this.caseZCur) < 1e-3;
       // detector-glow fade-out + amber ease must finish before the loop parks the GPU
-      const fxSettled = this.detectorGlow < 1e-3 && Math.abs((this.state.mode !== 'kv' ?
-        Math.max(0, (Math.cos((this.dispAngle - 180) * DEG) - 0.4) / 0.6) : 0) - this.amberGlow) < 1e-3;
+      const fxSettled = this.detectorGlow < 1e-3 &&
+        Math.abs(Math.max(0, (Math.cos((this.dispAngle - 180) * DEG) - 0.4) / 0.6) - this.amberGlow) < 1e-3;
       if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
