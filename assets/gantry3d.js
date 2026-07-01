@@ -26,8 +26,19 @@ class GantryScene {
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
     // 3/4 view: lifted + slightly off-axis so the bore recedes and the couch/patient
     // sit inside a gantry with real depth (dead-on read as a flat SVG-style disc).
+    this.orbitTarget = new THREE.Vector3(0, -0.05, 0.16);
     this.camera.position.set(1.15, 2.85, 9.15);
-    this.camera.lookAt(0, -0.05, 0.16);
+    this.camera.lookAt(this.orbitTarget);
+    // drag-to-orbit state: spherical camera about orbitTarget, eased toward the drag goal.
+    // theta = azimuth (around +Y), phi = polar from +Y; both eased for smooth, damped motion.
+    const off = this.camera.position.clone().sub(this.orbitTarget);
+    const r0 = off.length();
+    this.orbit = {
+      radius: r0, theta: Math.atan2(off.x, off.z), phi: Math.acos(off.y / r0),
+      goalRadius: r0, goalTheta: Math.atan2(off.x, off.z), goalPhi: Math.acos(off.y / r0),
+      dragging: false, lastX: 0, lastY: 0, home: null
+    };
+    this.orbit.home = { theta: this.orbit.theta, phi: this.orbit.phi, radius: this.orbit.radius };
 
     this.state = { angle: 0, target: null, mode: 'kv', beamOn: false, phase: 'ACQUIRE' };
     this.dispAngle = 0;    // eased display angle (trails the commanded gantry for smooth glide)
@@ -52,11 +63,80 @@ class GantryScene {
 
     this.build();
     this.resize();
+    this.initOrbit();
+    this.updateCamera(0);
     this.render();
     window.addEventListener('resize', () => {
       this.resize();
       this.render();
     });
+  }
+
+  // Drag to orbit, wheel to zoom, double-click to reset. Kept lightweight (no OrbitControls
+  // vendor file) — pointer deltas feed the spherical goal, the rAF loop eases toward it.
+  initOrbit() {
+    const c = this.canvas;
+    c.style.cursor = 'grab';
+    c.style.touchAction = 'none';
+    const PHI_MIN = 0.28, PHI_MAX = 1.62, R_MIN = 6.2, R_MAX = 14;
+    c.addEventListener('pointerdown', (e) => {
+      this.orbit.dragging = true;
+      this.orbit.lastX = e.clientX; this.orbit.lastY = e.clientY;
+      c.style.cursor = 'grabbing';
+      if (c.setPointerCapture) try { c.setPointerCapture(e.pointerId); } catch (_) {}
+      this.ensureLoop();
+    });
+    c.addEventListener('pointermove', (e) => {
+      if (!this.orbit.dragging) return;
+      const dx = e.clientX - this.orbit.lastX, dy = e.clientY - this.orbit.lastY;
+      this.orbit.lastX = e.clientX; this.orbit.lastY = e.clientY;
+      this.orbit.goalTheta -= dx * 0.008;
+      this.orbit.goalPhi = Math.max(PHI_MIN, Math.min(PHI_MAX, this.orbit.goalPhi - dy * 0.008));
+      this.ensureLoop();
+    });
+    const end = (e) => {
+      if (!this.orbit.dragging) return;
+      this.orbit.dragging = false;
+      c.style.cursor = 'grab';
+      if (c.releasePointerCapture && e.pointerId != null) try { c.releasePointerCapture(e.pointerId); } catch (_) {}
+    };
+    c.addEventListener('pointerup', end);
+    c.addEventListener('pointercancel', end);
+    c.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      this.orbit.goalRadius = Math.max(R_MIN, Math.min(R_MAX, this.orbit.goalRadius * (1 + Math.sign(e.deltaY) * 0.08)));
+      this.ensureLoop();
+    }, { passive: false });
+    c.addEventListener('dblclick', () => {
+      this.orbit.goalTheta = this.orbit.home.theta;
+      this.orbit.goalPhi = this.orbit.home.phi;
+      this.orbit.goalRadius = this.orbit.home.radius;
+      this.ensureLoop();
+    });
+  }
+
+  // Ease the spherical camera toward its drag goal and rebuild the camera position.
+  updateCamera(dt) {
+    const o = this.orbit;
+    const k = 1 - Math.pow(0.0008, dt / 1000);   // frame-rate-independent damping
+    o.theta += (o.goalTheta - o.theta) * Math.min(1, k);
+    o.phi += (o.goalPhi - o.phi) * Math.min(1, k);
+    o.radius += (o.goalRadius - o.radius) * Math.min(1, k);
+    const sp = Math.sin(o.phi), cp = Math.cos(o.phi);
+    this.camera.position.set(
+      this.orbitTarget.x + o.radius * sp * Math.sin(o.theta),
+      this.orbitTarget.y + o.radius * cp,
+      this.orbitTarget.z + o.radius * sp * Math.cos(o.theta)
+    );
+    this.camera.lookAt(this.orbitTarget);
+  }
+
+  cameraSettled() {
+    const o = this.orbit;
+    return !o.dragging &&
+      Math.abs(o.goalTheta - o.theta) < 1e-3 &&
+      Math.abs(o.goalPhi - o.phi) < 1e-3 &&
+      Math.abs(o.goalRadius - o.radius) < 1e-3;
   }
 
   build() {
@@ -250,11 +330,13 @@ class GantryScene {
       const dt = this.lastT == null ? 16 : Math.min(64, t - this.lastT);
       this.lastT = t;
       this.clock += dt;
+      this.updateCamera(dt);
       this.apply(dt);
       this.render();
-      // keep animating while the gantry is still gliding or a beam is pulsing; otherwise idle
-      const settled = Math.abs(angDiff(this.dispAngle, this.state.angle || 0)) < 0.05;
-      if (settled && !this.state.beamOn) { this._raf = null; this.lastT = null; return; }
+      // keep animating while the gantry is gliding, a beam is pulsing, or the camera is
+      // still orbiting toward its drag goal; otherwise idle to save the GPU.
+      const gantrySettled = Math.abs(angDiff(this.dispAngle, this.state.angle || 0)) < 0.05;
+      if (gantrySettled && !this.state.beamOn && this.cameraSettled()) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);
