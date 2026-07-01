@@ -3343,7 +3343,6 @@ const TXFLOW=(function(){
   const GATE_MM=5;          // 0.5 cm fiducial action margin
   const MU_RATE=12;         // MU per second
   const ARC_SPAN=358;       // degrees swept per arc
-  const REMATCH_TOL=2;      // re-match accept (residual translation, mm) — mirrors cbct:prostate t1
   const TX_PLAN={name:'Prostate · VMAT', fields:[
     {name:'Arc 1 · CW',  mu:300, g0:181, dir:1},
     {name:'Arc 2 · CCW', mu:300, g0:179, dir:-1},
@@ -3636,8 +3635,8 @@ const TXFLOW=(function(){
     beamPhase='rematch';
     gid('txScreen').classList.add('hidden');
     currentMode='2d2d'; document.body.classList.add('fid-mode');
-    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';   // the intrafraction re-match DOES use Check Match
-    if(cm)cm.textContent='Check Match';
+    const cm=gid('checkMatchBtn'); if(cm)cm.style.display='';   // the intrafraction re-match applies the recovered shift
+    if(cm)cm.textContent='Apply Shifts';
     const gMV=((gantryAngle%360)+360)%360, m=measured(), sg=()=>Math.random()<.5?-1:1;
     // Real bony-anatomy kV–MV pair: ray-sum the loaded pelvis volume at the beam angle (MV beam's-eye
     // view) + the orthogonal kV (OBI), iso-centred. The seeds are θ-projected over genuine pelvic bone
@@ -3653,28 +3652,28 @@ const TXFLOW=(function(){
       fiducials:PROSTATE2D.fiducials,
       hidden:{t:[m.x,m.y,m.z], r:[(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg(),(0.6+Math.random()*0.8)*sg()]},
       onCheck:onRematchCheck,
-      msg:'kV–MV pair at gantry '+Math.round(gMV)+'° — drag the triad onto the drifted seeds in both views, then Check Match.'
+      msg:'kV–MV pair at gantry '+Math.round(gMV)+'° — drag the triad onto the drifted seeds in both views, then Apply Shifts.'
     });
     requestAnimationFrame(()=>resizeAll());
   }
+  // Apply Shifts on the intrafraction kV–MV re-match: apply the recovered couch correction (recentres the
+  // fiducials), accumulate it into the running couch so CBCT→kV→treatment stay consistent, return to the
+  // delivery screen and let the student resume the beam. Applies unconditionally (like the CBCT/kV stages).
   function onRematchCheck(r){
-    const sm=document.getElementById('statusMsg');
-    if(r.allGreen||r.transErr<=REMATCH_TOL){
-      // apply the recovered couch correction → recentres the fiducials (measured offset → ~residual)
-      appliedCorr.x+=r.correction.t[0]; appliedCorr.y+=r.correction.t[1]; appliedCorr.z+=r.correction.t[2];
-      reimages++;
-      FID2D.exitExternal(); document.body.classList.remove('fid-mode');
-      currentMode='tx'; gid('txScreen').classList.remove('hidden');
-      beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
-      const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
-      status('✓ Re-matched — couch corrected ('+r.transErr.toFixed(1)+' mm residual). Press Beam On to resume.');
-      const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
-      lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM,g:gantryAngle};
-      buildKvBackdrop(gantryAngle);
-      drawGantry(); updateReadouts(); drawTrace(); updateKvAngle(); drawKvView(false);
-    } else {
-      if(sm){sm.textContent='✗ Residual '+r.transErr.toFixed(1)+' mm / '+r.rotErr.toFixed(1)+'° — seat all three markers on the seeds, then Check Match.';sm.style.color='var(--accent2)';}
-    }
+    appliedCorr.x+=r.correction.t[0]; appliedCorr.y+=r.correction.t[1]; appliedCorr.z+=r.correction.t[2];
+    // FID2D coords (t=[Lat,AP,SI], r=[Roll,Yaw,Pitch]) -> couch (Vrt=AP, Lng=SI, Lat, RTN=Yaw), cm
+    couch.vrt+=r.correction.t[1]/10; couch.lng+=r.correction.t[2]/10; couch.lat+=r.correction.t[0]/10; couch.rtn+=r.correction.r[1];
+    reimages++;
+    FID2D.exitExternal(); document.body.classList.remove('fid-mode');
+    currentMode='tx'; gid('txScreen').classList.remove('hidden');
+    beamPhase='hold'; setBeamState('hold','HOLD'); setBtn('Beam On',false);
+    const rb=gid('txRematchBtn'); if(rb)rb.style.display='none';
+    status('✓ Shifts applied — couch corrected ('+r.transErr.toFixed(1)+' mm residual). Press Beam On to resume.');
+    paintTxCouch();
+    const mc=measured(),prc=kvProject(mc,gantryAngle);   // corrected kV reading is back inside the ring
+    lastKv={phi:kvAngle(),t:Math.round(simBeamSec),u:prc.u,v:prc.v,out:Math.hypot(prc.u,prc.v)>GATE_MM,g:gantryAngle};
+    buildKvBackdrop(gantryAngle);
+    drawGantry(); updateReadouts(); drawTrace(); updateKvAngle(); drawKvView(false);
   }
 
   /* ---- completion ---- */
