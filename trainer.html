@@ -6989,7 +6989,11 @@ const CBCT=(function(){
             const F=_ob.fill,s=curFill.bladderScale,an=curIsoIdx();
             // Clip to the patient body: a scaled-up bladder must stay inside the body contour (don't paint urine
             // into the air outside the patient), and never paint over the prostate gland so the gold seeds show.
-            if((!F.bodyBit||gtvOcc(_lbl,gx,gy,gz,F.bodyBit)>=0.5) && gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
+            // The `dens>0.5` guard is the hard backstop: only ever REPLACE existing patient tissue, never paint
+            // bladder/soft-tissue density into an air voxel (dens<=0.5 renders black). This keeps the fill inside
+            // the true CT body silhouette even where the body label is slightly misaligned/over-extended — so a
+            // scaled-up bladder can't spill a grey blob outside the patient contour.
+            if(dens>0.5 && (!F.bodyBit||gtvOcc(_lbl,gx,gy,gz,F.bodyBit)>=0.5) && gtvOcc(_lbl,gx,gy,gz,F.prostateBit)<0.5){
               const qx=an[0]+(gx-an[0])/s,qy=an[1]+(gy-an[1])/s,qz=an[2]+(gz-an[2])/s;
               let oS=gtvOcc(_lbl,qx,qy,qz,F.bladderBit);              // inside the resized bladder?
               if(oS>0){oS=oS<0.7?oS*1.4:1; if(oS>1)oS=1; dens=dens+(F.urine-dens)*oS;}
