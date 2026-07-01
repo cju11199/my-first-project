@@ -87,6 +87,7 @@ class GantryScene {
     this.lastBeamOn = false;
     this.fieldAperture = null; this.apertureLeaves = []; this.apertureCfgKey = '';  // MLC field aperture
     this.amberGlow = 0;    // 0..1 collision-clearance tint on the MV head
+    this.armDeploy = { kv: 1, epid: 1 };   // 0=retracted flat against the gantry, 1=extended for imaging
     this.lastRtn = 0;      // last drawn couch turntable angle (rebuild the arc only on change)
     this.liveAngleKey = -1; // last gantry integer drawn on the live readout sprite
     this.lastT = null;
@@ -365,54 +366,62 @@ class GantryScene {
     this.mvColl.position.set(0, 0.915, this.ISO_Z);
     this.rig.add(this.mvColl);
 
-    // EPID (MV portal imager) opposite the head: charcoal panel + ivory tray on an angled arm.
+    // ── Retractable imaging arms (Varian Exact™ robotic arms) ─────────────────────────────
+    // On the real TrueBeam the kV source + kV flat panel attach to the ROTATING gantry on
+    // motorised three-pivot robotic arms, and the EPID rides its own E-arm opposite the head.
+    // They EXTEND for imaging and RETRACT flat against the gantry face for treatment. Modelled
+    // here as hinged groups anchored at their gantry mounts: children are built in the DEPLOYED
+    // pose; apply() swings each group about its hinge (+ a small pull-in) by the eased deploy
+    // fraction in this.armDeploy — kV pair out in kV mode, EPID out in MV mode.
+    const armMount = (x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); this.rig.add(g); return g; };
+    const rel = (mesh, gx, gy, gz, grp) => { mesh.position.set(gx - grp.position.x, gy - grp.position.y, gz - grp.position.z); grp.add(mesh); return mesh; };
+
+    // EPID (MV portal imager) opposite the head: charcoal panel + ivory tray on an angled E-arm.
+    this.epidGroup = armMount(0, -0.85, -1.35);
     this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.9, 0.26), this.materials.ivory);
-    this.epidArm.position.set(0, -1.0, -0.75);
+    rel(this.epidArm, 0, -1.0, -0.75, this.epidGroup);
     this.epidArm.rotation.x = Math.atan2(1.55, -1.05);   // long axis runs hub → panel
-    this.rig.add(this.epidArm);
     this.epid = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.09, 0.72), this.materials.charcoal.clone());
-    this.epid.position.set(0, -1.62, this.ISO_Z);
-    this.rig.add(this.epid);
+    rel(this.epid, 0, -1.62, this.ISO_Z, this.epidGroup);
     const epidTray = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.78), this.materials.ivory);
-    epidTray.position.set(0, -1.69, this.ISO_Z);
-    this.rig.add(epidTray);
+    rel(epidTray, 0, -1.69, this.ISO_Z, this.epidGroup);
 
-    // kV (OBI) imaging arms fold out from the stand pods at ±90° to the head: X-ray source cowl on
-    // one side, beige flat-panel detector opposite — straight deployed arms with warm-gray elbows.
-    const kvTilt = Math.atan2(0.75, 1.45);   // arm run: (±0.75, 0, +1.45) from pod to couch level
+    // kV source arm (+X): straight deployed Exact arm with a warm-gray elbow + source cowl.
+    const kvTilt = Math.atan2(0.75, 1.45);   // arm run: (±0.75, 0, +1.45) from mount to couch level
+    this.kvSGroup = armMount(0.9, 0, -1.35);
     this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
-    this.kvArm.position.set(1.17, 0, -0.78);
+    rel(this.kvArm, 1.17, 0, -0.78, this.kvSGroup);
     this.kvArm.rotation.y = kvTilt;
-    this.rig.add(this.kvArm);
     const kvElbow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 12), this.materials.warmGray);
-    kvElbow.position.set(1.5, 0, -0.05);
-    this.rig.add(kvElbow);
+    rel(kvElbow, 1.5, 0, -0.05, this.kvSGroup);
     this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.6, 0.44), this.materials.ivory);
-    this.kvSource.position.set(1.6, 0, this.ISO_Z + 0.02);
-    this.rig.add(this.kvSource);
+    rel(this.kvSource, 1.6, 0, this.ISO_Z + 0.02, this.kvSGroup);
     const kvWindow = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.22), this.materials.charcoal);
-    kvWindow.position.set(1.41, 0, this.ISO_Z);
-    this.rig.add(kvWindow);
+    rel(kvWindow, 1.41, 0, this.ISO_Z, this.kvSGroup);
 
+    // kV detector arm (−X): beige flat panel + ivory back on the mirrored Exact arm.
+    this.kvDGroup = armMount(-0.9, 0, -1.35);
     this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
-    this.kvPanelArm.position.set(-1.17, 0, -0.78);
+    rel(this.kvPanelArm, -1.17, 0, -0.78, this.kvDGroup);
     this.kvPanelArm.rotation.y = -kvTilt;
-    this.rig.add(this.kvPanelArm);
     this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.98, 0.72),
       makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }));   // beige detector face (per photos)
-    this.kvPanel.position.set(-1.7, 0, this.ISO_Z);
-    this.rig.add(this.kvPanel);
+    rel(this.kvPanel, -1.7, 0, this.ISO_Z, this.kvDGroup);
     const kvPanelBack = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.03, 0.78), this.materials.ivory);
-    kvPanelBack.position.set(-1.77, 0, this.ISO_Z);
-    this.rig.add(kvPanelBack);
+    rel(kvPanelBack, -1.77, 0, this.ISO_Z, this.kvDGroup);
 
-    // Component labels — ride the rig so they follow the MV treatment head + kV source as it rotates.
+    // Component labels — ride the arm groups so they follow deploy/retract + gantry rotation.
     this.mvLabel = makeLabel('MV', '#c99b28', 0.46);
     this.mvLabel.position.set(0, 1.32, 0.78);
     this.rig.add(this.mvLabel);
     this.kvLabel = makeLabel('kV', '#2fb9d8', 0.46);
-    this.kvLabel.position.set(1.6, 0, 0.72);
-    this.rig.add(this.kvLabel);
+    rel(this.kvLabel, 1.6, 0, 0.72, this.kvSGroup);
+
+    // Deploy-mechanics tooltips on the arm links themselves.
+    const armTip = 'Exact™ robotic arm — motorised pivots extend the imager for imaging and retract it flat against the gantry for treatment.';
+    this.epidArm.userData.tip = armTip;
+    this.kvArm.userData.tip = armTip;
+    this.kvPanelArm.userData.tip = armTip;
 
     // Click-to-identify tooltips: tag components; the raycaster walks up to the nearest .tip.
     this.mvHead.userData.tip = 'MV treatment head — the linac gantry head delivering the treatment beam.';
@@ -779,6 +788,26 @@ class GantryScene {
     // Both the kV (OBI source+panel) and MV (head+EPID) imaging chains stay visible at all times;
     // `mode` still drives which beam fires, which detector glows, and the collision cue below.
 
+    // Exact-arm deploy/retract: the kV pair extends for kV imaging, the EPID for MV portal work;
+    // the off-duty imager folds flat against the gantry face, like the real motorised arms. Travel
+    // is rate-limited (~1.8 s full swing) so the arms read as slow robotics, not a toggle.
+    // state.arms {kv,epid} overrides the mode-based inference when a console wants manual control.
+    const armGoal = this.state.arms || { kv: kv, epid: !kv };
+    this._armGoal = armGoal;
+    const rate = dt / 1800;
+    for (const k of ['kv', 'epid']) {
+      const g = armGoal[k] ? 1 : 0, cur = this.armDeploy[k];
+      this.armDeploy[k] = reduce ? g : Math.max(0, Math.min(1, cur + Math.sign(g - cur) * Math.min(rate, Math.abs(g - cur))));
+    }
+    const easeArm = t => t * t * (3 - 2 * t);   // smoothstep so the swing starts/ends softly
+    const tk = easeArm(this.armDeploy.kv), te = easeArm(this.armDeploy.epid);
+    this.kvSGroup.rotation.x = (1 - tk) * 1.32;               // swing down flat against the face
+    this.kvDGroup.rotation.x = (1 - tk) * 1.32;
+    this.kvSGroup.position.z = this.kvDGroup.position.z = -1.35 - 0.15 * (1 - tk);   // slight pull-in
+    this.epidGroup.rotation.x = (1 - te) * 0.49;              // tuck up + in toward the stand
+    this.epidGroup.position.y = -0.85 + 0.5 * (1 - te);
+    this.epidGroup.position.z = -1.35 - 0.6 * (1 - te);
+
     // Collision-clearance cue: amber-tint the MV head as it swings toward the couch/patient near the
     // 180° region (steep posterior-oblique angles). Subtle, non-alarming; eased.
     const near = Math.cos((this.dispAngle - 180) * DEG);            // 1 at G180 (head at the couch), −1 at G0
@@ -874,7 +903,11 @@ class GantryScene {
       const kvBusy = performance.now() < this._kvFlashUntil;
       const at = this.state.arcTrail;
       const trailBusy = !!(at && at.active) || (this._arcTrailMat && this._arcTrailMat.opacity > 0.01);
-      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled && !kvBusy && !trailBusy) { this._raf = null; this.lastT = null; return; }
+      // …and while the Exact imaging arms are still swinging to their deploy/retract pose
+      const ag = this._armGoal || { kv: true, epid: true };
+      const armsSettled = Math.abs(this.armDeploy.kv - (ag.kv ? 1 : 0)) < 1e-3 &&
+        Math.abs(this.armDeploy.epid - (ag.epid ? 1 : 0)) < 1e-3;
+      if (gantrySettled && !this.state.beamOn && this.cameraSettled() && tableSettled && fxSettled && !kvBusy && !trailBusy && armsSettled) { this._raf = null; this.lastT = null; return; }
       this._raf = requestAnimationFrame(tick);
     };
     this._raf = requestAnimationFrame(tick);
