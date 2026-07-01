@@ -3230,7 +3230,13 @@ const FID2D=(function(){
 
   /* ---- kV acquisition console (rotate to AP/Lat, hold-expose each, then unlock the match) ---- */
   function fAcqStopRaf(){if(fRaf){cancelAnimationFrame(fRaf);fRaf=0;}fMot=false;fExpoHold=false;}
-  function fAcqArm(){fAcqStopRaf();fExpoP=0;fCap={ap:false,lat:false};if(fAcqUses()){fAcqPhase='rotAP';fGantry=90;}else{fAcqPhase='ready';}fAcqRender();}
+  // true when the gantry is already at target angle t (wrap-aware, ~0.5° tol) → no needless rotate
+  function fAcqAtTgt(t){let d=((t-fGantry+540)%360)-180;return Math.abs(d)<0.5;}
+  function fAcqArm(){fAcqStopRaf();fExpoP=0;fCap={ap:false,lat:false};
+    // Begin AT the AP kV imaging angle (0°) so the first exposure needs no rotation; only skip to the
+    // rotate step if the gantry isn't already there.
+    if(fAcqUses()){fGantry=0;fAcqPhase=fAcqAtTgt(0)?'armAP':'rotAP';}else{fAcqPhase='ready';}
+    fAcqRender();}
   function fAcqLamp(id,on,kind){const e=document.getElementById(id);if(e)e.className='con-lamp'+(on?' '+(kind||'on'):'');}
   function fAcqFmtG(a){a=Math.round(((a%360)+360)%360);return (''+a).padStart(3,'0')+'.0°';}
   function fAcqRender(){
