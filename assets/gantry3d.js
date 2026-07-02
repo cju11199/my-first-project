@@ -3,7 +3,9 @@ import * as THREE from './vendor/three.module.min.js';
 const DEG = Math.PI / 180;
 
 function makeMat(color, opts = {}) {
-  return new THREE.MeshStandardMaterial({
+  // MeshPhysicalMaterial so covers can carry a clearcoat — moulded fibreglass has a subtle
+  // lacquer sheen over a diffuse base, which reads far more "real machine" than plain standard.
+  const m = new THREE.MeshPhysicalMaterial({
     color,
     roughness: opts.roughness ?? 0.34,
     metalness: opts.metalness ?? 0.45,
@@ -14,6 +16,8 @@ function makeMat(color, opts = {}) {
     depthWrite: opts.depthWrite ?? true,
     side: opts.side ?? THREE.FrontSide
   });
+  if (opts.clearcoat) { m.clearcoat = opts.clearcoat; m.clearcoatRoughness = opts.clearcoatRoughness ?? 0.45; }
+  return m;
 }
 
 // A camera-facing text label (canvas texture on a Sprite), so it stays upright + readable from any
@@ -49,14 +53,67 @@ function setLabel(sprite, text, color) {
   sprite.material.map.needsUpdate = true;
 }
 
+// Rounded-rectangle Shape (for extruded moulded covers with soft corners).
+function roundedRect(w, h, r) {
+  const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y); s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h); s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r); s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+
+// Flat decal plane with canvas-drawn text (the trueBEAM wordmark on the covers).
+function makeWordmark(text, w) {
+  const cv = document.createElement('canvas');
+  cv.width = 512; cv.height = 96;
+  const ctx = cv.getContext('2d');
+  ctx.font = 'italic 600 58px system-ui, Arial, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(72,78,86,0.9)';
+  ctx.fillText(text, 256, 50);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, w * 96 / 512),
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  m.userData.noShadow = true;
+  return m;
+}
+
 class GantryScene {
   constructor(canvas) {
     this.canvas = canvas;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+    // Photographic response: filmic tone mapping stops the ivory covers clipping to flat white,
+    // and soft shadow maps anchor the machine to the floor like a product shot.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     this.scene = new THREE.Scene();
+    // Procedural studio environment (no HDR asset): a few emissive softbox planes PMREM'd into an
+    // env map — gives the physical materials real reflections/sheen instead of flat shading.
+    try {
+      const env = new THREE.Scene();
+      const box = (c, i, w, h, x, y, z, rx, ry) => {
+        const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+          new THREE.MeshBasicMaterial({ color: c }));
+        p.material.color.multiplyScalar(i);
+        p.position.set(x, y, z); p.rotation.set(rx || 0, ry || 0, 0); env.add(p);
+      };
+      env.background = new THREE.Color(0x0b0f15);
+      box(0xfff4e4, 5, 8, 4, 0, 6, 0, Math.PI / 2, 0);        // warm overhead softbox
+      box(0xdfe9f4, 2.2, 5, 3, -7, 2, 2, 0, Math.PI / 2.3);   // cool side fill
+      box(0xfff0dc, 1.4, 4, 2.5, 6, 1, -3, 0, -Math.PI / 2.6); // warm rim card
+      box(0x2a3340, 0.8, 10, 10, 0, -4, 0, -Math.PI / 2, 0);  // dim floor bounce
+      const pmrem = new THREE.PMREMGenerator(this.renderer);
+      this.scene.environment = pmrem.fromScene(env, 0.04).texture;
+      pmrem.dispose();
+    } catch (e) { /* env is a nicety — flat lighting still works */ }
     this.camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
     // 3/4 view: lifted + slightly off-axis so the bore recedes and the couch/patient
     // sit inside a gantry with real depth (dead-on read as a flat SVG-style disc).
@@ -95,11 +152,12 @@ class GantryScene {
     this.lastH = 0;
 
     this.materials = {
-      // TrueBeam-style moulded fibreglass covers: warm ivory/pearl with warm-gray + charcoal details.
-      ivory: makeMat(0xe9e4d8, { roughness: 0.55, metalness: 0.06 }),
-      ivoryBright: makeMat(0xf4f0e6, { roughness: 0.5, metalness: 0.05 }),
-      warmGray: makeMat(0xb3b7bd, { roughness: 0.42, metalness: 0.3 }),
-      charcoal: makeMat(0x24272c, { roughness: 0.5, metalness: 0.3 }),
+      // TrueBeam-style moulded fibreglass covers: warm ivory/pearl with a lacquer clearcoat,
+      // machined warm-gray metal, and charcoal trim — tuned for the PMREM studio environment.
+      ivory: makeMat(0xe9e4d8, { roughness: 0.48, metalness: 0.03, clearcoat: 0.55, clearcoatRoughness: 0.42 }),
+      ivoryBright: makeMat(0xf4f0e6, { roughness: 0.44, metalness: 0.03, clearcoat: 0.6, clearcoatRoughness: 0.38 }),
+      warmGray: makeMat(0xb3b7bd, { roughness: 0.32, metalness: 0.65 }),
+      charcoal: makeMat(0x24272c, { roughness: 0.42, metalness: 0.35, clearcoat: 0.25 }),
       shell: makeMat(0x5e7692, { roughness: 0.28, metalness: 0.7 }),
       shellDark: makeMat(0x1d2b3c, { roughness: 0.45, metalness: 0.45 }),
       trim: makeMat(0xa8b9cf, { roughness: 0.22, metalness: 0.8 }),
@@ -257,21 +315,35 @@ class GantryScene {
   }
 
   build() {
-    // Warm-neutral studio light so the ivory covers read as fibreglass white, not blue plastic.
-    this.scene.add(new THREE.HemisphereLight(0xf1ece1, 0x0a0e14, 1.7));
-    const key = new THREE.DirectionalLight(0xfff3e2, 2.3);
-    key.position.set(-2.8, 3.8, 5.2);
+    // Warm-neutral studio light (the PMREM environment supplies the ambience/reflections; the
+    // directionals shape form). The key light casts the soft grounding shadow.
+    this.scene.add(new THREE.HemisphereLight(0xf1ece1, 0x0a0e14, 0.55));
+    const key = new THREE.DirectionalLight(0xfff3e2, 1.9);
+    key.position.set(-3.4, 5.2, 4.6);
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.camera.near = 1; key.shadow.camera.far = 18;
+    key.shadow.camera.left = key.shadow.camera.bottom = -4.5;
+    key.shadow.camera.right = key.shadow.camera.top = 4.5;
+    key.shadow.bias = -0.002; key.shadow.radius = 4;
     this.scene.add(key);
-    const rim = new THREE.DirectionalLight(0x73d8ff, 0.55);
+    const rim = new THREE.DirectionalLight(0x73d8ff, 0.4);
     rim.position.set(3.2, -1.5, 4);
     this.scene.add(rim);
 
     // TrueBeam STAND (fixed): an upright sculpted ivory tower — NOT a CT-style drum. The C-arm
     // (on the rig) emerges from a circular hub on its face and sweeps around the patient. Side
     // pods at couch height are where the kV imaging arms stow; a low plinth grounds it.
-    const tower = new THREE.Mesh(new THREE.BoxGeometry(1.7, 4.05, 0.95), this.materials.ivory);
-    tower.position.set(0, -0.12, -2.15);
+    const tower = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(1.7, 4.05, 0.3),
+        { depth: 0.8, bevelEnabled: true, bevelThickness: 0.09, bevelSize: 0.09, bevelSegments: 3, curveSegments: 24 }),
+      this.materials.ivory);
+    tower.position.set(0, -0.12, -2.62);   // extrudes toward the couch; soft moulded corners
     this.scene.add(tower);
+    // trueBEAM wordmark on the stand face (per the reference photos)
+    const mark = makeWordmark('trueBEAM', 1.05);
+    mark.position.set(0, 1.05, -1.58);
+    this.scene.add(mark);
     const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.6, 0.85), this.materials.ivoryBright);
     shoulderL.position.set(-1.05, 0.4, -2.12);
     this.scene.add(shoulderL);
@@ -307,10 +379,15 @@ class GantryScene {
     stopPip.position.set(0, -2.02, 0.08);
     this.scene.add(stopPip);
 
-    // couch + patient live in one movable group so they translate/rotate with the couch
-    // encoder values, while the machine isocentre, lasers and gantry stay fixed in space.
+    // couch + patient live in one movable group so they translate with the couch encoder values,
+    // while the machine isocentre, lasers and gantry stay fixed in space. Couch ROTATION (Rtn) is
+    // ISOCENTRIC on the real machine — the floor turntable's axis passes through isocentre and the
+    // whole stand swings around the patient — so the rotation lives on couchRot (at the iso axis),
+    // which carries BOTH the pedestal stand and the sliding tabletop.
+    this.couchRot = new THREE.Group();
+    this.scene.add(this.couchRot);
     this.table = new THREE.Group();
-    this.scene.add(this.table);
+    this.couchRot.add(this.table);
     this.tableOff = { x: 0, y: 0, z: 0, rtn: 0 };   // current (eased) couch offset, scene units
     this.tableGoal = { x: 0, y: 0, z: 0, rtn: 0 };  // target from the couch encoder state
     this.caseZCur = 0;   // eased per-case longitudinal slide (puts the treated site at iso)
@@ -338,18 +415,23 @@ class GantryScene {
     hub.position.z = -1.62;
     this.rig.add(hub);
 
-    // C-ARM — the TrueBeam's signature swoosh: a wide curved arm sweeping (in the beam plane) from
-    // the hub up and over to the treatment head. Approximated as chamfer-tilted ivory segments;
-    // at G0 it curves in the Y–Z plane and the whole arm rotates about the bore axis with the rig.
-    const seg = (w, h, d, x, y, z, rx) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), this.materials.ivory);
-      m.position.set(x, y, z); m.rotation.x = rx || 0;
-      this.rig.add(m); return m;
-    };
-    seg(1.05, 0.95, 0.42, 0, 0.5, -1.5, 0);             // root, growing off the hub
-    seg(1.05, 0.62, 0.62, 0, 1.02, -1.3, -0.5);         // lower bend
-    this.mvArm = seg(1.05, 0.56, 0.74, 0, 1.5, -0.94, -0.85);  // upper bend (shoulder)
-    seg(1.0, 0.52, 1.15, 0, 1.86, -0.35, 0);            // horizontal neck reaching over the head
+    // C-ARM — the TrueBeam's signature swoosh: ONE smooth curved arm swept from the hub up and
+    // over to the treatment head. Built as an annular-arc profile in the beam (Y–Z) plane and
+    // extruded across the arm's width with a soft bevel, so it reads as a moulded cover, not
+    // stacked boxes. At G0 it curves in Y–Z; the whole arm rotates about the bore axis with the rig.
+    const armShape = new THREE.Shape();
+    const AC = { x: -0.55, y: 0.6 }, R2 = 1.58, R1 = 0.92;   // shape-x = machine Z, shape-y = machine Y
+    const a1 = 58 * DEG, a2 = 205 * DEG;                      // head-top → over the top → down to the hub
+    armShape.absarc(AC.x, AC.y, R2, a1, a2, false);
+    armShape.absarc(AC.x, AC.y, R1, a2, a1, true);
+    armShape.closePath();
+    this.mvArm = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(armShape,
+        { depth: 0.92, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 3, curveSegments: 48 }),
+      this.materials.ivory);
+    this.mvArm.rotation.y = -Math.PI / 2;   // shape plane → machine Y–Z; extrusion spans machine X
+    this.mvArm.position.x = 0.54;
+    this.rig.add(this.mvArm);
 
     // TREATMENT HEAD — big two-tier cylinder aimed down the beam, with a machined warm-gray
     // collimator plate and charcoal light-field window on its face (per the reference photos).
@@ -365,6 +447,13 @@ class GantryScene {
     this.mvColl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.06, 0.3), this.materials.charcoal);
     this.mvColl.position.set(0, 0.915, this.ISO_Z);
     this.rig.add(this.mvColl);
+    // graticule crosshair on the light-field window (the fine cross visible in the photos)
+    const cross1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.008, 0.006), this.materials.warmGray);
+    cross1.position.set(0, 0.882, this.ISO_Z);
+    this.rig.add(cross1);
+    const cross2 = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.008, 0.26), this.materials.warmGray);
+    cross2.position.set(0, 0.882, this.ISO_Z);
+    this.rig.add(cross2);
 
     // ── Retractable imaging arms (Varian Exact™ robotic arms) ─────────────────────────────
     // On the real TrueBeam the kV source + kV flat panel attach to the ROTATING gantry on
@@ -376,39 +465,78 @@ class GantryScene {
     const armMount = (x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); this.rig.add(g); return g; };
     const rel = (mesh, gx, gy, gz, grp) => { mesh.position.set(gx - grp.position.x, gy - grp.position.y, gz - grp.position.z); grp.add(mesh); return mesh; };
 
-    // EPID (MV portal imager) opposite the head: charcoal panel + ivory tray on an angled E-arm.
+    // Moulded flat-panel imager: rounded ivory housing (extruded, bevelled) + thin charcoal reveal
+    // + inset active face + warm-gray wrist joint on the back. Built face-normal = local +Z inside
+    // a sub-Group so it can be oriented toward iso wherever the arm carries it.
+    const makePanel = (w, h, faceMat, fw, fh) => {
+      const g = new THREE.Group();
+      const housing = new THREE.Mesh(
+        new THREE.ExtrudeGeometry(roundedRect(w, h, 0.09),
+          { depth: 0.08, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.035, bevelSegments: 3, curveSegments: 20 }),
+        this.materials.ivory);
+      housing.position.z = -0.11;
+      g.add(housing);
+      const border = new THREE.Mesh(new THREE.BoxGeometry(fw + 0.05, fh + 0.05, 0.014), this.materials.charcoal);
+      border.position.z = 0.012; g.add(border);
+      const face = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.02), faceMat);
+      face.position.z = 0.024; g.add(face);
+      const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.15, 20), this.materials.warmGray);
+      wrist.rotation.x = Math.PI / 2; wrist.position.z = -0.17; g.add(wrist);
+      return { g, face };
+    };
+    // Two-link Exact arm: mount knuckle → capsule link → elbow knuckle → capsule link to the wrist.
+    const makeArm = (grp, r, ax, ay, az, ex, ey, ez, wx, wy, wz) => {
+      const knuckle = (x, y, z) => { const k = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.45, r * 1.45, r * 2.7, 20), this.materials.warmGray);
+        k.rotation.z = Math.PI / 2; rel(k, x, y, z, grp); };
+      const link = (x1, y1, z1, x2, y2, z2) => {
+        const d = new THREE.Vector3(x2 - x1, y2 - y1, z2 - z1), len = d.length();
+        const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 14), this.materials.ivory);
+        rel(m, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2, grp);
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+        return m;
+      };
+      knuckle(ax, ay, az);
+      const l1 = link(ax, ay, az, ex, ey, ez);
+      knuckle(ex, ey, ez);
+      link(ex, ey, ez, wx, wy, wz);
+      return l1;
+    };
+
+    // EPID (MV portal imager) opposite the head: the biggest panel, charcoal active face, on the
+    // beefier two-link E-arm.
     this.epidGroup = armMount(0, -0.85, -1.35);
-    this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.9, 0.26), this.materials.ivory);
-    rel(this.epidArm, 0, -1.0, -0.75, this.epidGroup);
-    this.epidArm.rotation.x = Math.atan2(1.55, -1.05);   // long axis runs hub → panel
-    this.epid = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.09, 0.72), this.materials.charcoal.clone());
-    rel(this.epid, 0, -1.62, this.ISO_Z, this.epidGroup);
-    const epidTray = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.78), this.materials.ivory);
-    rel(epidTray, 0, -1.69, this.ISO_Z, this.epidGroup);
+    this.epidArm = makeArm(this.epidGroup, 0.095, 0, -0.9, -1.28, 0, -1.45, -0.7, 0, -1.55, -0.14);
+    const epidAsm = makePanel(1.12, 0.84, this.materials.charcoal.clone(), 0.94, 0.68);
+    epidAsm.g.rotation.x = -Math.PI / 2;   // active face up, toward the treatment head
+    rel(epidAsm.g, 0, -1.66, this.ISO_Z, this.epidGroup);
+    this.epid = epidAsm.face;
 
-    // kV source arm (+X): straight deployed Exact arm with a warm-gray elbow + source cowl.
-    const kvTilt = Math.atan2(0.75, 1.45);   // arm run: (±0.75, 0, +1.45) from mount to couch level
+    // kV source (+X): compact cowl on its Exact arm — rounded housing with a charcoal collimator
+    // snout + recessed round aperture aimed at iso.
     this.kvSGroup = armMount(0.9, 0, -1.35);
-    this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
-    rel(this.kvArm, 1.17, 0, -0.78, this.kvSGroup);
-    this.kvArm.rotation.y = kvTilt;
-    const kvElbow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 12), this.materials.warmGray);
-    rel(kvElbow, 1.5, 0, -0.05, this.kvSGroup);
-    this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.6, 0.44), this.materials.ivory);
-    rel(this.kvSource, 1.6, 0, this.ISO_Z + 0.02, this.kvSGroup);
-    const kvWindow = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.22), this.materials.charcoal);
-    rel(kvWindow, 1.41, 0, this.ISO_Z, this.kvSGroup);
+    this.kvArm = makeArm(this.kvSGroup, 0.075, 0.95, 0, -1.28, 1.42, 0, -0.72, 1.6, 0, -0.16);
+    const srcAsm = new THREE.Group();
+    this.kvSource = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(0.46, 0.66, 0.09),
+        { depth: 0.2, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 3, curveSegments: 20 }),
+      this.materials.ivory);
+    this.kvSource.position.z = -0.05;
+    srcAsm.add(this.kvSource);
+    const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.11, 0.09, 24), this.materials.charcoal);
+    snout.rotation.x = Math.PI / 2; snout.position.z = 0.24; srcAsm.add(snout);
+    const aperture = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 20),
+      makeMat(0x0b0d10, { roughness: 0.3, metalness: 0.2 }));
+    aperture.rotation.x = Math.PI / 2; aperture.position.z = 0.285; srcAsm.add(aperture);
+    srcAsm.rotation.y = -Math.PI / 2;      // snout aims in −X, toward iso
+    rel(srcAsm, 1.78, 0, this.ISO_Z, this.kvSGroup);
 
-    // kV detector arm (−X): beige flat panel + ivory back on the mirrored Exact arm.
+    // kV detector (−X): the beige flat panel in its rounded ivory frame, face toward iso.
     this.kvDGroup = armMount(-0.9, 0, -1.35);
-    this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
-    rel(this.kvPanelArm, -1.17, 0, -0.78, this.kvDGroup);
-    this.kvPanelArm.rotation.y = -kvTilt;
-    this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.98, 0.72),
-      makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }));   // beige detector face (per photos)
-    rel(this.kvPanel, -1.7, 0, this.ISO_Z, this.kvDGroup);
-    const kvPanelBack = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.03, 0.78), this.materials.ivory);
-    rel(kvPanelBack, -1.77, 0, this.ISO_Z, this.kvDGroup);
+    this.kvPanelArm = makeArm(this.kvDGroup, 0.075, -0.95, 0, -1.28, -1.42, 0, -0.72, -1.6, 0, -0.12);
+    const kvdAsm = makePanel(0.8, 1.06, makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }), 0.62, 0.88);
+    kvdAsm.g.rotation.y = Math.PI / 2;     // active face toward iso (+X)
+    rel(kvdAsm.g, -1.74, 0, this.ISO_Z, this.kvDGroup);
+    this.kvPanel = kvdAsm.face;
 
     // Component labels — ride the arm groups so they follow deploy/retract + gantry rotation.
     this.mvLabel = makeLabel('MV', '#c99b28', 0.46);
@@ -506,6 +634,16 @@ class GantryScene {
 
     this.buildFloor();
     this.buildTurntable();
+
+    // Shadow pass: every opaque mesh casts + receives the key light's soft shadow (beams, lasers
+    // and other transparent effects are excluded so they stay pure light).
+    this.scene.traverse(o => {
+      if (o.isMesh && !o.userData.noShadow) {
+        const t = !!(o.material && o.material.transparent);
+        o.castShadow = !t;
+        o.receiveShadow = true;
+      }
+    });
   }
 
   // Depth polish: a dark floor plane + faint room grid + a soft contact shadow under the couch. The
@@ -520,26 +658,16 @@ class GantryScene {
     grid.position.y = this.FLOOR_Y + 0.02;
     grid.material.transparent = true; grid.material.opacity = 0.35; grid.material.depthWrite = false;
     this.scene.add(grid);
-    // contact shadow: radial-gradient sprite that tracks the couch translation (not rotation)
-    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-    const g2 = cv.getContext('2d');
-    const grd = g2.createRadialGradient(64, 64, 4, 64, 64, 62);
-    grd.addColorStop(0, 'rgba(0,0,0,0.55)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-    g2.fillStyle = grd; g2.fillRect(0, 0, 128, 128);
-    this.contactShadow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
-    this.contactShadow.scale.set(2.4, 1.3, 1);
-    this.contactShadow.position.set(0, this.FLOOR_Y + 0.03, 0.3);
-    this.contactShadow.material.rotation = Math.PI / 2;   // long axis along the couch (Z)
-    this.contactShadow.renderOrder = 1;
-    this.scene.add(this.contactShadow);
+    // (the old painted contact-shadow sprite is retired — the PCF shadow maps ground the couch
+    // for real now, and the painted blob read as a hole on the bright iso turntable)
   }
 
   // Couch turntable (Rtn) floor indicator: a green arc sweeping the kick angle + a label, shown only
   // when Rtn ≠ 0. Floor-fixed under the pedestal; rebuilt only when the angle changes (see apply()).
   buildTurntable() {
-    this.turntableArc = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.05, 8, 48, 0.001), this.materials.green);
+    this.turntableArc = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.05, 8, 48, 0.001), this.materials.green);
     this.turntableArc.rotation.x = -Math.PI / 2;
-    this.turntableArc.position.set(0, this.FLOOR_Y + 0.04, 0.3);
+    this.turntableArc.position.set(0, this.FLOOR_Y + 0.04, this.ISO_Z);   // sweeps around the iso turntable
     this.turntableArc.visible = false;
     this.scene.add(this.turntableArc);
     this.turntableLabel = makeLabel('', '#5fe0a0', 0.5);
@@ -573,36 +701,54 @@ class GantryScene {
   // Z (INTO the bore). It extends from the pedestal outside the bore (+Z, toward camera) through
   // the ring plane and into the tunnel (-Z). Y is vertical; couch sits just posterior (below +Y).
   buildCouch() {
+    // Exact IGRT tabletop: bare glossy carbon-fibre shell (no mattress, per the room photos) with a
+    // rounded head end and indexing notches along both edges for immobilisation devices.
     const g = new THREE.Group();
     const zc = -0.15;                    // couch centre depth (spans out toward camera + into bore)
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.05, 3.0), this.materials.couchTop);
-    plate.position.set(0, -0.255, zc);
-    g.add(plate);
-    const pad = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.07, 2.6), this.materials.pad);
-    pad.position.set(0, -0.205, zc);
-    g.add(pad);
-    [-0.31, 0.31].forEach(dx => {                       // side rails
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 3.0), this.materials.trim);
-      rail.position.set(dx, -0.235, zc);
-      g.add(rail);
-    });
-    g.userData.tip = 'Treatment couch — 6DOF; encoder Lat/Lng/Vrt/Rtn position the patient at isocentre.';
-    this.slider.add(g);  // couch TOP (plate/pad/rails) slides with the patient (telescopes through the pedestal)
+    const carbon = makeMat(0x1b1e23, { roughness: 0.34, metalness: 0.25, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+    const top = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(0.66, 3.0, 0.14),
+        { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2, curveSegments: 20 }),
+      carbon);
+    top.rotation.x = -Math.PI / 2;       // lay the plan-view profile flat; surface at y −0.17
+    top.position.set(0, -0.217, zc);
+    g.add(top);
+    for (let i = -4; i <= 4; i++) {      // index notches (H-positions) along both edges
+      [-0.305, 0.305].forEach(dx => {
+        const n = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.014, 0.05), this.materials.warmGray);
+        n.position.set(dx, -0.175, zc + i * 0.33);
+        g.add(n);
+      });
+    }
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 2.5), this.materials.charcoal);
+    spine.position.set(0, -0.27, zc);    // support spine under the shell
+    g.add(spine);
+    g.userData.tip = 'Exact IGRT couch top — carbon fibre, indexed; 6DOF Lat/Lng/Vrt/Rtn (+pitch/roll) position the patient at isocentre.';
+    this.slider.add(g);  // couch TOP slides with the patient (telescopes over the pedestal)
 
-    // pedestal + base are floor-fixed at the foot end (the couch top telescopes in/out of them), so
-    // they do NOT slide with the per-case longitudinal position or the couch encoder offset. The
-    // column runs from just under the couch top down to the floor (like a real treatment-couch stand).
-    const topY = -0.28, floorY = this.FLOOR_Y, colH = topY - (floorY + 0.1);
-    // PerfectPitch-style stand: ivory moulded pedestal column + charcoal floor base.
-    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.32, colH, 0.42), this.materials.ivory);
-    pedestal.position.set(0, (topY + floorY + 0.1) / 2, 1.2);
-    this.scene.add(pedestal);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.charcoal);
-    base.position.set(0, floorY + 0.06, 1.2);
-    this.scene.add(base);
-    // couch turntable — the flush ivory disc in the floor the whole couch kicks (Rtn) about
-    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.05, 48), this.materials.ivoryBright);
-    turntable.position.set(0, floorY + 0.03, 1.2);
+    // PerfectPitch-style stand — ON couchRot so Rtn swings it isocentrically around the patient:
+    // sculpted ivory lift column (telescopes with Vrt in apply()), charcoal floor base, and the
+    // 12 cm 2DOF pitch/roll module between column and tabletop.
+    const topY = -0.34, floorY = this.FLOOR_Y;
+    this.pedColH = topY - (floorY + 0.1);
+    this.pedestal = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(0.44, 0.56, 0.1),
+        { depth: this.pedColH, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 16 }),
+      this.materials.ivory);
+    this.pedestal.rotation.x = -Math.PI / 2;             // extrude upward from the base
+    this.pedestal.position.set(0, floorY + 0.1, 1.05);
+    this.couchRot.add(this.pedestal);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.95), this.materials.charcoal);
+    base.position.set(0, floorY + 0.06, 1.05);
+    this.couchRot.add(base);
+    const dofModule = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.6), this.materials.charcoal);
+    dofModule.position.set(0, -0.33, 1.05);              // the PerfectPitch 2DOF pitch/roll module
+    dofModule.userData.tip = 'PerfectPitch 2DOF module — adds ±3° pitch and roll between the lift column and the tabletop.';
+    this.table.add(dofModule);                           // bolted to the tabletop underside — rides Vrt/Lat/Lng
+    // couch turntable — flush floor disc CENTRED UNDER ISOCENTRE: its axis passes through iso, so
+    // a couch kick (Rtn) swings the whole stand around the patient, not the patient around the room.
+    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 1.18, 0.05, 56), this.materials.ivoryBright);
+    turntable.position.set(0, floorY + 0.03, this.ISO_Z);
     this.scene.add(turntable);
   }
 
@@ -754,18 +900,17 @@ class GantryScene {
     o.x += (gl.x - o.x) * kc; o.y += (gl.y - o.y) * kc; o.z += (gl.z - o.z) * kc; o.rtn += (gl.rtn - o.rtn) * kc;
     this.caseZCur += (this.caseZGoal - this.caseZCur) * kc;   // ease the per-case longitudinal slide
     this.table.position.set(o.x, o.y, o.z);
-    this.table.rotation.y = o.rtn;
+    this.couchRot.rotation.y = o.rtn;                         // isocentric kick: stand + top swing about iso
+    if (this.pedestal) this.pedestal.scale.z = Math.max(0.5, (this.pedColH + o.y) / this.pedColH);   // lift column telescopes with Vrt
     this.slider.position.z = this.caseZCur;                   // couch top + patient telescope per case
     this.patientGroup.rotation.y = this.feetFirst ? Math.PI : 0;   // head-first vs feet-first
-    this.contactShadow.position.x = o.x;                     // shadow tracks couch translation, not rotation
-    this.contactShadow.position.z = 0.3 + o.z;
 
     // Couch turntable (Rtn) floor arc + label — shown only when kicked; rebuilt only on angle change.
     const rtnDeg = o.rtn / DEG;
     if (Math.abs(rtnDeg) > 0.4) {
       if (Math.abs(rtnDeg - this.lastRtn) > 0.4) {
         this.turntableArc.geometry.dispose();
-        this.turntableArc.geometry = new THREE.TorusGeometry(1.5, 0.05, 8, 48, Math.abs(o.rtn));
+        this.turntableArc.geometry = new THREE.TorusGeometry(1.3, 0.05, 8, 48, Math.abs(o.rtn));
         this.turntableArc.rotation.z = o.rtn < 0 ? -Math.abs(o.rtn) : 0;
         setLabel(this.turntableLabel, 'Rtn ' + (rtnDeg > 0 ? '+' : '') + rtnDeg.toFixed(1) + '°', '#5fe0a0');
         this.lastRtn = rtnDeg;
