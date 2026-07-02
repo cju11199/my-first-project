@@ -379,10 +379,15 @@ class GantryScene {
     stopPip.position.set(0, -2.02, 0.08);
     this.scene.add(stopPip);
 
-    // couch + patient live in one movable group so they translate/rotate with the couch
-    // encoder values, while the machine isocentre, lasers and gantry stay fixed in space.
+    // couch + patient live in one movable group so they translate with the couch encoder values,
+    // while the machine isocentre, lasers and gantry stay fixed in space. Couch ROTATION (Rtn) is
+    // ISOCENTRIC on the real machine — the floor turntable's axis passes through isocentre and the
+    // whole stand swings around the patient — so the rotation lives on couchRot (at the iso axis),
+    // which carries BOTH the pedestal stand and the sliding tabletop.
+    this.couchRot = new THREE.Group();
+    this.scene.add(this.couchRot);
     this.table = new THREE.Group();
-    this.scene.add(this.table);
+    this.couchRot.add(this.table);
     this.tableOff = { x: 0, y: 0, z: 0, rtn: 0 };   // current (eased) couch offset, scene units
     this.tableGoal = { x: 0, y: 0, z: 0, rtn: 0 };  // target from the couch encoder state
     this.caseZCur = 0;   // eased per-case longitudinal slide (puts the treated site at iso)
@@ -653,26 +658,16 @@ class GantryScene {
     grid.position.y = this.FLOOR_Y + 0.02;
     grid.material.transparent = true; grid.material.opacity = 0.35; grid.material.depthWrite = false;
     this.scene.add(grid);
-    // contact shadow: radial-gradient sprite that tracks the couch translation (not rotation)
-    const cv = document.createElement('canvas'); cv.width = cv.height = 128;
-    const g2 = cv.getContext('2d');
-    const grd = g2.createRadialGradient(64, 64, 4, 64, 64, 62);
-    grd.addColorStop(0, 'rgba(0,0,0,0.55)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
-    g2.fillStyle = grd; g2.fillRect(0, 0, 128, 128);
-    this.contactShadow = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthWrite: false }));
-    this.contactShadow.scale.set(2.4, 1.3, 1);
-    this.contactShadow.position.set(0, this.FLOOR_Y + 0.03, 0.3);
-    this.contactShadow.material.rotation = Math.PI / 2;   // long axis along the couch (Z)
-    this.contactShadow.renderOrder = 1;
-    this.scene.add(this.contactShadow);
+    // (the old painted contact-shadow sprite is retired — the PCF shadow maps ground the couch
+    // for real now, and the painted blob read as a hole on the bright iso turntable)
   }
 
   // Couch turntable (Rtn) floor indicator: a green arc sweeping the kick angle + a label, shown only
   // when Rtn ≠ 0. Floor-fixed under the pedestal; rebuilt only when the angle changes (see apply()).
   buildTurntable() {
-    this.turntableArc = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.05, 8, 48, 0.001), this.materials.green);
+    this.turntableArc = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.05, 8, 48, 0.001), this.materials.green);
     this.turntableArc.rotation.x = -Math.PI / 2;
-    this.turntableArc.position.set(0, this.FLOOR_Y + 0.04, 0.3);
+    this.turntableArc.position.set(0, this.FLOOR_Y + 0.04, this.ISO_Z);   // sweeps around the iso turntable
     this.turntableArc.visible = false;
     this.scene.add(this.turntableArc);
     this.turntableLabel = makeLabel('', '#5fe0a0', 0.5);
@@ -706,36 +701,54 @@ class GantryScene {
   // Z (INTO the bore). It extends from the pedestal outside the bore (+Z, toward camera) through
   // the ring plane and into the tunnel (-Z). Y is vertical; couch sits just posterior (below +Y).
   buildCouch() {
+    // Exact IGRT tabletop: bare glossy carbon-fibre shell (no mattress, per the room photos) with a
+    // rounded head end and indexing notches along both edges for immobilisation devices.
     const g = new THREE.Group();
     const zc = -0.15;                    // couch centre depth (spans out toward camera + into bore)
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.05, 3.0), this.materials.couchTop);
-    plate.position.set(0, -0.255, zc);
-    g.add(plate);
-    const pad = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.07, 2.6), this.materials.pad);
-    pad.position.set(0, -0.205, zc);
-    g.add(pad);
-    [-0.31, 0.31].forEach(dx => {                       // side rails
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.055, 3.0), this.materials.trim);
-      rail.position.set(dx, -0.235, zc);
-      g.add(rail);
-    });
-    g.userData.tip = 'Treatment couch — 6DOF; encoder Lat/Lng/Vrt/Rtn position the patient at isocentre.';
-    this.slider.add(g);  // couch TOP (plate/pad/rails) slides with the patient (telescopes through the pedestal)
+    const carbon = makeMat(0x1b1e23, { roughness: 0.34, metalness: 0.25, clearcoat: 0.5, clearcoatRoughness: 0.3 });
+    const top = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(0.66, 3.0, 0.14),
+        { depth: 0.035, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2, curveSegments: 20 }),
+      carbon);
+    top.rotation.x = -Math.PI / 2;       // lay the plan-view profile flat; surface at y −0.17
+    top.position.set(0, -0.217, zc);
+    g.add(top);
+    for (let i = -4; i <= 4; i++) {      // index notches (H-positions) along both edges
+      [-0.305, 0.305].forEach(dx => {
+        const n = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.014, 0.05), this.materials.warmGray);
+        n.position.set(dx, -0.175, zc + i * 0.33);
+        g.add(n);
+      });
+    }
+    const spine = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.07, 2.5), this.materials.charcoal);
+    spine.position.set(0, -0.27, zc);    // support spine under the shell
+    g.add(spine);
+    g.userData.tip = 'Exact IGRT couch top — carbon fibre, indexed; 6DOF Lat/Lng/Vrt/Rtn (+pitch/roll) position the patient at isocentre.';
+    this.slider.add(g);  // couch TOP slides with the patient (telescopes over the pedestal)
 
-    // pedestal + base are floor-fixed at the foot end (the couch top telescopes in/out of them), so
-    // they do NOT slide with the per-case longitudinal position or the couch encoder offset. The
-    // column runs from just under the couch top down to the floor (like a real treatment-couch stand).
-    const topY = -0.28, floorY = this.FLOOR_Y, colH = topY - (floorY + 0.1);
-    // PerfectPitch-style stand: ivory moulded pedestal column + charcoal floor base.
-    const pedestal = new THREE.Mesh(new THREE.BoxGeometry(0.32, colH, 0.42), this.materials.ivory);
-    pedestal.position.set(0, (topY + floorY + 0.1) / 2, 1.2);
-    this.scene.add(pedestal);
-    const base = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.12, 0.9), this.materials.charcoal);
-    base.position.set(0, floorY + 0.06, 1.2);
-    this.scene.add(base);
-    // couch turntable — the flush ivory disc in the floor the whole couch kicks (Rtn) about
-    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.05, 48), this.materials.ivoryBright);
-    turntable.position.set(0, floorY + 0.03, 1.2);
+    // PerfectPitch-style stand — ON couchRot so Rtn swings it isocentrically around the patient:
+    // sculpted ivory lift column (telescopes with Vrt in apply()), charcoal floor base, and the
+    // 12 cm 2DOF pitch/roll module between column and tabletop.
+    const topY = -0.34, floorY = this.FLOOR_Y;
+    this.pedColH = topY - (floorY + 0.1);
+    this.pedestal = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(0.44, 0.56, 0.1),
+        { depth: this.pedColH, bevelEnabled: true, bevelThickness: 0.03, bevelSize: 0.03, bevelSegments: 2, curveSegments: 16 }),
+      this.materials.ivory);
+    this.pedestal.rotation.x = -Math.PI / 2;             // extrude upward from the base
+    this.pedestal.position.set(0, floorY + 0.1, 1.05);
+    this.couchRot.add(this.pedestal);
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.12, 0.95), this.materials.charcoal);
+    base.position.set(0, floorY + 0.06, 1.05);
+    this.couchRot.add(base);
+    const dofModule = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 0.6), this.materials.charcoal);
+    dofModule.position.set(0, -0.33, 1.05);              // the PerfectPitch 2DOF pitch/roll module
+    dofModule.userData.tip = 'PerfectPitch 2DOF module — adds ±3° pitch and roll between the lift column and the tabletop.';
+    this.table.add(dofModule);                           // bolted to the tabletop underside — rides Vrt/Lat/Lng
+    // couch turntable — flush floor disc CENTRED UNDER ISOCENTRE: its axis passes through iso, so
+    // a couch kick (Rtn) swings the whole stand around the patient, not the patient around the room.
+    const turntable = new THREE.Mesh(new THREE.CylinderGeometry(1.18, 1.18, 0.05, 56), this.materials.ivoryBright);
+    turntable.position.set(0, floorY + 0.03, this.ISO_Z);
     this.scene.add(turntable);
   }
 
@@ -887,18 +900,17 @@ class GantryScene {
     o.x += (gl.x - o.x) * kc; o.y += (gl.y - o.y) * kc; o.z += (gl.z - o.z) * kc; o.rtn += (gl.rtn - o.rtn) * kc;
     this.caseZCur += (this.caseZGoal - this.caseZCur) * kc;   // ease the per-case longitudinal slide
     this.table.position.set(o.x, o.y, o.z);
-    this.table.rotation.y = o.rtn;
+    this.couchRot.rotation.y = o.rtn;                         // isocentric kick: stand + top swing about iso
+    if (this.pedestal) this.pedestal.scale.z = Math.max(0.5, (this.pedColH + o.y) / this.pedColH);   // lift column telescopes with Vrt
     this.slider.position.z = this.caseZCur;                   // couch top + patient telescope per case
     this.patientGroup.rotation.y = this.feetFirst ? Math.PI : 0;   // head-first vs feet-first
-    this.contactShadow.position.x = o.x;                     // shadow tracks couch translation, not rotation
-    this.contactShadow.position.z = 0.3 + o.z;
 
     // Couch turntable (Rtn) floor arc + label — shown only when kicked; rebuilt only on angle change.
     const rtnDeg = o.rtn / DEG;
     if (Math.abs(rtnDeg) > 0.4) {
       if (Math.abs(rtnDeg - this.lastRtn) > 0.4) {
         this.turntableArc.geometry.dispose();
-        this.turntableArc.geometry = new THREE.TorusGeometry(1.5, 0.05, 8, 48, Math.abs(o.rtn));
+        this.turntableArc.geometry = new THREE.TorusGeometry(1.3, 0.05, 8, 48, Math.abs(o.rtn));
         this.turntableArc.rotation.z = o.rtn < 0 ? -Math.abs(o.rtn) : 0;
         setLabel(this.turntableLabel, 'Rtn ' + (rtnDeg > 0 ? '+' : '') + rtnDeg.toFixed(1) + '°', '#5fe0a0');
         this.lastRtn = rtnDeg;
