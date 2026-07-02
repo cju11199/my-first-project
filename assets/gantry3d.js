@@ -460,39 +460,78 @@ class GantryScene {
     const armMount = (x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); this.rig.add(g); return g; };
     const rel = (mesh, gx, gy, gz, grp) => { mesh.position.set(gx - grp.position.x, gy - grp.position.y, gz - grp.position.z); grp.add(mesh); return mesh; };
 
-    // EPID (MV portal imager) opposite the head: charcoal panel + ivory tray on an angled E-arm.
+    // Moulded flat-panel imager: rounded ivory housing (extruded, bevelled) + thin charcoal reveal
+    // + inset active face + warm-gray wrist joint on the back. Built face-normal = local +Z inside
+    // a sub-Group so it can be oriented toward iso wherever the arm carries it.
+    const makePanel = (w, h, faceMat, fw, fh) => {
+      const g = new THREE.Group();
+      const housing = new THREE.Mesh(
+        new THREE.ExtrudeGeometry(roundedRect(w, h, 0.09),
+          { depth: 0.08, bevelEnabled: true, bevelThickness: 0.035, bevelSize: 0.035, bevelSegments: 3, curveSegments: 20 }),
+        this.materials.ivory);
+      housing.position.z = -0.11;
+      g.add(housing);
+      const border = new THREE.Mesh(new THREE.BoxGeometry(fw + 0.05, fh + 0.05, 0.014), this.materials.charcoal);
+      border.position.z = 0.012; g.add(border);
+      const face = new THREE.Mesh(new THREE.BoxGeometry(fw, fh, 0.02), faceMat);
+      face.position.z = 0.024; g.add(face);
+      const wrist = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.15, 20), this.materials.warmGray);
+      wrist.rotation.x = Math.PI / 2; wrist.position.z = -0.17; g.add(wrist);
+      return { g, face };
+    };
+    // Two-link Exact arm: mount knuckle → capsule link → elbow knuckle → capsule link to the wrist.
+    const makeArm = (grp, r, ax, ay, az, ex, ey, ez, wx, wy, wz) => {
+      const knuckle = (x, y, z) => { const k = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.45, r * 1.45, r * 2.7, 20), this.materials.warmGray);
+        k.rotation.z = Math.PI / 2; rel(k, x, y, z, grp); };
+      const link = (x1, y1, z1, x2, y2, z2) => {
+        const d = new THREE.Vector3(x2 - x1, y2 - y1, z2 - z1), len = d.length();
+        const m = new THREE.Mesh(new THREE.CapsuleGeometry(r, len, 4, 14), this.materials.ivory);
+        rel(m, (x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2, grp);
+        m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+        return m;
+      };
+      knuckle(ax, ay, az);
+      const l1 = link(ax, ay, az, ex, ey, ez);
+      knuckle(ex, ey, ez);
+      link(ex, ey, ez, wx, wy, wz);
+      return l1;
+    };
+
+    // EPID (MV portal imager) opposite the head: the biggest panel, charcoal active face, on the
+    // beefier two-link E-arm.
     this.epidGroup = armMount(0, -0.85, -1.35);
-    this.epidArm = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.9, 0.26), this.materials.ivory);
-    rel(this.epidArm, 0, -1.0, -0.75, this.epidGroup);
-    this.epidArm.rotation.x = Math.atan2(1.55, -1.05);   // long axis runs hub → panel
-    this.epid = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.09, 0.72), this.materials.charcoal.clone());
-    rel(this.epid, 0, -1.62, this.ISO_Z, this.epidGroup);
-    const epidTray = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.78), this.materials.ivory);
-    rel(epidTray, 0, -1.69, this.ISO_Z, this.epidGroup);
+    this.epidArm = makeArm(this.epidGroup, 0.095, 0, -0.9, -1.28, 0, -1.45, -0.7, 0, -1.55, -0.14);
+    const epidAsm = makePanel(1.12, 0.84, this.materials.charcoal.clone(), 0.94, 0.68);
+    epidAsm.g.rotation.x = -Math.PI / 2;   // active face up, toward the treatment head
+    rel(epidAsm.g, 0, -1.66, this.ISO_Z, this.epidGroup);
+    this.epid = epidAsm.face;
 
-    // kV source arm (+X): straight deployed Exact arm with a warm-gray elbow + source cowl.
-    const kvTilt = Math.atan2(0.75, 1.45);   // arm run: (±0.75, 0, +1.45) from mount to couch level
+    // kV source (+X): compact cowl on its Exact arm — rounded housing with a charcoal collimator
+    // snout + recessed round aperture aimed at iso.
     this.kvSGroup = armMount(0.9, 0, -1.35);
-    this.kvArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
-    rel(this.kvArm, 1.17, 0, -0.78, this.kvSGroup);
-    this.kvArm.rotation.y = kvTilt;
-    const kvElbow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 12), this.materials.warmGray);
-    rel(kvElbow, 1.5, 0, -0.05, this.kvSGroup);
-    this.kvSource = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.6, 0.44), this.materials.ivory);
-    rel(this.kvSource, 1.6, 0, this.ISO_Z + 0.02, this.kvSGroup);
-    const kvWindow = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.22), this.materials.charcoal);
-    rel(kvWindow, 1.41, 0, this.ISO_Z, this.kvSGroup);
+    this.kvArm = makeArm(this.kvSGroup, 0.075, 0.95, 0, -1.28, 1.42, 0, -0.72, 1.6, 0, -0.16);
+    const srcAsm = new THREE.Group();
+    this.kvSource = new THREE.Mesh(
+      new THREE.ExtrudeGeometry(roundedRect(0.46, 0.66, 0.09),
+        { depth: 0.2, bevelEnabled: true, bevelThickness: 0.04, bevelSize: 0.04, bevelSegments: 3, curveSegments: 20 }),
+      this.materials.ivory);
+    this.kvSource.position.z = -0.05;
+    srcAsm.add(this.kvSource);
+    const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.11, 0.09, 24), this.materials.charcoal);
+    snout.rotation.x = Math.PI / 2; snout.position.z = 0.24; srcAsm.add(snout);
+    const aperture = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 20),
+      makeMat(0x0b0d10, { roughness: 0.3, metalness: 0.2 }));
+    aperture.rotation.x = Math.PI / 2; aperture.position.z = 0.285; srcAsm.add(aperture);
+    srcAsm.rotation.y = -Math.PI / 2;      // snout aims in −X, toward iso
+    rel(srcAsm, 1.78, 0, this.ISO_Z, this.kvSGroup);
 
-    // kV detector arm (−X): beige flat panel + ivory back on the mirrored Exact arm.
+    // kV detector (−X): the beige flat panel in its rounded ivory frame, face toward iso.
     this.kvDGroup = armMount(-0.9, 0, -1.35);
-    this.kvPanelArm = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 1.7), this.materials.ivory);
-    rel(this.kvPanelArm, -1.17, 0, -0.78, this.kvDGroup);
-    this.kvPanelArm.rotation.y = -kvTilt;
-    this.kvPanel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.98, 0.72),
-      makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }));   // beige detector face (per photos)
-    rel(this.kvPanel, -1.7, 0, this.ISO_Z, this.kvDGroup);
-    const kvPanelBack = new THREE.Mesh(new THREE.BoxGeometry(0.05, 1.03, 0.78), this.materials.ivory);
-    rel(kvPanelBack, -1.77, 0, this.ISO_Z, this.kvDGroup);
+    this.kvPanelArm = makeArm(this.kvDGroup, 0.075, -0.95, 0, -1.28, -1.42, 0, -0.72, -1.6, 0, -0.12);
+    const kvdAsm = makePanel(0.8, 1.06, makeMat(0xcfbd96, { roughness: 0.6, metalness: 0.08 }), 0.62, 0.88);
+    kvdAsm.g.rotation.y = Math.PI / 2;     // active face toward iso (+X)
+    rel(kvdAsm.g, -1.74, 0, this.ISO_Z, this.kvDGroup);
+    this.kvPanel = kvdAsm.face;
 
     // Component labels — ride the arm groups so they follow deploy/retract + gantry rotation.
     this.mvLabel = makeLabel('MV', '#c99b28', 0.46);
